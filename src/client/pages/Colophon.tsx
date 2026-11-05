@@ -21,7 +21,7 @@ const SECTIONS: Array<{ title: string; intro: string; rows: Row[] }> = [
       { name: "Cloudflare Workers", detail: "Runs the API and serves the web app as static assets. Compatibility date 2026-10-01, with nodejs_compat.", href: "https://developers.cloudflare.com/workers/" },
       { name: "Cloudflare D1", detail: "SQLite database for people, projects, members, tasks and sessions. SQL migrations run on every deploy.", href: "https://developers.cloudflare.com/d1/" },
       { name: "Cloudflare R2", detail: "Object storage for task attachments, up to 25 MB per file.", href: "https://developers.cloudflare.com/r2/" },
-      { name: "Cron Triggers", detail: "A daily job deletes expired sign-in codes and sessions.", href: "https://developers.cloudflare.com/workers/configuration/cron-triggers/" },
+      { name: "Cron Triggers", detail: "A daily job deletes expired sign-in codes and sessions, and expires agent approvals that nobody answered.", href: "https://developers.cloudflare.com/workers/configuration/cron-triggers/" },
       { name: "Deploy to Cloudflare", detail: "One-click deploy. It creates the database and the bucket, then asks for the secrets.", href: "https://developers.cloudflare.com/workers/platform/deploy-buttons/" }
     ]
   },
@@ -54,7 +54,7 @@ const SECTIONS: Array<{ title: string; intro: string; rows: Row[] }> = [
       { name: "React 19.3", detail: "The web app. No UI framework and no state library.", href: "https://react.dev" },
       { name: "Vite 8.3", detail: "Builds the web app.", href: "https://vite.dev" },
       { name: "Wrangler 4.158", detail: "Local development, migrations and deploys.", href: "https://developers.cloudflare.com/workers/wrangler/" },
-      { name: "Node test runner", detail: "Unit tests for dates, the AI planner and the AG-UI client. GitHub Actions runs type checks, tests and a build on every push." }
+      { name: "Node test runner", detail: "Unit tests for dates, the AI planner, the AG-UI client and agent access rules. GitHub Actions runs type checks, tests and a build on every push." }
     ]
   },
   {

@@ -13,7 +13,7 @@ OpenAct runs on Cloudflare. One Worker serves the API and the web app.
 | [Cloudflare Workers](https://developers.cloudflare.com/workers/) | Runs the API and serves the web app as static assets. Compatibility date 2026-10-01, with `nodejs_compat`. |
 | [Cloudflare D1](https://developers.cloudflare.com/d1/) | SQLite database for people, projects, members, tasks and sessions. SQL migrations run on every deploy. |
 | [Cloudflare R2](https://developers.cloudflare.com/r2/) | Object storage for task attachments, up to 25 MB per file. |
-| [Cron Triggers](https://developers.cloudflare.com/workers/configuration/cron-triggers/) | A daily job deletes expired sign-in codes and sessions. |
+| [Cron Triggers](https://developers.cloudflare.com/workers/configuration/cron-triggers/) | A daily job deletes expired sign-in codes and sessions, and expires agent approvals that nobody answered. |
 | [Deploy to Cloudflare](https://developers.cloudflare.com/workers/platform/deploy-buttons/) | One-click deploy. It creates the database and the bucket, then asks for the secrets. |
 
 ## AI
@@ -50,7 +50,7 @@ A small set of dependencies. The Worker has one runtime dependency, Hono.
 | [Vite](https://vite.dev) | 8.3.6 | Builds the web app |
 | [Wrangler](https://developers.cloudflare.com/workers/wrangler/) | 4.158.0 | Local development, migrations and deploys |
 | [@ag-ui/core](https://www.npmjs.com/package/@ag-ui/core) | 1.0.4 | AG-UI types, imported as types only |
-| Node test runner | Built in | Unit tests for dates, the AI planner and the AG-UI client |
+| Node test runner | Built in | Unit tests for dates, the AI planner, the AG-UI client and agent access rules |
 | GitHub Actions | | Type checks, tests, a build and a deploy dry run on every push |
 
 ## Design
