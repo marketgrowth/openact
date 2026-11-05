@@ -1962,3 +1962,79 @@ body::before {
 .ask-form input {
   flex: 1;
 }
+
+/* colophon */
+.colophon {
+  max-width: 920px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+.colophon h1 {
+  font-family: var(--f-display);
+  font-stretch: 88%;
+  font-weight: 800;
+  font-size: clamp(28px, 4vw, 38px);
+  line-height: 1.1;
+  margin-top: -18px;
+}
+.colophon .lead {
+  font-size: 16px;
+  max-width: 62ch;
+  margin-top: -12px;
+}
+.colo-section {
+  display: grid;
+  grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
+  gap: 12px 28px;
+  border-top: 1px solid var(--line);
+  padding-top: 20px;
+}
+.colo-head h2 {
+  font-family: var(--f-display);
+  font-stretch: 88%;
+  font-weight: 750;
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+.colo-head p {
+  font-size: 13px;
+}
+.colo-list {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+.colo-row {
+  display: grid;
+  grid-template-columns: minmax(0, 200px) minmax(0, 1fr);
+  gap: 4px 20px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+.colo-row:last-child {
+  border-bottom: 0;
+}
+.colo-row dt {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.colo-row dt a {
+  color: var(--ink);
+  text-decoration-color: var(--line);
+  text-underline-offset: 3px;
+}
+.colo-row dt a:hover {
+  color: var(--accent);
+  text-decoration-color: currentColor;
+}
+.colo-row dd {
+  margin: 0;
+  color: var(--muted);
+}
+@media (max-width: 720px) {
+  .colo-section,
+  .colo-row {
+    grid-template-columns: 1fr;
+  }
+}

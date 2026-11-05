@@ -6,6 +6,7 @@ import { Avatar, Icon, Logo, Modal, ThemeSwitch, ToastProvider, useToast } from 
 import { SignIn } from "./pages/SignIn";
 import { ProjectsPage } from "./pages/Projects";
 import { ProjectPage } from "./pages/Project";
+import { Colophon } from "./pages/Colophon";
 
 export function App() {
   return (
@@ -35,6 +36,7 @@ function Shell() {
 
   const closeAccount = useCallback(() => setAccount(false), []);
 
+  if (path === "/colophon") return <Colophon config={config} signedIn={!!me} />;
   if (me === undefined) return <div className="splash" aria-busy="true" />;
   if (!me) return <SignIn config={config} onSignedIn={setMe} />;
 
@@ -113,6 +115,12 @@ function AccountDialog({ me, onChange, onClose }: { me: User; onChange: (u: User
           Sign out on all devices
         </button>
       </div>
+      <p className="hint">
+        <Link to="/colophon" onClick={onClose}>
+          How OpenAct is made
+        </Link>{" "}
+        · Open source by MarketGrowth
+      </p>
     </Modal>
   );
 }

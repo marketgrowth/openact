@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { AppConfig, User } from "../../shared/types";
 import { api, errorText } from "../api";
 import { Logo, ThemeSwitch } from "../ui";
+import { Link } from "../router";
 
 /** Passwordless sign-in: email first, then the 6-digit code from the inbox. */
 export function SignIn({ config, onSignedIn }: { config: AppConfig; onSignedIn: (u: User) => void }) {
@@ -127,7 +128,9 @@ export function SignIn({ config, onSignedIn }: { config: AppConfig; onSignedIn: 
         Open source by MarketGrowth.{" "}
         <a href="https://github.com/marketgrowth/openact" target="_blank" rel="noreferrer">
           View on GitHub
-        </a>
+        </a>{" "}
+        ·{" "}
+        <Link to="/colophon">Colophon</Link>
       </p>
     </div>
   );

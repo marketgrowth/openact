@@ -146,6 +146,8 @@ OpenAct stores only SHA-256 hashes of codes and session tokens. It limits code r
 
 ## How it is built
 
+For the full list of tools, services, fonts and versions, read the [Colophon](docs/COLOPHON.md). The app shows it at `/colophon`.
+
 | Part | Choice |
 | --- | --- |
 | Runtime | Cloudflare Workers |
