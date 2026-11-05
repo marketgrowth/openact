@@ -1,0 +1,84 @@
+{
+  "name": "openact",
+  "version": "0.1.0",
+  "description": "Open source project management with a Kanban board and a Gantt timeline. Runs on Cloudflare Workers, D1 and R2.",
+  "license": "MIT",
+  "author": "MarketGrowth (https://marketgrowth.io)",
+  "homepage": "https://github.com/marketgrowth/openact",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/marketgrowth/openact.git"
+  },
+  "bugs": "https://github.com/marketgrowth/openact/issues",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "npm run build && npm run db:migrate:local && wrangler dev --local",
+    "dev:ai": "npm run build && npm run db:migrate:local && wrangler dev",
+    "dev:ui": "vite",
+    "build": "vite build",
+    "preview": "npm run build && wrangler dev --local",
+    "typecheck": "tsc -p tsconfig.worker.json --noEmit && tsc -p tsconfig.client.json --noEmit",
+    "test": "node --experimental-strip-types --test test/*.test.ts",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
+    "deploy": "npm run db:migrate:remote && wrangler deploy"
+  },
+  "cloudflare": {
+    "bindings": {
+      "RESEND_API_KEY": {
+        "description": "Your [Resend](https://resend.com/api-keys) API key. OpenAct sends sign-in codes and project invitations with it. Verify the sending domain in Resend first."
+      },
+      "AUTH_SECRET": {
+        "description": "A long random string. OpenAct uses it to protect sign-in codes. Make one with `openssl rand -hex 32`."
+      },
+      "EMAIL_FROM": {
+        "description": "The sender for emails, for example `OpenAct <no-reply@yourdomain.com>`. The domain must be verified in Resend."
+      },
+      "APP_NAME": {
+        "description": "The name people see in the app and in emails."
+      },
+      "SIGNUP_MODE": {
+        "description": "`open` lets anyone sign up. `invite` lets only invited people sign up. The first person can always sign up."
+      },
+      "ALLOWED_EMAIL_DOMAINS": {
+        "description": "Optional. A comma-separated list such as `example.com,example.org`. Leave empty to allow all domains."
+      },
+      "AI_GATEWAY_ID": {
+        "description": "The name of your [AI Gateway](https://developers.cloudflare.com/ai-gateway/). AI requests go through it for logs, caching and rate limits."
+      },
+      "AI_PROVIDER": {
+        "description": "`workers-ai` (no key needed), `anthropic` or `openai`. For `anthropic` or `openai`, add the API key as a secret and set `CF_ACCOUNT_ID`."
+      },
+      "AI_MODEL": {
+        "description": "The model ID for the selected provider."
+      },
+      "CF_ACCOUNT_ID": {
+        "description": "Your Cloudflare account ID. Needed only when `AI_PROVIDER` is `anthropic` or `openai`."
+      },
+      "DB": {
+        "description": "The D1 database for users, projects and tasks."
+      },
+      "FILES": {
+        "description": "The R2 bucket for task attachments."
+      }
+    }
+  },
+  "dependencies": {
+    "hono": "^4.13.16",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261104.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.2.1",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.6",
+    "wrangler": "^4.158.0"
+  }
+}

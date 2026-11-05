@@ -1,0 +1,2 @@
+RESEND_API_KEY=re_your_resend_api_key # From resend.com/api-keys. Leave empty in local dev to print sign-in codes to the terminal.
+AUTH_SECRET=replace-with-a-long-random-string # Make one with: openssl rand -hex 32

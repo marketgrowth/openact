@@ -1,0 +1,52 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "openact",
+  "main": "src/worker/index.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "upload_source_maps": true,
+  "observability": { "enabled": true },
+
+  // The web app is built by Vite into dist/client. The Worker answers /api/* first.
+  "assets": {
+    "directory": "./dist/client",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+
+  // Users, projects, members, tasks and sessions.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "openact",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  // Task attachments.
+  "r2_buckets": [
+    {
+      "binding": "FILES",
+      "bucket_name": "openact-files"
+    }
+  ],
+
+  // Workers AI. Requests go through AI Gateway when AI_GATEWAY_ID is set.
+  "ai": { "binding": "AI", "remote": true },
+
+  // Daily clean-up of expired sign-in codes and sessions.
+  "triggers": { "crons": ["17 3 * * *"] },
+
+  "vars": {
+    "APP_NAME": "OpenAct",
+    "APP_URL": "",
+    "EMAIL_FROM": "OpenAct <no-reply@example.com>",
+    "SIGNUP_MODE": "open",
+    "ALLOWED_EMAIL_DOMAINS": "",
+    "AI_PROVIDER": "workers-ai",
+    "AI_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+    "AI_GATEWAY_ID": "openact",
+    "CF_ACCOUNT_ID": ""
+  }
+}
