@@ -4,7 +4,7 @@ OpenAct is a light project management tool with a Kanban board, a Gantt timeline
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/marketgrowth/openact)
 
-![The OpenAct board view](docs/images/board.png)
+![The OpenAct board with tasks in five columns](docs/images/board.png)
 
 ## Features
 
@@ -21,9 +21,23 @@ OpenAct is a light project management tool with a Kanban board, a Gantt timeline
 - **Themes.** Light, dark, or follow the system setting.
 - **Stays in sync.** Each open page checks for changes every 5 seconds and reloads the project when someone else edits it.
 
-![The OpenAct timeline view](docs/images/timeline.png)
+## Screenshots
 
-![The OpenAct calendar view](docs/images/calendar.png)
+The screenshots use example data: a sample team and projects.
+
+| | |
+| --- | --- |
+| ![Gantt timeline with phases and today line](docs/images/timeline.png) | ![Month calendar with start cards and deadline pills](docs/images/calendar.png) |
+| **Timeline.** Drag bars to move tasks. Phases have summary bars. | **Calendar.** Cards show starts. Pills show deadlines. |
+| ![Task drawer with dates, assignee and files](docs/images/task.png) | ![Projects list with progress](docs/images/projects.png) |
+| **Task drawer.** Edit details and attach files. | **Projects.** Progress, late tasks and team size at a glance. |
+| ![People and roles](docs/images/people.png) | ![Sign in with an email code](docs/images/signin.png) |
+| **People.** Invite by email. Set Owner, Editor or Viewer. | **Sign-in.** An email code. No password. |
+| ![Board in dark theme](docs/images/board-dark.png) | ![Timeline in dark theme](docs/images/timeline-dark.png) |
+| **Dark theme.** Or follow the system setting. | **Dark timeline.** |
+
+<p align="center"><img src="docs/images/phone-calendar.png" alt="Calendar on a phone, as an agenda list" width="320"></p>
+<p align="center"><b>Phones.</b> The calendar becomes an agenda list.</p>
 
 ## Deploy with one click
 
