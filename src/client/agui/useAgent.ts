@@ -1,10 +1,10 @@
 import { useCallback, useRef, useState } from "react";
-import type { Message, OpenActAgentState, RunAgentInput, Tool } from "../../shared/agui";
+import { CUSTOM_EVENTS, type Message, type OpenActAgentState, type ResumeEntry, type RunAgentInput, type Tool } from "../../shared/agui";
 import { runAgent } from "./client";
 import { emptyRun, reduceEvent, type ChatMessage, type RunView } from "./reducer";
 import { executeToolCall, type UiToolHandlers } from "./tools";
 
-const MAX_TOOL_ROUNDS = 3;
+const MAX_ROUNDS = 4;
 const newId = () => crypto.randomUUID();
 
 /** Converts the UI's chat messages to AG-UI messages for RunAgentInput. */
@@ -29,14 +29,22 @@ interface Options {
   getState: () => OpenActAgentState;
   getContext: () => Array<{ description: string; value: string }>;
   handlers: Partial<UiToolHandlers>;
+  /** Called when the agent changed project data, so the page can reload. */
+  onDataChanged?: () => void;
+}
+
+export interface Decision {
+  interruptId: string;
+  approved: boolean;
 }
 
 /**
- * Talks to an AG-UI agent. Keeps one thread per hook instance.
- * When the agent calls frontend tools, the hook runs them and starts a follow-up run with the results,
- * as the AG-UI spec describes. It stops after a few rounds so a confused agent cannot loop.
+ * Talks to the OpenAct agent over AG-UI.
+ * - Runs frontend (view) tools that the agent asks for, then continues the run with the results.
+ * - Stops on approval requests (interrupts) until the person decides, then resumes with their decisions.
+ * - Stops after a few rounds, so a confused agent cannot loop.
  */
-export function useAgent({ url, tools, getState, getContext, handlers }: Options) {
+export function useAgent({ url, tools, getState, getContext, handlers, onDataChanged }: Options) {
   const [view, setView] = useState<RunView>(() => emptyRun());
   const threadId = useRef(newId());
   const abort = useRef<AbortController | null>(null);
@@ -46,17 +54,14 @@ export function useAgent({ url, tools, getState, getContext, handlers }: Options
     setView(v);
   };
 
-  const ask = useCallback(
-    async (text: string) => {
-      const q = text.trim();
-      if (!q || viewRef.current.status === "running") return;
+  const loop = useCallback(
+    async (start: RunView, resume: ResumeEntry[]) => {
       abort.current?.abort();
       const ctrl = new AbortController();
       abort.current = ctrl;
-      let v: RunView = { ...viewRef.current, messages: [...viewRef.current.messages, { id: newId(), role: "user", content: q }], error: null };
-      commit(v);
-
-      for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+      let v = start;
+      let firstResume = resume;
+      for (let round = 0; round < MAX_ROUNDS; round++) {
         const input: RunAgentInput = {
           threadId: threadId.current,
           runId: newId(),
@@ -64,29 +69,51 @@ export function useAgent({ url, tools, getState, getContext, handlers }: Options
           messages: toAguiMessages(v.messages),
           tools,
           context: getContext(),
-          forwardedProps: {}
+          forwardedProps: {},
+          ...(firstResume.length ? { resume: firstResume } : {})
         };
+        firstResume = [];
         await runAgent(
           url,
           input,
           (e) => {
+            if (e.type === "CUSTOM" && e.name === CUSTOM_EVENTS.DATA_CHANGED) onDataChanged?.();
             v = reduceEvent(v, e);
             commit(v);
           },
           ctrl.signal
         );
-        if (ctrl.signal.aborted || v.status === "error") break;
+        if (ctrl.signal.aborted || v.status !== "finished") break;
 
-        // Run the frontend tools the agent asked for, then send the results back.
-        const calls = v.toolCalls.filter((t) => t.done);
-        if (!calls.length) break;
-        const assistant: ChatMessage = { id: newId(), role: "assistant", content: "", toolCalls: calls.map((t) => ({ id: t.id, name: t.name, args: t.args })) };
-        const results: ChatMessage[] = calls.map((t) => ({ id: newId(), role: "tool", toolCallId: t.id, content: executeToolCall(handlers, t.name, t.args).content }));
-        v = { ...v, toolCalls: [], messages: [...v.messages, assistant, ...results] };
+        // Run the view tools the agent asked for, then send the results back.
+        const answered = new Set(v.messages.filter((m) => m.role === "tool").map((m) => m.toolCallId));
+        const pending = v.toolCalls.filter((t) => t.done && !answered.has(t.id) && (v.pendingToolCallIds.length ? v.pendingToolCallIds.includes(t.id) : t.name in handlers));
+        if (!pending.length) break;
+        const results: ChatMessage[] = pending.map((t) => ({ id: newId(), role: "tool", toolCallId: t.id, content: executeToolCall(handlers, t.name, t.args).content }));
+        v = { ...v, toolCalls: [], pendingToolCallIds: [], messages: [...v.messages, ...results] };
         commit(v);
       }
     },
-    [url, tools, getState, getContext, handlers]
+    [url, tools, getState, getContext, handlers, onDataChanged]
+  );
+
+  const ask = useCallback(
+    async (text: string) => {
+      const q = text.trim();
+      if (!q || viewRef.current.status === "running") return;
+      await loop({ ...viewRef.current, interrupts: [], messages: [...viewRef.current.messages, { id: newId(), role: "user", content: q }], error: null }, []);
+    },
+    [loop]
+  );
+
+  /** Answers the agent's approval requests and lets it continue. */
+  const decide = useCallback(
+    async (decisions: Decision[]) => {
+      if (viewRef.current.status !== "interrupted") return;
+      const resume: ResumeEntry[] = decisions.map((d) => ({ interruptId: d.interruptId, status: "resolved", payload: { approved: d.approved } }));
+      await loop({ ...viewRef.current, interrupts: [] }, resume);
+    },
+    [loop]
   );
 
   const stop = useCallback(() => {
@@ -100,5 +127,5 @@ export function useAgent({ url, tools, getState, getContext, handlers }: Options
     commit(emptyRun());
   }, []);
 
-  return { view, ask, stop, reset };
+  return { view, ask, decide, stop, reset };
 }

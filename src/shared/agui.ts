@@ -8,9 +8,9 @@
  *
  * Types come from the official @ag-ui/core package as type-only imports, so they add nothing at runtime.
  */
-import type { Context, Message, RunAgentInput, Tool } from "@ag-ui/core";
+import type { Context, Interrupt, Message, ResumeEntry, RunAgentInput, RunFinishedOutcome, Tool } from "@ag-ui/core";
 
-export type { Context, Message, RunAgentInput, Tool };
+export type { Context, Interrupt, Message, ResumeEntry, RunAgentInput, RunFinishedOutcome, Tool };
 
 /** Event type names, as the AG-UI spec defines them. */
 export const EventType = {
@@ -42,7 +42,7 @@ export interface JsonPatchOp {
 /** The AG-UI events OpenAct sends and reads. Field names follow the spec exactly. */
 export type AguiEvent = { timestamp?: number } & (
   | { type: "RUN_STARTED"; threadId: string; runId: string }
-  | { type: "RUN_FINISHED"; threadId: string; runId: string; result?: unknown }
+  | { type: "RUN_FINISHED"; threadId: string; runId: string; result?: unknown; outcome?: RunFinishedOutcome }
   | { type: "RUN_ERROR"; message: string; code?: string }
   | { type: "STEP_STARTED"; stepName: string }
   | { type: "STEP_FINISHED"; stepName: string }
@@ -125,5 +125,13 @@ export const UI_TOOLS: Tool[] = [
     }
   }
 ];
+
+/** CUSTOM event names OpenAct sends. */
+export const CUSTOM_EVENTS = {
+  /** The agent changed project data. Value: { rev }. The web app reloads the project. */
+  DATA_CHANGED: "openact.data_changed",
+  /** What the agent may do in this run. Value: { level }. */
+  AGENT_LEVEL: "openact.agent_level"
+} as const;
 
 export type UiToolName = "open_task" | "show_view" | "go_to_date" | "filter_tasks";

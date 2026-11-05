@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type DragEvent } from "react";
-import { STATUSES, type Member, type Task } from "../../shared/types";
+import { STATUSES, type Column, type Member, type Task } from "../../shared/types";
 import { DAY, MONTHS, WEEKDAYS, dn, dow, ds, fmtRange, today } from "../dates";
 import { Icon } from "../ui";
 
@@ -10,6 +10,7 @@ import { Icon } from "../ui";
  */
 
 interface Props {
+  columns: Column[];
   tasks: Task[];
   hasAny: boolean;
   members: Record<string, Member>;
@@ -39,9 +40,10 @@ function shiftMonth(ym: string, by: number): string {
   return d.toISOString().slice(0, 7);
 }
 
-export function Calendar({ tasks, hasAny, members, canEdit, focusDate, onOpen, onAdd, onReschedule, onDragState }: Props) {
+export function Calendar({ columns, tasks, hasAny, members, canEdit, focusDate, onOpen, onAdd, onReschedule, onDragState }: Props) {
   const t0 = today();
   const todayN = dn(t0);
+  const labelOf = (t: Task) => columns.find((c) => c.id === t.columnId)?.name ?? statusLabel(t.status);
   const [cursor, setCursor] = useState(() => monthOf(focusDate ?? t0));
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [drag, setDrag] = useState<{ id: string; kind: Kind } | null>(null);
@@ -150,7 +152,7 @@ export function Calendar({ tasks, hasAny, members, canEdit, focusDate, onOpen, o
     };
     if (e.kind === "due") {
       return (
-        <div key={key} {...common} className={`cal-due${late ? " late" : ""}${t.status === "done" ? " done" : ""}`} aria-label={`Deadline: ${t.title}. ${statusLabel(t.status)}.`} title={`Deadline for ${t.title} (${fmtRange(t.start, t.end)})`}>
+        <div key={key} {...common} className={`cal-due${late ? " late" : ""}${t.status === "done" ? " done" : ""}`} aria-label={`Deadline: ${t.title}. ${labelOf(t)}.`} title={`Deadline for ${t.title} (${fmtRange(t.start, t.end)})`}>
           <Icon name="flag" size={13} />
           <span className="cal-due-t">{t.title}</span>
         </div>
@@ -161,7 +163,7 @@ export function Calendar({ tasks, hasAny, members, canEdit, focusDate, onOpen, o
         key={key}
         {...common}
         className={`cal-card${late ? " late" : ""}${t.status === "done" ? " done" : ""}${compact ? " compact" : ""}`}
-        aria-label={`${t.title}. ${fmtRange(t.start, t.end)}. ${statusLabel(t.status)}.`}
+        aria-label={`${t.title}. ${fmtRange(t.start, t.end)}. ${labelOf(t)}.`}
         title={`${t.title} (${fmtRange(t.start, t.end)})`}
       >
         <span className="cal-title">
@@ -173,7 +175,7 @@ export function Calendar({ tasks, hasAny, members, canEdit, focusDate, onOpen, o
             {t.phase || "No phase"}
             {whoName ? ` · ${whoName}` : ""}
           </span>
-          <span className="tag tag-status">{e.kind === "start" ? `${statusLabel(t.status)} · ends ${fmtRange(t.end, null)}` : statusLabel(t.status)}</span>
+          <span className="tag tag-status">{e.kind === "start" ? `${labelOf(t)} · ends ${fmtRange(t.end, null)}` : labelOf(t)}</span>
         </span>
       </div>
     );

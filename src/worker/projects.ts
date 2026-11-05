@@ -3,7 +3,6 @@ import type { AppEnv, Env } from "./env";
 import {
   PROJECT_COLORS,
   ROLES,
-  ROLE_LABELS,
   type Invitation,
   type Member,
   type ProjectColor,
@@ -11,9 +10,11 @@ import {
   type ProjectSummary,
   type Role
 } from "../shared/types";
-import { bumpRev, deletePrefix, requireRole, revFrom, toAttachment, toTask, type AttachmentRow, type TaskRow } from "./data";
-import { inviteEmail, sendEmail } from "./email";
-import { HttpError, addDays, appUrl, isEmail, newId, normalizeEmail, nowIso, oneOf, readJson, requireUser, text, todayIso } from "./util";
+import { AGENT_LEVELS, type AgentAction, type AgentLevel, type AiPolicy } from "../shared/types";
+import { ROLE_CEILING, effectiveLevel, levelRank, parsePolicy } from "../shared/agent-policy";
+import { bumpRev, deletePrefix, loadColumns, requireRole, revFrom, toAttachment, toColumn, toTask, type AttachmentRow, type TaskRow } from "./data";
+import { changeMemberRole, defaultColumnStatements, inviteMember, removeMember } from "./services";
+import { HttpError, addDays, appUrl, newId, nowIso, oneOf, readJson, requireUser, text, todayIso } from "./util";
 
 export const projectRoutes = new Hono<AppEnv>();
 
@@ -93,6 +94,8 @@ projectRoutes.post("/", async (c) => {
     ),
     c.env.DB.prepare("INSERT INTO project_members (project_id, user_id, role, created_at) VALUES (?, ?, 'owner', ?)").bind(id, user.id, iso)
   ];
+  const cols = defaultColumnStatements(c.env, id);
+  stmts.push(...cols.stmts);
   if (template === "example") {
     // Start on the Monday of this week so the plan lines up with the calendar.
     const today = todayIso();
@@ -103,9 +106,9 @@ projectRoutes.post("/", async (c) => {
       orders[status] = (orders[status] ?? 0) + 1000;
       stmts.push(
         c.env.DB.prepare(
-          `INSERT INTO tasks (id, project_id, title, notes, status, priority, phase, start_date, end_date, sort_order, created_by, updated_by, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-        ).bind(newId(), id, title, notes, status, priority, phase, addDays(start, off), addDays(start, off + len - 1), orders[status], user.id, user.id, iso, iso)
+          `INSERT INTO tasks (id, project_id, column_id, title, notes, status, priority, phase, start_date, end_date, sort_order, created_by, updated_by, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ).bind(newId(), id, cols.ids[status as keyof typeof cols.ids], title, notes, status, priority, phase, addDays(start, off), addDays(start, off + len - 1), orders[status], user.id, user.id, iso, iso)
       );
     }
   }
@@ -114,22 +117,27 @@ projectRoutes.post("/", async (c) => {
 });
 
 export async function loadProject(env: Env, projectId: string, role: Role): Promise<ProjectDetail> {
-  const [p, members, invitations, tasks, attachments] = await env.DB.batch([
-    env.DB.prepare("SELECT id, name, description, color, rev, created_at, updated_at FROM projects WHERE id = ?").bind(projectId),
+  const [p, members, invitations, tasks, attachments, columns] = await env.DB.batch([
+    env.DB.prepare("SELECT id, name, description, color, rev, ai_policy, created_at, updated_at FROM projects WHERE id = ?").bind(projectId),
     env.DB.prepare(
       "SELECT u.id AS user_id, u.email, u.name, m.role FROM project_members m JOIN users u ON u.id = m.user_id WHERE m.project_id = ? ORDER BY u.name COLLATE NOCASE"
     ).bind(projectId),
     env.DB.prepare("SELECT id, email, role, created_at FROM invitations WHERE project_id = ? ORDER BY created_at").bind(projectId),
     env.DB.prepare("SELECT * FROM tasks WHERE project_id = ? ORDER BY status, sort_order").bind(projectId),
-    env.DB.prepare("SELECT * FROM attachments WHERE project_id = ? ORDER BY created_at").bind(projectId)
+    env.DB.prepare("SELECT * FROM attachments WHERE project_id = ? ORDER BY created_at").bind(projectId),
+    env.DB.prepare("SELECT id, project_id, name, category, position FROM board_columns WHERE project_id = ? ORDER BY position").bind(projectId)
   ]);
   const pr = p.results[0] as
-    | { id: string; name: string; description: string; color: ProjectColor; rev: number; created_at: string; updated_at: string }
+    | { id: string; name: string; description: string; color: ProjectColor; rev: number; ai_policy: string; created_at: string; updated_at: string }
     | undefined;
   if (!pr) throw new HttpError(404, "This project does not exist.");
+  const aiPolicy = parsePolicy(pr.ai_policy);
   return {
     project: { id: pr.id, name: pr.name, description: pr.description, color: pr.color, rev: pr.rev, createdAt: pr.created_at, updatedAt: pr.updated_at },
     role,
+    columns: (columns.results as unknown as Parameters<typeof toColumn>[0][]).map(toColumn),
+    aiPolicy,
+    agentLevel: effectiveLevel(role, aiPolicy),
     members: (members.results as Array<{ user_id: string; email: string; name: string; role: Role }>).map(
       (m): Member => ({ userId: m.user_id, email: m.email, name: m.name, role: m.role })
     ),
@@ -199,83 +207,17 @@ projectRoutes.delete("/:id", async (c) => {
 
 /* Members and invitations */
 
-async function ownerCount(env: Env, projectId: string): Promise<number> {
-  const row = await env.DB.prepare("SELECT COUNT(*) AS n FROM project_members WHERE project_id = ? AND role = 'owner'").bind(projectId).first<{ n: number }>();
-  return row?.n ?? 0;
-}
-
 projectRoutes.post("/:id/members", async (c) => {
-  const user = requireUser(c);
-  const id = c.req.param("id");
-  await requireRole(c.env, id, user.id, "owner");
-  const body = await readJson(c);
-  const email = normalizeEmail(body.email);
-  if (!isEmail(email)) throw new HttpError(400, "Type a valid email address.");
-  const role = body.role === undefined ? "editor" : oneOf(body.role, "Role", ROLES);
-  const project = await c.env.DB.prepare("SELECT name FROM projects WHERE id = ?").bind(id).first<{ name: string }>();
-  const iso = nowIso();
-  const url = `${appUrl(c)}/p/${id}`;
-  const existing = await c.env.DB.prepare("SELECT id, name FROM users WHERE email = ?").bind(email).first<{ id: string; name: string }>();
-
-  if (existing) {
-    const already = await c.env.DB.prepare("SELECT role FROM project_members WHERE project_id = ? AND user_id = ?").bind(id, existing.id).first();
-    if (already) throw new HttpError(409, "This person is already a member of the project.");
-    const res = await c.env.DB.batch([
-      c.env.DB.prepare("INSERT INTO project_members (project_id, user_id, role, created_at) VALUES (?, ?, ?, ?)").bind(id, existing.id, role, iso),
-      bumpRev(c.env, id)
-    ]);
-    const mail = inviteEmail(c.env, { to: email, projectName: project!.name, inviterName: user.name, role: ROLE_LABELS[role], url, hasAccount: true });
-    c.executionCtx.waitUntil(sendEmail(c.env, mail).catch((e) => console.error("[openact] invite email failed", e)));
-    return c.json({ added: "member", rev: revFrom(res) }, 201);
-  }
-
-  const res = await c.env.DB.batch([
-    c.env.DB.prepare(
-      `INSERT INTO invitations (id, project_id, email, role, invited_by, created_at) VALUES (?, ?, ?, ?, ?, ?)
-       ON CONFLICT (project_id, email) DO UPDATE SET role = excluded.role, invited_by = excluded.invited_by, created_at = excluded.created_at`
-    ).bind(newId(), id, email, role, user.id, iso),
-    bumpRev(c.env, id)
-  ]);
-  await sendEmail(c.env, inviteEmail(c.env, { to: email, projectName: project!.name, inviterName: user.name, role: ROLE_LABELS[role], url, hasAccount: false }));
-  return c.json({ added: "invitation", rev: revFrom(res) }, 201);
+  const r = await inviteMember(c.env, requireUser(c), c.req.param("id"), await readJson(c), appUrl(c), (p) => c.executionCtx.waitUntil(p));
+  return c.json({ added: r.added, rev: r.rev }, 201);
 });
 
 projectRoutes.patch("/:id/members/:userId", async (c) => {
-  const user = requireUser(c);
-  const id = c.req.param("id");
-  const target = c.req.param("userId");
-  await requireRole(c.env, id, user.id, "owner");
-  const role = oneOf((await readJson(c)).role, "Role", ROLES);
-  const current = await c.env.DB.prepare("SELECT role FROM project_members WHERE project_id = ? AND user_id = ?").bind(id, target).first<{ role: Role }>();
-  if (!current) throw new HttpError(404, "This person is not a member of the project.");
-  if (current.role === "owner" && role !== "owner" && (await ownerCount(c.env, id)) <= 1) {
-    throw new HttpError(400, "A project needs at least one owner. Make someone else an owner first.");
-  }
-  const res = await c.env.DB.batch([
-    c.env.DB.prepare("UPDATE project_members SET role = ? WHERE project_id = ? AND user_id = ?").bind(role, id, target),
-    bumpRev(c.env, id)
-  ]);
-  return c.json({ rev: revFrom(res) });
+  const r = await changeMemberRole(c.env, requireUser(c), c.req.param("id"), c.req.param("userId"), (await readJson(c)).role);
+  return c.json({ rev: r.rev });
 });
 
-projectRoutes.delete("/:id/members/:userId", async (c) => {
-  const user = requireUser(c);
-  const id = c.req.param("id");
-  const target = c.req.param("userId");
-  // Owners can remove anyone. Everyone can leave.
-  await requireRole(c.env, id, user.id, target === user.id ? "viewer" : "owner");
-  const current = await c.env.DB.prepare("SELECT role FROM project_members WHERE project_id = ? AND user_id = ?").bind(id, target).first<{ role: Role }>();
-  if (!current) throw new HttpError(404, "This person is not a member of the project.");
-  if (current.role === "owner" && (await ownerCount(c.env, id)) <= 1) {
-    throw new HttpError(400, "A project needs at least one owner. Make someone else an owner first, or delete the project.");
-  }
-  const res = await c.env.DB.batch([
-    c.env.DB.prepare("DELETE FROM project_members WHERE project_id = ? AND user_id = ?").bind(id, target),
-    c.env.DB.prepare("UPDATE tasks SET assignee_id = NULL WHERE project_id = ? AND assignee_id = ?").bind(id, target),
-    bumpRev(c.env, id)
-  ]);
-  return c.json({ rev: revFrom(res) });
-});
+projectRoutes.delete("/:id/members/:userId", async (c) => c.json(await removeMember(c.env, requireUser(c), c.req.param("id"), c.req.param("userId"))));
 
 projectRoutes.delete("/:id/invitations/:invId", async (c) => {
   const user = requireUser(c);
@@ -286,4 +228,48 @@ projectRoutes.delete("/:id/invitations/:invId", async (c) => {
     bumpRev(c.env, id)
   ]);
   return c.json({ rev: revFrom(res) });
+});
+
+/* AI agent policy and activity */
+
+projectRoutes.patch("/:id/ai-policy", async (c) => {
+  const user = requireUser(c);
+  const id = c.req.param("id");
+  await requireRole(c.env, id, user.id, "owner");
+  const body = await readJson(c);
+  const row = await c.env.DB.prepare("SELECT ai_policy FROM projects WHERE id = ?").bind(id).first<{ ai_policy: string }>();
+  const policy: AiPolicy = parsePolicy(row?.ai_policy);
+  for (const role of ROLES) {
+    if (body[role] === undefined) continue;
+    const level = oneOf(body[role], `Level for ${role}`, AGENT_LEVELS) as AgentLevel;
+    if (levelRank(level) > levelRank(ROLE_CEILING[role])) {
+      throw new HttpError(400, `The ${role} role allows the agent up to "${ROLE_CEILING[role]}". Choose that level or a lower one.`);
+    }
+    policy[role] = level;
+  }
+  const res = await c.env.DB.batch([c.env.DB.prepare("UPDATE projects SET ai_policy = ? WHERE id = ?").bind(JSON.stringify(policy), id), bumpRev(c.env, id)]);
+  return c.json({ aiPolicy: policy, rev: revFrom(res) });
+});
+
+/** The agent action log. Every member can read it, so agent work is always visible. */
+projectRoutes.get("/:id/agent-actions", async (c) => {
+  const user = requireUser(c);
+  const id = c.req.param("id");
+  await requireRole(c.env, id, user.id, "viewer");
+  const rows = await c.env.DB.prepare(
+    "SELECT id, user_id, tool, summary, status, result, created_at, decided_at FROM agent_actions WHERE project_id = ? ORDER BY created_at DESC LIMIT 50"
+  )
+    .bind(id)
+    .all<{ id: string; user_id: string | null; tool: string; summary: string; status: AgentAction["status"]; result: string | null; created_at: string; decided_at: string | null }>();
+  const actions: AgentAction[] = rows.results.map((r) => ({
+    id: r.id,
+    userId: r.user_id,
+    tool: r.tool,
+    summary: r.summary,
+    status: r.status,
+    result: r.result,
+    createdAt: r.created_at,
+    decidedAt: r.decided_at
+  }));
+  return c.json({ actions });
 });

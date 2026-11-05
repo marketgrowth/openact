@@ -15,7 +15,8 @@ import { api, ApiError, errorText } from "../api";
 import { Link, navigate } from "../router";
 import { fmtRange, fmtShort, today } from "../dates";
 import { ConfirmButton, Icon, Modal, useToast } from "../ui";
-import { Board } from "../components/Board";
+import { Board, type ColumnActions } from "../components/Board";
+import { AiSettings } from "../components/AiSettings";
 import { Calendar } from "../components/Calendar";
 import { Timeline } from "../components/Timeline";
 import { TaskDrawer, type DrawerTarget } from "../components/TaskDrawer";
@@ -115,7 +116,8 @@ export function ProjectPage({ projectId, view, me, config }: { projectId: string
 
   const quickPatch = async (id: string, input: TaskInput, msg?: string) => {
     const cur = data?.tasks.find((t) => t.id === id);
-    if (cur) upsertTask({ ...cur, ...input } as Task);
+    const col = input.columnId ? data?.columns.find((c) => c.id === input.columnId) : undefined;
+    if (cur) upsertTask({ ...cur, ...input, ...(col ? { status: col.category } : {}) } as Task);
     try {
       const r = await api<{ task: Task; rev: number }>(`/api/tasks/${id}`, { method: "PATCH", body: input });
       noteRev(r.rev);
@@ -171,6 +173,24 @@ export function ProjectPage({ projectId, view, me, config }: { projectId: string
 
   const membersById = useMemo(() => Object.fromEntries((data?.members ?? []).map((m) => [m.userId, m])), [data?.members]);
   const closeDrawer = useCallback(() => setDrawer(null), []);
+
+  const columnRequest = async (fn: () => Promise<{ rev: number }>, msg: string) => {
+    try {
+      const r = await fn();
+      noteRev(r.rev);
+      toast(msg);
+    } catch (e) {
+      toast(errorText(e));
+    }
+    load();
+  };
+  const columnActions: ColumnActions = {
+    add: (name, category) => columnRequest(() => api(`/api/projects/${projectId}/columns`, { body: { name, category } }), "Column added."),
+    rename: (id, name) => columnRequest(() => api(`/api/columns/${id}`, { method: "PATCH", body: { name } }), "Column renamed."),
+    setCategory: (id, category) => columnRequest(() => api(`/api/columns/${id}`, { method: "PATCH", body: { category } }), "Column updated."),
+    moveAfter: (id, afterId) => columnRequest(() => api(`/api/columns/${id}`, { method: "PATCH", body: { afterColumnId: afterId } }), "Column moved."),
+    remove: (id, moveTo) => columnRequest(() => api(`/api/columns/${id}${moveTo ? `?moveTo=${encodeURIComponent(moveTo)}` : ""}`, { method: "DELETE" }), "Column deleted.")
+  };
 
   /* AG-UI: the state and tools the web app shares with the project assistant. */
   const base = `/p/${projectId}`;
@@ -239,7 +259,8 @@ export function ProjectPage({ projectId, view, me, config }: { projectId: string
     tools: UI_TOOLS,
     getState: getAgentState,
     getContext: getAgentContext,
-    handlers: toolHandlers
+    handlers: toolHandlers,
+    onDataChanged: load
   });
 
   if (error && !data) {
@@ -292,14 +313,16 @@ export function ProjectPage({ projectId, view, me, config }: { projectId: string
               <input type="checkbox" checked={mine} onChange={(e) => setMine(e.target.checked)} /> My tasks
             </label>
             <span className="grow" />
-            <button type="button" className="btn" onClick={() => setAiOpen(true)}>
-              <Icon name="sparkle" size={16} /> AI assist
-            </button>
+            {data.agentLevel !== "off" && (
+              <button type="button" className="btn" onClick={() => setAiOpen(true)}>
+                <Icon name="sparkle" size={16} /> AI agent
+              </button>
+            )}
             <button type="button" className="btn ghost icon-only" aria-label="Project settings" title="Project settings" onClick={() => setSettingsOpen(true)}>
               <Icon name="gear" size={16} />
             </button>
             {canEdit && (
-              <button type="button" className="btn primary" onClick={() => setDrawer({ kind: "new", status: "todo" })}>
+              <button type="button" className="btn primary" onClick={() => setDrawer({ kind: "new" })}>
                 <Icon name="plus" size={16} /> New task
               </button>
             )}
@@ -316,14 +339,17 @@ export function ProjectPage({ projectId, view, me, config }: { projectId: string
 
         {view === "board" && (
           <Board
+            columns={data.columns}
+            isOwner={!!isOwner}
+            columnActions={columnActions}
             tasks={visible}
             hasAny={data.tasks.length > 0}
             members={membersById}
             attachments={data.attachments}
             canEdit={canEdit}
             onOpen={(id) => setDrawer({ kind: "edit", id })}
-            onAdd={(status: Status) => setDrawer({ kind: "new", status })}
-            onMove={(id, status, order) => quickPatch(id, { status, order })}
+            onAdd={(columnId) => setDrawer({ kind: "new", columnId })}
+            onMove={(id, columnId, order) => quickPatch(id, { columnId, order })}
             onDragState={setBusy}
           />
         )}
@@ -336,18 +362,19 @@ export function ProjectPage({ projectId, view, me, config }: { projectId: string
             onOpen={(id) => setDrawer({ kind: "edit", id })}
             onReschedule={(id, start, end) => quickPatch(id, { start, end }, `Moved to ${fmtShort(start)}.`)}
             onDragState={setBusy}
-            onAdd={() => setDrawer({ kind: "new", status: "todo" })}
+            onAdd={() => setDrawer({ kind: "new" })}
           />
         )}
         {view === "calendar" && (
           <Calendar
+            columns={data.columns}
             tasks={visible}
             hasAny={data.tasks.length > 0}
             members={membersById}
             canEdit={canEdit}
             focusDate={focusDate}
             onOpen={(id) => setDrawer({ kind: "edit", id })}
-            onAdd={(date) => setDrawer({ kind: "new", status: "todo", start: date, end: date })}
+            onAdd={(date) => setDrawer({ kind: "new", start: date, end: date })}
             onReschedule={(id, start, end) => quickPatch(id, { start, end }, `Dates changed to ${fmtRange(start, end)}.`)}
             onDragState={setBusy}
           />
@@ -360,6 +387,7 @@ export function ProjectPage({ projectId, view, me, config }: { projectId: string
           target={drawer}
           task={drawerTask}
           tasks={data.tasks}
+          columns={data.columns}
           members={data.members}
           attachments={data.attachments}
           canEdit={canEdit}
@@ -370,7 +398,7 @@ export function ProjectPage({ projectId, view, me, config }: { projectId: string
           onDeleteAttachment={deleteAttachment}
         />
       )}
-      {aiOpen && <AiDialog projectId={projectId} canEdit={canEdit} provider={config.aiProvider} agent={agent} onClose={() => setAiOpen(false)} onAdded={load} />}
+      {aiOpen && <AiDialog projectId={projectId} canEdit={canEdit} provider={config.aiProvider} agent={agent} level={data.agentLevel} onClose={() => setAiOpen(false)} onAdded={load} />}
       {settingsOpen && (
         <ProjectSettings data={data} me={me} canEdit={canEdit} isOwner={!!isOwner} onClose={() => setSettingsOpen(false)} onSaved={load} />
       )}
@@ -471,7 +499,7 @@ function ProjectSettings({
   };
 
   return (
-    <Modal title="Project settings" onClose={onClose}>
+    <Modal title="Project settings" onClose={onClose} wide>
       <form className="stack" onSubmit={save}>
         <fieldset className="stack plain" disabled={!canEdit}>
           <div className="field">
@@ -510,6 +538,8 @@ function ProjectSettings({
         </div>
         {isOwner && <p className="hint">Deleting a project removes its tasks and files for everyone. You cannot undo it.</p>}
       </div>
+      <hr />
+      <AiSettings projectId={data.project.id} policy={data.aiPolicy} isOwner={isOwner} members={data.members} onSaved={onSaved} />
     </Modal>
   );
 }

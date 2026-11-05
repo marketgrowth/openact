@@ -4,7 +4,7 @@ import type { AppEnv, Env } from "./env";
 import type { AppConfig } from "../shared/types";
 import { authRoutes, meRoutes, sessionMiddleware } from "./auth";
 import { projectRoutes } from "./projects";
-import { attachmentRoutes, projectTaskRoutes, taskRoutes } from "./tasks";
+import { attachmentRoutes, columnRoutes, projectTaskRoutes, taskRoutes } from "./tasks";
 import { aiRoutes } from "./ai";
 import { aguiRoutes } from "./agui";
 import { HttpError, appName } from "./util";
@@ -49,6 +49,7 @@ app.route("/api/projects", projectTaskRoutes);
 app.route("/api/projects", aiRoutes);
 app.route("/api/projects", aguiRoutes);
 app.route("/api/tasks", taskRoutes);
+app.route("/api/columns", columnRoutes);
 app.route("/api/attachments", attachmentRoutes);
 
 app.get("/api/health", (c) => c.json({ ok: true }));
@@ -69,7 +70,12 @@ async function cleanup(env: Env): Promise<void> {
   const now = Date.now();
   await env.DB.batch([
     env.DB.prepare("DELETE FROM login_codes WHERE created_at < ?").bind(now - 86400000),
-    env.DB.prepare("DELETE FROM sessions WHERE expires_at < ?").bind(now)
+    env.DB.prepare("DELETE FROM sessions WHERE expires_at < ?").bind(now),
+    // Approval requests that nobody answered.
+    env.DB.prepare("UPDATE agent_actions SET status = 'expired', decided_at = ? WHERE status = 'pending' AND created_at < ?").bind(
+      new Date(now).toISOString(),
+      new Date(now - 30 * 60000).toISOString()
+    )
   ]);
 }
 

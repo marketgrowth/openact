@@ -32,6 +32,7 @@ Run `npm run typecheck`, `npm test` and `npm run build` before you say a task is
 6. **No new runtime dependencies** without a reason in the pull request.
 7. **Theme tokens only.** No literal colors in components. Add tokens with both light and dark values.
 8. **Follow AG-UI.** Agent features use the AG-UI events and types in `src/shared/agui.ts`. Read `docs/AGUI.md` first. Frontend tools only change what the person sees. Tools that change data run in the Worker with `requireRole` and `bumpRev`.
+9. **The agent never exceeds the person.** Agent tools live in `BACKEND_TOOLS` (`src/shared/agent-policy.ts`) with a level and a risk. Their logic goes in `src/worker/services.ts`, shared with the API. Deletes and people changes always need approval. Never add a way for the agent to skip `requireRole`, the AI policy or approvals.
 
 ## Writing style for text in the app and docs
 

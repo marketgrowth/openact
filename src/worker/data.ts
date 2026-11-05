@@ -1,5 +1,5 @@
 import type { Env } from "./env";
-import type { Attachment, Priority, Role, Status, Task } from "../shared/types";
+import type { Attachment, Column, Priority, Role, Status, Task } from "../shared/types";
 import { HttpError, nowIso } from "./util";
 
 const RANK: Record<Role, number> = { viewer: 1, editor: 2, owner: 3 };
@@ -30,6 +30,7 @@ export function revFrom(results: D1Result[]): number {
 export interface TaskRow {
   id: string;
   project_id: string;
+  column_id: string | null;
   title: string;
   notes: string;
   status: Status;
@@ -49,6 +50,7 @@ export function toTask(r: TaskRow): Task {
   return {
     id: r.id,
     projectId: r.project_id,
+    columnId: r.column_id,
     title: r.title,
     notes: r.notes,
     status: r.status,
@@ -109,4 +111,19 @@ export async function deletePrefix(bucket: R2Bucket, prefix: string): Promise<vo
     if (list.objects.length) await bucket.delete(list.objects.map((o) => o.key));
     cursor = list.truncated ? list.cursor : undefined;
   } while (cursor);
+}
+
+export interface ColumnRow {
+  id: string;
+  project_id: string;
+  name: string;
+  category: Status;
+  position: number;
+}
+
+export const toColumn = (r: ColumnRow): Column => ({ id: r.id, name: r.name, category: r.category, position: r.position });
+
+export async function loadColumns(env: Env, projectId: string): Promise<ColumnRow[]> {
+  const rows = await env.DB.prepare("SELECT id, project_id, name, category, position FROM board_columns WHERE project_id = ? ORDER BY position").bind(projectId).all<ColumnRow>();
+  return rows.results;
 }

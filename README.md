@@ -10,14 +10,15 @@ OpenAct is a light project management tool with a Kanban board, a Gantt timeline
 
 - **Many projects.** Each project has its own board, timeline, people and files.
 - **Unlimited people.** There are no seat limits. Invite anyone by email.
-- **Kanban board.** Five columns: Backlog, To do, In progress, Review and Done. Drag cards to change status and order.
+- **Kanban board with your own columns.** Add, rename, reorder and delete columns per project. Each column says what it means (not started, in progress, in review or done), so progress and late checks keep working. Drag cards between columns.
 - **Gantt timeline.** Drag a bar to move a task. Drag an edge to change its length. Tasks group by phase, with a summary bar for each phase. The header shows days or ISO weeks, and a line marks today.
 - **Calendar.** A month view. Each task shows as a card on its start date and as a deadline pill on its end date. Click either to open the task in the side drawer. Drag a card to move the task, or drag a pill to change the deadline. Phones get an agenda list.
 - **Roles.** Owners manage people and settings. Editors change tasks. Viewers only look.
 - **Sign-in without passwords.** People type their email and get a 6-digit code. [Resend](https://resend.com) sends the email.
 - **File attachments.** Attach files up to 25 MB to a task. Files go to R2.
-- **AI assist.** Ask questions about the project, draft tasks from a goal, or write a status summary. Requests go through [Cloudflare AI Gateway](https://developers.cloudflare.com/ai-gateway/). Workers AI is the default, so you need no extra API key. Anthropic and OpenAI are optional.
-- **Ready for agents.** OpenAct speaks [AG-UI](https://docs.ag-ui.com). The assistant runs on an AG-UI endpoint, and the web app has frontend tools that an agent can call. Read [docs/AGUI.md](docs/AGUI.md).
+- **AI agent with role-based access.** Tell the agent what to do in plain words: "Move the late tasks to next week" or "Rename Review to QA". The agent acts for you and never has more power than your role. Owners choose how much each role may hand to the agent. Deletes, people changes and large batches wait for your approval, and every agent action is logged. Read [docs/AGUI.md](docs/AGUI.md).
+- **AI tools.** Draft tasks from a goal, or write a status summary. All AI requests go through [Cloudflare AI Gateway](https://developers.cloudflare.com/ai-gateway/). Workers AI is the default, so you need no extra API key. Anthropic and OpenAI are optional.
+- **Built on AG-UI.** The agent speaks [AG-UI](https://docs.ag-ui.com). Approvals use AG-UI interrupts, so any AG-UI client can connect.
 - **Themes.** Light, dark, or follow the system setting.
 - **Stays in sync.** Each open page checks for changes every 5 seconds and reloads the project when someone else edits it.
 
@@ -178,9 +179,19 @@ test/                  Unit tests
 
 Every request that changes a project raises the project's revision number (`rev`). Open pages ask for `rev` every 5 seconds and reload the project when it changes. This keeps the Worker simple and cheap. A Durable Object with WebSockets can replace polling later.
 
+## AI agent access by role
+
+| Role | Highest agent level | What the agent may do |
+| --- | --- | --- |
+| Viewer | Ask only | Answer questions, open tasks, switch views, go to dates |
+| Editor | Ask and edit | Also add and change tasks and columns |
+| Owner | Full | Also delete tasks and columns, and invite, remove and change people. Each needs approval. |
+
+Owners can lower any role, down to Off, in **Project settings > AI agent access**. Read [docs/AGUI.md](docs/AGUI.md) for the full design.
+
 ## What AI sees
 
-- **Ask** sends your question, the earlier messages in the conversation, what you see now (view, date, open task, filter) and the task titles, statuses, priorities, phases, dates and assignee names.
+- **The agent** sends your message, the earlier messages in the conversation, what you see now (view, date, open task, filter) and the task titles, columns, priorities, phases, dates, assignee names, and member names and roles. It does not send email addresses.
 - **Draft tasks** sends the goal you type, the start date and the phase names in the project.
 - **Status summary** sends task titles, statuses, priorities, phases, dates and the names of assignees.
 - AI does not get notes, files or email addresses. Drafted tasks are not saved until you choose them.

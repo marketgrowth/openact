@@ -5,10 +5,13 @@ import { fmtRange, today } from "../dates";
 import { Modal, useToast } from "../ui";
 import { AskPanel } from "./AskPanel";
 import type { RunView } from "../agui/reducer";
+import type { Decision } from "../agui/useAgent";
+import type { AgentLevel } from "../../shared/types";
 
 export interface AgentControls {
   view: RunView;
   ask: (q: string) => void;
+  decide: (d: Decision[]) => void;
   stop: () => void;
   reset: () => void;
 }
@@ -19,6 +22,7 @@ export function AiDialog({
   canEdit,
   provider,
   agent,
+  level,
   onClose,
   onAdded
 }: {
@@ -26,6 +30,7 @@ export function AiDialog({
   canEdit: boolean;
   provider: string;
   agent: AgentControls;
+  level: AgentLevel;
   onClose: () => void;
   onAdded: () => void;
 }) {
@@ -92,10 +97,10 @@ export function AiDialog({
   };
 
   return (
-    <Modal title="AI assist" onClose={onClose} wide>
+    <Modal title="AI agent" onClose={onClose} wide>
       <div className="seg" role="tablist" aria-label="AI tools">
         <button type="button" role="tab" aria-selected={tab === "ask"} aria-pressed={tab === "ask"} onClick={() => setTab("ask")}>
-          Ask
+          Agent
         </button>
         {canEdit && (
           <button type="button" role="tab" aria-selected={tab === "plan"} aria-pressed={tab === "plan"} onClick={() => setTab("plan")}>
@@ -107,7 +112,7 @@ export function AiDialog({
         </button>
       </div>
 
-      {tab === "ask" && <AskPanel view={agent.view} onAsk={agent.ask} onStop={agent.stop} onReset={agent.reset} />}
+      {tab === "ask" && <AskPanel view={agent.view} level={level} onAsk={agent.ask} onDecide={agent.decide} onStop={agent.stop} onReset={agent.reset} />}
 
       {tab === "plan" && !drafts && (
         <form className="stack" onSubmit={plan}>

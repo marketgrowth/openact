@@ -25,7 +25,8 @@ AI features are optional helpers. Every request goes through one gateway.
 | [Cloudflare AI Gateway](https://developers.cloudflare.com/ai-gateway/) | Logs, caching, rate limits and spend control for every AI request. |
 | [Workers AI](https://developers.cloudflare.com/workers-ai/) | The default provider. No extra API key. Default model: Llama 3.3 70B Instruct (`@cf/meta/llama-3.3-70b-instruct-fp8-fast`). |
 | Anthropic or OpenAI | Optional providers through AI Gateway, with your own API key. |
-| [AG-UI 1.0](https://docs.ag-ui.com) | The Agent-User Interaction protocol. The assistant streams AG-UI events over Server-Sent Events. Types come from `@ag-ui/core` 1.0.4. See [AGUI.md](AGUI.md). |
+| [AG-UI 1.0](https://docs.ag-ui.com) | The Agent-User Interaction protocol. The agent streams AG-UI events over Server-Sent Events, and approvals use AG-UI interrupts. Types come from `@ag-ui/core` 1.0.4. See [AGUI.md](AGUI.md). |
+| Role-based agent access | The agent acts for the person and never exceeds their role. Owners set a per-role AI policy. Risky changes wait for approval, and every action is logged. |
 
 ## Sign-in and email
 

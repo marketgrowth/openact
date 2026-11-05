@@ -3,6 +3,7 @@ import type { AppEnv, Env } from "./env";
 import { STATUSES } from "../shared/types";
 import { extractJson, toPlannedTasks } from "./plan";
 import { requireRole, toTask, type TaskRow } from "./data";
+import { effectiveLevel, parsePolicy } from "../shared/agent-policy";
 import { HttpError, dateOrNull, readJson, requireUser, text, todayIso } from "./util";
 
 /*
@@ -122,13 +123,23 @@ async function providerError(res: Response): Promise<HttpError> {
   return new HttpError(502, "The AI service did not answer. Try again in a minute.");
 }
 
+/** Checks the role, and that the project's AI policy has not turned AI off for that role. */
+async function requireAiRole(env: Env, projectId: string, userId: string, min: "viewer" | "editor") {
+  const role = await requireRole(env, projectId, userId, min);
+  const row = await env.DB.prepare("SELECT ai_policy FROM projects WHERE id = ?").bind(projectId).first<{ ai_policy: string }>();
+  if (effectiveLevel(role, parsePolicy(row?.ai_policy)) === "off") {
+    throw new HttpError(403, "AI is turned off for your role in this project. A project owner can change this in Project settings.");
+  }
+  return role;
+}
+
 export const aiRoutes = new Hono<AppEnv>();
 
 /** Drafts tasks for a goal. Nothing is saved until the person adds the drafts. */
 aiRoutes.post("/:id/ai/plan", async (c) => {
   const user = requireUser(c);
   const projectId = c.req.param("id");
-  await requireRole(c.env, projectId, user.id, "editor");
+  await requireAiRole(c.env, projectId, user.id, "editor");
   const body = await readJson(c);
   const goal = text(body.goal, "Goal", { max: 2000, required: true });
   const start = dateOrNull(body.start, "Start date") ?? todayIso();
@@ -158,7 +169,7 @@ aiRoutes.post("/:id/ai/plan", async (c) => {
 aiRoutes.post("/:id/ai/summary", async (c) => {
   const user = requireUser(c);
   const projectId = c.req.param("id");
-  await requireRole(c.env, projectId, user.id, "viewer");
+  await requireAiRole(c.env, projectId, user.id, "viewer");
   const project = await c.env.DB.prepare("SELECT name FROM projects WHERE id = ?").bind(projectId).first<{ name: string }>();
   const rows = await c.env.DB.prepare(
     "SELECT t.*, u.name AS assignee_name FROM tasks t LEFT JOIN users u ON u.id = t.assignee_id WHERE t.project_id = ? ORDER BY t.start_date"

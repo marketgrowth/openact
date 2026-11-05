@@ -27,9 +27,36 @@ export interface User {
   name: string;
 }
 
+export interface Column {
+  id: string;
+  name: string;
+  /** What the column means for progress and late checks. Same values as Status. */
+  category: Status;
+  position: number;
+}
+
+export const DEFAULT_COLUMNS: Array<{ name: string; category: Status }> = [
+  { name: "Backlog", category: "backlog" },
+  { name: "To do", category: "todo" },
+  { name: "In progress", category: "doing" },
+  { name: "Review", category: "review" },
+  { name: "Done", category: "done" }
+];
+
+/** Labels for column categories, used where a column can be chosen or explained. */
+export const CATEGORY_LABELS: Record<Status, string> = {
+  backlog: "Backlog (not started)",
+  todo: "To do (not started)",
+  doing: "In progress",
+  review: "In review",
+  done: "Done (counts as finished)"
+};
+
 export interface Task {
   id: string;
   projectId: string;
+  /** The board column. Null only for data from before columns existed. */
+  columnId: string | null;
   title: string;
   notes: string;
   status: Status;
@@ -95,6 +122,11 @@ export interface ProjectSummary {
 export interface ProjectDetail {
   project: ProjectInfo;
   role: Role;
+  columns: Column[];
+  /** The project's AI agent policy, by role. */
+  aiPolicy: AiPolicy;
+  /** What the AI agent may do for the person viewing, after their role and the policy. */
+  agentLevel: AgentLevel;
   members: Member[];
   invitations: Invitation[];
   tasks: Task[];
@@ -109,6 +141,7 @@ export interface AppConfig {
 }
 
 export interface TaskInput {
+  columnId?: string;
   title?: string;
   notes?: string;
   status?: Status;
@@ -130,3 +163,38 @@ export interface PlannedTask {
 }
 
 export const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
+
+/* AI agent permissions */
+
+/** What the AI agent may do. Each level includes the ones before it. */
+export const AGENT_LEVELS = ["off", "ask", "edit", "delete", "admin"] as const;
+export type AgentLevel = (typeof AGENT_LEVELS)[number];
+
+export const AGENT_LEVEL_LABELS: Record<AgentLevel, string> = {
+  off: "Off",
+  ask: "Ask only",
+  edit: "Ask and edit",
+  delete: "Edit and delete",
+  admin: "Full, including people"
+};
+
+export const AGENT_LEVEL_HELP: Record<AgentLevel, string> = {
+  off: "No AI features.",
+  ask: "Answers questions and changes the view. Changes no data.",
+  edit: "Also adds and edits tasks and columns.",
+  delete: "Also deletes tasks and columns, after the person approves.",
+  admin: "Also invites, removes and changes the roles of people, after the person approves."
+};
+
+export type AiPolicy = Record<Role, AgentLevel>;
+
+export interface AgentAction {
+  id: string;
+  userId: string | null;
+  tool: string;
+  summary: string;
+  status: "done" | "failed" | "pending" | "approved" | "rejected" | "expired" | "denied";
+  result: string | null;
+  createdAt: string;
+  decidedAt: string | null;
+}

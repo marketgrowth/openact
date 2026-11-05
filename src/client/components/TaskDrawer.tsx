@@ -2,23 +2,24 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   MAX_ATTACHMENT_BYTES,
   PRIORITIES,
-  STATUSES,
   type Attachment,
+  type Column,
   type Member,
   type Priority,
-  type Status,
   type Task,
   type TaskInput
 } from "../../shared/types";
 import { dn, fmtDateTime, fmtSize, isoWeek, workDays } from "../dates";
 import { ConfirmButton, Icon, useToast } from "../ui";
+import { columnOf } from "./Board";
 
-export type DrawerTarget = { kind: "new"; status: Status; start?: string; end?: string } | { kind: "edit"; id: string };
+export type DrawerTarget = { kind: "new"; columnId?: string; start?: string; end?: string } | { kind: "edit"; id: string };
 
 interface Props {
   target: DrawerTarget;
   task: Task | null;
   tasks: Task[];
+  columns: Column[];
   members: Member[];
   attachments: Attachment[];
   canEdit: boolean;
@@ -31,7 +32,7 @@ interface Props {
 
 interface Form {
   title: string;
-  status: Status;
+  columnId: string;
   priority: Priority;
   phase: string;
   start: string;
@@ -40,9 +41,9 @@ interface Form {
   notes: string;
 }
 
-const fromTask = (t: Task | null, status: Status, preset?: { start?: string; end?: string }): Form => ({
+const fromTask = (t: Task | null, columnId: string, preset?: { start?: string; end?: string }): Form => ({
   title: t?.title ?? "",
-  status: t?.status ?? status,
+  columnId,
   priority: t?.priority ?? "med",
   phase: t?.phase ?? "",
   start: t?.start ?? preset?.start ?? "",
@@ -51,10 +52,12 @@ const fromTask = (t: Task | null, status: Status, preset?: { start?: string; end
   notes: t?.notes ?? ""
 });
 
-export function TaskDrawer({ target, task, tasks, members, attachments, canEdit, onClose, onSave, onDelete, onUpload, onDeleteAttachment }: Props) {
+export function TaskDrawer({ target, task, tasks, columns, members, attachments, canEdit, onClose, onSave, onDelete, onUpload, onDeleteAttachment }: Props) {
   const toast = useToast();
   const isNew = target.kind === "new";
-  const [form, setForm] = useState<Form>(() => fromTask(task, isNew ? target.status : "todo", isNew ? target : undefined));
+  const fallbackColumn = (columns.find((c) => c.category === "todo") ?? columns[0])?.id ?? "";
+  const columnOfTask = (t: Task) => columnOf(t, columns) ?? fallbackColumn;
+  const [form, setForm] = useState<Form>(() => fromTask(task, task ? columnOfTask(task) : isNew ? target.columnId ?? fallbackColumn : fallbackColumn, isNew ? target : undefined));
   const [dirty, setDirty] = useState(false);
   const [base, setBase] = useState(task?.updatedAt ?? null);
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +73,7 @@ export function TaskDrawer({ target, task, tasks, members, attachments, canEdit,
   // Someone else saved this task. If there are no local edits, show their version.
   useEffect(() => {
     if (changedElsewhere && !dirty && task) {
-      setForm(fromTask(task, task.status));
+      setForm(fromTask(task, columnOfTask(task)));
       setBase(task.updatedAt);
     }
   }, [changedElsewhere, dirty, task]);
@@ -126,7 +129,7 @@ export function TaskDrawer({ target, task, tasks, members, attachments, canEdit,
     setBusy(true);
     const saved = await onSave(isNew ? null : task!.id, {
       title: form.title.trim(),
-      status: form.status,
+      columnId: form.columnId,
       priority: form.priority,
       phase: form.phase.trim(),
       start: form.start || null,
@@ -171,11 +174,11 @@ export function TaskDrawer({ target, task, tasks, members, attachments, canEdit,
               </div>
               <div className="row2">
                 <div className="field">
-                  <label htmlFor="f-status">Status</label>
-                  <select id="f-status" value={form.status} onChange={(e) => set("status", e.target.value as Status)}>
-                    {STATUSES.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.label}
+                  <label htmlFor="f-column">Column</label>
+                  <select id="f-column" value={form.columnId} onChange={(e) => set("columnId", e.target.value)}>
+                    {columns.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
                       </option>
                     ))}
                   </select>

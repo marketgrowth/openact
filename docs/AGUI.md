@@ -1,102 +1,136 @@
-# AG-UI in OpenAct
+# AI agent and AG-UI
 
-OpenAct speaks [AG-UI](https://docs.ag-ui.com), the Agent-User Interaction protocol. AG-UI is an open, event-based protocol between an agent and a user interface. Because OpenAct follows it, you can add an agent later without changing the web app, and any AG-UI client can talk to the OpenAct agent.
+OpenAct is AI-native. Every project has an AI agent that can answer questions and change the project. What the agent may do depends on who uses it. The agent talks to the web app with [AG-UI](https://docs.ag-ui.com), the Agent-User Interaction protocol.
 
-## What works today
+## Who can tell the agent to do what
 
-- **Endpoint.** `POST /api/projects/:id/agent` takes an AG-UI `RunAgentInput` and streams AG-UI events as Server-Sent Events.
-- **Assistant.** The agent answers questions about the project in text. It calls the AI provider through Cloudflare AI Gateway, like the other AI features.
-- **Web app.** **AI assist > Ask** uses the endpoint. It sends the shared state, the context and the frontend tools with every run.
-- **Frontend tools.** The web app can run four tools when an agent calls them: `open_task`, `show_view`, `go_to_date` and `filter_tasks`. The current agent does not call tools yet.
-- **Compatibility.** The official `@ag-ui/client` `HttpAgent` reads the stream.
+Three rules decide what the agent may do:
 
-## The run
+1. **The agent never has more power than the person using it.** Each role has a ceiling.
+2. **Owners can give each role less.** Every project has an AI policy, under **Project settings > AI agent access**.
+3. **Risky changes wait for the person.** Deletes, changes to people, and 5 or more changes in one step show an approval card. Nothing runs until the person clicks **Approve**.
 
-```
-POST /api/projects/:id/agent
-Content-Type: application/json
-Cookie: openact_session=...
+| Level | What the agent may do | Highest for |
+| --- | --- | --- |
+| Off | No AI features at all | |
+| Ask only | Answer questions, open tasks, switch views, go to dates, filter | Viewers |
+| Ask and edit | Also add and change tasks, add, rename, reorder and recategorize columns | Editors |
+| Edit and delete | Also delete tasks and columns, after approval | |
+| Full, including people | Also invite, remove and change the roles of members, after approval | Owners |
 
-{
-  "threadId": "...",
-  "runId": "...",
-  "state": { "projectId": "...", "view": "calendar", "focusDate": "2026-11-18", ... },
-  "messages": [{ "id": "m1", "role": "user", "content": "What is late?" }],
-  "tools": [ { "name": "go_to_date", "description": "...", "parameters": { ... } }, ... ],
-  "context": [{ "description": "Current view", "value": "calendar" }],
-  "forwardedProps": {}
-}
-```
+The defaults are: Owners get Full, Editors get Ask and edit, Viewers get Ask only.
 
-The reply is `text/event-stream`. Each event is one `data:` line with JSON, then a blank line:
+The agent's level for a person is the lower of their role's ceiling and the project's AI policy for that role. The code is in `src/shared/agent-policy.ts`.
+
+## How a request runs
 
 ```
-RUN_STARTED
-STEP_STARTED  (read_project)
-STEP_FINISHED (read_project)
-STEP_STARTED  (answer)
-TEXT_MESSAGE_START, TEXT_MESSAGE_CONTENT, TEXT_MESSAGE_END
-STEP_FINISHED (answer)
-RUN_FINISHED
+Person: "Delete the tasks that are done"
+  |
+  v
+POST /api/projects/:id/agent   (AG-UI RunAgentInput, as the signed-in person)
+  |
+  |-- level = min(role ceiling, project AI policy)
+  |-- the model gets only the tools that this level allows
+  |-- every tool call is checked again before it runs
+  |
+  |-- allowed, low risk  -> runs now -> TOOL_CALL_RESULT, logged as "done"
+  |-- above the level    -> refused  -> TOOL_CALL_RESULT "Not allowed", logged as "denied"
+  |-- needs approval     -> logged as "pending"
+  |                         RUN_FINISHED { outcome: { type: "interrupt", interrupts: [...] } }
+  v
+Web app shows the approval card. The person approves or rejects each change.
+  |
+  v
+POST /api/projects/:id/agent   with resume: [{ interruptId, status: "resolved", payload: { approved } }]
+  |-- only the person who asked can answer, only once, and only for 30 minutes
+  |-- the level is checked again, in case the AI policy changed
+  v
+Approved changes run. The agent reports what it did.
 ```
 
-If something fails, the stream ends with `RUN_ERROR` and a plain message.
+Tools that change data run in the Worker through `src/worker/services.ts`. The API routes use the same functions, so the agent gets exactly the same role checks, validation and sync as a person who clicks in the app.
 
-The endpoint uses the same session cookie and role checks as the rest of the API. A person must be a member of the project.
+Every action is saved in the `agent_actions` table. All members can read it under **Project settings > Agent activity**.
 
-## Shared state
+## Tools
 
-The web app sends `OpenActAgentState` as `RunAgentInput.state`. It is defined in `src/shared/agui.ts`:
+### Backend tools (change data)
 
-| Field | Meaning |
-| --- | --- |
-| `projectId`, `projectName` | The open project |
-| `view` | `board`, `timeline`, `calendar` or `members` |
-| `focusDate` | The day the calendar highlights, or `null` |
-| `openTaskId` | The task open in the drawer, or `null` |
-| `filter` | The text filter and the "My tasks" switch |
-| `today` | The person's local date |
+| Tool | Level | Approval |
+| --- | --- | --- |
+| `create_task` | Ask and edit | At 5 or more changes |
+| `update_task` (title, column, phase, priority, dates, assignee, notes) | Ask and edit | At 5 or more changes |
+| `add_column` | Ask and edit | At 5 or more changes |
+| `update_column` (rename, category, move) | Ask and edit | At 5 or more changes |
+| `delete_task` | Edit and delete | Always |
+| `delete_column` (moves its tasks first) | Edit and delete | Always |
+| `invite_member` | Full | Always |
+| `change_member_role` | Full | Always |
+| `remove_member` | Full | Always |
 
-The web app's reducer (`src/client/agui/reducer.ts`) already applies `STATE_SNAPSHOT` and `STATE_DELTA` (JSON Patch) events, so an agent can send state changes.
+Every id must belong to the current project. The agent cannot remove the person it acts for.
 
-## Frontend tools
-
-Frontend tools change only what the person sees. They never change project data.
+### Frontend tools (change only the view)
 
 | Tool | Arguments | What the web app does |
 | --- | --- | --- |
 | `open_task` | `taskId` | Opens the task in the right-side drawer |
 | `show_view` | `view` | Switches to Board, Timeline, Calendar or People |
-| `go_to_date` | `date` (YYYY-MM-DD) | Shows that month on the calendar and highlights the day |
+| `go_to_date` | `date` | Shows that month on the calendar and highlights the day |
 | `filter_tasks` | `query`, `mine` | Sets the task filter |
 
-The flow follows the AG-UI spec:
+When the agent calls a frontend tool, the run ends with `RUN_FINISHED { outcome: { type: "success", pendingToolCallIds } }`. The web app runs the tools and starts a new run with the results.
 
-1. The agent sends `TOOL_CALL_START`, `TOOL_CALL_ARGS` (JSON in pieces) and `TOOL_CALL_END`.
-2. The web app runs the tool with the handlers in `src/client/pages/Project.tsx`.
-3. The web app starts a new run. It adds an assistant message with `toolCalls` and a `tool` message with the result.
-4. The agent continues. The web app stops after 3 rounds, so a confused agent cannot loop.
+## Events
 
-## Add agentic features
+The endpoint streams AG-UI events as Server-Sent Events:
 
-1. **Teach the agent to call tools.** In `src/worker/agui.ts`, send `input.tools` to a model that supports tool calling, through AI Gateway. Stream each call as `TOOL_CALL_START`, `TOOL_CALL_ARGS` and `TOOL_CALL_END`.
-2. **Add a frontend tool.** Add it to `UI_TOOLS` and `UiToolName` in `src/shared/agui.ts`. Add a handler in `src/client/pages/Project.tsx`. TypeScript tells you if a handler is missing.
-3. **Add a backend tool that changes data**, such as "move this task". Run it in the Worker, not in the browser. Check the person's role with `requireRole`, write with `bumpRev`, and send `TOOL_CALL_RESULT`. Ask the person to confirm before a change they cannot undo.
-4. **Stream text.** Send many `TEXT_MESSAGE_CONTENT` events as the model writes. The web app already joins them.
-5. **Long-running agents.** Move the run into a Durable Object (for example with the Cloudflare Agents SDK) and keep the same AG-UI events. The web app does not need to change.
+- `RUN_STARTED`, `RUN_FINISHED` (with `outcome`), `RUN_ERROR`
+- `STEP_STARTED` and `STEP_FINISHED`: `apply_approvals` and `think`
+- `TEXT_MESSAGE_START`, `TEXT_MESSAGE_CONTENT`, `TEXT_MESSAGE_END`
+- `TOOL_CALL_START`, `TOOL_CALL_ARGS`, `TOOL_CALL_END`, `TOOL_CALL_RESULT`
+- `CUSTOM` `openact.agent_level`: the level for this run
+- `CUSTOM` `openact.data_changed`: the agent changed data. The web app reloads the project.
 
-## Use another AG-UI client
+Types come from `@ag-ui/core` as type-only imports. The official `@ag-ui/client` `HttpAgent` reads the stream.
 
-```ts
-import { HttpAgent } from "@ag-ui/client";
+## Models
 
-const agent = new HttpAgent({ url: "https://your-openact.example.com/api/projects/PROJECT_ID/agent" });
-agent.addMessage({ id: "m1", role: "user", content: "What is due this week?" });
-await agent.runAgent({ tools: [], context: [] }, { onTextMessageContentEvent: ({ event }) => console.log(event.delta) });
+The agent uses tool calling through Cloudflare AI Gateway. Set `AI_PROVIDER`:
+
+| Provider | Notes |
+| --- | --- |
+| `workers-ai` (default) | No extra key. Tool results go back to the model as text. |
+| `anthropic` | Needs `ANTHROPIC_API_KEY` and `CF_ACCOUNT_ID`. Best tool use. |
+| `openai` | Needs `OPENAI_API_KEY` and `CF_ACCOUNT_ID`. |
+| `dev-scripted` | For local tests only. No AI. See below. |
+
+## Test without an AI account
+
+The `dev-scripted` provider turns lines in your message into tool calls, so you can test roles and approvals locally:
+
+```sh
+npm run build
+npx wrangler dev --local --var AI_PROVIDER:dev-scripted
 ```
 
-Run it in the browser on the same origin, so the session cookie goes with the request. The API rejects cross-site writes.
+Then type a message such as:
+
+```
+/tool update_column {"columnId":"COLUMN_ID","name":"QA"}
+/tool delete_task {"taskId":"TASK_ID"}
+```
+
+Do not use `dev-scripted` in production.
 
 ## Data limits
 
-The agent gets task titles, statuses, priorities, phases, dates, task ids and assignee names. It does not get notes, files or email addresses. Context items from the web app are cut to 2,000 characters and are treated as data, not instructions.
+The agent gets task titles, columns, priorities, phases, dates, assignee names, member names and roles, and the ids it needs to call tools. It does not get task notes, files or email addresses. Context items from the web app are cut to 2,000 characters and are treated as data, not instructions.
+
+## Add a tool
+
+1. Add the tool to `BACKEND_TOOLS` in `src/shared/agent-policy.ts`. Choose its `level` and `risk`.
+2. Add the business logic to `src/worker/services.ts`, with `requireRole` and `bumpRev`. Use it from the API route too.
+3. Add a case to `describeCall` and `executeCall` in `src/worker/agent/tools.ts`. Check that every id belongs to the project.
+4. Add tests in `test/agent.test.ts`.

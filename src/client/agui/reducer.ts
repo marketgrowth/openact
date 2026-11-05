@@ -1,4 +1,4 @@
-import type { AguiEvent, JsonPatchOp } from "../../shared/agui";
+import type { AguiEvent, Interrupt, JsonPatchOp } from "../../shared/agui";
 
 /*
  * Turns a stream of AG-UI events into a view model the UI can render.
@@ -24,11 +24,16 @@ export interface ToolCallView {
 }
 
 export interface RunView {
-  status: "idle" | "running" | "finished" | "error";
+  status: "idle" | "running" | "finished" | "interrupted" | "error";
   error: string | null;
   step: string | null;
   messages: ChatMessage[];
+  /** Tool calls in the current run. */
   toolCalls: ToolCallView[];
+  /** Approvals the agent is waiting for (AG-UI interrupts). */
+  interrupts: Interrupt[];
+  /** Frontend tool calls the web app should run before it continues. */
+  pendingToolCallIds: string[];
   state: unknown;
   custom: Array<{ name: string; value: unknown }>;
 }
@@ -39,6 +44,8 @@ export const emptyRun = (messages: ChatMessage[] = [], state: unknown = null): R
   step: null,
   messages,
   toolCalls: [],
+  interrupts: [],
+  pendingToolCallIds: [],
   state,
   custom: []
 });
@@ -46,9 +53,13 @@ export const emptyRun = (messages: ChatMessage[] = [], state: unknown = null): R
 export function reduceEvent(v: RunView, e: AguiEvent): RunView {
   switch (e.type) {
     case "RUN_STARTED":
-      return { ...v, status: "running", error: null, toolCalls: [] };
-    case "RUN_FINISHED":
-      return { ...v, status: "finished", step: null };
+      return { ...v, status: "running", error: null, toolCalls: [], interrupts: [], pendingToolCallIds: [] };
+    case "RUN_FINISHED": {
+      const o = e.outcome;
+      if (o && o.type === "interrupt") return { ...v, status: "interrupted", step: null, interrupts: o.interrupts };
+      const pending = o && o.type === "success" ? (o.pendingToolCallIds ?? []) : [];
+      return { ...v, status: "finished", step: null, pendingToolCallIds: pending };
+    }
     case "RUN_ERROR":
       return { ...v, status: "error", error: e.message, step: null };
     case "STEP_STARTED":
@@ -66,10 +77,24 @@ export function reduceEvent(v: RunView, e: AguiEvent): RunView {
     }
     case "TEXT_MESSAGE_END":
       return v;
-    case "TOOL_CALL_START":
-      return { ...v, toolCalls: [...v.toolCalls, { id: e.toolCallId, name: e.toolCallName, args: "", done: false, parentMessageId: e.parentMessageId }] };
+    case "TOOL_CALL_START": {
+      // Attach the call to its assistant message, so the history keeps calls before their results.
+      const call = { id: e.toolCallId, name: e.toolCallName, args: "" };
+      const parentId = e.parentMessageId;
+      const has = parentId && v.messages.some((m) => m.id === parentId);
+      const messages = has
+        ? v.messages.map((m) => (m.id === parentId ? { ...m, toolCalls: [...(m.toolCalls ?? []), call] } : m))
+        : [...v.messages, { id: parentId || e.toolCallId, role: "assistant" as const, content: "", toolCalls: [call] }];
+      return { ...v, messages, toolCalls: [...v.toolCalls, { ...call, done: false, parentMessageId: parentId }] };
+    }
     case "TOOL_CALL_ARGS":
-      return { ...v, toolCalls: v.toolCalls.map((t) => (t.id === e.toolCallId ? { ...t, args: t.args + e.delta } : t)) };
+      return {
+        ...v,
+        toolCalls: v.toolCalls.map((t) => (t.id === e.toolCallId ? { ...t, args: t.args + e.delta } : t)),
+        messages: v.messages.map((m) =>
+          m.toolCalls?.some((c) => c.id === e.toolCallId) ? { ...m, toolCalls: m.toolCalls.map((c) => (c.id === e.toolCallId ? { ...c, args: c.args + e.delta } : c)) } : m
+        )
+      };
     case "TOOL_CALL_END":
       return { ...v, toolCalls: v.toolCalls.map((t) => (t.id === e.toolCallId ? { ...t, done: true } : t)) };
     case "TOOL_CALL_RESULT":
