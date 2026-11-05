@@ -3,11 +3,34 @@ import { PRIORITIES, type PlannedTask } from "../../shared/types";
 import { api, errorText } from "../api";
 import { fmtRange, today } from "../dates";
 import { Modal, useToast } from "../ui";
+import { AskPanel } from "./AskPanel";
+import type { RunView } from "../agui/reducer";
 
-/** AI assist: draft tasks from a goal, or write a status summary. Requests go through Cloudflare AI Gateway. */
-export function AiDialog({ projectId, canEdit, provider, onClose, onAdded }: { projectId: string; canEdit: boolean; provider: string; onClose: () => void; onAdded: () => void }) {
+export interface AgentControls {
+  view: RunView;
+  ask: (q: string) => void;
+  stop: () => void;
+  reset: () => void;
+}
+
+/** AI assist: ask about the project (AG-UI), draft tasks from a goal, or write a status summary. Requests go through Cloudflare AI Gateway. */
+export function AiDialog({
+  projectId,
+  canEdit,
+  provider,
+  agent,
+  onClose,
+  onAdded
+}: {
+  projectId: string;
+  canEdit: boolean;
+  provider: string;
+  agent: AgentControls;
+  onClose: () => void;
+  onAdded: () => void;
+}) {
   const toast = useToast();
-  const [tab, setTab] = useState<"plan" | "summary">(canEdit ? "plan" : "summary");
+  const [tab, setTab] = useState<"ask" | "plan" | "summary">("ask");
   const [goal, setGoal] = useState("");
   const [start, setStart] = useState(today());
   const [drafts, setDrafts] = useState<PlannedTask[] | null>(null);
@@ -71,6 +94,9 @@ export function AiDialog({ projectId, canEdit, provider, onClose, onAdded }: { p
   return (
     <Modal title="AI assist" onClose={onClose} wide>
       <div className="seg" role="tablist" aria-label="AI tools">
+        <button type="button" role="tab" aria-selected={tab === "ask"} aria-pressed={tab === "ask"} onClick={() => setTab("ask")}>
+          Ask
+        </button>
         {canEdit && (
           <button type="button" role="tab" aria-selected={tab === "plan"} aria-pressed={tab === "plan"} onClick={() => setTab("plan")}>
             Draft tasks
@@ -80,6 +106,8 @@ export function AiDialog({ projectId, canEdit, provider, onClose, onAdded }: { p
           Status summary
         </button>
       </div>
+
+      {tab === "ask" && <AskPanel view={agent.view} onAsk={agent.ask} onStop={agent.stop} onReset={agent.reset} />}
 
       {tab === "plan" && !drafts && (
         <form className="stack" onSubmit={plan}>

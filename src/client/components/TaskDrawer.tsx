@@ -13,7 +13,7 @@ import {
 import { dn, fmtDateTime, fmtSize, isoWeek, workDays } from "../dates";
 import { ConfirmButton, Icon, useToast } from "../ui";
 
-export type DrawerTarget = { kind: "new"; status: Status } | { kind: "edit"; id: string };
+export type DrawerTarget = { kind: "new"; status: Status; start?: string; end?: string } | { kind: "edit"; id: string };
 
 interface Props {
   target: DrawerTarget;
@@ -40,13 +40,13 @@ interface Form {
   notes: string;
 }
 
-const fromTask = (t: Task | null, status: Status): Form => ({
+const fromTask = (t: Task | null, status: Status, preset?: { start?: string; end?: string }): Form => ({
   title: t?.title ?? "",
   status: t?.status ?? status,
   priority: t?.priority ?? "med",
   phase: t?.phase ?? "",
-  start: t?.start ?? "",
-  end: t?.end ?? "",
+  start: t?.start ?? preset?.start ?? "",
+  end: t?.end ?? preset?.end ?? preset?.start ?? "",
   assigneeId: t?.assigneeId ?? "",
   notes: t?.notes ?? ""
 });
@@ -54,7 +54,7 @@ const fromTask = (t: Task | null, status: Status): Form => ({
 export function TaskDrawer({ target, task, tasks, members, attachments, canEdit, onClose, onSave, onDelete, onUpload, onDeleteAttachment }: Props) {
   const toast = useToast();
   const isNew = target.kind === "new";
-  const [form, setForm] = useState<Form>(() => fromTask(task, isNew ? target.status : "todo"));
+  const [form, setForm] = useState<Form>(() => fromTask(task, isNew ? target.status : "todo", isNew ? target : undefined));
   const [dirty, setDirty] = useState(false);
   const [base, setBase] = useState(task?.updatedAt ?? null);
   const [error, setError] = useState<string | null>(null);

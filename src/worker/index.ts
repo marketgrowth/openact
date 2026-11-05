@@ -6,6 +6,7 @@ import { authRoutes, meRoutes, sessionMiddleware } from "./auth";
 import { projectRoutes } from "./projects";
 import { attachmentRoutes, projectTaskRoutes, taskRoutes } from "./tasks";
 import { aiRoutes } from "./ai";
+import { aguiRoutes } from "./agui";
 import { HttpError, appName } from "./util";
 
 const app = new Hono<AppEnv>();
@@ -46,6 +47,7 @@ app.route("/api/me", meRoutes);
 app.route("/api/projects", projectRoutes);
 app.route("/api/projects", projectTaskRoutes);
 app.route("/api/projects", aiRoutes);
+app.route("/api/projects", aguiRoutes);
 app.route("/api/tasks", taskRoutes);
 app.route("/api/attachments", attachmentRoutes);
 

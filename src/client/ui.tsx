@@ -19,7 +19,13 @@ const PATHS: Record<string, string> = {
   back: "M12 4l-6 6 6 6",
   out: "M8 4H4v12h4M12 6.5L15.5 10 12 13.5M15.5 10H8",
   gear: "M10 7a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM10 2v2M10 16v2M2 10h2M16 10h2M4.3 4.3l1.4 1.4M14.3 14.3l1.4 1.4M4.3 15.7l1.4-1.4M14.3 5.7l1.4-1.4",
-  check: "M4 10.5l4 4 8-9"
+  check: "M4 10.5l4 4 8-9",
+  calendar: "M3.5 5h13v11.5h-13zM3.5 8.5h13M7 3v3.5M13 3v3.5",
+  doc: "M5.5 2.5h6l3 3v12h-9zM11.5 2.5v3h3M7.5 10h5M7.5 13h5",
+  flag: "M5 17.5V3M5 3.5h9l-2 3.5 2 3.5H5",
+  left: "M12.5 4.5L7 10l5.5 5.5",
+  right: "M7.5 4.5L13 10l-5.5 5.5",
+  chat: "M3.5 4.5h13v9h-7l-4 3v-3h-2z"
 };
 
 export function Icon({ name, size = 18 }: { name: keyof typeof PATHS | string; size?: number }) {

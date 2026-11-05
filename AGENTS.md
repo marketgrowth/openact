@@ -31,6 +31,7 @@ Run `npm run typecheck`, `npm test` and `npm run build` before you say a task is
 5. **Limit AI data.** Do not send task notes, files or email addresses to an AI provider without a setting that turns it on.
 6. **No new runtime dependencies** without a reason in the pull request.
 7. **Theme tokens only.** No literal colors in components. Add tokens with both light and dark values.
+8. **Follow AG-UI.** Agent features use the AG-UI events and types in `src/shared/agui.ts`. Read `docs/AGUI.md` first. Frontend tools only change what the person sees. Tools that change data run in the Worker with `requireRole` and `bumpRev`.
 
 ## Writing style for text in the app and docs
 

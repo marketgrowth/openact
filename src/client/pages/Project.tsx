@@ -13,15 +13,19 @@ import {
 } from "../../shared/types";
 import { api, ApiError, errorText } from "../api";
 import { Link, navigate } from "../router";
-import { fmtShort, today } from "../dates";
+import { fmtRange, fmtShort, today } from "../dates";
 import { ConfirmButton, Icon, Modal, useToast } from "../ui";
 import { Board } from "../components/Board";
+import { Calendar } from "../components/Calendar";
 import { Timeline } from "../components/Timeline";
 import { TaskDrawer, type DrawerTarget } from "../components/TaskDrawer";
 import { Members } from "../components/Members";
 import { AiDialog } from "../components/AiDialog";
+import { useAgent } from "../agui/useAgent";
+import type { UiToolHandlers } from "../agui/tools";
+import { PROJECT_VIEWS, UI_TOOLS, type OpenActAgentState, type ProjectView } from "../../shared/agui";
 
-type View = "board" | "timeline" | "members";
+type View = ProjectView;
 const POLL_MS = 5000;
 
 export function ProjectPage({ projectId, view, me, config }: { projectId: string; view: View; me: User; config: AppConfig }) {
@@ -34,6 +38,7 @@ export function ProjectPage({ projectId, view, me, config }: { projectId: string
   const [drawer, setDrawer] = useState<DrawerTarget | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [focusDate, setFocusDate] = useState<string | null>(null);
   const revRef = useRef(0);
   const busyRef = useRef(false); // true while a drag runs, so a reload does not move cards under the pointer
 
@@ -167,6 +172,76 @@ export function ProjectPage({ projectId, view, me, config }: { projectId: string
   const membersById = useMemo(() => Object.fromEntries((data?.members ?? []).map((m) => [m.userId, m])), [data?.members]);
   const closeDrawer = useCallback(() => setDrawer(null), []);
 
+  /* AG-UI: the state and tools the web app shares with the project assistant. */
+  const base = `/p/${projectId}`;
+  const live = useRef({ data, view, q, mine, focusDate, drawer });
+  live.current = { data, view, q, mine, focusDate, drawer };
+
+  const getAgentState = useCallback((): OpenActAgentState => {
+    const l = live.current;
+    return {
+      projectId,
+      projectName: l.data?.project.name ?? "",
+      view: l.view,
+      focusDate: l.focusDate,
+      openTaskId: l.drawer?.kind === "edit" ? l.drawer.id : null,
+      filter: { query: l.q, mine: l.mine },
+      today: today()
+    };
+  }, [projectId]);
+
+  const getAgentContext = useCallback(() => {
+    const st = getAgentState();
+    const open = st.openTaskId ? live.current.data?.tasks.find((t) => t.id === st.openTaskId) : undefined;
+    return [
+      { description: "Current view", value: st.view },
+      { description: "Person's local date", value: st.today },
+      ...(st.focusDate ? [{ description: "Calendar date in focus", value: st.focusDate }] : []),
+      ...(open ? [{ description: "Open task", value: `${open.title} [${open.id}]` }] : []),
+      ...(st.filter.query || st.filter.mine ? [{ description: "Task filter", value: `text "${st.filter.query}", only mine: ${st.filter.mine}` }] : [])
+    ];
+  }, [getAgentState]);
+
+  const toolHandlers = useMemo<UiToolHandlers>(
+    () => ({
+      open_task: (args) => {
+        const id = String(args.taskId ?? "");
+        const t = live.current.data?.tasks.find((x) => x.id === id);
+        if (!t) throw new Error(`There is no task with id ${id}.`);
+        setAiOpen(false);
+        setDrawer({ kind: "edit", id });
+        return `Opened "${t.title}".`;
+      },
+      show_view: (args) => {
+        const v = String(args.view ?? "") as View;
+        if (!PROJECT_VIEWS.includes(v)) throw new Error(`Unknown view "${v}". Use one of: ${PROJECT_VIEWS.join(", ")}.`);
+        navigate(v === "board" ? base : `${base}/${v}`);
+        return `Showing the ${v} view.`;
+      },
+      go_to_date: (args) => {
+        const d = String(args.date ?? "");
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) throw new Error("The date must look like 2026-11-05.");
+        setFocusDate(d);
+        navigate(`${base}/calendar`);
+        return `Showing ${d} on the calendar.`;
+      },
+      filter_tasks: (args) => {
+        if (typeof args.query === "string") setQ(args.query);
+        if (typeof args.mine === "boolean") setMine(args.mine);
+        return "Filter changed.";
+      }
+    }),
+    [base]
+  );
+
+  const agent = useAgent({
+    url: `/api/projects/${projectId}/agent`,
+    tools: UI_TOOLS,
+    getState: getAgentState,
+    getContext: getAgentContext,
+    handlers: toolHandlers
+  });
+
   if (error && !data) {
     return (
       <main className="wrap page">
@@ -182,7 +257,6 @@ export function ProjectPage({ projectId, view, me, config }: { projectId: string
   }
   if (!data) return <main className="wrap page"><p className="muted">Loading the project…</p></main>;
 
-  const base = `/p/${projectId}`;
   const drawerTask = drawer && drawer.kind === "edit" ? data.tasks.find((t) => t.id === drawer.id) ?? null : null;
 
   return (
@@ -202,6 +276,9 @@ export function ProjectPage({ projectId, view, me, config }: { projectId: string
             </Link>
             <Link to={`${base}/timeline`} aria-current={view === "timeline" ? "page" : undefined}>
               <Icon name="timeline" size={16} /> Timeline
+            </Link>
+            <Link to={`${base}/calendar`} aria-current={view === "calendar" ? "page" : undefined}>
+              <Icon name="calendar" size={16} /> Calendar
             </Link>
             <Link to={`${base}/members`} aria-current={view === "members" ? "page" : undefined}>
               <Icon name="users" size={16} /> People <span className="count">{data.members.length}</span>
@@ -262,6 +339,19 @@ export function ProjectPage({ projectId, view, me, config }: { projectId: string
             onAdd={() => setDrawer({ kind: "new", status: "todo" })}
           />
         )}
+        {view === "calendar" && (
+          <Calendar
+            tasks={visible}
+            hasAny={data.tasks.length > 0}
+            members={membersById}
+            canEdit={canEdit}
+            focusDate={focusDate}
+            onOpen={(id) => setDrawer({ kind: "edit", id })}
+            onAdd={(date) => setDrawer({ kind: "new", status: "todo", start: date, end: date })}
+            onReschedule={(id, start, end) => quickPatch(id, { start, end }, `Dates changed to ${fmtRange(start, end)}.`)}
+            onDragState={setBusy}
+          />
+        )}
         {view === "members" && <Members data={data} me={me} isOwner={!!isOwner} onChanged={load} />}
       </main>
 
@@ -280,7 +370,7 @@ export function ProjectPage({ projectId, view, me, config }: { projectId: string
           onDeleteAttachment={deleteAttachment}
         />
       )}
-      {aiOpen && <AiDialog projectId={projectId} canEdit={canEdit} provider={config.aiProvider} onClose={() => setAiOpen(false)} onAdded={load} />}
+      {aiOpen && <AiDialog projectId={projectId} canEdit={canEdit} provider={config.aiProvider} agent={agent} onClose={() => setAiOpen(false)} onAdded={load} />}
       {settingsOpen && (
         <ProjectSettings data={data} me={me} canEdit={canEdit} isOwner={!!isOwner} onClose={() => setSettingsOpen(false)} onSaved={load} />
       )}

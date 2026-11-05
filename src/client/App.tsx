@@ -38,7 +38,7 @@ function Shell() {
   if (me === undefined) return <div className="splash" aria-busy="true" />;
   if (!me) return <SignIn config={config} onSignedIn={setMe} />;
 
-  const match = path.match(/^\/p\/([^/]+)(?:\/(board|timeline|members))?\/?$/);
+  const match = path.match(/^\/p\/([^/]+)(?:\/(board|timeline|calendar|members))?\/?$/);
   return (
     <div className="app">
       <header className="topbar">
@@ -55,7 +55,7 @@ function Shell() {
         </div>
       </header>
       {match ? (
-        <ProjectPage key={match[1]} projectId={match[1]} view={(match[2] as "board" | "timeline" | "members") || "board"} me={me} config={config} />
+        <ProjectPage key={match[1]} projectId={match[1]} view={(match[2] as "board" | "timeline" | "calendar" | "members") || "board"} me={me} config={config} />
       ) : (
         <ProjectsPage me={me} />
       )}
