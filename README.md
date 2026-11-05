@@ -33,8 +33,8 @@ The screenshots use example data: a sample team and projects.
 | **Task drawer.** Edit details and attach files. | **Projects.** Progress, late tasks and team size at a glance. |
 | ![People and roles](docs/images/people.png) | ![Sign in with an email code](docs/images/signin.png) |
 | **People.** Invite by email. Set Owner, Editor or Viewer. | **Sign-in.** An email code. No password. |
-| ![Board in dark theme](docs/images/board-dark.png) | ![Timeline in dark theme](docs/images/timeline-dark.png) |
-| **Dark theme.** Or follow the system setting. | **Dark timeline.** |
+| ![Board in dark theme](docs/images/board-dark.png) | ![Calendar in dark theme](docs/images/calendar-dark.png) |
+| **Dark theme.** Or follow the system setting. | **Dark calendar.** |
 
 <p align="center"><img src="docs/images/phone-calendar.png" alt="Calendar on a phone, as an agenda list" width="320"></p>
 <p align="center"><b>Phones.</b> The calendar becomes an agenda list.</p>
