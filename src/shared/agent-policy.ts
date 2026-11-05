@@ -17,7 +17,7 @@ const minLevel = (a: AgentLevel, b: AgentLevel): AgentLevel => (levelRank(a) <= 
 /** The most the agent can ever do for each role. */
 export const ROLE_CEILING: Record<Role, AgentLevel> = { viewer: "ask", editor: "edit", owner: "admin" };
 
-export const DEFAULT_POLICY: AiPolicy = { viewer: "ask", editor: "edit", owner: "admin", scope: "relaxed" };
+export const DEFAULT_POLICY: AiPolicy = { viewer: "ask", editor: "edit", owner: "admin", scope: "relaxed", readNotes: false };
 
 const SCOPES: AgentScope[] = ["strict", "relaxed"];
 
@@ -38,6 +38,7 @@ export function parsePolicy(raw: unknown): AiPolicy {
     if (typeof v === "string" && (ORDER as string[]).includes(v)) out[role] = minLevel(v as AgentLevel, ROLE_CEILING[role]);
   }
   if (typeof obj.scope === "string" && (SCOPES as string[]).includes(obj.scope)) out.scope = obj.scope as AgentScope;
+  if (obj.readNotes === true) out.readNotes = true;
   return out;
 }
 
@@ -48,7 +49,8 @@ export function effectiveLevel(role: Role, policy: AiPolicy): AgentLevel {
 
 /* Agent tools that run on the server and change data */
 
-export type ToolRisk = "write" | "delete" | "people";
+/** read: looks at data and changes nothing. */
+export type ToolRisk = "read" | "write" | "delete" | "people";
 
 export interface BackendTool {
   name: string;
@@ -66,6 +68,14 @@ const PRIORITY = { type: "string", enum: ["high", "med", "low"] };
 const ROLE = { type: "string", enum: ["owner", "editor", "viewer"] };
 
 export const BACKEND_TOOLS: BackendTool[] = [
+  {
+    name: "search_notes",
+    description:
+      "Find tasks whose title or notes contain all of the given words, for example a casting director, a contact or a location. Returns each matching task with a short part of its notes. Email addresses and phone numbers are hidden.",
+    level: "ask",
+    risk: "read",
+    parameters: { type: "object", properties: { query: str("One to six words to find, such as a name.") }, required: ["query"] }
+  },
   {
     name: "create_task",
     description: "Add a task to the project.",
@@ -181,9 +191,14 @@ export const BACKEND_TOOLS: BackendTool[] = [
 
 export const BACKEND_TOOL_NAMES = new Set(BACKEND_TOOLS.map((t) => t.name));
 
-/** The tools the agent gets at a level. */
-export function toolsForLevel(level: AgentLevel): BackendTool[] {
-  return BACKEND_TOOLS.filter((t) => atLeast(level, t.level));
+/** Tools that also need a project setting to be on. */
+export function toolAllowedByPolicy(name: string, policy: Pick<AiPolicy, "readNotes">): boolean {
+  return name !== "search_notes" || policy.readNotes;
+}
+
+/** The tools the agent gets at a level. Project settings, such as note search, come from the policy. Without one, the defaults apply. */
+export function toolsForLevel(level: AgentLevel, policy: Pick<AiPolicy, "readNotes"> = DEFAULT_POLICY): BackendTool[] {
+  return BACKEND_TOOLS.filter((t) => atLeast(level, t.level) && toolAllowedByPolicy(t.name, policy));
 }
 
 /** Changes in one step at or above this count wait for approval. */
@@ -191,7 +206,8 @@ export const BULK_APPROVAL_THRESHOLD = 5;
 
 /** True when this set of changes must wait for the person to approve it. */
 export function needsApproval(calls: Array<{ name: string }>): boolean {
-  const tools = calls.map((c) => BACKEND_TOOLS.find((t) => t.name === c.name)).filter((t): t is BackendTool => !!t);
+  // Reads change nothing, so they never need approval and do not count toward a batch.
+  const tools = calls.map((c) => BACKEND_TOOLS.find((t) => t.name === c.name)).filter((t): t is BackendTool => !!t && t.risk !== "read");
   if (tools.some((t) => t.risk === "delete" || t.risk === "people")) return true;
   return tools.length >= BULK_APPROVAL_THRESHOLD;
 }

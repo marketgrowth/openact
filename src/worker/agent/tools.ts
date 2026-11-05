@@ -3,6 +3,7 @@ import { ROLE_LABELS, type Role, type Status, type User } from "../../shared/typ
 import { HttpError } from "../util";
 import { changeMemberRole, createColumn, createTask, deleteColumn, deleteTask, inviteMember, removeMember, updateColumn, updateTask } from "../services";
 import type { ToolCall } from "./messages";
+import { MAX_NOTE_RESULTS, formatNoteResults, likePattern, searchTerms, type NoteHit } from "./notes";
 
 /** What the agent knows about the project during one run. */
 export interface Snapshot {
@@ -41,6 +42,8 @@ export function describeCall(call: ToolCall, snap: Snapshot): string {
   const taskName = task ? q(task.title) : "(an unknown task)";
   const colName = col ? q(col.name) : "(an unknown column)";
   switch (call.name) {
+    case "search_notes":
+      return "Search task notes";
     case "create_task":
       return `Add task ${q(str(a.title) || "Untitled")}${snap.columns.get(str(a.columnId)) ? ` to ${q(snap.columns.get(str(a.columnId))!.name)}` : ""}`;
     case "update_task": {
@@ -106,6 +109,17 @@ export async function executeCall(env: Env, actor: User, call: ToolCall, snap: S
   const a = call.args;
   const pid = snap.projectId;
   switch (call.name) {
+    case "search_notes": {
+      const terms = searchTerms(str(a.query));
+      if (!terms.length) throw new HttpError(400, "Give one or more words to find, such as a name.");
+      const where = terms.map(() => "(LOWER(title) LIKE ? ESCAPE '\\' OR LOWER(notes) LIKE ? ESCAPE '\\')").join(" AND ");
+      const binds = terms.flatMap((t) => [likePattern(t), likePattern(t)]);
+      const rows = await env.DB.prepare(`SELECT id, title, notes FROM tasks WHERE project_id = ? AND ${where} ORDER BY start_date LIMIT ?`)
+        .bind(pid, ...binds, MAX_NOTE_RESULTS + 1)
+        .all<NoteHit>();
+      const hits = rows.results.slice(0, MAX_NOTE_RESULTS);
+      return formatNoteResults(hits, terms, rows.results.length > MAX_NOTE_RESULTS);
+    }
     case "create_task": {
       if (a.columnId !== undefined) needColumn(snap, a.columnId);
       if (a.assigneeId) needMember(snap, a.assigneeId);

@@ -190,7 +190,9 @@ export function ProjectPage({ projectId, view, me, config }: { projectId: string
     if (!data) return [];
     const needle = q.trim().toLowerCase();
     return data.tasks.filter(
-      (t) => (!needle || t.title.toLowerCase().includes(needle) || t.phase.toLowerCase().includes(needle)) && (!mine || t.assigneeId === me.id)
+      (t) =>
+        (!needle || t.title.toLowerCase().includes(needle) || t.phase.toLowerCase().includes(needle) || t.notes.toLowerCase().includes(needle)) &&
+        (!mine || t.assigneeId === me.id)
     );
   }, [data, q, mine, me.id]);
 
@@ -348,7 +350,7 @@ export function ProjectPage({ projectId, view, me, config }: { projectId: string
         </div>
         {view !== "members" && (
           <div className="wrap ph-tools">
-            <input type="search" className="filter" placeholder="Filter tasks" aria-label="Filter tasks" value={q} onChange={(e) => setQ(e.target.value)} />
+            <input type="search" className="filter" placeholder="Filter tasks and notes" aria-label="Filter tasks by title, phase or notes" value={q} onChange={(e) => setQ(e.target.value)} />
             <label className="toggle">
               <input type="checkbox" checked={mine} onChange={(e) => setMine(e.target.checked)} /> My tasks
             </label>

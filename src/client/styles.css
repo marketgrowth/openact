@@ -2334,3 +2334,13 @@ body::before {
   color: var(--danger);
   border-color: currentColor;
 }
+
+/* Owner toggle in AI settings */
+.policy-toggle {
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 14px;
+}

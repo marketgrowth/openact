@@ -28,7 +28,7 @@ Run `npm run typecheck`, `npm test` and `npm run build` before you say a task is
 2. **Bump the revision.** Every write to a project's data includes `bumpRev(env, projectId)` in the same `DB.batch`. Open pages use it to reload.
 3. **Validate input** with the helpers in `src/worker/util.ts`. Throw `HttpError` with a plain message that the web app can show.
 4. **Protect secrets.** Store only hashes of codes and tokens. Never log codes, tokens or email bodies when `RESEND_API_KEY` is set.
-5. **Limit AI data.** Do not send task notes, files or email addresses to an AI provider without a setting that turns it on.
+5. **Limit AI data.** Do not send task notes, files or email addresses to an AI provider without a setting that turns it on. Note search (`readNotes` in the AI policy) is that setting for notes: it sends only short, redacted parts of matching notes.
 6. **No new runtime dependencies** without a reason in the pull request.
 7. **Theme tokens only.** No literal colors in components. Add tokens with both light and dark values.
 8. **Follow AG-UI.** Agent features use the AG-UI events and types in `src/shared/agui.ts`. Read `docs/AGUI.md` first. Frontend tools only change what the person sees. Tools that change data run in the Worker with `requireRole` and `bumpRev`.

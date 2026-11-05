@@ -43,7 +43,7 @@ export function AiSettings({ projectId, policy, isOwner, members, onSaved }: { p
   const [busy, setBusy] = useState(false);
   const [actions, setActions] = useState<AgentAction[] | null>(null);
   const names = Object.fromEntries(members.map((m) => [m.userId, m.name || m.email]));
-  const dirty = ROLE_ORDER.some((r) => draft[r] !== policy[r]) || draft.scope !== policy.scope;
+  const dirty = ROLE_ORDER.some((r) => draft[r] !== policy[r]) || draft.scope !== policy.scope || draft.readNotes !== policy.readNotes;
 
   useEffect(() => setDraft(policy), [policy]);
   useEffect(() => {
@@ -92,6 +92,17 @@ export function AiSettings({ projectId, policy, isOwner, members, onSaved }: { p
         ))}
       </div>
       <p className="hint">Deletes, changes to people, and 5 or more changes at once always wait for the person to approve them.</p>
+      <div>
+        <h3 className="sub-h">Task notes</h3>
+        <p className="hint">
+          Notes can hold private details, so the agent cannot read them unless you turn this on. When it is on, the agent can search notes for words, such as a
+          name. The AI provider gets only a short part of each matching note, with email addresses and phone numbers hidden.
+        </p>
+      </div>
+      <label className="toggle policy-toggle">
+        <input type="checkbox" checked={draft.readNotes} disabled={!isOwner} onChange={(e) => setDraft((d) => ({ ...d, readNotes: e.target.checked }))} />
+        Let the agent search task notes
+      </label>
       <div>
         <h3 className="sub-h">Topic scope</h3>
         <p className="hint">

@@ -17,6 +17,7 @@ OpenAct is a light project management tool with a Kanban board, a Gantt timeline
 - **Sign-in without passwords.** People type their email and get a 6-digit code. [Resend](https://resend.com) sends the email.
 - **File attachments.** Attach files up to 25 MB to a task. Files go to R2.
 - **AI agent with role-based access.** Tell the agent what to do in plain words: "Move the late tasks to next week" or "Rename Review to QA". The agent acts for you and never has more power than your role. Owners choose how much each role may hand to the agent. Deletes, people changes and large batches wait for your approval, and every agent action is logged. Read [docs/AGUI.md](docs/AGUI.md).
+- **Note search, when owners allow it.** Owners can let the agent search task notes, for example for a contact or a location. The agent gets only a short part of each matching note, with email addresses and phone numbers hidden. The filter box on the board also searches notes.
 - **The agent stays on topic.** A quick check reads each new request first. With a TypeSafe key, [Jev](https://typesafe.ai/) answers typed questions about the request, and code makes the decision. A request for another project gets a link that opens it there. New work gets an offer to start a project for it. Anything else gets a short decline and does not use the main AI model.
 - **AI tools.** Draft tasks from a goal, or write a status summary. All AI requests go through [Cloudflare AI Gateway](https://developers.cloudflare.com/ai-gateway/). Workers AI is the default, so you need no extra API key. Anthropic and OpenAI are optional.
 - **Built on AG-UI.** The agent speaks [AG-UI](https://docs.ag-ui.com). Approvals use AG-UI interrupts, so any AG-UI client can connect.
@@ -222,7 +223,8 @@ The check controls focus and cost. It is not a security control. Roles, the AI p
 - **The agent** sends your message, the earlier messages in the conversation, what you see now (view, date, open task, filter) and the task titles, columns, priorities, phases, dates, assignee names, and member names and roles. It does not send email addresses.
 - **Draft tasks** sends the goal you type, the start date and the phase names in the project.
 - **Status summary** sends task titles, statuses, priorities, phases, dates and the names of assignees.
-- AI does not get notes, files or email addresses. Drafted tasks are not saved until you choose them.
+- **Note search** is off by default. When an owner turns it on, the agent can search notes for words. The database finds the matches, and the AI provider gets only the matching task titles and a short part of each note, up to 20 tasks. Email addresses and phone numbers in those parts are hidden. The activity log records each search and the number of matches, not the words or the note text.
+- Otherwise, AI does not get notes, files or email addresses. Drafted tasks are not saved until you choose them.
 
 ## Plans for later
 

@@ -201,7 +201,11 @@ export const AGENT_SCOPE_HELP: Record<AgentScope, string> = {
 };
 
 /** The project's AI policy: the agent level for each role, and the topic scope. */
-export type AiPolicy = Record<Role, AgentLevel> & { scope: AgentScope };
+export type AiPolicy = Record<Role, AgentLevel> & {
+  scope: AgentScope;
+  /** Lets the agent search task notes. Off by default, because notes can hold private details. */
+  readNotes: boolean;
+};
 
 export interface AgentAction {
   id: string;

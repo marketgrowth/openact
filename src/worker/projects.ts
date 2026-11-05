@@ -248,6 +248,10 @@ projectRoutes.patch("/:id/ai-policy", async (c) => {
     policy[role] = level;
   }
   if (body.scope !== undefined) policy.scope = oneOf(body.scope, "Topic scope", AGENT_SCOPES);
+  if (body.readNotes !== undefined) {
+    if (typeof body.readNotes !== "boolean") throw new HttpError(400, "Note search must be true or false.");
+    policy.readNotes = body.readNotes;
+  }
   const res = await c.env.DB.batch([c.env.DB.prepare("UPDATE projects SET ai_policy = ? WHERE id = ?").bind(JSON.stringify(policy), id), bumpRev(c.env, id)]);
   return c.json({ aiPolicy: policy, rev: revFrom(res) });
 });

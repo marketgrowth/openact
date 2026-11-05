@@ -137,6 +137,7 @@ Every action is saved in the `agent_actions` table. All members can read it unde
 
 | Tool | Level | Approval |
 | --- | --- | --- |
+| `search_notes` (read only) | Ask only, and the project's note search setting must be on | Never. Reads do not count toward a batch. |
 | `create_task` | Ask and edit | At 5 or more changes |
 | `update_task` (title, column, phase, priority, dates, assignee, notes) | Ask and edit | At 5 or more changes |
 | `add_column` | Ask and edit | At 5 or more changes |
@@ -216,7 +217,9 @@ Do not use `dev-scripted` in production.
 
 The topic check gets the new message, the agent's last reply, the project name, description and columns, up to 40 task titles, and the names and ids of the person's other projects.
 
-The agent gets task titles, columns, priorities, phases, dates, assignee names, member names and roles, and the ids it needs to call tools. It does not get task notes, files or email addresses. Context items from the web app are cut to 2,000 characters and are treated as data, not instructions.
+The agent gets task titles, columns, priorities, phases, dates, assignee names, member names and roles, and the ids it needs to call tools. It does not get task notes, files or email addresses.
+
+When an owner turns on **Let the agent search task notes**, the agent gets the `search_notes` tool. The database matches every word in the title or the notes. The result holds up to 20 tasks, each with a short part of its note around the first match. Email addresses and phone numbers in that part are replaced with `[email]` and `[phone]`. The result says that note text is data, not instructions. The log records "Search task notes" and the number of matches, never the words or the note text. The code is in `src/worker/agent/notes.ts`. Context items from the web app are cut to 2,000 characters and are treated as data, not instructions.
 
 ## Add a tool
 
