@@ -1,4 +1,7 @@
-import type { AguiEvent, Interrupt, JsonPatchOp } from "../../shared/agui";
+import type { AguiEvent, CUSTOM_EVENTS, Interrupt, JsonPatchOp, ScopeNotice } from "../../shared/agui";
+
+// Type-only imports keep this file runnable in Node tests. The type checks that the name matches.
+const SCOPE_EVENT: (typeof CUSTOM_EVENTS)["SCOPE"] = "openact.scope";
 
 /*
  * Turns a stream of AG-UI events into a view model the UI can render.
@@ -13,6 +16,8 @@ export interface ChatMessage {
   toolCallId?: string;
   /** For role "assistant": tool calls the agent made in this message. */
   toolCalls?: Array<{ id: string; name: string; args: string }>;
+  /** For role "assistant": the scope check declined the request or sent it elsewhere. */
+  scope?: ScopeNotice;
 }
 
 export interface ToolCallView {
@@ -115,8 +120,14 @@ export function reduceEvent(v: RunView, e: AguiEvent): RunView {
             toolCallId: (m as { toolCallId?: string }).toolCallId
           }))
       };
-    case "CUSTOM":
-      return { ...v, custom: [...v.custom, { name: e.name, value: e.value }] };
+    case "CUSTOM": {
+      const next = { ...v, custom: [...v.custom, { name: e.name, value: e.value }] };
+      if (e.name === SCOPE_EVENT && e.value && typeof e.value === "object") {
+        const notice = e.value as ScopeNotice;
+        next.messages = v.messages.map((m) => (m.id === notice.messageId ? { ...m, scope: notice } : m));
+      }
+      return next;
+    }
     default:
       return v;
   }

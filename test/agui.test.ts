@@ -75,3 +75,12 @@ test("tool calls run handlers and report errors as results", () => {
   assert.equal(executeToolCall(handlers, "delete_everything", "{}").ok, false);
   assert.equal(executeToolCall(handlers, "go_to_date", "{not json").ok, false);
 });
+
+test("a scope notice attaches to its reply", () => {
+  let v = emptyRun();
+  v = reduceEvent(v, { type: "TEXT_MESSAGE_START", messageId: "m1", role: "assistant" } as never);
+  v = reduceEvent(v, { type: "TEXT_MESSAGE_CONTENT", messageId: "m1", delta: "This sounds like new work." } as never);
+  v = reduceEvent(v, { type: "CUSTOM", name: "openact.scope", value: { action: "suggest_new", route: "new_work", topic: "hiring", messageId: "m1", suggestedName: "Q1 hiring" } } as never);
+  assert.equal(v.messages[0].scope?.action, "suggest_new");
+  assert.equal(v.messages[0].scope?.suggestedName, "Q1 hiring");
+});

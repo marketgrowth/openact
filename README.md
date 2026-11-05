@@ -17,6 +17,7 @@ OpenAct is a light project management tool with a Kanban board, a Gantt timeline
 - **Sign-in without passwords.** People type their email and get a 6-digit code. [Resend](https://resend.com) sends the email.
 - **File attachments.** Attach files up to 25 MB to a task. Files go to R2.
 - **AI agent with role-based access.** Tell the agent what to do in plain words: "Move the late tasks to next week" or "Rename Review to QA". The agent acts for you and never has more power than your role. Owners choose how much each role may hand to the agent. Deletes, people changes and large batches wait for your approval, and every agent action is logged. Read [docs/AGUI.md](docs/AGUI.md).
+- **The agent stays on topic.** A quick check reads each new request first. A request for another project gets a link that opens it there. New work gets an offer to start a project for it. Anything else gets a short decline and does not use the main AI model.
 - **AI tools.** Draft tasks from a goal, or write a status summary. All AI requests go through [Cloudflare AI Gateway](https://developers.cloudflare.com/ai-gateway/). Workers AI is the default, so you need no extra API key. Anthropic and OpenAI are optional.
 - **Built on AG-UI.** The agent speaks [AG-UI](https://docs.ag-ui.com). Approvals use AG-UI interrupts, so any AG-UI client can connect.
 - **Themes.** Light, dark, or follow the system setting.
@@ -121,6 +122,7 @@ Set these under `vars` in `wrangler.jsonc`, or in the Cloudflare dashboard.
 | `ALLOWED_EMAIL_DOMAINS` | empty | A comma-separated list of domains that can sign up, for example `example.com,example.org` |
 | `AI_PROVIDER` | `workers-ai` | `workers-ai`, `anthropic` or `openai` |
 | `AI_MODEL` | `@cf/meta/llama-3.3-70b-instruct-fp8-fast` | The model ID for the provider |
+| `AI_SCOPE_MODEL` | (empty) | A small, fast model for the topic check. Empty uses `@cf/meta/llama-3.1-8b-instruct-fast`, `claude-haiku-5-5` or `gpt-4.1-mini`, by provider. |
 | `AI_GATEWAY_ID` | `openact` | The AI Gateway name. Empty turns the gateway off. |
 | `CF_ACCOUNT_ID` | empty | Your account ID. Needed for `anthropic` and `openai`. |
 
@@ -189,8 +191,25 @@ Every request that changes a project raises the project's revision number (`rev`
 
 Owners can lower any role, down to Off, in **Project settings > AI agent access**. Read [docs/AGUI.md](docs/AGUI.md) for the full design.
 
+## Topic scope
+
+Each project agent helps with its own project. Before the agent works on a new message, a small model sorts it:
+
+| The request is about | What happens |
+| --- | --- |
+| This project, or how to use OpenAct | The agent answers |
+| General project management, such as how to run a retro | The agent answers when the scope is Relaxed. Strict declines it. |
+| Another of your projects | A card offers to open that project's agent, with your message filled in |
+| New work that needs its own project | A card offers to create the project. Nothing is created until you click. |
+| Anything else | A short decline. The main AI model does not run. |
+
+Owners set the scope (Strict or Relaxed) in **Project settings > Topic scope**. You can click **Keep it here** when the check sends a request away by mistake. Declined and routed requests appear in the activity log with a short topic, not the full message.
+
+The check controls focus and cost. It is not a security control. Roles, the AI policy and approvals protect your data, whatever the check decides.
+
 ## What AI sees
 
+- **The topic check** sends your new message, the agent's last reply, the project name, description and columns, up to 40 task titles, and the names of your other projects.
 - **The agent** sends your message, the earlier messages in the conversation, what you see now (view, date, open task, filter) and the task titles, columns, priorities, phases, dates, assignee names, and member names and roles. It does not send email addresses.
 - **Draft tasks** sends the goal you type, the start date and the phase names in the project.
 - **Status summary** sends task titles, statuses, priorities, phases, dates and the names of assignees.

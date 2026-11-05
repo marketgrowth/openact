@@ -56,6 +56,9 @@
       "AI_MODEL": {
         "description": "The model ID for the selected provider."
       },
+      "AI_SCOPE_MODEL": {
+        "description": "Optional. A small, fast model that checks if each request is about the project. Leave empty to use the default for the provider."
+      },
       "CF_ACCOUNT_ID": {
         "description": "Your Cloudflare account ID. Needed only when `AI_PROVIDER` is `anthropic` or `openai`."
       },

@@ -22,6 +22,38 @@ The defaults are: Owners get Full, Editors get Ask and edit, Viewers get Ask onl
 
 The agent's level for a person is the lower of their role's ceiling and the project's AI policy for that role. The code is in `src/shared/agent-policy.ts`.
 
+## Topic scope
+
+Each project agent helps with its own project. Before the agent works on a new message, a small, fast model sorts it into one route. The code is in `src/worker/agent/scope.ts`.
+
+| Route | Meaning | What happens |
+| --- | --- | --- |
+| `project` | About this project, or how to use OpenAct | The agent answers |
+| `general` | General project management advice | Answered when the scope is Relaxed. Declined when it is Strict. |
+| `other_project` | About another project of this person | The web app shows **Open in (project)**. It opens that project's agent with the message filled in. |
+| `new_work` | New work that needs its own project | The web app shows a name field and **Create project**. Nothing is created until the person clicks. |
+| `off_topic` | Anything else | A short decline. The main model does not run. |
+
+Rules:
+
+- Only a new user message is checked. Runs that continue after tool results or approvals are not checked.
+- Short follow-ups after an agent reply (3 words or fewer, such as "yes" or "do it") skip the check.
+- `other_project` can only point to a project the person is a member of. Any other id passes the request to the agent.
+- When the check fails or its answer is unclear, the request goes to the agent. A bad check never blocks work.
+- **Keep it here** runs the request again with `forwardedProps: { openact: { scope: "keep" } }`, which skips the check.
+- The agent's instructions also hold the scope rule, so the agent declines off-topic requests that pass the check.
+- Declined and routed requests are logged as `scope_check` with a short topic from the model, not the message.
+
+Owners set the scope in **Project settings > Topic scope**. It is stored as `scope` in the project's AI policy. The default is `relaxed`.
+
+The check controls focus and cost. It is not a security control. Tools, roles, the AI policy and approvals protect the data, whatever the check decides.
+
+When the check does not pass a request, the run sends one text message and this event, then ends:
+
+```
+CUSTOM openact.scope { action: "decline" | "route_other" | "suggest_new", route, topic, messageId, project?, suggestedName? }
+```
+
 ## How a request runs
 
 ```
@@ -31,6 +63,7 @@ Person: "Delete the tasks that are done"
 POST /api/projects/:id/agent   (AG-UI RunAgentInput, as the signed-in person)
   |
   |-- level = min(role ceiling, project AI policy)
+  |-- topic check: decline, route to another project, suggest a new one, or continue
   |-- the model gets only the tools that this level allows
   |-- every tool call is checked again before it runs
   |
@@ -87,11 +120,12 @@ When the agent calls a frontend tool, the run ends with `RUN_FINISHED { outcome:
 The endpoint streams AG-UI events as Server-Sent Events:
 
 - `RUN_STARTED`, `RUN_FINISHED` (with `outcome`), `RUN_ERROR`
-- `STEP_STARTED` and `STEP_FINISHED`: `apply_approvals` and `think`
+- `STEP_STARTED` and `STEP_FINISHED`: `check_scope`, `apply_approvals` and `think`
 - `TEXT_MESSAGE_START`, `TEXT_MESSAGE_CONTENT`, `TEXT_MESSAGE_END`
 - `TOOL_CALL_START`, `TOOL_CALL_ARGS`, `TOOL_CALL_END`, `TOOL_CALL_RESULT`
 - `CUSTOM` `openact.agent_level`: the level for this run
 - `CUSTOM` `openact.data_changed`: the agent changed data. The web app reloads the project.
+- `CUSTOM` `openact.scope`: the topic check declined the request or sent it elsewhere. See [Topic scope](#topic-scope).
 
 Types come from `@ag-ui/core` as type-only imports. The official `@ag-ui/client` `HttpAgent` reads the stream.
 
@@ -122,9 +156,20 @@ Then type a message such as:
 /tool delete_task {"taskId":"TASK_ID"}
 ```
 
+To test the topic check, start a message with `/scope` and a route:
+
+```
+/scope off_topic
+/scope general
+/scope other_project PROJECT_ID
+/scope new_work Q1 hiring plan
+```
+
 Do not use `dev-scripted` in production.
 
 ## Data limits
+
+The topic check gets the new message, the agent's last reply, the project name, description and columns, up to 40 task titles, and the names and ids of the person's other projects.
 
 The agent gets task titles, columns, priorities, phases, dates, assignee names, member names and roles, and the ids it needs to call tools. It does not get task notes, files or email addresses. Context items from the web app are cut to 2,000 characters and are treated as data, not instructions.
 

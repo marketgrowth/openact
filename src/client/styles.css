@@ -2196,6 +2196,33 @@ body::before {
   color: var(--danger);
   border-color: color-mix(in srgb, var(--danger) 40%, var(--line));
 }
+/* Scope check: open in another project, or start a new one */
+.scope-card {
+  align-self: flex-start;
+  width: min(100%, 420px);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  background: var(--surface);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13.5px;
+}
+.scope-card p {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.scope-card .field {
+  margin: 0;
+}
+.scope-card .row-end {
+  flex-wrap: wrap;
+}
+
 .approval {
   border: 1px solid var(--warn-line);
   background: var(--warn-bg);

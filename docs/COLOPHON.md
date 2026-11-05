@@ -27,6 +27,7 @@ AI features are optional helpers. Every request goes through one gateway.
 | Anthropic or OpenAI | Optional providers through AI Gateway, with your own API key. |
 | [AG-UI 1.0](https://docs.ag-ui.com) | The Agent-User Interaction protocol. The agent streams AG-UI events over Server-Sent Events, and approvals use AG-UI interrupts. Types come from `@ag-ui/core` 1.0.4. See [AGUI.md](AGUI.md). |
 | Role-based agent access | The agent acts for the person and never exceeds their role. Owners set a per-role AI policy. Risky changes wait for approval, and every action is logged. |
+| Topic scope | A small, fast model checks each new request. It sends requests for other projects or new work to the right place and declines anything else. Default model: Llama 3.1 8B Instruct (`@cf/meta/llama-3.1-8b-instruct-fast`). |
 
 ## Sign-in and email
 
@@ -50,7 +51,7 @@ A small set of dependencies. The Worker has one runtime dependency, Hono.
 | [Vite](https://vite.dev) | 8.3.6 | Builds the web app |
 | [Wrangler](https://developers.cloudflare.com/workers/wrangler/) | 4.158.0 | Local development, migrations and deploys |
 | [@ag-ui/core](https://www.npmjs.com/package/@ag-ui/core) | 1.0.4 | AG-UI types, imported as types only |
-| Node test runner | Built in | Unit tests for dates, the AI planner, the AG-UI client and agent access rules |
+| Node test runner | Built in | Unit tests for dates, the AI planner, the AG-UI client, agent access rules and the topic check |
 | GitHub Actions | | Type checks, tests, a build and a deploy dry run on every push |
 
 ## Design

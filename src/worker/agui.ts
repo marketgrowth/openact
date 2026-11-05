@@ -1,11 +1,12 @@
 import { Hono } from "hono";
 import type { AppEnv, Env } from "./env";
-import { AGENT_LEVEL_LABELS, ROLE_LABELS, STATUSES, type AgentLevel, type Role, type User } from "../shared/types";
-import { CUSTOM_EVENTS, EventType, UI_TOOLS, type AguiEvent, type Interrupt, type Message, type ResumeEntry } from "../shared/agui";
+import { AGENT_LEVEL_LABELS, ROLE_LABELS, STATUSES, type AgentLevel, type AgentScope, type Role, type User } from "../shared/types";
+import { CUSTOM_EVENTS, EventType, UI_TOOLS, type AguiEvent, type Interrupt, type Message, type ResumeEntry, type ScopeNotice } from "../shared/agui";
 import { APPROVAL_TTL_MINUTES, BACKEND_TOOLS, BACKEND_TOOL_NAMES, atLeast, effectiveLevel, needsApproval, parsePolicy, toolsForLevel } from "../shared/agent-policy";
 import { requireRole } from "./data";
 import { fromAguiMessages, type AgentMsg, type ToolCall, type ToolDef } from "./agent/messages";
-import { runModel } from "./agent/model";
+import { agentProvider, runModel } from "./agent/model";
+import { devScriptedScope, isFollowUp, messageToCheck, parseScopeDecision, scopeAction, scopePrompt, scopeReply, scopeRule, scopeSummary, type ScopeDecision } from "./agent/scope";
 import { describeCall, executeCall, loadSnapshot, type Snapshot } from "./agent/tools";
 import { HttpError, appUrl, newId, nowIso, readJson, requireUser, todayIso } from "./util";
 
@@ -30,7 +31,7 @@ export function encodeSse(event: AguiEvent): string {
   return `data: ${JSON.stringify({ ...event, timestamp: event.timestamp ?? Date.now() })}\n\n`;
 }
 
-function systemPrompt(user: User, role: Role, level: AgentLevel, snap: Snapshot, rows: Array<Record<string, unknown>>, ctx: string): string {
+function systemPrompt(user: User, role: Role, level: AgentLevel, scope: AgentScope, snap: Snapshot, rows: Array<Record<string, unknown>>, ctx: string): string {
   const label = Object.fromEntries(STATUSES.map((s) => [s.id, s.label]));
   const allowed = toolsForLevel(level).map((t) => t.name);
   const denied = BACKEND_TOOLS.filter((t) => !allowed.includes(t.name)).map((t) => t.name);
@@ -42,6 +43,7 @@ function systemPrompt(user: User, role: Role, level: AgentLevel, snap: Snapshot,
   );
   return [
     "You are the OpenAct project agent. You help one person manage this project. Use plain, simple English and short sentences.",
+    scopeRule(scope, snap.projectName),
     `You act for ${user.name}. Their role is ${ROLE_LABELS[role]}. Your permission level is "${AGENT_LEVEL_LABELS[level]}".`,
     allowed.length
       ? `When the person asks for a change, call the matching tool. You may use: ${allowed.join(", ")}. The app asks the person to approve deletes, people changes and large batches, so do not ask for confirmation in text first.`
@@ -77,8 +79,9 @@ aguiRoutes.post("/:id/agent", async (c) => {
   const user = requireUser(c);
   const projectId = c.req.param("id");
   const role = await requireRole(c.env, projectId, user.id, "viewer");
-  const policyRow = await c.env.DB.prepare("SELECT ai_policy FROM projects WHERE id = ?").bind(projectId).first<{ ai_policy: string }>();
-  const level = effectiveLevel(role, parsePolicy(policyRow?.ai_policy));
+  const policyRow = await c.env.DB.prepare("SELECT ai_policy, description FROM projects WHERE id = ?").bind(projectId).first<{ ai_policy: string; description: string }>();
+  const policy = parsePolicy(policyRow?.ai_policy);
+  const level = effectiveLevel(role, policy);
   if (level === "off") throw new HttpError(403, "AI is turned off for your role in this project. A project owner can change this in Project settings.");
 
   const input = await readJson(c);
@@ -89,6 +92,9 @@ aguiRoutes.post("/:id/agent", async (c) => {
   const context = Array.isArray(input.context) ? (input.context as Array<{ description?: unknown; value?: unknown }>) : [];
   const clientTools = Array.isArray(input.tools) ? (input.tools as Array<{ name?: unknown }>) : [];
   if (!resume.length && !history.some((m) => m.role === "user")) throw new HttpError(400, "Send at least one user message.");
+  // The web app sends this when the person chose "Keep it here" after the scope check sent a request elsewhere.
+  const fp = input.forwardedProps as { openact?: { scope?: unknown } } | undefined;
+  const keepHere = fp?.openact?.scope === "keep";
 
   const env = c.env;
   const exec = { appUrl: appUrl(c), defer: (p: Promise<unknown>) => c.executionCtx.waitUntil(p) };
@@ -109,6 +115,77 @@ aguiRoutes.post("/:id/agent", async (c) => {
       await send({ type: EventType.CUSTOM, name: CUSTOM_EVENTS.AGENT_LEVEL, value: { level } });
       const snap = await loadSnapshot(env, projectId);
       const msgs: AgentMsg[] = [...history];
+      const tasks = await env.DB.prepare(
+        "SELECT t.id, t.title, t.column_id, t.status, t.priority, t.phase, t.start_date, t.end_date, u.name AS assignee_name FROM tasks t LEFT JOIN users u ON u.id = t.assignee_id WHERE t.project_id = ? ORDER BY t.start_date"
+      )
+        .bind(projectId)
+        .all<Record<string, unknown>>();
+
+      /* 0. Scope check: keep the agent on this project. Only new messages are checked. */
+      const toCheck = resume.length || keepHere ? null : messageToCheck(history);
+      const lastReply = [...history].reverse().find((m) => m.role === "assistant" && m.content.trim())?.content ?? "";
+      if (toCheck && !isFollowUp(toCheck, !!lastReply)) {
+        await send({ type: EventType.STEP_STARTED, stepName: "check_scope" });
+        const others = await env.DB.prepare(
+          "SELECT p.id, p.name FROM projects p JOIN project_members m ON m.project_id = p.id AND m.user_id = ? WHERE p.id != ? ORDER BY p.updated_at DESC LIMIT 30"
+        )
+          .bind(user.id, projectId)
+          .all<{ id: string; name: string }>();
+        let decision: ScopeDecision;
+        if (agentProvider(env) === "dev-scripted") decision = devScriptedScope(toCheck, others.results);
+        else {
+          try {
+            const out = await runModel(
+              env,
+              scopePrompt({
+                projectName: snap.projectName,
+                projectDescription: policyRow?.description ?? "",
+                columns: [...snap.columns.values()].map((col) => col.name),
+                taskTitles: tasks.results.map((t) => String(t.title)),
+                otherProjects: others.results,
+                lastReply,
+                message: toCheck
+              }),
+              [],
+              120,
+              "scope"
+            );
+            decision = parseScopeDecision(out.text, others.results);
+          } catch (err) {
+            // A failed check never blocks work. The scope rule in the agent's instructions still applies.
+            console.warn("[openact] The scope check failed, so the request went to the agent:", err);
+            decision = { route: "project", topic: "" };
+          }
+        }
+        await send({ type: EventType.STEP_FINISHED, stepName: "check_scope" });
+        const action = scopeAction(decision, policy.scope);
+        if (action) {
+          const messageId = newId();
+          await send({ type: EventType.TEXT_MESSAGE_START, messageId, role: "assistant" });
+          await send({ type: EventType.TEXT_MESSAGE_CONTENT, messageId, delta: scopeReply(decision, action, policy.scope, snap.projectName) });
+          await send({ type: EventType.TEXT_MESSAGE_END, messageId });
+          const notice: ScopeNotice = {
+            action,
+            route: decision.route,
+            topic: decision.topic,
+            messageId,
+            ...(decision.project ? { project: decision.project } : {}),
+            ...(decision.name ? { suggestedName: decision.name } : {})
+          };
+          await send({ type: EventType.CUSTOM, name: CUSTOM_EVENTS.SCOPE, value: notice });
+          await logAction(env, {
+            projectId,
+            userId: user.id,
+            threadId,
+            runId,
+            call: { id: messageId, name: "scope_check", args: { route: decision.route, topic: decision.topic, ...(decision.project ? { projectId: decision.project.id } : {}) } },
+            summary: scopeSummary(decision, action),
+            status: action === "decline" ? "denied" : "done"
+          });
+          await send({ type: EventType.RUN_FINISHED, threadId, runId, outcome: { type: "success" } });
+          return;
+        }
+      }
 
       /* 1. Answer approvals from an earlier run. */
       if (resume.length) {
@@ -148,17 +225,12 @@ aguiRoutes.post("/:id/agent", async (c) => {
       }
 
       /* 2. Let the model work, with only the tools this person's level allows. */
-      const tasks = await env.DB.prepare(
-        "SELECT t.id, t.title, t.column_id, t.status, t.priority, t.phase, t.start_date, t.end_date, u.name AS assignee_name FROM tasks t LEFT JOIN users u ON u.id = t.assignee_id WHERE t.project_id = ? ORDER BY t.start_date"
-      )
-        .bind(projectId)
-        .all<Record<string, unknown>>();
       const ctx = context
         .filter((x) => typeof x?.description === "string" && typeof x?.value === "string")
         .map((x) => `${x.description}: ${x.value}`)
         .join("\n")
         .slice(0, 2000);
-      msgs.unshift({ role: "system", content: systemPrompt(user, role, level, snap, tasks.results, ctx) });
+      msgs.unshift({ role: "system", content: systemPrompt(user, role, level, policy.scope, snap, tasks.results, ctx) });
       const uiTools = UI_TOOLS.filter((t) => clientTools.some((ct) => ct?.name === t.name));
       const tools: ToolDef[] = [
         ...toolsForLevel(level).map((t) => ({ name: t.name, description: t.description, parameters: t.parameters })),

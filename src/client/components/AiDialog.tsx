@@ -3,7 +3,7 @@ import { PRIORITIES, type PlannedTask } from "../../shared/types";
 import { api, errorText } from "../api";
 import { fmtRange, today } from "../dates";
 import { Modal, useToast } from "../ui";
-import { AskPanel } from "./AskPanel";
+import { AskPanel, type ScopeHandlers } from "./AskPanel";
 import type { RunView } from "../agui/reducer";
 import type { Decision } from "../agui/useAgent";
 import type { AgentLevel } from "../../shared/types";
@@ -12,6 +12,7 @@ export interface AgentControls {
   view: RunView;
   ask: (q: string) => void;
   decide: (d: Decision[]) => void;
+  keepHere: (messageId: string) => void;
   stop: () => void;
   reset: () => void;
 }
@@ -23,6 +24,8 @@ export function AiDialog({
   provider,
   agent,
   level,
+  initialQuestion,
+  scope,
   onClose,
   onAdded
 }: {
@@ -31,6 +34,8 @@ export function AiDialog({
   provider: string;
   agent: AgentControls;
   level: AgentLevel;
+  initialQuestion?: string;
+  scope: Omit<ScopeHandlers, "onKeepHere">;
   onClose: () => void;
   onAdded: () => void;
 }) {
@@ -112,7 +117,18 @@ export function AiDialog({
         </button>
       </div>
 
-      {tab === "ask" && <AskPanel view={agent.view} level={level} onAsk={agent.ask} onDecide={agent.decide} onStop={agent.stop} onReset={agent.reset} />}
+      {tab === "ask" && (
+        <AskPanel
+          view={agent.view}
+          level={level}
+          initialQuestion={initialQuestion}
+          scope={{ ...scope, onKeepHere: agent.keepHere }}
+          onAsk={agent.ask}
+          onDecide={agent.decide}
+          onStop={agent.stop}
+          onReset={agent.reset}
+        />
+      )}
 
       {tab === "plan" && !drafts && (
         <form className="stack" onSubmit={plan}>

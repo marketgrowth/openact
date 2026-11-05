@@ -24,14 +24,24 @@ const DEFAULT_MODELS: Record<string, string> = {
   openai: "gpt-4.1-mini"
 };
 
+/** Small, fast models for the scope check. Set AI_SCOPE_MODEL to choose another. */
+const SCOPE_MODELS: Record<string, string> = {
+  "workers-ai": "@cf/meta/llama-3.1-8b-instruct-fast",
+  anthropic: "claude-haiku-5-5",
+  openai: "gpt-4.1-mini"
+};
+
+export type ModelKind = "agent" | "scope";
+
 export function agentProvider(env: Env): string {
   const p = (env.AI_PROVIDER || "workers-ai").trim().toLowerCase();
   return p === "dev-scripted" || p in DEFAULT_MODELS ? p : "workers-ai";
 }
 
-function modelFor(env: Env, p: string): string {
-  const m = (env.AI_MODEL || "").trim();
-  if (!m || (p !== "workers-ai" && m.startsWith("@cf/"))) return DEFAULT_MODELS[p];
+function modelFor(env: Env, p: string, kind: ModelKind): string {
+  const m = ((kind === "scope" ? env.AI_SCOPE_MODEL : env.AI_MODEL) || "").trim();
+  const fallback = (kind === "scope" ? SCOPE_MODELS : DEFAULT_MODELS)[p];
+  if (!m || (p !== "workers-ai" && m.startsWith("@cf/")) || (p === "workers-ai" && !m.startsWith("@cf/") && !m.startsWith("@hf/"))) return fallback;
   return m;
 }
 
@@ -47,10 +57,10 @@ async function failed(res: Response): Promise<HttpError> {
   return new HttpError(502, "The AI service did not answer. Try again in a minute.");
 }
 
-export async function runModel(env: Env, msgs: AgentMsg[], tools: ToolDef[], maxTokens = 1200): Promise<ModelOutput> {
+export async function runModel(env: Env, msgs: AgentMsg[], tools: ToolDef[], maxTokens = 1200, kind: ModelKind = "agent"): Promise<ModelOutput> {
   const p = agentProvider(env);
   if (p === "dev-scripted") return runDevScripted(msgs);
-  const model = modelFor(env, p);
+  const model = modelFor(env, p, kind);
 
   if (p === "anthropic") {
     if (!env.ANTHROPIC_API_KEY) throw new HttpError(500, "Set the ANTHROPIC_API_KEY secret to use Anthropic models.");

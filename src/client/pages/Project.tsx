@@ -29,6 +29,12 @@ import { PROJECT_VIEWS, UI_TOOLS, type OpenActAgentState, type ProjectView } fro
 type View = ProjectView;
 const POLL_MS = 5000;
 
+/**
+ * A request that the scope check sent to another project. The next project page opens its agent with the text filled in.
+ * Module state, so it survives in-app navigation and nothing is written to storage.
+ */
+let pendingHandoff: { projectId: string; text: string; at: number } | null = null;
+
 export function ProjectPage({ projectId, view, me, config }: { projectId: string; view: View; me: User; config: AppConfig }) {
   const toast = useToast();
   const [data, setData] = useState<ProjectDetail | null>(null);
@@ -40,6 +46,7 @@ export function ProjectPage({ projectId, view, me, config }: { projectId: string
   const [aiOpen, setAiOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [focusDate, setFocusDate] = useState<string | null>(null);
+  const [aiDraft, setAiDraft] = useState("");
   const revRef = useRef(0);
   const busyRef = useRef(false); // true while a drag runs, so a reload does not move cards under the pointer
 
@@ -80,6 +87,22 @@ export function ProjectPage({ projectId, view, me, config }: { projectId: string
       document.removeEventListener("visibilitychange", onVis);
     };
   }, [projectId, load]);
+
+  // Open the agent with a request that another project's agent sent here.
+  const loaded = !!data;
+  useEffect(() => {
+    if (!loaded || !data) return;
+    const h = pendingHandoff;
+    if (!h || h.projectId !== projectId) return;
+    pendingHandoff = null;
+    if (Date.now() - h.at > 10 * 60000) return;
+    if (data.agentLevel === "off") {
+      toast("AI is turned off for your role in this project.");
+      return;
+    }
+    setAiDraft(h.text);
+    setAiOpen(true);
+  }, [loaded, projectId]);
 
   const canEdit = data?.role === "owner" || data?.role === "editor";
   const isOwner = data?.role === "owner";
@@ -263,6 +286,23 @@ export function ProjectPage({ projectId, view, me, config }: { projectId: string
     onDataChanged: load
   });
 
+  const handOff = (id: string, text: string) => {
+    pendingHandoff = { projectId: id, text, at: Date.now() };
+    navigate(`/p/${id}`);
+  };
+  const scopeHandlers = {
+    onOpenElsewhere: handOff,
+    onStartProject: async (name: string, text: string) => {
+      try {
+        const r = await api<{ id: string }>("/api/projects", { body: { name } });
+        toast(`Created "${name}".`);
+        handOff(r.id, text);
+      } catch (e) {
+        toast(errorText(e));
+      }
+    }
+  };
+
   if (error && !data) {
     return (
       <main className="wrap page">
@@ -398,7 +438,22 @@ export function ProjectPage({ projectId, view, me, config }: { projectId: string
           onDeleteAttachment={deleteAttachment}
         />
       )}
-      {aiOpen && <AiDialog projectId={projectId} canEdit={canEdit} provider={config.aiProvider} agent={agent} level={data.agentLevel} onClose={() => setAiOpen(false)} onAdded={load} />}
+      {aiOpen && (
+        <AiDialog
+          projectId={projectId}
+          canEdit={canEdit}
+          provider={config.aiProvider}
+          agent={agent}
+          level={data.agentLevel}
+          initialQuestion={aiDraft}
+          scope={scopeHandlers}
+          onClose={() => {
+            setAiOpen(false);
+            setAiDraft("");
+          }}
+          onAdded={load}
+        />
+      )}
       {settingsOpen && (
         <ProjectSettings data={data} me={me} canEdit={canEdit} isOwner={!!isOwner} onClose={() => setSettingsOpen(false)} onSaved={load} />
       )}

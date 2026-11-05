@@ -33,7 +33,8 @@ const SECTIONS: Array<{ title: string; intro: string; rows: Row[] }> = [
       { name: "Workers AI", detail: "The default provider. No extra API key. Default model: Llama 3.3 70B Instruct.", href: "https://developers.cloudflare.com/workers-ai/" },
       { name: "Anthropic or OpenAI", detail: "Optional providers through AI Gateway, with your own API key." },
       { name: "AG-UI 1.0", detail: "The Agent-User Interaction protocol. The agent streams AG-UI events over Server-Sent Events, and approvals use AG-UI interrupts. Types come from @ag-ui/core 1.0.4.", href: "https://docs.ag-ui.com" },
-      { name: "Role-based agent access", detail: "The agent acts for the person and never exceeds their role. Owners set a per-role AI policy. Risky changes wait for approval, and every action is logged." }
+      { name: "Role-based agent access", detail: "The agent acts for the person and never exceeds their role. Owners set a per-role AI policy. Risky changes wait for approval, and every action is logged." },
+      { name: "Topic scope", detail: "A small, fast model checks each new request. It sends requests for other projects or new work to the right place and declines anything else. Default model: Llama 3.1 8B Instruct." }
     ]
   },
   {
@@ -54,7 +55,7 @@ const SECTIONS: Array<{ title: string; intro: string; rows: Row[] }> = [
       { name: "React 19.3", detail: "The web app. No UI framework and no state library.", href: "https://react.dev" },
       { name: "Vite 8.3", detail: "Builds the web app.", href: "https://vite.dev" },
       { name: "Wrangler 4.158", detail: "Local development, migrations and deploys.", href: "https://developers.cloudflare.com/workers/wrangler/" },
-      { name: "Node test runner", detail: "Unit tests for dates, the AI planner, the AG-UI client and agent access rules. GitHub Actions runs type checks, tests and a build on every push." }
+      { name: "Node test runner", detail: "Unit tests for dates, the AI planner, the AG-UI client, agent access rules and the topic check. GitHub Actions runs type checks, tests and a build on every push." }
     ]
   },
   {

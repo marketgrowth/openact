@@ -13,6 +13,8 @@ export interface Env {
   ALLOWED_EMAIL_DOMAINS?: string;
   AI_PROVIDER?: string;
   AI_MODEL?: string;
+  /** A small, fast model for the scope check. Empty uses the default for the provider. */
+  AI_SCOPE_MODEL?: string;
   AI_GATEWAY_ID?: string;
   CF_ACCOUNT_ID?: string;
 

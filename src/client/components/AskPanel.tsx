@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { AGENT_LEVEL_HELP, AGENT_LEVEL_LABELS, type AgentLevel } from "../../shared/types";
 import type { Decision } from "../agui/useAgent";
 import type { RunView } from "../agui/reducer";
+import type { ScopeNotice } from "../../shared/agui";
 import { Icon } from "../ui";
 
-const STEP_TEXT: Record<string, string> = { think: "Thinking…", apply_approvals: "Applying your decisions…", read_project: "Reading the project…", answer: "Writing…" };
+const STEP_TEXT: Record<string, string> = { check_scope: "Checking the request…", think: "Thinking…", apply_approvals: "Applying your decisions…", read_project: "Reading the project…", answer: "Writing…" };
 
 const SUGGESTIONS: Record<AgentLevel, string[]> = {
   off: [],
@@ -14,10 +15,21 @@ const SUGGESTIONS: Record<AgentLevel, string[]> = {
   admin: ["What is late?", "Who has the most open tasks?", "Rename the Review column to QA", "Invite sam@example.com as a viewer"]
 };
 
+export interface ScopeHandlers {
+  /** Runs the request here after all, without the scope check. */
+  onKeepHere: (messageId: string) => void;
+  /** Opens another project's agent with the request filled in. */
+  onOpenElsewhere: (projectId: string, question: string) => void;
+  /** Creates a project, then opens its agent with the request filled in. */
+  onStartProject: (name: string, question: string) => Promise<void>;
+}
+
 /** Chat with the project agent over AG-UI, with approvals for risky changes. */
 export function AskPanel({
   view,
   level,
+  initialQuestion = "",
+  scope,
   onAsk,
   onDecide,
   onStop,
@@ -25,12 +37,14 @@ export function AskPanel({
 }: {
   view: RunView;
   level: AgentLevel;
+  initialQuestion?: string;
+  scope: ScopeHandlers;
   onAsk: (q: string) => void;
   onDecide: (d: Decision[]) => void;
   onStop: () => void;
   onReset: () => void;
 }) {
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(initialQuestion);
   const [picked, setPicked] = useState<Record<string, boolean>>({});
   const listRef = useRef<HTMLDivElement>(null);
   const running = view.status === "running";
@@ -71,12 +85,16 @@ export function AskPanel({
             ))}
           </div>
         )}
-        {view.messages.map((m) => {
+        {view.messages.map((m, i) => {
           if (m.role === "user") return <div key={m.id} className="bubble user">{m.content}</div>;
           if (m.role !== "assistant") return null;
+          const question = [...view.messages.slice(0, i)].reverse().find((x) => x.role === "user")?.content ?? "";
           return (
             <div key={m.id} className="turn">
               {m.content && <div className="bubble assistant">{m.content}</div>}
+              {m.scope && m.scope.action !== "decline" && (
+                <ScopeCard notice={m.scope} question={question} latest={i === view.messages.length - 1 && !running} handlers={scope} />
+              )}
               {m.toolCalls?.map((c) => {
                 const result = results.get(c.id);
                 const pending = pendingCalls.has(c.id) && !result;
@@ -160,6 +178,54 @@ export function AskPanel({
           <button type="button" className="btn ghost sm" onClick={onReset}>
             Start a new conversation
           </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Shown when the scope check sends a request to another project or to a new one. Nothing happens until the person clicks. */
+function ScopeCard({ notice, question, latest, handlers }: { notice: ScopeNotice; question: string; latest: boolean; handlers: ScopeHandlers }) {
+  const [name, setName] = useState(notice.suggestedName ?? "");
+  const [busy, setBusy] = useState(false);
+  const other = notice.action === "route_other" && notice.project;
+
+  const start = async () => {
+    if (!name.trim()) return;
+    setBusy(true);
+    try {
+      await handlers.onStartProject(name.trim(), question);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="scope-card" role="group" aria-label={other ? "Open in another project" : "Start a new project"}>
+      {other ? (
+        <p>
+          <Icon name="right" size={14} /> Belongs to <b>{notice.project!.name}</b>
+        </p>
+      ) : (
+        <div className="field">
+          <label htmlFor={`scope-name-${notice.messageId}`}>New project name</label>
+          <input id={`scope-name-${notice.messageId}`} value={name} maxLength={80} disabled={!latest || busy} onChange={(e) => setName(e.target.value)} />
+        </div>
+      )}
+      {latest && (
+        <div className="row-end">
+          <button type="button" className="btn ghost sm" disabled={busy} onClick={() => handlers.onKeepHere(notice.messageId)}>
+            Keep it here
+          </button>
+          {other ? (
+            <button type="button" className="btn primary sm" onClick={() => handlers.onOpenElsewhere(notice.project!.id, question)}>
+              Open in {notice.project!.name}
+            </button>
+          ) : (
+            <button type="button" className="btn primary sm" disabled={busy || !name.trim()} onClick={start}>
+              {busy ? "Creating…" : "Create project"}
+            </button>
+          )}
         </div>
       )}
     </div>

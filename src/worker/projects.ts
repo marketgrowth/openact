@@ -10,7 +10,7 @@ import {
   type ProjectSummary,
   type Role
 } from "../shared/types";
-import { AGENT_LEVELS, type AgentAction, type AgentLevel, type AiPolicy } from "../shared/types";
+import { AGENT_LEVELS, AGENT_SCOPES, type AgentAction, type AgentLevel, type AiPolicy } from "../shared/types";
 import { ROLE_CEILING, effectiveLevel, levelRank, parsePolicy } from "../shared/agent-policy";
 import { bumpRev, deletePrefix, loadColumns, requireRole, revFrom, toAttachment, toColumn, toTask, type AttachmentRow, type TaskRow } from "./data";
 import { changeMemberRole, defaultColumnStatements, inviteMember, removeMember } from "./services";
@@ -247,6 +247,7 @@ projectRoutes.patch("/:id/ai-policy", async (c) => {
     }
     policy[role] = level;
   }
+  if (body.scope !== undefined) policy.scope = oneOf(body.scope, "Topic scope", AGENT_SCOPES);
   const res = await c.env.DB.batch([c.env.DB.prepare("UPDATE projects SET ai_policy = ? WHERE id = ?").bind(JSON.stringify(policy), id), bumpRev(c.env, id)]);
   return c.json({ aiPolicy: policy, rev: revFrom(res) });
 });

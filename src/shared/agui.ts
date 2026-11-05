@@ -131,7 +131,26 @@ export const CUSTOM_EVENTS = {
   /** The agent changed project data. Value: { rev }. The web app reloads the project. */
   DATA_CHANGED: "openact.data_changed",
   /** What the agent may do in this run. Value: { level }. */
-  AGENT_LEVEL: "openact.agent_level"
+  AGENT_LEVEL: "openact.agent_level",
+  /** The scope check sent the request somewhere else, or declined it. Value: ScopeNotice. */
+  SCOPE: "openact.scope"
 } as const;
+
+/** Where the scope check sends a new request. */
+export const SCOPE_ROUTES = ["project", "general", "other_project", "new_work", "off_topic"] as const;
+export type ScopeRoute = (typeof SCOPE_ROUTES)[number];
+
+/** What the web app shows when the agent does not answer a request itself. */
+export interface ScopeNotice {
+  /** decline: not for this agent. route_other: belongs to another project. suggest_new: start a new project. */
+  action: "decline" | "route_other" | "suggest_new";
+  route: ScopeRoute;
+  /** A short label for the subject. Never the person's full message. */
+  topic: string;
+  /** The assistant message that explains the result. */
+  messageId: string;
+  project?: { id: string; name: string };
+  suggestedName?: string;
+}
 
 export type UiToolName = "open_task" | "show_view" | "go_to_date" | "filter_tasks";

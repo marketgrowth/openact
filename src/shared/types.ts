@@ -186,7 +186,22 @@ export const AGENT_LEVEL_HELP: Record<AgentLevel, string> = {
   admin: "Also invites, removes and changes the roles of people, after the person approves."
 };
 
-export type AiPolicy = Record<Role, AgentLevel>;
+/** How strictly the agent keeps to the project. Strict: this project only. Relaxed: also general project management questions. */
+export const AGENT_SCOPES = ["strict", "relaxed"] as const;
+export type AgentScope = (typeof AGENT_SCOPES)[number];
+
+export const AGENT_SCOPE_LABELS: Record<AgentScope, string> = {
+  strict: "Strict: this project only",
+  relaxed: "Relaxed: also general project management"
+};
+
+export const AGENT_SCOPE_HELP: Record<AgentScope, string> = {
+  strict: "The agent answers only about this project. It declines everything else.",
+  relaxed: "The agent also answers general questions about planning and running projects. It declines everything else."
+};
+
+/** The project's AI policy: the agent level for each role, and the topic scope. */
+export type AiPolicy = Record<Role, AgentLevel> & { scope: AgentScope };
 
 export interface AgentAction {
   id: string;

@@ -7,7 +7,7 @@
  *
  * Pure module, no runtime imports, so the Worker, the web app and the tests share it.
  */
-import type { AgentLevel, AiPolicy, Role } from "./types";
+import type { AgentLevel, AgentScope, AiPolicy, Role } from "./types";
 
 const ORDER: AgentLevel[] = ["off", "ask", "edit", "delete", "admin"];
 export const levelRank = (l: AgentLevel) => ORDER.indexOf(l);
@@ -17,9 +17,11 @@ const minLevel = (a: AgentLevel, b: AgentLevel): AgentLevel => (levelRank(a) <= 
 /** The most the agent can ever do for each role. */
 export const ROLE_CEILING: Record<Role, AgentLevel> = { viewer: "ask", editor: "edit", owner: "admin" };
 
-export const DEFAULT_POLICY: AiPolicy = { viewer: "ask", editor: "edit", owner: "admin" };
+export const DEFAULT_POLICY: AiPolicy = { viewer: "ask", editor: "edit", owner: "admin", scope: "relaxed" };
 
-/** Reads a stored policy. Unknown or missing values fall back to the defaults, and every value is capped at its role's ceiling. */
+const SCOPES: AgentScope[] = ["strict", "relaxed"];
+
+/** Reads a stored policy. Unknown or missing values fall back to the defaults, and every level is capped at its role's ceiling. */
 export function parsePolicy(raw: unknown): AiPolicy {
   let obj: Record<string, unknown> = {};
   if (typeof raw === "string") {
@@ -35,6 +37,7 @@ export function parsePolicy(raw: unknown): AiPolicy {
     const v = obj[role];
     if (typeof v === "string" && (ORDER as string[]).includes(v)) out[role] = minLevel(v as AgentLevel, ROLE_CEILING[role]);
   }
+  if (typeof obj.scope === "string" && (SCOPES as string[]).includes(obj.scope)) out.scope = obj.scope as AgentScope;
   return out;
 }
 

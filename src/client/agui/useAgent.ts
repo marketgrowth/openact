@@ -55,7 +55,7 @@ export function useAgent({ url, tools, getState, getContext, handlers, onDataCha
   };
 
   const loop = useCallback(
-    async (start: RunView, resume: ResumeEntry[]) => {
+    async (start: RunView, resume: ResumeEntry[], forwardedProps: Record<string, unknown> = {}) => {
       abort.current?.abort();
       const ctrl = new AbortController();
       abort.current = ctrl;
@@ -69,7 +69,7 @@ export function useAgent({ url, tools, getState, getContext, handlers, onDataCha
           messages: toAguiMessages(v.messages),
           tools,
           context: getContext(),
-          forwardedProps: {},
+          forwardedProps: round === 0 ? forwardedProps : {},
           ...(firstResume.length ? { resume: firstResume } : {})
         };
         firstResume = [];
@@ -116,6 +116,21 @@ export function useAgent({ url, tools, getState, getContext, handlers, onDataCha
     [loop]
   );
 
+  /**
+   * The scope check sent a request to another project or to a new one, but the person wants it here.
+   * Runs the same message again without the check. The scope rule in the agent's instructions still applies.
+   */
+  const keepHere = useCallback(
+    async (messageId: string) => {
+      const cur = viewRef.current;
+      if (cur.status === "running") return;
+      const i = cur.messages.findIndex((m) => m.id === messageId);
+      if (i < 0) return;
+      await loop({ ...cur, interrupts: [], error: null, messages: cur.messages.slice(0, i) }, [], { openact: { scope: "keep" } });
+    },
+    [loop]
+  );
+
   const stop = useCallback(() => {
     abort.current?.abort();
     commit({ ...viewRef.current, status: "idle", step: null });
@@ -127,5 +142,5 @@ export function useAgent({ url, tools, getState, getContext, handlers, onDataCha
     commit(emptyRun());
   }, []);
 
-  return { view, ask, decide, stop, reset };
+  return { view, ask, decide, keepHere, stop, reset };
 }
