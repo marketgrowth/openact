@@ -47,6 +47,8 @@
     "AI_PROVIDER": "workers-ai",
     "AI_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
     "AI_SCOPE_MODEL": "",
+    "TYPESAFE_MODEL": "jev-1.14.0",
+    "TYPESAFE_BASE_URL": "",
     "AI_GATEWAY_ID": "openact",
     "CF_ACCOUNT_ID": ""
   }

@@ -17,7 +17,7 @@ OpenAct is a light project management tool with a Kanban board, a Gantt timeline
 - **Sign-in without passwords.** People type their email and get a 6-digit code. [Resend](https://resend.com) sends the email.
 - **File attachments.** Attach files up to 25 MB to a task. Files go to R2.
 - **AI agent with role-based access.** Tell the agent what to do in plain words: "Move the late tasks to next week" or "Rename Review to QA". The agent acts for you and never has more power than your role. Owners choose how much each role may hand to the agent. Deletes, people changes and large batches wait for your approval, and every agent action is logged. Read [docs/AGUI.md](docs/AGUI.md).
-- **The agent stays on topic.** A quick check reads each new request first. A request for another project gets a link that opens it there. New work gets an offer to start a project for it. Anything else gets a short decline and does not use the main AI model.
+- **The agent stays on topic.** A quick check reads each new request first. With a TypeSafe key, [Jev](https://typesafe.ai/) answers typed questions about the request, and code makes the decision. A request for another project gets a link that opens it there. New work gets an offer to start a project for it. Anything else gets a short decline and does not use the main AI model.
 - **AI tools.** Draft tasks from a goal, or write a status summary. All AI requests go through [Cloudflare AI Gateway](https://developers.cloudflare.com/ai-gateway/). Workers AI is the default, so you need no extra API key. Anthropic and OpenAI are optional.
 - **Built on AG-UI.** The agent speaks [AG-UI](https://docs.ag-ui.com). Approvals use AG-UI interrupts, so any AG-UI client can connect.
 - **Themes.** Light, dark, or follow the system setting.
@@ -125,6 +125,8 @@ Set these under `vars` in `wrangler.jsonc`, or in the Cloudflare dashboard.
 | `AI_SCOPE_MODEL` | (empty) | A small, fast model for the topic check. Empty uses `@cf/meta/llama-3.1-8b-instruct-fast`, `claude-haiku-5-5` or `gpt-4.1-mini`, by provider. |
 | `AI_GATEWAY_ID` | `openact` | The AI Gateway name. Empty turns the gateway off. |
 | `CF_ACCOUNT_ID` | empty | Your account ID. Needed for `anthropic` and `openai`. |
+| `TYPESAFE_MODEL` | `jev-1.14.0` | The Jev release for the topic check. Pinned, because the thresholds are set for it. |
+| `TYPESAFE_BASE_URL` | `https://api.typesafe.ai` | Another URL for the TypeSafe API, such as a gateway |
 
 Set these secrets with `npx wrangler secret put NAME`:
 
@@ -135,6 +137,7 @@ Set these secrets with `npx wrangler secret put NAME`:
 | `ANTHROPIC_API_KEY` | For `anthropic` | Anthropic API key, sent through AI Gateway |
 | `OPENAI_API_KEY` | For `openai` | OpenAI API key, sent through AI Gateway |
 | `AI_GATEWAY_TOKEN` | No | Needed only if your AI Gateway uses authentication |
+| `TYPESAFE_API_KEY` | No | Turns on Jev for the topic check. Get a key from TypeSafe. |
 
 The first person to sign in can always make an account, even in `invite` mode. An invitation always lets that email sign up, even when `ALLOWED_EMAIL_DOMAINS` does not include its domain.
 
@@ -203,13 +206,19 @@ Each project agent helps with its own project. Before the agent works on a new m
 | New work that needs its own project | A card offers to create the project. Nothing is created until you click. |
 | Anything else | A short decline. The main AI model does not run. |
 
+### Jev makes the judgments, code makes the decision
+
+Set the `TYPESAFE_API_KEY` secret to run the check with [Jev](https://typesafe.ai/), TypeSafe's System One model. Jev does not write text. It answers typed questions with probabilities, such as "Is the message about this project?" (yes or no) or "Which of the other projects is it about?" (a choice). A truth table in `src/worker/agent/scope-jev.ts` turns the answers into the route. It reads 0.7 or more as yes and 0.3 or less as no. Anything between is unsettled, and an unsettled request goes to the agent.
+
+Without a TypeSafe key, a small language model does the check through AI Gateway. Jev is faster and cheaper for this kind of yes-or-no work, and its answers come with probabilities that code can test. Jev cannot suggest a project name, so the person types it.
+
 Owners set the scope (Strict or Relaxed) in **Project settings > Topic scope**. You can click **Keep it here** when the check sends a request away by mistake. Declined and routed requests appear in the activity log with a short topic, not the full message.
 
 The check controls focus and cost. It is not a security control. Roles, the AI policy and approvals protect your data, whatever the check decides.
 
 ## What AI sees
 
-- **The topic check** sends your new message, the agent's last reply, the project name, description and columns, up to 40 task titles, and the names of your other projects.
+- **The topic check** (to Jev, or to the small model) sends your new message, the agent's last reply, the project name, description and columns, up to 40 task titles, and the names of your other projects.
 - **The agent** sends your message, the earlier messages in the conversation, what you see now (view, date, open task, filter) and the task titles, columns, priorities, phases, dates, assignee names, and member names and roles. It does not send email addresses.
 - **Draft tasks** sends the goal you type, the start date and the phase names in the project.
 - **Status summary** sends task titles, statuses, priorities, phases, dates and the names of assignees.

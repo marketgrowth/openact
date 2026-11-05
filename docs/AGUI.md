@@ -46,6 +46,51 @@ Rules:
 
 Owners set the scope in **Project settings > Topic scope**. It is stored as `scope` in the project's AI policy. The default is `relaxed`.
 
+### Who decides
+
+`src/worker/agent/scope-run.ts` picks the decider:
+
+1. **Jev**, when the `TYPESAFE_API_KEY` secret is set.
+2. **dev-scripted**, for local tests.
+3. **A small language model** through AI Gateway (`AI_SCOPE_MODEL`).
+
+### The Jev decision model
+
+Jev is TypeSafe's System One model. It answers typed questions about state that the app sends, and returns probabilities. Jev makes the judgments. Code makes the decision. All wording, options and thresholds are in `src/worker/agent/scope-jev.ts`.
+
+One request to `POST https://api.typesafe.ai/v1/systemone` sends the state once and asks all questions in parallel:
+
+| Question | Type | Asked when |
+| --- | --- | --- |
+| `about_current_project` | Noul | Always |
+| `is_project_work` | Noul | Always |
+| `general_advice` | Noul | Always |
+| `new_separate_work` | Noul | Always |
+| `off_topic_kind` | Choice: writing, coding, facts and trivia, personal life, entertainment, shopping and travel, something else | Always. Code reads it only for an off-topic request, as the log label. |
+| `continues_conversation` | Noul | The conversation has an agent reply |
+| `about_other_project` | Noul | The person has other projects |
+| `which_other_project` | Choice: one option for each other project | The person has other projects. Code reads it only when `about_other_project` is yes. |
+
+The state holds the project name, description, board columns, up to 40 task titles, the names of the person's other projects, the agent's last reply, and the message. Empty fields are left out.
+
+The truth table, checked in order:
+
+| Row | Answers | Route |
+| --- | --- | --- |
+| 1 | `continues_conversation` yes | `project` |
+| 2 | `about_current_project` yes | `project` |
+| 3 | `about_other_project` yes, and the choice is a known project | `other_project` |
+| 4 | `new_separate_work` yes, and `is_project_work` not no | `new_work` |
+| 5 | `general_advice` yes | `general` |
+| 6 | `is_project_work` no, and `about_current_project` no | `off_topic` |
+| 7 | Anything else | `project` |
+
+A Noul at 0.7 or more is yes. At 0.3 or less it is no. Between them is unsettled, so row 7 sends it to the agent. The model is pinned to `jev-1.14.0` (`TYPESAFE_MODEL`), because the thresholds are set for that release. The activity log records which model decided.
+
+A failed call, a timeout (3 seconds) or a response without answers is an error, not an answer. The request goes to the agent.
+
+To change the check, edit the questions or the table in `scope-jev.ts`, update `test/scope-jev.test.ts`, and test with real requests before you deploy. Prefer better state, a new question or a new row over wording tuned to one case.
+
 The check controls focus and cost. It is not a security control. Tools, roles, the AI policy and approvals protect the data, whatever the check decides.
 
 When the check does not pass a request, the run sends one text message and this event, then ends:

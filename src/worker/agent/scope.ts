@@ -165,8 +165,8 @@ export function scopeRule(scope: AgentScope, projectName: string): string {
 
 /** The activity log line. It holds the short topic, never the person's message. */
 export function scopeSummary(d: ScopeDecision, action: ScopeNotice["action"]): string {
-  const topic = d.topic || "no topic given";
-  if (action === "route_other") return `Pointed to "${d.project?.name}": ${topic}`;
-  if (action === "suggest_new") return `Suggested a new project "${d.name}": ${topic}`;
-  return `Request about ${topic}`;
+  const topic = d.topic ? `: ${d.topic}` : "";
+  if (action === "route_other") return `Pointed to "${d.project?.name}"${topic}`;
+  if (action === "suggest_new") return `Suggested a new project${d.name ? ` "${d.name}"` : ""}${topic}`;
+  return `Request about ${d.topic || "another subject"}`;
 }

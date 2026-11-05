@@ -209,7 +209,14 @@ function ScopeCard({ notice, question, latest, handlers }: { notice: ScopeNotice
       ) : (
         <div className="field">
           <label htmlFor={`scope-name-${notice.messageId}`}>New project name</label>
-          <input id={`scope-name-${notice.messageId}`} value={name} maxLength={80} disabled={!latest || busy} onChange={(e) => setName(e.target.value)} />
+          <input
+            id={`scope-name-${notice.messageId}`}
+            value={name}
+            maxLength={80}
+            placeholder="For example, Q1 hiring"
+            disabled={!latest || busy}
+            onChange={(e) => setName(e.target.value)}
+          />
         </div>
       )}
       {latest && (

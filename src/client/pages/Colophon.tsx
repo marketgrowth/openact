@@ -34,6 +34,7 @@ const SECTIONS: Array<{ title: string; intro: string; rows: Row[] }> = [
       { name: "Anthropic or OpenAI", detail: "Optional providers through AI Gateway, with your own API key." },
       { name: "AG-UI 1.0", detail: "The Agent-User Interaction protocol. The agent streams AG-UI events over Server-Sent Events, and approvals use AG-UI interrupts. Types come from @ag-ui/core 1.0.4.", href: "https://docs.ag-ui.com" },
       { name: "Role-based agent access", detail: "The agent acts for the person and never exceeds their role. Owners set a per-role AI policy. Risky changes wait for approval, and every action is logged." },
+      { name: "Jev by TypeSafe", detail: "Optional decision model for the topic check. It answers typed yes-or-no and choice questions about each request, and a truth table in code decides the route.", href: "https://typesafe.ai/" },
       { name: "Topic scope", detail: "A small, fast model checks each new request. It sends requests for other projects or new work to the right place and declines anything else. Default model: Llama 3.1 8B Instruct." }
     ]
   },

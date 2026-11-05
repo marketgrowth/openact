@@ -5,8 +5,9 @@ import { CUSTOM_EVENTS, EventType, UI_TOOLS, type AguiEvent, type Interrupt, typ
 import { APPROVAL_TTL_MINUTES, BACKEND_TOOLS, BACKEND_TOOL_NAMES, atLeast, effectiveLevel, needsApproval, parsePolicy, toolsForLevel } from "../shared/agent-policy";
 import { requireRole } from "./data";
 import { fromAguiMessages, type AgentMsg, type ToolCall, type ToolDef } from "./agent/messages";
-import { agentProvider, runModel } from "./agent/model";
-import { devScriptedScope, isFollowUp, messageToCheck, parseScopeDecision, scopeAction, scopePrompt, scopeReply, scopeRule, scopeSummary, type ScopeDecision } from "./agent/scope";
+import { runModel } from "./agent/model";
+import { isFollowUp, messageToCheck, scopeAction, scopeReply, scopeRule, scopeSummary } from "./agent/scope";
+import { checkScope } from "./agent/scope-run";
 import { describeCall, executeCall, loadSnapshot, type Snapshot } from "./agent/tools";
 import { HttpError, appUrl, newId, nowIso, readJson, requireUser, todayIso } from "./util";
 
@@ -131,32 +132,15 @@ aguiRoutes.post("/:id/agent", async (c) => {
         )
           .bind(user.id, projectId)
           .all<{ id: string; name: string }>();
-        let decision: ScopeDecision;
-        if (agentProvider(env) === "dev-scripted") decision = devScriptedScope(toCheck, others.results);
-        else {
-          try {
-            const out = await runModel(
-              env,
-              scopePrompt({
-                projectName: snap.projectName,
-                projectDescription: policyRow?.description ?? "",
-                columns: [...snap.columns.values()].map((col) => col.name),
-                taskTitles: tasks.results.map((t) => String(t.title)),
-                otherProjects: others.results,
-                lastReply,
-                message: toCheck
-              }),
-              [],
-              120,
-              "scope"
-            );
-            decision = parseScopeDecision(out.text, others.results);
-          } catch (err) {
-            // A failed check never blocks work. The scope rule in the agent's instructions still applies.
-            console.warn("[openact] The scope check failed, so the request went to the agent:", err);
-            decision = { route: "project", topic: "" };
-          }
-        }
+        const { decision, decider } = await checkScope(env, {
+          projectName: snap.projectName,
+          projectDescription: policyRow?.description ?? "",
+          columns: [...snap.columns.values()].sort((a, b) => a.position - b.position).map((col) => col.name),
+          taskTitles: tasks.results.map((t) => String(t.title)),
+          otherProjects: others.results,
+          lastReply,
+          message: toCheck
+        });
         await send({ type: EventType.STEP_FINISHED, stepName: "check_scope" });
         const action = scopeAction(decision, policy.scope);
         if (action) {
@@ -178,7 +162,7 @@ aguiRoutes.post("/:id/agent", async (c) => {
             userId: user.id,
             threadId,
             runId,
-            call: { id: messageId, name: "scope_check", args: { route: decision.route, topic: decision.topic, ...(decision.project ? { projectId: decision.project.id } : {}) } },
+            call: { id: messageId, name: "scope_check", args: { route: decision.route, topic: decision.topic, decider, ...(decision.project ? { projectId: decision.project.id } : {}) } },
             summary: scopeSummary(decision, action),
             status: action === "decline" ? "denied" : "done"
           });

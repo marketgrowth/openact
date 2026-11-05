@@ -15,6 +15,12 @@ export interface Env {
   AI_MODEL?: string;
   /** A small, fast model for the scope check. Empty uses the default for the provider. */
   AI_SCOPE_MODEL?: string;
+  /** Secret. When set, Jev (TypeSafe) runs the scope check. */
+  TYPESAFE_API_KEY?: string;
+  /** A versioned Jev model, such as jev-1.14.0. Empty uses the pinned default. */
+  TYPESAFE_MODEL?: string;
+  /** Optional. Another base URL for the TypeSafe API, such as a gateway. */
+  TYPESAFE_BASE_URL?: string;
   AI_GATEWAY_ID?: string;
   CF_ACCOUNT_ID?: string;
 

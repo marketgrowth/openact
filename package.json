@@ -56,6 +56,12 @@
       "AI_MODEL": {
         "description": "The model ID for the selected provider."
       },
+      "TYPESAFE_MODEL": {
+        "description": "The Jev release for the topic check. Used only when the TYPESAFE_API_KEY secret is set."
+      },
+      "TYPESAFE_BASE_URL": {
+        "description": "Optional. Another URL for the TypeSafe API. Leave empty for https://api.typesafe.ai."
+      },
       "AI_SCOPE_MODEL": {
         "description": "Optional. A small, fast model that checks if each request is about the project. Leave empty to use the default for the provider."
       },

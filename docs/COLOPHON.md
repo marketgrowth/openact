@@ -27,6 +27,7 @@ AI features are optional helpers. Every request goes through one gateway.
 | Anthropic or OpenAI | Optional providers through AI Gateway, with your own API key. |
 | [AG-UI 1.0](https://docs.ag-ui.com) | The Agent-User Interaction protocol. The agent streams AG-UI events over Server-Sent Events, and approvals use AG-UI interrupts. Types come from `@ag-ui/core` 1.0.4. See [AGUI.md](AGUI.md). |
 | Role-based agent access | The agent acts for the person and never exceeds their role. Owners set a per-role AI policy. Risky changes wait for approval, and every action is logged. |
+| [Jev](https://typesafe.ai/) by TypeSafe | Optional decision model for the topic check. It answers typed yes-or-no and choice questions about each request, and a truth table in code decides the route. Pinned to `jev-1.14.0`. |
 | Topic scope | A small, fast model checks each new request. It sends requests for other projects or new work to the right place and declines anything else. Default model: Llama 3.1 8B Instruct (`@cf/meta/llama-3.1-8b-instruct-fast`). |
 
 ## Sign-in and email
