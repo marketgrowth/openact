@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { findLinks, linkLabel, splitLinks } from "./links";
 import { getTheme, setTheme, type ThemePref } from "./theme";
 
 /* Icons: one stroke style, 20px grid */
@@ -25,6 +26,7 @@ const PATHS: Record<string, string> = {
   flag: "M5 17.5V3M5 3.5h9l-2 3.5 2 3.5H5",
   left: "M12.5 4.5L7 10l5.5 5.5",
   right: "M7.5 4.5L13 10l-5.5 5.5",
+  external: "M11 4h5v5M16 4l-7 7M14 11.5V15a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h3.5",
   chat: "M3.5 4.5h13v9h-7l-4 3v-3h-2z",
   dots: "M5 10h.01M10 10h.01M15 10h.01",
   shield: "M10 2.5l6 2.5v4.5c0 4-2.6 6.8-6 8-3.4-1.2-6-4-6-8V5z"
@@ -180,5 +182,40 @@ export function ConfirmButton({ label, confirmLabel, onConfirm, className = "", 
     >
       {armed ? confirmLabel : label}
     </button>
+  );
+}
+
+/** Plain text with its web addresses shown as links that open in a new tab. The text is never read as HTML. */
+export function LinkedText({ text }: { text: string }) {
+  return (
+    <>
+      {splitLinks(text).map((s, i) =>
+        s.kind === "link" ? (
+          <a key={i} href={s.href} target="_blank" rel="noopener noreferrer nofollow" className="text-link">
+            {s.text}
+          </a>
+        ) : (
+          <span key={i}>{s.text}</span>
+        )
+      )}
+    </>
+  );
+}
+
+/** The links found in a text, as a short list. Shows nothing when there are none. */
+export function LinkList({ text, label = "Links" }: { text: string; label?: string }) {
+  const links = findLinks(text);
+  if (!links.length) return null;
+  return (
+    <ul className="link-list" aria-label={label}>
+      {links.map((l) => (
+        <li key={l.href}>
+          <a href={l.href} target="_blank" rel="noopener noreferrer nofollow" title={l.href}>
+            <Icon name="external" size={14} />
+            <span>{linkLabel(l.href)}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
   );
 }

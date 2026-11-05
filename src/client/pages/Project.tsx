@@ -14,7 +14,7 @@ import {
 import { api, ApiError, errorText } from "../api";
 import { Link, navigate } from "../router";
 import { fmtRange, fmtShort, today } from "../dates";
-import { ConfirmButton, Icon, Modal, useToast } from "../ui";
+import { ConfirmButton, Icon, LinkedText, Modal, useToast } from "../ui";
 import { Board, type ColumnActions } from "../components/Board";
 import { AiSettings } from "../components/AiSettings";
 import { Calendar } from "../components/Calendar";
@@ -331,7 +331,11 @@ export function ProjectPage({ projectId, view, me, config }: { projectId: string
               <Icon name="back" size={16} /> Projects
             </Link>
             <h1>{data.project.name}</h1>
-            {data.project.description && <p className="muted ph-desc">{data.project.description}</p>}
+            {data.project.description && (
+              <p className="muted ph-desc">
+                <LinkedText text={data.project.description} />
+              </p>
+            )}
           </div>
           <nav className="tabs" aria-label="Project views">
             <Link to={base} aria-current={view === "board" ? "page" : undefined}>
@@ -566,6 +570,7 @@ function ProjectSettings({
           <div className="field">
             <label htmlFor="ps-desc">Description</label>
             <textarea id="ps-desc" rows={2} maxLength={500} value={description} onChange={(e) => setDescription(e.target.value)} />
+            <p className="hint">Web addresses that start with https:// or www. show as links. They open in a new tab.</p>
           </div>
           <fieldset className="field">
             <legend className="lbl">Color</legend>

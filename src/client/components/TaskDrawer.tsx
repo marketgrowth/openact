@@ -10,7 +10,7 @@ import {
   type TaskInput
 } from "../../shared/types";
 import { dn, fmtDateTime, fmtSize, isoWeek, workDays } from "../dates";
-import { ConfirmButton, Icon, useToast } from "../ui";
+import { ConfirmButton, Icon, LinkList, useToast } from "../ui";
 import { columnOf } from "./Board";
 
 export type DrawerTarget = { kind: "new"; columnId?: string; start?: string; end?: string } | { kind: "edit"; id: string };
@@ -228,6 +228,7 @@ export function TaskDrawer({ target, task, tasks, columns, members, attachments,
               <div className="field">
                 <label htmlFor="f-notes">Notes</label>
                 <textarea id="f-notes" rows={5} maxLength={8000} value={form.notes} placeholder="Add details, links or acceptance criteria." onChange={(e) => set("notes", e.target.value)} />
+                <LinkList text={form.notes} label="Links in the notes" />
               </div>
             </fieldset>
 
