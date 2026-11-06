@@ -3,6 +3,9 @@
  * The app rail uses these rules to light the active app and show its panel.
  */
 
+/** The shell's Apps page: the apps in this company, and apps from the directory. The rail's App directory icon opens it. */
+export const APPS_PATH = "/apps";
+
 /** The parts of an app that these rules read. ClientApp has all of them. */
 export interface AppPathInfo {
   id: string;

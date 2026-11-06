@@ -40,6 +40,9 @@ import {
   Users,
   Video,
   X,
+  LayoutGrid,
+  Send,
+  History,
   type LucideIcon
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@openact/ui/components/dialog";
@@ -91,7 +94,10 @@ const ICONS: Record<string, LucideIcon> = {
   plug: Plug,
   talent: UserRoundSearch,
   video: Video,
-  box: Package
+  box: Package,
+  apps: LayoutGrid,
+  send: Send,
+  history: History
 };
 
 export function Icon({ name, size = 16, className }: { name: keyof typeof ICONS | string; size?: number; className?: string }) {

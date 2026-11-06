@@ -102,3 +102,100 @@ export function matchScore(t: Talent, query: string): number {
   if (q && t.skills.concat(t.role).some((s) => s.toLowerCase().includes(q))) return Math.min(98, base + 12);
   return base;
 }
+
+/** The Orbytt agents in the panel. Each one acts for the person and stays inside their role. */
+export interface Agent {
+  id: string;
+  name: string;
+  icon: string;
+  summary: string;
+  /** Things to ask, shown on a new chat. */
+  prompts: string[];
+}
+
+export const AGENTS: Agent[] = [
+  {
+    id: "scout",
+    name: "Talent scout",
+    icon: "talent",
+    summary: "Finds and ranks talent for a role. It reads your saved searches and your shortlist.",
+    prompts: ["Find a bookkeeper who uses Xero", "Who can start now with 6 or more hours of overlap?", "Compare my shortlist"]
+  },
+  {
+    id: "scheduler",
+    name: "Interview scheduler",
+    icon: "calendar",
+    summary: "Asks talent for interviews and finds times that work in both time zones.",
+    prompts: ["Set up an interview with Paolo Ramos", "Move Maria's interview to Wednesday", "Which interviews are waiting?"]
+  },
+  {
+    id: "onboarding",
+    name: "Onboarding agent",
+    icon: "briefcase",
+    summary: "Adds new contractors to your projects as guests and tracks their contract dates.",
+    prompts: ["Add Ana Reyes to Office move", "Whose contract ends next?", "Show hours for this month"]
+  }
+];
+
+export const agentById = (id: string) => AGENTS.find((a) => a.id === id);
+
+/** A message in a chat. An agent message can show talent cards. */
+export interface ChatMessage {
+  from: "you" | "agent";
+  text: string;
+  talent?: string[];
+}
+
+export interface Chat {
+  id: string;
+  title: string;
+  agentId: string;
+  when: string;
+  messages: ChatMessage[];
+}
+
+/** Recent chats in the panel. */
+export const CHATS: Chat[] = [
+  {
+    id: "c-301",
+    title: "Bookkeeper for month-end close",
+    agentId: "scout",
+    when: "Today",
+    messages: [
+      { from: "you", text: "Find a bookkeeper who can close our month by day five. Xero, and some overlap with Pacific time." },
+      {
+        from: "agent",
+        text: "I found 2 people who fit. Maria Santos is the best match: 6 years of bookkeeping, month-end close by day five, and 4 hours of overlap. Liza Garcia works US hours and does data entry, but she is not a bookkeeper.",
+        talent: ["T-1042", "T-1266"]
+      },
+      { from: "you", text: "Shortlist Maria." },
+      { from: "agent", text: "Done. Maria Santos is on your shortlist. Do you want me to ask her for an interview?" }
+    ]
+  },
+  {
+    id: "c-298",
+    title: "Interview times with Maria Santos",
+    agentId: "scheduler",
+    when: "Yesterday",
+    messages: [
+      { from: "you", text: "Set up an interview with Maria Santos next week." },
+      { from: "agent", text: "Maria accepted Tue, Nov 10, 9:00 a.m. PT. That is 1:00 a.m. Wednesday in Manila, and she works US hours. I sent the invite to you and to her.", talent: ["T-1042"] },
+      { from: "you", text: "Ask Paolo Ramos too." },
+      { from: "agent", text: "I asked Paolo Ramos for an interview. He can start in 2 weeks. I will tell you when he answers.", talent: ["T-1187"] }
+    ]
+  },
+  {
+    id: "c-287",
+    title: "Onboard Ana Reyes",
+    agentId: "onboarding",
+    when: "Mon",
+    messages: [
+      { from: "you", text: "Ana Reyes starts Monday. Add her to Website relaunch." },
+      { from: "agent", text: "Ana Reyes is now a guest editor on Website relaunch. She sees only that project. Her contract ends Feb 28, 2027." },
+      { from: "you", text: "Can you add her to every project?" },
+      { from: "agent", text: "I need your approval for that. Guests see only the projects you add them to, and 4 projects is a big change. Approve it in the project settings, or tell me which projects." }
+    ]
+  }
+];
+
+export const chatById = (id: string) => CHATS.find((c) => c.id === id);

@@ -52,7 +52,9 @@ The screenshots use example data: a sample team and projects, seen by Lyra, a co
 | | |
 | --- | --- |
 | ![Projects home page that greets Lyra, with Pinned, Projects and Recent in the panel](docs/images/projects.png) | ![Company menu open from the app rail](docs/images/switcher.png) |
-| **Projects.** The company's projects, with Pinned, Projects and Recent tasks in the panel. | **Company menu.** Change company from the mark at the top of the app rail. |
+| **Projects.** The company's projects, with Pinned, Projects and Recent tasks in the panel. | **Company menu.** Every app's panel names the current company. Select it, or the mark on the app rail, to change company. |
+| ![Apps page with the apps in this company and apps from the directory](docs/images/apps-page.png) | ![Apps page in dark theme](docs/images/apps-page-dark.png) |
+| **Apps.** The App directory icon, below the divider on the app rail, opens the apps in this company and apps from the directory. Owners turn apps on or off here. | **Directory.** Official apps that are not ready say "Under review". Apps you can add show their install command. |
 | ![Gantt timeline with phases and today line](docs/images/timeline.png) | ![Month calendar with start cards and deadline pills](docs/images/calendar.png) |
 | **Timeline.** Drag bars to move tasks. Phases have summary bars. | **Calendar.** Cards show starts. Pills show deadlines. |
 | ![Task drawer with dates, assignee and files](docs/images/task.png) | ![Panel collapsed to the app rail](docs/images/collapsed.png) |
@@ -69,7 +71,7 @@ The screenshots use example data: a sample team and projects, seen by Lyra, a co
 
 ### A second app: the Orbytt mockup
 
-`examples/orbytt` shows how another app sits beside Projects. Companies find remote talent in the US and the Philippines, and hire them as contractors on their projects. It is a mockup with sample data. Add it with `npm run openact -- add orbytt`, then turn it on in **Company settings > Apps**.
+`examples/orbytt` shows how another app sits beside Projects. Companies find remote talent in the US and the Philippines, and hire them as contractors on their projects. It is a mockup with sample data. Each company connects to Orbytt on its own and keeps its own shortlist. Add it with `npm run openact -- add orbytt`, then turn it on in **Company settings > Apps**.
 
 | | |
 | --- | --- |
@@ -77,6 +79,8 @@ The screenshots use example data: a sample team and projects, seen by Lyra, a co
 | **Find talent.** Names, match scores, skills, rates and overlap with your workday. | **Profile.** Select a name to open the full profile in a drawer, then shortlist or ask for an interview. |
 | ![Hire dialog that picks the projects a contractor joins](docs/images/orbytt-hire.png) | ![Contractors with their projects, end dates and hours](docs/images/orbytt-contractors.png) |
 | **Hire.** Pick the projects, the role and the dates. The contractor joins as a guest. | **Contractors.** Their projects, end dates and hours this week. |
+| ![A chat with the Talent scout agent, with talent cards](docs/images/orbytt-chat.png) | ![A new chat with the Onboarding agent and suggested questions](docs/images/orbytt-agent.png) |
+| **Agents and recent chats.** Agents find talent, set up interviews and onboard contractors. Names in a chat open the profile drawer. | **A new chat.** Each agent acts for you and can do only what your role in the company allows. |
 
 ## Companies and access
 

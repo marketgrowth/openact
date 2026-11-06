@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Avatar, CompanyMark, Field, Icon, Link, Modal, PageBody, SiteHeader, api, useShell, useToast, useWorkspace } from "@openact/ui";
 import { Checkbox } from "@openact/ui/components/checkbox";
 import { NativeSelect, NativeSelectOption } from "@openact/ui/components/native-select";
@@ -9,15 +9,30 @@ import { Input } from "@openact/ui/components/input";
 import { Label } from "@openact/ui/components/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@openact/ui/components/table";
 import { ToggleGroup, ToggleGroupItem } from "@openact/ui/components/toggle-group";
-import { ACTIVITY, CONTRACTORS, INTERVIEWS, TALENT, matchScore, talentById, type Talent } from "./data";
+import { ACTIVITY, CONTRACTORS, INTERVIEWS, TALENT, agentById, chatById, matchScore, talentById, type Agent, type ChatMessage, type Talent } from "./data";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@openact/ui/components/sheet";
 import { useOrbytt } from "./state";
 
 /* Pages of the Orbytt mockup. Every page says that it is a mockup, and nothing leaves the browser. */
 
-function Header({ title, children }: { title: string; children?: ReactNode }) {
+/** The page bar. Like Projects, it names the current company, so the person knows which company they act for. */
+function Header({ title, children }: { title?: string; children?: ReactNode }) {
+  const { current } = useWorkspace();
+  const company = current?.name ?? "Orbytt";
   return (
-    <SiteHeader title={title}>
+    <SiteHeader
+      title={
+        title ? (
+          <span className="flex min-w-0 items-center gap-1.5">
+            <span className="hidden truncate text-muted-foreground sm:inline">{company}</span>
+            <Icon name="right" size={14} className="hidden shrink-0 text-muted-foreground sm:inline" />
+            <span className="truncate">{title}</span>
+          </span>
+        ) : (
+          company
+        )
+      }
+    >
       {children}
       <Badge variant="outline">Mockup</Badge>
     </SiteHeader>
@@ -30,7 +45,7 @@ export function OverviewPage() {
   const { connected } = useOrbytt();
   return (
     <>
-      <Header title="Orbytt" />
+      <Header />
       <PageBody>{connected ? <Overview /> : <Connect />}</PageBody>
     </>
   );
@@ -589,6 +604,152 @@ function SimpleTable({ head, rows, empty }: { head: string[]; rows: ReactNode[][
           ))}
         </TableBody>
       </Table>
+    </div>
+  );
+}
+
+/* Agents and chats. The agents are a mockup: the replies are written in advance, and nothing leaves the browser. */
+
+export function AgentChatPage({ id }: { id: string }) {
+  const agent = agentById(id);
+  if (!agent) return <Missing what="agent" />;
+  return <ChatView key={agent.id} agent={agent} title={agent.name} start={[]} />;
+}
+
+export function ChatPage({ id }: { id: string }) {
+  const chat = chatById(id);
+  const agent = chat ? agentById(chat.agentId) : undefined;
+  if (!chat || !agent) return <Missing what="chat" />;
+  return <ChatView key={chat.id} agent={agent} title={chat.title} start={chat.messages} />;
+}
+
+function Missing({ what }: { what: string }) {
+  return (
+    <>
+      <Header title="Not found" />
+      <PageBody>
+        <p className="text-sm text-muted-foreground">This {what} does not exist.</p>
+      </PageBody>
+    </>
+  );
+}
+
+function AgentAvatar({ agent, size = 32 }: { agent: Agent; size?: number }) {
+  return (
+    <span className="flex shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground" style={{ width: size, height: size }} aria-hidden="true">
+      <Icon name={agent.icon} size={Math.round(size / 2)} />
+    </span>
+  );
+}
+
+function ChatView({ agent, title, start }: { agent: Agent; title: string; start: ChatMessage[] }) {
+  const { me } = useShell();
+  const { connected } = useOrbytt();
+  const [messages, setMessages] = useState<ChatMessage[]>(start);
+  const [text, setText] = useState("");
+  const end = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (messages.length) end.current?.scrollIntoView({ block: "end" });
+  }, [messages.length]);
+
+  const send = (value: string) => {
+    const t = value.trim();
+    if (!t) return;
+    setMessages((m) => [...m, { from: "you", text: t }, { from: "agent", text: "This is a mockup, so I cannot answer yet. In the real app I answer here, and I ask before I change anything." }]);
+    setText("");
+  };
+
+  return (
+    <>
+      <Header title={title}>
+        <Badge variant="secondary" className="hidden sm:inline-flex">
+          {agent.name}
+        </Badge>
+      </Header>
+      <PageBody className="mx-auto w-full max-w-3xl gap-0 md:gap-0">
+        <div className="flex flex-1 flex-col gap-5 pb-4" data-chat="" aria-live="polite">
+          {messages.length === 0 && (
+            <div className="flex flex-col items-center gap-3 py-10 text-center">
+              <AgentAvatar agent={agent} size={48} />
+              <h2 className="text-xl font-semibold tracking-tight">{agent.name}</h2>
+              <p className="max-w-md text-sm text-muted-foreground">{agent.summary}</p>
+              <p className="max-w-md text-xs text-muted-foreground">It acts for you, and it can do only what your role in this company allows.</p>
+              <div className="mt-2 flex flex-wrap justify-center gap-2">
+                {agent.prompts.map((p) => (
+                  <Button key={p} variant="outline" size="sm" className="h-auto py-1.5 whitespace-normal" onClick={() => send(p)}>
+                    {p}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+          {messages.map((m, i) =>
+            m.from === "you" ? (
+              <div key={i} className="flex justify-end gap-3" data-message="you">
+                <p className="max-w-[80%] rounded-2xl rounded-br-md bg-primary px-4 py-2 text-sm text-primary-foreground">{m.text}</p>
+                <Avatar id={me?.id ?? "me"} name={me?.name || me?.email || "You"} size={32} />
+              </div>
+            ) : (
+              <div key={i} className="flex gap-3" data-message="agent">
+                <AgentAvatar agent={agent} />
+                <div className="grid min-w-0 flex-1 gap-2">
+                  <span className="text-xs font-medium text-muted-foreground">{agent.name}</span>
+                  <p className="text-sm leading-relaxed">{m.text}</p>
+                  {m.talent && (
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {m.talent.map((id) => {
+                        const t = talentById(id);
+                        return t ? <TalentChip key={id} talent={t} /> : null;
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          )}
+          <div ref={end} />
+        </div>
+        <form
+          className="sticky bottom-0 flex items-center gap-2 border-t bg-background py-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            send(text);
+          }}
+        >
+          <Input
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder={connected ? `Ask ${agent.name}` : "Connect to Orbytt to use agents"}
+            aria-label={`Message ${agent.name}`}
+            disabled={!connected}
+          />
+          <Button type="submit" size="icon" aria-label="Send" disabled={!connected || !text.trim()}>
+            <Icon name="send" />
+          </Button>
+        </form>
+      </PageBody>
+      <ProfileSheet />
+    </>
+  );
+}
+
+/** A small talent card in a chat. The name opens the profile drawer. */
+function TalentChip({ talent }: { talent: Talent }) {
+  const { shortlist } = useOrbytt();
+  return (
+    <div className="flex items-center gap-3 rounded-lg border bg-card p-3" data-talent-chip={talent.id}>
+      <Avatar id={talent.id} name={talent.name} size={36} />
+      <div className="grid min-w-0 flex-1 leading-tight">
+        <ProfileLink talent={talent} className="truncate text-sm" />
+        <span className="truncate text-xs text-muted-foreground">
+          {talent.role} · {talent.city} · ${talent.rate}/h
+        </span>
+      </div>
+      {shortlist.includes(talent.id) && (
+        <Badge variant="secondary" className="shrink-0">
+          Shortlisted
+        </Badge>
+      )}
     </div>
   );
 }

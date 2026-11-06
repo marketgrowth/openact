@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 /* Company settings: the Apps tab (which apps are on) and the Permissions tab (who can do what in each app). */
 
-function useCompanyApps(companyId: string) {
+export function useCompanyApps(companyId: string) {
   const ws = useWorkspace();
   const toast = useToast();
   const [apps, setApps] = useState<CompanyAppSettings[] | null>(null);

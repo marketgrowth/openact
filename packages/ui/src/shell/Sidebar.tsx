@@ -1,5 +1,5 @@
 import { COMPANY_ROLE_LABELS, type Company, type User } from "@openact/core/shared";
-import { activeApp, appHome, railApps, type ClientApp } from "../apps";
+import { APPS_PATH, activeApp, appHome, railApps, type ClientApp } from "../apps";
 import { canManageCompany } from "@openact/core/shared";
 import { Link, usePath } from "../router";
 import { Avatar, Icon } from "../ui";
@@ -23,11 +23,13 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  SidebarSeparator,
   useSidebar
 } from "@openact/ui/components/sidebar";
 import { Kbd } from "@openact/ui/components/kbd";
@@ -102,7 +104,9 @@ export function AppSidebar(p: AppSidebarProps) {
   const current = ws.current;
   const canManage = canManageCompany(current?.role ?? null);
   const rail = railApps(p.apps);
-  const active = activeApp(p.apps, path);
+  // The Apps page belongs to the shell, not to an app, so no app is active there.
+  const onDirectory = path === APPS_PATH;
+  const active = onDirectory ? undefined : activeApp(p.apps, path);
   const commands = current && active ? (active.commands ?? []).filter((c) => c.inSidebar) : [];
   const main = (active?.nav ?? []).filter((n) => (n.placement ?? "main") === "main");
   const footer = p.apps.flatMap((a) => a.nav ?? []).filter((n) => n.placement === "footer");
@@ -134,6 +138,16 @@ export function AppSidebar(p: AppSidebarProps) {
                     </SidebarMenuItem>
                   ))}
                 </SidebarMenu>
+                <SidebarSeparator className="mx-1.5 my-2 w-auto" data-rail-divider="" />
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip={railTip("App directory")} isActive={onDirectory} className="justify-center p-0" data-app-directory="">
+                      <Link to={APPS_PATH} onClick={done} aria-label="App directory" aria-current={onDirectory ? "page" : undefined}>
+                        <Icon name="apps" />
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
           </SidebarContent>
@@ -160,14 +174,41 @@ export function AppSidebar(p: AppSidebarProps) {
           </SidebarFooter>
         </Sidebar>
 
-        <Sidebar collapsible="none" className="w-auto min-w-0 flex-1 group-data-[collapsible=icon]:hidden" aria-label={active?.name ?? "App"} data-app-panel={active?.id}>
-          <SidebarHeader className="gap-0.5 px-4 pt-3.5 pb-1">
-            <h2 className="truncate text-base leading-tight font-semibold">{active?.name ?? p.appName}</h2>
-            <p className="truncate text-xs text-muted-foreground" data-company-name="">
-              {current?.name ?? "No company yet"}
-            </p>
+        <Sidebar
+          collapsible="none"
+          className="w-auto min-w-0 flex-1 group-data-[collapsible=icon]:hidden"
+          aria-label={onDirectory ? "Apps" : (active?.name ?? "App")}
+          data-app-panel={onDirectory ? "apps" : active?.id}
+        >
+          <SidebarHeader className="px-2 pt-2 pb-1">
+            <PanelSwitcher
+              title={onDirectory ? "Apps" : (active?.name ?? p.appName)}
+              appName={p.appName}
+              onNewCompany={p.onNewCompany}
+              onCompanySettings={p.onCompanySettings}
+              onPick={done}
+            />
           </SidebarHeader>
           <SidebarContent>
+            {onDirectory && (
+              <SidebarGroup>
+                <SidebarGroupLabel>In this company</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu aria-label="Apps in this company">
+                    {rail.map((app) => (
+                      <SidebarMenuItem key={app.id}>
+                        <SidebarMenuButton asChild>
+                          <Link to={appHome(app, p.apps)} onClick={done}>
+                            {app.Mark ? <app.Mark className="size-4" /> : <Icon name={app.icon!} />}
+                            <span>{app.name}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            )}
             {(commands.length > 0 || main.length > 0) && (
               <SidebarGroup>
                 <SidebarGroupContent>
@@ -207,26 +248,65 @@ export function AppSidebar(p: AppSidebarProps) {
   );
 }
 
-function CompanySwitcher({
-  appName,
-  onNewCompany,
-  onCompanySettings,
-  onPick
-}: {
+interface SwitcherProps {
   appName: string;
   onNewCompany: () => void;
   onCompanySettings: () => void;
   onPick: () => void;
-}) {
-  const ws = useWorkspace();
-  const { isMobile } = useSidebar();
-  const current = ws.current;
+}
 
+/** The company menu: the companies to switch between, Company settings and Create a company. The rail and the panel header both open it. */
+function CompanyMenu({ appName, onNewCompany, onCompanySettings, onPick, side, align }: SwitcherProps & { side: "right" | "bottom"; align: "start" | "end" }) {
+  const ws = useWorkspace();
+  const current = ws.current;
   const pick = async (id: string) => {
     onPick();
     if (id !== current?.id) await ws.switchTo(id);
   };
+  return (
+    <DropdownMenuContent className="min-w-64 rounded-lg" align={align} side={side} sideOffset={4}>
+      {current && (
+        <>
+          <DropdownMenuLabel className="flex items-center gap-2 p-1.5 font-normal">
+            <CompanyMark company={current} size={32} />
+            <span className="grid min-w-0 flex-1 leading-tight">
+              <span className="truncate font-semibold">{current.name}</span>
+              <span className="truncate text-xs text-muted-foreground">{appName}</span>
+            </span>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+        </>
+      )}
+      <DropdownMenuLabel className="text-xs text-muted-foreground">Your companies</DropdownMenuLabel>
+      <DropdownMenuRadioGroup value={current?.id ?? ""} onValueChange={pick}>
+        {(ws.companies ?? []).map((co) => (
+          <DropdownMenuRadioItem key={co.id} value={co.id} className="gap-2 py-1.5">
+            <CompanyMark company={co} size={24} className="rounded-md" />
+            <span className="grid min-w-0 flex-1 leading-tight">
+              <span className="truncate">{co.name}</span>
+              <span className="truncate text-xs text-muted-foreground">{COMPANY_ROLE_LABELS[co.role]}</span>
+            </span>
+          </DropdownMenuRadioItem>
+        ))}
+      </DropdownMenuRadioGroup>
+      <DropdownMenuSeparator />
+      {current && canManageCompany(current.role) && (
+        <DropdownMenuItem onSelect={onCompanySettings}>
+          <Icon name="gear" /> Company settings
+        </DropdownMenuItem>
+      )}
+      <DropdownMenuItem onSelect={onNewCompany}>
+        <Icon name="plus" /> Create a company
+      </DropdownMenuItem>
+    </DropdownMenuContent>
+  );
+}
 
+/** The company mark at the top of the rail. */
+function CompanySwitcher(p: SwitcherProps) {
+  const ws = useWorkspace();
+  const { isMobile } = useSidebar();
+  const current = ws.current;
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -246,41 +326,41 @@ function CompanySwitcher({
               )}
             </SidebarMenuButton>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="min-w-64 rounded-lg" align="start" side={isMobile ? "bottom" : "right"} sideOffset={4}>
-            {current && (
-              <>
-                <DropdownMenuLabel className="flex items-center gap-2 p-1.5 font-normal">
-                  <CompanyMark company={current} size={32} />
-                  <span className="grid min-w-0 flex-1 leading-tight">
-                    <span className="truncate font-semibold">{current.name}</span>
-                    <span className="truncate text-xs text-muted-foreground">{appName}</span>
-                  </span>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-              </>
-            )}
-            <DropdownMenuLabel className="text-xs text-muted-foreground">Your companies</DropdownMenuLabel>
-            <DropdownMenuRadioGroup value={current?.id ?? ""} onValueChange={pick}>
-              {(ws.companies ?? []).map((co) => (
-                <DropdownMenuRadioItem key={co.id} value={co.id} className="gap-2 py-1.5">
-                  <CompanyMark company={co} size={24} className="rounded-md" />
-                  <span className="grid min-w-0 flex-1 leading-tight">
-                    <span className="truncate">{co.name}</span>
-                    <span className="truncate text-xs text-muted-foreground">{COMPANY_ROLE_LABELS[co.role]}</span>
-                  </span>
-                </DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
-            <DropdownMenuSeparator />
-            {current && canManageCompany(current.role) && (
-              <DropdownMenuItem onSelect={onCompanySettings}>
-                <Icon name="gear" /> Company settings
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuItem onSelect={onNewCompany}>
-              <Icon name="plus" /> Create a company
-            </DropdownMenuItem>
-          </DropdownMenuContent>
+          <CompanyMenu {...p} side={isMobile ? "bottom" : "right"} align="start" />
+        </DropdownMenu>
+      </SidebarMenuItem>
+    </SidebarMenu>
+  );
+}
+
+/**
+ * The top of the app panel: the app's name over the current company, with a menu to switch company.
+ * Every app gets it, so each app works the same way in every company.
+ */
+function PanelSwitcher({ title, ...p }: SwitcherProps & { title: string }) {
+  const ws = useWorkspace();
+  const current = ws.current;
+  return (
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <SidebarMenuButton
+              size="lg"
+              className="h-auto gap-2 px-2 py-1.5 data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              aria-label={current ? `${title} in ${current.name}. Change company` : `${title}. Choose a company`}
+              data-panel-switch=""
+            >
+              <span className="grid min-w-0 flex-1 text-left leading-tight">
+                <span className="truncate text-base font-semibold" data-panel-title="">{title}</span>
+                <span className="truncate text-xs font-normal text-muted-foreground" data-company-name="">
+                  {current?.name ?? "No company yet"}
+                </span>
+              </span>
+              <Icon name="updown" className="ml-auto shrink-0 text-muted-foreground" />
+            </SidebarMenuButton>
+          </DropdownMenuTrigger>
+          <CompanyMenu {...p} side="bottom" align="start" />
         </DropdownMenu>
       </SidebarMenuItem>
     </SidebarMenu>
