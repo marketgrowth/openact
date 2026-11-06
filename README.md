@@ -1,12 +1,13 @@
 # OpenAct
 
-**Start your SaaS with the hard parts done.**
+**All the world's a stage.**
 
-OpenAct is an open source SaaS starter kit for Cloudflare Workers, D1, R2 and Durable Objects. Sign-in, companies, roles, permissions and the app shell are ready. You build only the features that make your app different.
+OpenAct is an open source framework for agentic business apps on Cloudflare. It comes with a Projects app. Add more apps from the app directory, or build your own.
 
-- **A ready core.** Sign-in, companies, roles, permissions, live updates, email, files and an app shell.
-- **A Projects app to start.** Manage projects with Kanban, Gantt and calendar views, an AI agent and search.
-- **Apps that anyone can build.** Build an app with the SDK, and add it from GitHub with one command. See the [app directory](https://docs.openact.app/directory).
+- **A suite of apps.** Projects is ready now, with Kanban, Gantt and calendar views, an AI agent and search. Official apps for time tracking, contacts, events, support and more are under review in the [app directory](https://docs.openact.app/directory).
+- **A framework for your own apps.** Sign-in, companies, roles, permissions, live updates, email, files and the app shell are ready. Your app adds only its own features.
+- **Agents that know their limits.** The Projects agent acts for a person and never does more than their role allows. Risky changes wait for approval.
+- **Cloudflare from end to end.** Workers, D1, R2, Durable Objects, Vectorize and Workers AI, on your own account.
 
 MarketGrowth makes OpenAct and shares it under the MIT license.
 

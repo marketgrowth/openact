@@ -3,11 +3,8 @@ layout: home
 title: OpenAct docs
 hero:
   name: OpenAct
-  text: Start your SaaS with the hard parts done
-  tagline: Sign-in, companies, roles, permissions and the app shell are ready on Cloudflare. You build only the features that make your app different. OpenAct is an open source starter kit, with a Projects app to start.
-  image:
-    src: /logo.svg
-    alt: OpenAct
+  text: All the world's a stage
+  tagline: OpenAct is an open source framework for agentic business apps on Cloudflare. Start with the Projects app. Add apps from the directory, or build your own.
   actions:
     - theme: brand
       text: Get started
@@ -19,35 +16,35 @@ hero:
       text: App directory
       link: /directory
 features:
-  - title: A ready core
-    details: Sign-in with email codes, companies, roles, permissions, live updates, email and files. You do not build them again for each app.
-    link: /companies
   - title: Projects app included
     details: Manage projects with Kanban, Gantt and calendar views, an AI agent and search. Use it as it is, or as a model for your own app.
     link: /getting-started
-  - title: Anyone can build an app
-    details: Build an app with the SDK. Add it to any OpenAct from GitHub with one command, and list it in the directory.
+  - title: An app directory
+    details: Add apps by name. Official apps for time tracking, contacts, events, support and more are under review.
+    link: /directory
+  - title: A framework for your own apps
+    details: Sign-in, companies, roles, permissions, live updates, email, files and the app shell are ready. Your app adds only its own features.
     link: /apps
   - title: Permissions per company
-    details: Apps declare what people can do. Company owners choose which roles can do it, and the core checks every request.
+    details: Apps declare what people can do. Company owners choose which roles can do it, and the framework checks every request.
     link: /permissions
-  - title: An app directory
-    details: Official apps for time tracking, contacts, events, support and more are on the way. Their names are reserved.
-    link: /directory
+  - title: Agents that know their limits
+    details: The Projects agent acts for a person and never does more than their role allows. Risky changes wait for approval.
+    link: /reference/ag-ui
   - title: Cloudflare from end to end
-    details: Workers, D1, R2, Durable Objects, Vectorize and Workers AI. Deploy to your own account with one click. MIT license.
+    details: Workers, D1, R2, Durable Objects, Vectorize and Workers AI, on your own account. Deploy with one click. MIT license.
     link: /colophon
 ---
 
 <div class="vp-doc home-more">
 
-## What a starter kit solves
+## What OpenAct gives you
 
-Every SaaS needs the same parts before it does anything useful: sign-in, accounts for companies, roles, invitations, permissions, email and a page layout. Teams often spend weeks or months on these parts, and each part can have security bugs. OpenAct gives you these parts, tested and ready on Cloudflare. You spend your time on the app that only you can build.
+Business apps need the same parts: sign-in, company accounts, roles, invitations, permissions, email and a page layout. OpenAct builds these parts once, in the framework. Each app uses them and does only its own job. A company turns on the apps it needs, and every app works with the same people and companies.
 
 | You get | Where it lives |
 | --- | --- |
-| Sign-in, sessions and email | The core, `@openact/core` |
+| Sign-in, sessions and email | The framework core, `@openact/core` |
 | Companies, people, roles and invitations | The core |
 | Apps on or off per company, and permissions for each role | The core |
 | The app rail, side panel, page layout and shadcn/ui components | The UI kit, `@openact/ui` |

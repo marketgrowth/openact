@@ -29,3 +29,52 @@
   margin: 48px auto 0;
   padding: 0 0 64px;
 }
+
+/* The stage behind the home hero. Light theme: house lights up. Dark theme: house lights down, spotlight on. */
+:root {
+  --stage-wall: #f4ece0;
+  --stage-glow-color: rgba(255, 246, 222, 1);
+  --stage-glow: 0.9;
+  --stage-beam-color: rgba(255, 250, 236, 0.9);
+  --stage-beam: 0.35;
+  --stage-floor: #c79f74;
+  --stage-planks: 0.55;
+  --stage-pool: 0.55;
+  --stage-lip: #6b4a30;
+  --stage-bulb: #f3cf86;
+  --stage-bulb-glow: rgba(243, 207, 134, 0.25);
+  --stage-curtain: #a31f36;
+  --stage-curtain-shade: #741427;
+  --stage-curtain-shine: #c43d55;
+  --stage-gold: #d9a441;
+}
+.dark {
+  --stage-wall: #0c0a10;
+  --stage-glow-color: rgba(255, 228, 170, 1);
+  --stage-glow: 0.16;
+  --stage-beam-color: rgba(255, 232, 180, 0.55);
+  --stage-beam: 0.5;
+  --stage-floor: #2b1d14;
+  --stage-planks: 0.8;
+  --stage-pool: 0.38;
+  --stage-lip: #120c08;
+  --stage-bulb: #ffd88a;
+  --stage-bulb-glow: rgba(255, 196, 92, 0.55);
+  --stage-curtain: #4d0c19;
+  --stage-curtain-shade: #2a050e;
+  --stage-curtain-shine: #6a1729;
+  --stage-gold: #9a7330;
+}
+
+.VPHome { position: relative; }
+.VPHome .VPHero { position: relative; z-index: 1; padding-bottom: 150px !important; }
+.VPHome .VPHero .container { justify-content: center; }
+.VPHome .VPHero .main { margin: 0 auto; max-width: 760px; text-align: center; }
+.VPHome .VPHero .name,
+.VPHome .VPHero .text { max-width: none; margin-left: auto; margin-right: auto; }
+.VPHome .VPHero .tagline { max-width: 620px; margin-left: auto; margin-right: auto; }
+.VPHome .VPHero .actions { justify-content: center; }
+.VPHome .VPFeatures { position: relative; z-index: 1; margin-top: 40px; }
+@media (max-width: 640px) {
+  .VPHome .VPHero { padding-left: 48px !important; padding-right: 48px !important; }
+}

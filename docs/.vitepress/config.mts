@@ -6,7 +6,7 @@ import { defineConfig } from "vitepress";
  */
 export default defineConfig({
   title: "OpenAct",
-  description: "The open source SaaS starter kit for Cloudflare. Start with the Projects app, then build your own apps.",
+  description: "An open source framework for agentic business apps on Cloudflare. Start with the Projects app, add apps from the directory, or build your own.",
   lang: "en-US",
   cleanUrls: true,
   lastUpdated: true,

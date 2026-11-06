@@ -145,7 +145,7 @@ const LOG: Array<{ title: string; detail: string; commit?: string }> = [
   },
   {
     title: "App directory",
-    detail: "OpenAct becomes a SaaS starter kit for Cloudflare. An app directory lists apps, and the common app names are reserved for official apps.",
+    detail: "An app directory lists the apps, and the common app names are reserved for official apps.",
     commit: "c4efbda"
   }
 ];
@@ -341,7 +341,7 @@ export function Colophon() {
           <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Colophon</p>
           <h1 className="text-3xl font-semibold tracking-tight text-balance">How {config.appName} is made</h1>
           <p className="max-w-2xl text-muted-foreground">
-            OpenAct is an open source SaaS starter kit for Cloudflare, with a Projects app for Kanban, Gantt and calendar views. MarketGrowth makes it and shares it under the MIT license. This
+            OpenAct is an open source framework for agentic business apps on Cloudflare, with a Projects app for Kanban, Gantt and calendar views. MarketGrowth makes it and shares it under the MIT license. This
             page lists the features, how they were built, and the tools and services behind them.
           </p>
         </div>

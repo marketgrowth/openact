@@ -1,6 +1,6 @@
 # Colophon
 
-How OpenAct is made. OpenAct is an open source SaaS starter kit for Cloudflare, with a Projects app for Kanban, Gantt and calendar views. MarketGrowth makes it and shares it under the MIT license.
+How OpenAct is made. OpenAct is an open source framework for agentic business apps on Cloudflare, with a Projects app for Kanban, Gantt and calendar views. MarketGrowth makes it and shares it under the MIT license.
 
 The app shows the same page at `/colophon`. Keep the two in step with `package.json` when versions change, and add a build log row for each new milestone.
 
@@ -50,7 +50,7 @@ Milestones, oldest first.
 | 15 | App rail | An app rail with one icon per app, Pinned and Recent in the projects panel, and an Orbytt mockup as the second app. | [f538239](https://github.com/marketgrowth/openact/commit/f538239) |
 | 16 | Permissions | Companies turn apps on or off, and choose what each role can do in each app. Apps declare their permissions, and the core checks them. | [66c782f](https://github.com/marketgrowth/openact/commit/66c782f) |
 | 17 | Docs site | The docs in `docs/` build into a site for [docs.openact.app](https://docs.openact.app), with a permissions guide and an SDK reference. | [fa7d7fa](https://github.com/marketgrowth/openact/commit/fa7d7fa) |
-| 18 | App directory | OpenAct becomes a SaaS starter kit for Cloudflare. An [app directory](directory.md) lists apps, and the common app names are reserved for official apps. | [c4efbda](https://github.com/marketgrowth/openact/commit/c4efbda) |
+| 18 | App directory | An [app directory](directory.md) lists the apps, and the common app names are reserved for official apps. | [c4efbda](https://github.com/marketgrowth/openact/commit/c4efbda) |
 
 ## Platform
 
