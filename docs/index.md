@@ -2,9 +2,9 @@
 layout: home
 title: OpenAct docs
 hero:
-  name: OpenAct
-  text: All the world's a stage
-  tagline: OpenAct is an open source framework for agentic business apps on Cloudflare. Start with the Projects app. Add apps from the directory, or build your own.
+  name: All the world's a stage.
+  text: Now the cast includes agents, and you direct the show.
+  tagline: Use OpenAct to build a suite of agentic business apps on Cloudflare. It's open source and free to use.
   actions:
     - theme: brand
       text: Get started

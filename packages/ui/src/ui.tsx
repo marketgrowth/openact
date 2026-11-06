@@ -103,9 +103,7 @@ export function Logo({ size = 24 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true" className="shrink-0">
       <rect width="32" height="32" rx="7" fill="var(--brand)" />
-      <rect x="6" y="8" width="13" height="4" rx="2" fill="var(--brand-foreground)" />
-      <rect x="11" y="14" width="15" height="4" rx="2" fill="var(--brand-foreground)" opacity=".8" />
-      <rect x="8" y="20" width="9" height="4" rx="2" fill="var(--brand-foreground)" opacity=".6" />
+      <circle cx="16" cy="16" r="8" fill="none" stroke="var(--brand-foreground)" strokeWidth="4.5" />
     </svg>
   );
 }

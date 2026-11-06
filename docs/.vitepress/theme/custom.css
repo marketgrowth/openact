@@ -47,6 +47,11 @@
   --stage-curtain-shade: #741427;
   --stage-curtain-shine: #c43d55;
   --stage-gold: #d9a441;
+  /* For footage */
+  --stage-footage-filter: brightness(1.08) saturate(0.95);
+  --stage-house: rgba(255, 250, 242, 0.62);
+  --stage-dim: rgba(255, 250, 242, 0.5);
+  --stage-spot-dim: 0.6;
 }
 .dark {
   --stage-wall: #0c0a10;
@@ -64,14 +69,24 @@
   --stage-curtain-shade: #2a050e;
   --stage-curtain-shine: #6a1729;
   --stage-gold: #9a7330;
+  --stage-footage-filter: brightness(0.62) saturate(1.05);
+  --stage-house: rgba(8, 6, 10, 0.35);
+  --stage-dim: rgba(4, 3, 6, 0.92);
+  --stage-spot-dim: 1;
 }
 
 .VPHome { position: relative; }
 .VPHome .VPHero { position: relative; z-index: 1; padding-bottom: 150px !important; }
 .VPHome .VPHero .container { justify-content: center; }
-.VPHome .VPHero .main { margin: 0 auto; max-width: 760px; text-align: center; }
+.VPHome .VPHero .main { margin: 0 auto; max-width: 900px; text-align: center; }
+.VPHome .VPHero .name, .VPHome .VPHero .text, .VPHome .VPHero .tagline { text-wrap: balance; }
 .VPHome .VPHero .name,
 .VPHome .VPHero .text { max-width: none; margin-left: auto; margin-right: auto; }
+/* The heading is plain text, not the brand gradient. */
+.VPHome .VPHero .name { --vp-home-hero-name-color: var(--vp-c-text-1); --vp-home-hero-name-background: none; }
+.VPHome .VPHero .name .clip { -webkit-text-fill-color: currentColor; background: none; }
+.VPHome .VPHero .text { font-size: clamp(20px, 2.6vw, 30px); line-height: 1.3; font-weight: 600; color: var(--vp-c-text-1); margin-top: 12px; }
+.VPHome .VPHero .tagline { margin-top: 18px; }
 .VPHome .VPHero .tagline { max-width: 620px; margin-left: auto; margin-right: auto; }
 .VPHome .VPHero .actions { justify-content: center; }
 .VPHome .VPFeatures { position: relative; z-index: 1; margin-top: 40px; }

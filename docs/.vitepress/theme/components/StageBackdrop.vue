@@ -1,11 +1,20 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { useData } from "vitepress";
 
 /*
  * A theater stage behind the home page hero: a back wall, side curtains, a valance, a wooden floor,
  * a spotlight and footlights. Every color is a theme token, so the house lights come up in the
  * light theme and go down in the dark theme, with a slow fade between them.
+ *
+ * Footage: set `stage.video` and `stage.poster` in the home page frontmatter, such as
+ * "/stage/stage.mp4" in docs/public. Then a photo or video of a real stage replaces the drawing.
+ * The light theme brightens it, and the dark theme dims it to a spotlight.
  */
+
+const { frontmatter } = useData();
+const media = computed(() => (frontmatter.value.stage ?? null) as { video?: string; poster?: string } | null);
+const reduceMotion = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
 const height = ref<string>("100%");
 const top = ref<string>("0px");
@@ -30,7 +39,24 @@ const lights = Array.from({ length: 11 }, (_, i) => i);
 </script>
 
 <template>
-  <div class="stage" :style="{ height, top }" aria-hidden="true">
+  <div v-if="media?.video || media?.poster" class="stage stage-media" :style="{ height, top }" aria-hidden="true">
+    <video
+      v-if="media.video && !reduceMotion"
+      class="stage-footage"
+      :src="media.video"
+      :poster="media.poster"
+      autoplay
+      muted
+      loop
+      playsinline
+      preload="auto"
+    ></video>
+    <img v-else class="stage-footage" :src="media.poster" alt="" />
+    <div class="stage-house"></div>
+    <div class="stage-spotlight"></div>
+    <div class="stage-fade"></div>
+  </div>
+  <div v-else class="stage" :style="{ height, top }" aria-hidden="true">
     <div class="stage-wall"></div>
     <div class="stage-glow"></div>
     <div class="stage-beam"></div>
@@ -147,6 +173,23 @@ const lights = Array.from({ length: 11 }, (_, i) => i);
 .shine { fill: none; stroke: var(--stage-curtain-shine); stroke-width: 6; opacity: 0.6; }
 .tie { fill: var(--stage-gold); }
 .fringe { fill: none; stroke: var(--stage-gold); stroke-width: 3; stroke-dasharray: 2 4; }
+
+/* Footage of a real stage. The house lights are a light wash in the light theme, and darkness in the dark theme. */
+.stage-footage {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 40%;
+  filter: var(--stage-footage-filter);
+  transition: filter 0.8s ease;
+}
+.stage-house { position: absolute; inset: 0; background-color: var(--stage-house); }
+.stage-spotlight {
+  position: absolute; inset: 0;
+  background: radial-gradient(48% 62% at 50% 46%, transparent 0 35%, var(--stage-dim) 100%);
+  opacity: var(--stage-spot-dim);
+}
+.stage-fade {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 22%;
+  background: linear-gradient(to bottom, transparent, var(--vp-c-bg));
+}
 
 @media (max-width: 640px) {
   .stage-light:nth-child(even) { display: none; }
