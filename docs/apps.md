@@ -16,9 +16,10 @@ openact.apps.json  The installed apps, in order
 
 Cloudflare Workers cannot load new code while they run. So apps are added when you build: `npm run sync` writes a list of the installed apps into `.openact/`, and the build includes them.
 
-## Add an app from GitHub
+## Add an app
 
 ```bash
+npm run openact -- add contacts                   # an app from the app directory, by its id
 npm run openact -- add github:owner/repo          # the default branch
 npm run openact -- add github:owner/repo#v1.2.0   # a tag or branch
 npm install
@@ -32,6 +33,7 @@ Private repositories work when git on your computer can sign in to GitHub.
 | Command | What it does |
 | --- | --- |
 | `npm run openact -- list` | Shows the installed apps and where they came from |
+| `npm run openact -- directory` | Shows the apps in the [app directory](directory.md) |
 | `npm run openact -- update <id>` | Copies the app again from GitHub. It replaces `apps/<id>`, so keep your own changes in git. |
 | `npm run openact -- remove <id>` | Removes the app. Its tables stay in the database, so you can add it again without data loss. |
 | `npm run sync` | Writes `.openact/` again. The build, dev and migrate scripts run it for you. |
@@ -42,11 +44,11 @@ An app is a folder with a `package.json` that has an `openact` field:
 
 ```json
 {
-  "name": "@acme/openact-app-directory",
+  "name": "@acme/openact-app-inventory",
   "type": "module",
   "openact": {
-    "id": "directory",
-    "name": "Directory",
+    "id": "inventory",
+    "name": "Inventory",
     "server": "./src/server/index.ts",
     "client": "./src/client/index.tsx",
     "migrations": "./migrations",
@@ -57,7 +59,7 @@ An app is a folder with a `package.json` that has an `openact` field:
 }
 ```
 
-The `id` is 2 to 31 lowercase letters, numbers or dashes. It must be unique in a deploy.
+The `id` is 2 to 31 lowercase letters, numbers or dashes. It must be unique in a deploy. Some ids are [reserved](directory.md#reserved-names) for official apps and for OpenAct itself. For a common name, use a longer id, such as `acme-tasks`.
 
 `enabledByDefault` is optional. Set it to `false` when each company must turn the app on first, for example a paid add-on.
 
@@ -69,24 +71,24 @@ import { Hono } from "hono";
 import { defineServerApp, requirePermission, requireUser, type AppEnv } from "@openact/core/server";
 
 const routes = new Hono<AppEnv>();
-routes.get("/companies/:id/people", async (c) => {
+routes.get("/companies/:id/items", async (c) => {
   const user = requireUser(c);
-  await requirePermission(c.env, c.req.param("id"), user.id, "directory.view");
-  const rows = await c.env.DB.prepare("SELECT * FROM directory_profiles WHERE company_id = ?").bind(c.req.param("id")).all();
-  return c.json({ people: rows.results });
+  await requirePermission(c.env, c.req.param("id"), user.id, "inventory.view");
+  const rows = await c.env.DB.prepare("SELECT * FROM inventory_items WHERE company_id = ?").bind(c.req.param("id")).all();
+  return c.json({ items: rows.results });
 });
 
 export default defineServerApp({
-  id: "directory",
-  name: "Directory",
+  id: "inventory",
+  name: "Inventory",
   permissions: {
-    "directory.view": { label: "See the directory", roles: ["owner", "admin", "member"] },
-    "directory.edit": { label: "Edit profiles", roles: ["owner", "admin"] }
+    "inventory.view": { label: "See inventory", roles: ["owner", "admin", "member"] },
+    "inventory.edit": { label: "Edit items", roles: ["owner", "admin"] }
   },
-  routes: (api) => api.route("/api/apps/directory", routes),
+  routes: (api) => api.route("/api/apps/inventory", routes),
   hooks: {
     companyMemberRemoved: async (env, companyId, userId) => {
-      await env.DB.prepare("DELETE FROM directory_profiles WHERE company_id = ? AND user_id = ?").bind(companyId, userId).run();
+      await env.DB.prepare("UPDATE inventory_items SET assigned_to = NULL WHERE company_id = ? AND assigned_to = ?").bind(companyId, userId).run();
     }
   }
 });
@@ -109,7 +111,7 @@ export default defineServerApp({
 
 Declare what people can do in your app in `permissions`, and check it with `requirePermission()` in every route. The core stores each company's choices, and Company settings shows them. Read [Permissions](permissions.md) for the full guide.
 
-Live updates: call `registerRoomKind("directory-group", readRevisions)` once, `markChanged("directory-group", id)` when data changes, and `acceptLive()` in a route that checks access first. Pages use `useLive()` from `@openact/ui`.
+Live updates: call `registerRoomKind("inventory-item", readRevisions)` once, `markChanged("inventory-item", id)` when data changes, and `acceptLive()` in a route that checks access first. Pages use `useLive()` from `@openact/ui`.
 
 ### Client side
 
@@ -118,13 +120,13 @@ Live updates: call `registerRoomKind("directory-group", readRevisions)` once, `m
 import { lazy } from "react";
 import { defineClientApp } from "@openact/ui";
 
-const DirectoryPage = lazy(() => import("./DirectoryPage"));
+const InventoryPage = lazy(() => import("./InventoryPage"));
 
 export default defineClientApp({
-  id: "directory",
-  name: "Directory",
-  icon: "users",
-  routes: [{ pattern: /^\/a\/directory\/?$/, render: () => <DirectoryPage /> }]
+  id: "inventory",
+  name: "Inventory",
+  icon: "box",
+  routes: [{ pattern: /^\/a\/inventory\/?$/, render: () => <InventoryPage /> }]
 });
 ```
 
@@ -164,7 +166,7 @@ Put numbered SQL files in `migrations/`, such as `0001_init.sql`. `npm run sync`
 
 ## Rules for apps
 
-1. **Prefix everything with your id.** Tables (`directory_profiles`), routes (`/api/apps/directory`), R2 keys (`directory/...`), room kinds and command ids.
+1. **Prefix everything with your id.** Tables (`inventory_items`), routes (`/api/apps/inventory`), R2 keys (`inventory/...`), room kinds and command ids. The projects app made some tables before apps had prefixes: `projects`, `project_members`, `tasks`, `attachments`, `board_columns`, `invitations`, `agent_actions`, `access_requests` and `vector_outbox`. Never use these names.
 2. **Scope your data to a company.** Every row has a `company_id`. Check access with `requirePermission`, or your own item check built on it.
 3. **Use the core for people.** Never read or write `users`, `sessions`, `companies` or `company_members` directly, except for read-only joins. Never handle sign-in yourself.
 4. **Follow the UI rules** in AGENTS.md: shadcn/ui components, Tailwind token classes, Lucide icons, `SiteHeader` and `PageBody`.

@@ -1,0 +1,174 @@
+{
+  "$comment": "The OpenAct app directory. docs.openact.app/directory shows it, and `npm run openact -- add <id>` installs from it. To list your app, open a pull request that adds an entry with the status \"available\".",
+  "statuses": {
+    "built-in": "Part of OpenAct",
+    "available": "Ready to install",
+    "planned": "Reserved for an official app that is not ready yet",
+    "example": "An example in this repository"
+  },
+  "systemIds": [
+    "admin",
+    "api",
+    "app",
+    "apps",
+    "auth",
+    "company",
+    "companies",
+    "core",
+    "me",
+    "openact",
+    "project",
+    "session",
+    "sessions",
+    "settings",
+    "site",
+    "ui",
+    "user",
+    "users"
+  ],
+  "apps": [
+    {
+      "id": "projects",
+      "name": "Projects",
+      "summary": "Manage projects with a Kanban board, a Gantt timeline and a calendar. Includes an AI agent and search.",
+      "category": "Work",
+      "status": "built-in",
+      "publisher": "MarketGrowth",
+      "reserved": true,
+      "source": "local",
+      "repo": "https://github.com/marketgrowth/openact/tree/main/apps/projects"
+    },
+    {
+      "id": "timetrack",
+      "name": "TimeTrack",
+      "summary": "Track time on projects and tasks. Timesheets, approvals and reports.",
+      "category": "Work",
+      "status": "planned",
+      "publisher": "MarketGrowth",
+      "reserved": true,
+      "source": "github:marketgrowth/openact-timetrack",
+      "repo": "https://github.com/marketgrowth/openact-timetrack"
+    },
+    {
+      "id": "directory",
+      "name": "Directory",
+      "summary": "A company directory of people, teams and roles, with search.",
+      "category": "People",
+      "status": "planned",
+      "publisher": "MarketGrowth",
+      "reserved": true,
+      "source": "github:marketgrowth/openact-directory",
+      "repo": "https://github.com/marketgrowth/openact-directory"
+    },
+    {
+      "id": "profiles",
+      "name": "Profiles",
+      "summary": "A profile for each person: photo, bio, skills, links and time zone.",
+      "category": "People",
+      "status": "planned",
+      "publisher": "MarketGrowth",
+      "reserved": true,
+      "source": "github:marketgrowth/openact-profiles",
+      "repo": "https://github.com/marketgrowth/openact-profiles"
+    },
+    {
+      "id": "groups",
+      "name": "Groups",
+      "summary": "Groups and teams with members, posts and shared files.",
+      "category": "People",
+      "status": "planned",
+      "publisher": "MarketGrowth",
+      "reserved": true,
+      "source": "github:marketgrowth/openact-groups",
+      "repo": "https://github.com/marketgrowth/openact-groups"
+    },
+    {
+      "id": "tasks",
+      "name": "Tasks",
+      "summary": "Personal and team to-do lists that live outside projects.",
+      "category": "Work",
+      "status": "planned",
+      "publisher": "MarketGrowth",
+      "reserved": true,
+      "source": "github:marketgrowth/openact-tasks",
+      "repo": "https://github.com/marketgrowth/openact-tasks"
+    },
+    {
+      "id": "contacts",
+      "name": "Contacts",
+      "summary": "People and companies outside your company. A light CRM with notes and follow-ups.",
+      "category": "Customers",
+      "status": "planned",
+      "publisher": "MarketGrowth",
+      "reserved": true,
+      "source": "github:marketgrowth/openact-contacts",
+      "repo": "https://github.com/marketgrowth/openact-contacts"
+    },
+    {
+      "id": "events",
+      "name": "Events",
+      "summary": "Events with sign-ups, reminders and a shared calendar.",
+      "category": "People",
+      "status": "planned",
+      "publisher": "MarketGrowth",
+      "reserved": true,
+      "source": "github:marketgrowth/openact-events",
+      "repo": "https://github.com/marketgrowth/openact-events"
+    },
+    {
+      "id": "learn",
+      "name": "Learn",
+      "summary": "Courses and lessons, with progress for each person.",
+      "category": "People",
+      "status": "planned",
+      "publisher": "MarketGrowth",
+      "reserved": true,
+      "source": "github:marketgrowth/openact-learn",
+      "repo": "https://github.com/marketgrowth/openact-learn"
+    },
+    {
+      "id": "workflow",
+      "name": "Workflow",
+      "summary": "Approvals and automations that run across apps.",
+      "category": "Work",
+      "status": "planned",
+      "publisher": "MarketGrowth",
+      "reserved": true,
+      "source": "github:marketgrowth/openact-workflow",
+      "repo": "https://github.com/marketgrowth/openact-workflow"
+    },
+    {
+      "id": "support",
+      "name": "Support",
+      "summary": "A help desk: tickets, replies and a help center.",
+      "category": "Customers",
+      "status": "planned",
+      "publisher": "MarketGrowth",
+      "reserved": true,
+      "source": "github:marketgrowth/openact-support",
+      "repo": "https://github.com/marketgrowth/openact-support"
+    },
+    {
+      "id": "hello",
+      "name": "Hello",
+      "summary": "Company notes. The smallest complete app: a table, an API route, a permission and a page. Copy it to start your own.",
+      "category": "Examples",
+      "status": "example",
+      "publisher": "MarketGrowth",
+      "reserved": false,
+      "source": "path:examples/hello",
+      "repo": "https://github.com/marketgrowth/openact/tree/main/examples/hello"
+    },
+    {
+      "id": "orbytt",
+      "name": "Orbytt (mockup)",
+      "summary": "Find remote talent in the US and the Philippines, and hire them as contractors on your projects. A mockup of a planned app.",
+      "category": "Examples",
+      "status": "example",
+      "publisher": "MarketGrowth",
+      "reserved": false,
+      "source": "path:examples/orbytt",
+      "repo": "https://github.com/marketgrowth/openact/tree/main/examples/orbytt"
+    }
+  ]
+}

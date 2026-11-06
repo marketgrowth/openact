@@ -23,6 +23,7 @@ import {
   MessageSquare,
   Monitor,
   Moon,
+  Package,
   Paperclip,
   Pin,
   PinOff,
@@ -89,7 +90,8 @@ const ICONS: Record<string, LucideIcon> = {
   briefcase: BriefcaseBusiness,
   plug: Plug,
   talent: UserRoundSearch,
-  video: Video
+  video: Video,
+  box: Package
 };
 
 export function Icon({ name, size = 16, className }: { name: keyof typeof ICONS | string; size?: number; className?: string }) {

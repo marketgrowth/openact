@@ -3,6 +3,8 @@
  * The OpenAct app tool.
  *
  *   npm run openact -- list                          Shows the installed apps.
+ *   npm run openact -- directory                     Shows the apps in the OpenAct app directory (directory/apps.json).
+ *   npm run openact -- add <id>                      Installs an app from the directory by its id, such as "contacts".
  *   npm run openact -- add github:owner/repo[#ref]   Copies an app from GitHub into apps/<id> and installs it.
  *   npm run openact -- add ./path/to/app            Copies an app from a folder on this computer, for example while you build it.
  *   npm run openact -- update <id>                   Copies the app again from where it came from.
@@ -28,6 +30,7 @@ const ROOT = resolve(import.meta.dirname, "..");
 const REGISTRY = join(ROOT, "openact.apps.json");
 const OUT = join(ROOT, ".openact");
 const CORE_MIGRATIONS = join(ROOT, "packages/core/migrations");
+const DIRECTORY = join(ROOT, "directory/apps.json");
 const ID = /^[a-z][a-z0-9-]{1,30}$/;
 
 const temps = [];
@@ -46,6 +49,42 @@ function readRegistry() {
 
 function writeRegistry(data) {
   writeFileSync(REGISTRY, JSON.stringify(data, null, 2) + "\n");
+}
+
+/** The app directory: listed apps, and ids reserved for OpenAct itself. */
+function readDirectory() {
+  if (!existsSync(DIRECTORY)) return { apps: [], systemIds: [] };
+  const d = JSON.parse(readFileSync(DIRECTORY, "utf8"));
+  return { apps: d.apps ?? [], systemIds: d.systemIds ?? [] };
+}
+
+const baseSource = (s) => (s ?? "").replace(/#.*$/, "");
+
+/**
+ * Official app ids belong to their official source. App ids also become table, route and file prefixes,
+ * so the ids in systemIds belong to OpenAct itself.
+ */
+function checkReserved(m, fetched) {
+  const dir = readDirectory();
+  if (dir.systemIds.includes(m.id)) fail(`The id "${m.id}" is reserved for OpenAct itself. Give your app another id, such as "acme-${m.id}".`);
+  const entry = dir.apps.find((a) => a.id === m.id);
+  if (!entry?.reserved) return;
+  if (baseSource(fetched.source) === baseSource(entry.source)) return;
+  if (fetched.source.startsWith("path:")) {
+    console.warn(`openact: warning: "${m.id}" is reserved for the official ${entry.name} app. Use another id before you share this app.`);
+    return;
+  }
+  fail(`The id "${m.id}" is reserved for the official ${entry.name} app (${baseSource(entry.source)}). Give your app another id, such as "acme-${m.id}". You can keep "${entry.name}" as its name.`);
+}
+
+/** Finds an app in the directory by its id. Returns its source. */
+function directorySource(id) {
+  const entry = readDirectory().apps.find((a) => a.id === id);
+  if (!entry) fail(`No app with the id "${id}" is in the directory. Run \`npm run openact -- directory\` to see the apps, or use github:owner/repo.`);
+  if (entry.status === "built-in") fail(`${entry.name} is part of OpenAct, so it is already installed.`);
+  if (entry.status === "planned")
+    fail(`"${id}" is reserved for the official ${entry.name} app, which is not ready yet. See https://docs.openact.app/directory.`);
+  return entry.source;
 }
 
 /** Reads and checks the "openact" field of an app folder. `label` names the folder in messages. */
@@ -175,11 +214,16 @@ function fetchFromPath(source) {
 }
 
 const isPath = (s) => /^(\.{1,2}\/|\/|path:)/.test(s);
-const fetchApp = (source) => (isPath(source) ? fetchFromPath(source) : fetchFromGitHub(source));
+const isBareId = (s) => ID.test(s);
+function fetchApp(source) {
+  if (isBareId(source)) source = directorySource(source);
+  return isPath(source) ? fetchFromPath(source) : fetchFromGitHub(source);
+}
 
 function install(fetched, expectId) {
   const m = manifest(fetched.dir, fetched.label);
   if (expectId && m.id !== expectId) fail(`The repository now holds the app "${m.id}", not "${expectId}".`);
+  checkReserved(m, fetched);
   const target = join(ROOT, "apps", m.id);
   rmSync(target, { recursive: true, force: true });
   cpSync(fetched.dir, target, { recursive: true });
@@ -205,8 +249,19 @@ switch (cmd) {
     for (const a of apps) console.log(`${a.id.padEnd(16)} ${a.path.padEnd(22)} ${a.source}${a.ref ? `#${a.ref}` : ""}`);
     break;
   }
+  case "directory": {
+    const { apps } = readDirectory();
+    const installed = new Set(readRegistry().apps.map((a) => a.id));
+    const label = { "built-in": "built in", available: "available", planned: "planned", example: "example" };
+    for (const a of apps) {
+      const state = installed.has(a.id) ? "installed" : label[a.status] ?? a.status;
+      console.log(`${a.id.padEnd(12)} ${state.padEnd(10)} ${a.name.padEnd(18)} ${a.summary}`);
+    }
+    console.log("\nInstall an app with: npm run openact -- add <id>. Read more at https://docs.openact.app/directory");
+    break;
+  }
   case "add": {
-    if (!arg) fail("Say which app to add, for example: npm run openact -- add github:owner/repo");
+    if (!arg) fail("Say which app to add, for example: npm run openact -- add contacts, or add github:owner/repo");
     const reg = readRegistry();
     const fetched = fetchApp(arg);
     const m = manifest(fetched.dir, fetched.label);
@@ -238,6 +293,6 @@ switch (cmd) {
     break;
   }
   default:
-    console.log("Usage: npm run openact -- list | add github:owner/repo[#ref] | add ./folder | update <id> | remove <id> | sync");
+    console.log("Usage: npm run openact -- list | directory | add <id> | add github:owner/repo[#ref] | add ./folder | update <id> | remove <id> | sync");
     if (cmd) process.exit(1);
 }

@@ -23,8 +23,8 @@ jobs:
         run: npx wrangler deploy --dry-run --outdir dist/worker
       - name: Check that apps can be added
         run: |
-          npm run openact -- add ./examples/hello
-          npm run openact -- add ./examples/orbytt
+          npm run openact -- add hello
+          npm run openact -- add orbytt
           npm install
           npm run typecheck
           npm run build

@@ -1,7 +1,7 @@
 {
   "name": "openact",
   "version": "0.2.0",
-  "description": "Open source project management with a Kanban board and a Gantt timeline. Runs on Cloudflare Workers, D1 and R2.",
+  "description": "An open source SaaS starter kit for Cloudflare Workers, D1, R2 and Durable Objects. It comes with a Projects app for Kanban, Gantt and calendar views.",
   "license": "MIT",
   "author": "MarketGrowth (https://marketgrowth.io)",
   "homepage": "https://github.com/marketgrowth/openact",

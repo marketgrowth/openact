@@ -1,6 +1,12 @@
 # OpenAct
 
-OpenAct is a light project management tool with a Kanban board, a Gantt timeline and a calendar. It runs on Cloudflare Workers, D1 and R2. MarketGrowth makes it and shares it as open source under the MIT license.
+OpenAct is an open source SaaS starter kit for Cloudflare. It is like [MakerKit](https://makerkit.dev), but built on Workers, D1, R2 and Durable Objects.
+
+- **A ready core.** Sign-in, companies, roles, permissions, live updates, email, files and an app shell.
+- **A Projects app to start.** Manage projects with Kanban, Gantt and calendar views, an AI agent and search.
+- **Apps that anyone can build.** Build an app with the SDK, and add it from GitHub with one command. See the [app directory](https://docs.openact.app/directory).
+
+MarketGrowth makes OpenAct and shares it under the MIT license.
 
 Read the documentation at [docs.openact.app](https://docs.openact.app).
 

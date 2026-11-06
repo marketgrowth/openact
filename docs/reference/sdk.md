@@ -15,7 +15,7 @@ Every app has a `package.json` with an `openact` field. The `openact` script rea
 
 | Field | Required | What it does |
 | --- | --- | --- |
-| `id` | Yes | 2 to 31 lowercase letters, numbers or dashes, starting with a letter. Unique in a deploy. |
+| `id` | Yes | 2 to 31 lowercase letters, numbers or dashes, starting with a letter. Unique in a deploy. Not one of the [reserved names](../directory.md#reserved-names). |
 | `name` | No | The name in the app rail and Company settings. The default is the id. |
 | `server` | No | The file that exports `defineServerApp(...)` as default |
 | `client` | No | The file that exports `defineClientApp(...)` as default |

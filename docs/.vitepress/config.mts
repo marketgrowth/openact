@@ -6,7 +6,7 @@ import { defineConfig } from "vitepress";
  */
 export default defineConfig({
   title: "OpenAct",
-  description: "Open source project management on Cloudflare, with installable apps.",
+  description: "The open source SaaS starter kit for Cloudflare. Start with the Projects app, then build your own apps.",
   lang: "en-US",
   cleanUrls: true,
   lastUpdated: true,
@@ -25,6 +25,7 @@ export default defineConfig({
     siteTitle: "OpenAct",
     nav: [
       { text: "Guide", link: "/getting-started", activeMatch: "^/(getting-started|companies|apps|permissions)" },
+      { text: "App directory", link: "/directory" },
       { text: "Reference", link: "/reference/sdk", activeMatch: "^/reference/" },
       { text: "Colophon", link: "/colophon" }
     ],
@@ -39,6 +40,7 @@ export default defineConfig({
       {
         text: "Apps",
         items: [
+          { text: "App directory", link: "/directory" },
           { text: "Build an app", link: "/apps" },
           { text: "Permissions", link: "/permissions" }
         ]

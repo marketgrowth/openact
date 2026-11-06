@@ -336,7 +336,7 @@ export function Colophon() {
           <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Colophon</p>
           <h1 className="text-3xl font-semibold tracking-tight text-balance">How {config.appName} is made</h1>
           <p className="max-w-2xl text-muted-foreground">
-            OpenAct is open source project management with a board, a timeline and a calendar. MarketGrowth makes it and shares it under the MIT license. This
+            OpenAct is an open source SaaS starter kit for Cloudflare, with a Projects app for Kanban, Gantt and calendar views. MarketGrowth makes it and shares it under the MIT license. This
             page lists the features, how they were built, and the tools and services behind them.
           </p>
         </div>

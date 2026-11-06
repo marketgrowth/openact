@@ -2,7 +2,7 @@
 
 An app says what people can do in it. The OpenAct core stores each company's choices and checks them on every request. An app builder does not write a settings screen or a role table.
 
-This page uses a sample app named **Tasks** to show each step.
+This page uses a sample app named **Inventory**, where a company tracks its equipment, to show each step.
 
 ## How it works
 
@@ -14,7 +14,7 @@ The core owns people, companies and company roles. An app owns its own data. Per
 4. **The web app follows.** `useCan()` hides or turns off buttons that the person cannot use.
 
 ```
-Tasks app          declares tasks.create, tasks.delete, ...
+Inventory app      declares inventory.create, inventory.delete, ...
     |
 OpenAct core       keeps each company's choices in the company_apps table
     |
@@ -39,42 +39,42 @@ Every person in a company has one company role. Permissions use these roles.
 List the permissions in `defineServerApp()`. Each id starts with your app id and a dot.
 
 ```ts
-// apps/tasks/src/server/index.ts
+// apps/inventory/src/server/index.ts
 import { defineServerApp } from "@openact/core/server";
 import { routes } from "./routes";
 
 export default defineServerApp({
-  id: "tasks",
-  name: "Tasks",
+  id: "inventory",
+  name: "Inventory",
   permissions: {
-    "tasks.view": {
-      label: "See tasks",
-      description: "See the company task list.",
+    "inventory.view": {
+      label: "See inventory",
+      description: "See the company's equipment list.",
       roles: ["owner", "admin", "member"]
     },
-    "tasks.create": {
-      label: "Create tasks",
+    "inventory.create": {
+      label: "Add items",
       roles: ["owner", "admin", "member"]
     },
-    "tasks.delete": {
-      label: "Delete tasks",
-      description: "Delete any task, also tasks that other people made.",
+    "inventory.delete": {
+      label: "Delete items",
+      description: "Delete any item, also items that other people added.",
       roles: ["owner", "admin"],
       locked: ["owner", "admin"]
     },
-    "tasks.comment": {
-      label: "Comment on shared tasks",
+    "inventory.comment": {
+      label: "Comment on shared items",
       roles: ["owner", "admin", "member", "guest"],
       guests: true
     }
   },
-  routes: (api) => api.route("/api/apps/tasks", routes)
+  routes: (api) => api.route("/api/apps/inventory", routes)
 });
 ```
 
 | Field | Required | What it does |
 | --- | --- | --- |
-| `label` | Yes | A short name for Company settings. Start with a verb, such as "Create tasks". |
+| `label` | Yes | A short name for Company settings. Start with a verb, such as "Add items". |
 | `description` | No | One sentence that says what the permission allows |
 | `roles` | Yes | The roles that have the permission when the company has not changed it |
 | `locked` | No | Roles that always have the permission. Nobody can turn them off. |
@@ -87,21 +87,21 @@ The core checks the declarations when the Worker starts. It stops with a clear e
 Call `requirePermission()` at the start of every route that reads or changes company data.
 
 ```ts
-// apps/tasks/src/server/routes.ts
+// apps/inventory/src/server/routes.ts
 import { Hono } from "hono";
 import { newId, nowIso, readJson, requirePermission, requireUser, text, type AppEnv } from "@openact/core/server";
 
 export const routes = new Hono<AppEnv>();
 
-routes.post("/companies/:id/tasks", async (c) => {
+routes.post("/companies/:id/items", async (c) => {
   const user = requireUser(c);
   const companyId = c.req.param("id");
-  await requirePermission(c.env, companyId, user.id, "tasks.create");
+  await requirePermission(c.env, companyId, user.id, "inventory.create");
 
-  const title = text((await readJson(c)).title, "Title", { max: 200, required: true });
+  const name = text((await readJson(c)).name, "Name", { max: 200, required: true });
   const id = newId();
-  await c.env.DB.prepare("INSERT INTO tasks_items (id, company_id, title, created_by, created_at) VALUES (?, ?, ?, ?, ?)")
-    .bind(id, companyId, title, user.id, nowIso())
+  await c.env.DB.prepare("INSERT INTO inventory_items (id, company_id, name, created_by, created_at) VALUES (?, ?, ?, ?, ?)")
+    .bind(id, companyId, name, user.id, nowIso())
     .run();
   return c.json({ id }, 201);
 });
@@ -115,7 +115,7 @@ routes.post("/companies/:id/tasks", async (c) => {
 | The app is on in the company | An owner or admin turned it off | 403, code `app_off` |
 | The person's role has the permission | The company did not give it to their role | 403, code `no_permission` |
 
-When every check passes, it returns the person's company role. The error messages tell the person what to do next, for example: "Your role in this company does not allow this: Create tasks. Ask a company owner or admin to change it in Company settings."
+When every check passes, it returns the person's company role. The error messages tell the person what to do next, for example: "Your role in this company does not allow this: Add items. Ask a company owner or admin to change it in Company settings."
 
 Other helpers from `@openact/core/server`:
 
@@ -134,10 +134,10 @@ Other helpers from `@openact/core/server`:
 import { useCan } from "@openact/ui";
 import { Button } from "@openact/ui/components/button";
 
-export function NewTaskButton({ onClick }: { onClick: () => void }) {
-  const canCreate = useCan("tasks.create");
+export function NewItemButton({ onClick }: { onClick: () => void }) {
+  const canCreate = useCan("inventory.create");
   if (!canCreate) return null;
-  return <Button onClick={onClick}>New task</Button>;
+  return <Button onClick={onClick}>New item</Button>;
 }
 ```
 
@@ -167,7 +167,7 @@ A change takes effect on the next request. The person who made it sees the new r
 
 - **The owner always has every permission.** A company can never lock itself out.
 - **Locked roles keep the permission.** Use `locked` for roles that manage everything. The projects app locks "See all company projects" for owners and admins, because they manage every company project.
-- **Guests get a permission only with `guests: true`.** Guests come from outside the company and see only what someone shares with them. Set `guests: true` only for actions that are safe for them, such as a comment on a task that someone shared.
+- **Guests get a permission only with `guests: true`.** Guests come from outside the company and see only what someone shares with them. Set `guests: true` only for actions that are safe for them, such as a comment on an item that someone shared.
 - **The app's data stays in its company.** Every row has a `company_id`. `requirePermission()` checks the company in the URL, so also check that each row you read belongs to that company.
 
 ## Apps that start off
@@ -177,8 +177,8 @@ Set `"enabledByDefault": false` in the app's `package.json` when each company mu
 ```json
 {
   "openact": {
-    "id": "tasks",
-    "name": "Tasks",
+    "id": "inventory",
+    "name": "Inventory",
     "server": "./src/server/index.ts",
     "client": "./src/client/index.tsx",
     "enabledByDefault": false
@@ -190,7 +190,7 @@ The app is installed in the deploy, but it shows for a company only after an own
 
 ## Access to one item
 
-Permissions answer "what can a member do in Tasks?" They do not answer "who can see this one private list?" Access to one item stays in your app. Combine your item check with the company permission.
+Permissions answer "what can a member do in Inventory?" They do not answer "who can see this one private list?" Access to one item stays in your app. Combine your item check with the company permission.
 
 The projects app shows the pattern. Its `requireRole()` reads the project role, the company role, the project's visibility, and the company's choice for `projects.browse`:
 
@@ -221,14 +221,14 @@ The web app uses these routes. Your app does not need to call them.
 | --- | --- | --- |
 | `GET /api/companies/:id/access` | Anyone in the company | The person's role, the apps that are off, and their permissions |
 | `GET /api/companies/:id/apps` | Owners and admins | Every installed app with its switch and permissions |
-| `PATCH /api/companies/:id/apps/:appId` | Owners and admins | Body: `{ "enabled": true }` or `{ "permissions": { "tasks.create": ["admin", "member"] } }` |
+| `PATCH /api/companies/:id/apps/:appId` | Owners and admins | Body: `{ "enabled": true }` or `{ "permissions": { "inventory.create": ["admin", "member"] } }` |
 
 ```json
 // GET /api/companies/c_123/access
 {
   "role": "member",
   "disabledApps": ["orbytt"],
-  "permissions": ["projects.create", "projects.browse", "tasks.view", "tasks.create"]
+  "permissions": ["projects.create", "projects.browse", "inventory.view", "inventory.create"]
 }
 ```
 

@@ -1,6 +1,6 @@
 # Colophon
 
-How OpenAct is made. OpenAct is open source project management with a board, a timeline and a calendar. MarketGrowth makes it and shares it under the MIT license.
+How OpenAct is made. OpenAct is an open source SaaS starter kit for Cloudflare, with a Projects app for Kanban, Gantt and calendar views. MarketGrowth makes it and shares it under the MIT license.
 
 The app shows the same page at `/colophon`. Keep the two in step with `package.json` when versions change, and add a build log row for each new milestone.
 
