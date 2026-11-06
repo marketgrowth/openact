@@ -1,6 +1,8 @@
 # OpenAct
 
-OpenAct is an open source SaaS starter kit for Cloudflare. It is like [MakerKit](https://makerkit.dev), but built on Workers, D1, R2 and Durable Objects.
+**Start your SaaS with the hard parts done.**
+
+OpenAct is an open source SaaS starter kit for Cloudflare Workers, D1, R2 and Durable Objects. Sign-in, companies, roles, permissions and the app shell are ready. You build only the features that make your app different.
 
 - **A ready core.** Sign-in, companies, roles, permissions, live updates, email, files and an app shell.
 - **A Projects app to start.** Manage projects with Kanban, Gantt and calendar views, an AI agent and search.

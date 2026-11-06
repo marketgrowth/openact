@@ -3,8 +3,8 @@ layout: home
 title: OpenAct docs
 hero:
   name: OpenAct
-  text: The SaaS starter kit for Cloudflare
-  tagline: Like MakerKit, but open source and built on Workers, D1, R2 and Durable Objects. Start with the Projects app, then build your own apps.
+  text: Start your SaaS with the hard parts done
+  tagline: Sign-in, companies, roles, permissions and the app shell are ready on Cloudflare. You build only the features that make your app different. OpenAct is an open source starter kit, with a Projects app to start.
   image:
     src: /logo.svg
     alt: OpenAct
@@ -41,9 +41,9 @@ features:
 
 <div class="vp-doc home-more">
 
-## Why OpenAct
+## What a starter kit solves
 
-MakerKit gives teams a head start on Next.js and Supabase. OpenAct gives the same head start on Cloudflare. You get the parts that every SaaS needs, and you spend your time on the app that only you can build.
+Every SaaS needs the same parts before it does anything useful: sign-in, accounts for companies, roles, invitations, permissions, email and a page layout. Teams often spend weeks or months on these parts, and each part can have security bugs. OpenAct gives you these parts, tested and ready on Cloudflare. You spend your time on the app that only you can build.
 
 | You get | Where it lives |
 | --- | --- |
