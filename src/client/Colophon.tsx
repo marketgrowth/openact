@@ -109,7 +109,8 @@ const LOG: Array<{ title: string; detail: string; commit?: string }> = [
   },
   {
     title: "Core and apps",
-    detail: "OpenAct splits into a core, a UI kit and apps. Project management becomes the first app. New apps install from GitHub with npm run openact -- add."
+    detail: "OpenAct splits into a core, a UI kit and apps. Project management becomes the first app. New apps install from GitHub with npm run openact -- add.",
+    commit: "eb5ffe7"
   }
 ];
 

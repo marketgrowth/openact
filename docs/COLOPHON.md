@@ -43,7 +43,7 @@ Milestones, oldest first.
 | 11 | Live updates | A Durable Object per project holds hibernating WebSockets. Pages check for changes only when the connection is down. | [ce7e4e4](https://github.com/marketgrowth/openact/commit/ce7e4e4) |
 | 12 | Features and build log | This page lists what OpenAct does and how it was built. | [c01bf9a](https://github.com/marketgrowth/openact/commit/c01bf9a) |
 | 13 | shadcn/ui | The whole web app moves to shadcn/ui, Tailwind CSS and Lucide icons, with the dashboard-01 layout. The chat keeps your place when you scroll up. | [07ea4d1](https://github.com/marketgrowth/openact/commit/07ea4d1) |
-| 14 | Core and apps | OpenAct splits into a core, a UI kit and apps. Project management becomes the first app. New apps install from GitHub with `npm run openact -- add`. | This change |
+| 14 | Core and apps | OpenAct splits into a core, a UI kit and apps. Project management becomes the first app. New apps install from GitHub with `npm run openact -- add`. | [eb5ffe7](https://github.com/marketgrowth/openact/commit/eb5ffe7) |
 
 ## Platform
 
