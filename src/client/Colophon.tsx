@@ -132,6 +132,11 @@ const LOG: Array<{ title: string; detail: string; commit?: string }> = [
     title: "App rail",
     detail: "An app rail with one icon per app, Pinned and Recent in the projects panel, and an Orbytt mockup as the second app.",
     commit: "f538239"
+  },
+  {
+    title: "Permissions",
+    detail: "Companies turn apps on or off, and choose what each role can do in each app. Apps declare their permissions, and the core checks them.",
+    commit: "66c782f"
   }
 ];
 

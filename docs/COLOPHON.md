@@ -48,6 +48,7 @@ Milestones, oldest first.
 | 13 | shadcn/ui | The whole web app moves to shadcn/ui, Tailwind CSS and Lucide icons, with the dashboard-01 layout. The chat keeps your place when you scroll up. | [07ea4d1](https://github.com/marketgrowth/openact/commit/07ea4d1) |
 | 14 | Core and apps | OpenAct splits into a core, a UI kit and apps. Project management becomes the first app. New apps install from GitHub with `npm run openact -- add`. | [eb5ffe7](https://github.com/marketgrowth/openact/commit/eb5ffe7) |
 | 15 | App rail | An app rail with one icon per app, Pinned and Recent in the projects panel, and an Orbytt mockup as the second app. | [f538239](https://github.com/marketgrowth/openact/commit/f538239) |
+| 16 | Permissions | Companies turn apps on or off, and choose what each role can do in each app. Apps declare their permissions, and the core checks them. | [66c782f](https://github.com/marketgrowth/openact/commit/66c782f) |
 
 ## Platform
 
