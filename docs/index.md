@@ -2,8 +2,11 @@
 layout: home
 title: OpenAct docs
 hero:
-  name: All the world's a stage.
-  text: If work is theater and every business a stage, use OpenAct to build, instead of buy, the apps that run your show. It's open source and free to use.
+  name: All The World's A Stage
+  text: If work is theater and every business a stage, use OpenAct to build, instead of buy, the apps that run your show.
+intro:
+  title: Build vs. Buy
+  text: We propose you build, with agents. Use OpenAct to scaffold your suite of apps. It's open source and it is free to use.
 features:
   - title: Projects app included
     details: Manage projects with Kanban, Gantt and calendar views, an AI agent and search. Use it as it is, or as a model for your own app.

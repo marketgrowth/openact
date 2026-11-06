@@ -1,5 +1,6 @@
 /* OpenAct brand on the VitePress theme: the app's indigo and the Geist fonts. */
 :root {
+  --oa-display-font: "Playfair Display", "Didot", "Bodoni 72", Georgia, "Times New Roman", serif;
   --vp-c-brand-1: #3347cf;
   --vp-c-brand-2: #4558d8;
   --vp-c-brand-3: #3347cf;
@@ -103,6 +104,15 @@
 /* The heading is plain text, not the brand gradient. */
 .VPHome .VPHero .name { --vp-home-hero-name-color: var(--vp-c-text-1); --vp-home-hero-name-background: none; }
 .VPHome .VPHero .name .clip { -webkit-text-fill-color: currentColor; background: none; }
+/* A theatrical display face for the hero headline */
+.VPHome .VPHero .name {
+  font-family: var(--oa-display-font);
+  font-weight: 800;
+  font-size: clamp(40px, 7vw, 92px);
+  line-height: 1.04;
+  letter-spacing: -0.012em;
+}
+.VPHome .VPFeatures { margin-top: 48px !important; }
 .VPHome .VPHero .text { font-size: clamp(17px, 1.9vw, 24px); line-height: 1.45; font-weight: 500; color: var(--vp-c-text-1); margin-top: 20px; max-width: 760px !important; }
 .VPHome .VPHero .tagline { margin-top: 18px; }
 .VPHome .VPHero .tagline { max-width: 620px; margin-left: auto; margin-right: auto; }

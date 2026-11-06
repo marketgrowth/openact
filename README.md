@@ -1,6 +1,6 @@
 # OpenAct
 
-**All the world's a stage.**
+**All The World's A Stage**
 
 OpenAct is an open source framework for agentic business apps on Cloudflare. It comes with a Projects app. Add more apps from the app directory, or build your own.
 
