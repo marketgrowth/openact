@@ -2,7 +2,7 @@
   "name": "@openact/app-projects",
   "version": "0.2.0",
   "description": "The OpenAct projects app: board, timeline, calendar, AI agent and task search.",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "type": "module",
   "exports": {
     "./server": "./src/server/index.ts",

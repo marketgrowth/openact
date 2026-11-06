@@ -341,7 +341,7 @@ export function Colophon() {
           <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Colophon</p>
           <h1 className="text-3xl font-semibold tracking-tight text-balance">How {config.appName} is made</h1>
           <p className="max-w-2xl text-muted-foreground">
-            OpenAct is an open source framework for agentic business apps on Cloudflare, with a Projects app for Kanban, Gantt and calendar views. MarketGrowth makes it and shares it under the MIT license. This
+            OpenAct is an open source framework for agentic business apps on Cloudflare, with a Projects app for Kanban, Gantt and calendar views. MarketGrowth makes it and shares it under the Apache License 2.0. This
             page lists the features, how they were built, and the tools and services behind them.
           </p>
         </div>
@@ -390,7 +390,7 @@ export function Colophon() {
           <Rows
             rows={[
               { name: "github.com/marketgrowth/openact", href: REPO, detail: "The source code, the deploy guide and the AG-UI guide." },
-              { name: "MIT License", detail: "Copyright (c) 2026 MarketGrowth." },
+              { name: "Apache License 2.0", detail: "Copyright 2026 MarketGrowth. The shadcn/ui components keep their MIT license.", href: "https://github.com/marketgrowth/openact/blob/main/LICENSE" },
               { name: "MarketGrowth", href: "https://marketgrowth.io", detail: "Makes and maintains OpenAct." }
             ]}
           />

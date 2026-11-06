@@ -9,7 +9,7 @@ OpenAct is an open source framework for agentic business apps on Cloudflare. It 
 - **Agents that know their limits.** The Projects agent acts for a person and never does more than their role allows. Risky changes wait for approval.
 - **Cloudflare from end to end.** Workers, D1, R2, Durable Objects, Vectorize and Workers AI, on your own account.
 
-MarketGrowth makes OpenAct and shares it under the MIT license.
+MarketGrowth makes OpenAct and shares it under the Apache License 2.0.
 
 Read the documentation at [docs.openact.app](https://docs.openact.app).
 
@@ -304,4 +304,4 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md). To report a security problem, read [SEC
 
 ## License
 
-MIT. See [LICENSE](LICENSE). Copyright (c) 2026 MarketGrowth.
+Apache License 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE). Copyright 2026 MarketGrowth.

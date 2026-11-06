@@ -2,7 +2,7 @@
   "name": "openact",
   "version": "0.2.0",
   "description": "An open source framework for agentic business apps on Cloudflare Workers, D1, R2 and Durable Objects. It comes with a Projects app for Kanban, Gantt and calendar views.",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "author": "MarketGrowth (https://marketgrowth.io)",
   "homepage": "https://github.com/marketgrowth/openact",
   "repository": {

@@ -58,6 +58,6 @@ export default defineConfig({
     editLink: { pattern: "https://github.com/marketgrowth/openact/edit/main/docs/:path", text: "Edit this page on GitHub" },
     search: { provider: "local" },
     outline: { level: [2, 3], label: "On this page" },
-    footer: { message: "MIT license. Made by MarketGrowth.", copyright: "Copyright 2026 MarketGrowth" }
+    footer: { message: "Apache License 2.0. Made by MarketGrowth.", copyright: "Copyright 2026 MarketGrowth" }
   }
 });

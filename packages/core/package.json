@@ -2,7 +2,7 @@
   "name": "@openact/core",
   "version": "0.2.0",
   "description": "The OpenAct core: sign-in, people, companies, roles, live updates and the app system.",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "type": "module",
   "exports": {
     "./server": "./src/server/index.ts",

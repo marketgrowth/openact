@@ -46,4 +46,4 @@ npm run build
 - Describe what changed and how you tested it.
 - Add screenshots for changes to the web app, in light and dark themes.
 
-By contributing, you agree that your work is shared under the MIT license.
+By contributing, you agree that your work is shared under the Apache License 2.0, as section 5 of the license describes.

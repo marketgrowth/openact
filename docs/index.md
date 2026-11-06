@@ -24,7 +24,7 @@ features:
     details: The Projects agent acts for a person and never does more than their role allows. Risky changes wait for approval.
     link: /reference/ag-ui
   - title: Cloudflare from end to end
-    details: Workers, D1, R2, Durable Objects, Vectorize and Workers AI, on your own account. Deploy with one click. MIT license.
+    details: Workers, D1, R2, Durable Objects, Vectorize and Workers AI, on your own account. Deploy with one click. Apache License 2.0.
     link: /colophon
 ---
 

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "A mockup of the Orbytt app in OpenAct: the app rail icon, the panel and sample pages. It has no server and saves nothing.",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "type": "module",
   "openact": {
     "id": "orbytt",

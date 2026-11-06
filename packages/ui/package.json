@@ -2,7 +2,7 @@
   "name": "@openact/ui",
   "version": "0.2.0",
   "description": "The OpenAct web shell and UI kit: shadcn/ui components, theme, side panel and sign-in.",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
