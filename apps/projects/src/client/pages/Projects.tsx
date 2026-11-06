@@ -68,7 +68,7 @@ export function ProjectsPage() {
       </SiteHeader>
       <PageBody>
         <div className="grid gap-1">
-          <h2 className="text-2xl font-semibold tracking-tight">Hi {me.name || me.email}</h2>
+          <h2 className="text-2xl font-semibold tracking-tight">Hello {me.name || me.email}</h2>
           {current && (
             <p className="text-sm text-muted-foreground">
               You are {/^[aeiou]/i.test(COMPANY_ROLE_LABELS[current.role]) ? "an" : "a"} {COMPANY_ROLE_LABELS[current.role].toLowerCase()} in this company.
