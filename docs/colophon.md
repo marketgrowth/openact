@@ -49,6 +49,7 @@ Milestones, oldest first.
 | 14 | Core and apps | OpenAct splits into a core, a UI kit and apps. Project management becomes the first app. New apps install from GitHub with `npm run openact -- add`. | [eb5ffe7](https://github.com/marketgrowth/openact/commit/eb5ffe7) |
 | 15 | App rail | An app rail with one icon per app, Pinned and Recent in the projects panel, and an Orbytt mockup as the second app. | [f538239](https://github.com/marketgrowth/openact/commit/f538239) |
 | 16 | Permissions | Companies turn apps on or off, and choose what each role can do in each app. Apps declare their permissions, and the core checks them. | [66c782f](https://github.com/marketgrowth/openact/commit/66c782f) |
+| 17 | Docs site | The docs in `docs/` build into a site for [docs.openact.app](https://docs.openact.app), with a permissions guide and an SDK reference. | [fa7d7fa](https://github.com/marketgrowth/openact/commit/fa7d7fa) |
 
 ## Platform
 

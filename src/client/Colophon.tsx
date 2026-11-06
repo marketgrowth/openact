@@ -137,6 +137,11 @@ const LOG: Array<{ title: string; detail: string; commit?: string }> = [
     title: "Permissions",
     detail: "Companies turn apps on or off, and choose what each role can do in each app. Apps declare their permissions, and the core checks them.",
     commit: "66c782f"
+  },
+  {
+    title: "Docs site",
+    detail: "The docs in docs/ build into a site for docs.openact.app, with a permissions guide and an SDK reference.",
+    commit: "fa7d7fa"
   }
 ];
 
