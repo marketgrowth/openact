@@ -3,7 +3,7 @@ layout: home
 title: OpenAct docs
 hero:
   name: All the world's a stage.
-  text: Now the cast includes agents, and you direct the show.
+  text: Your defining moment is here.
   tagline: Use OpenAct to build a suite of agentic business apps on Cloudflare. It's open source and free to use.
   actions:
     - theme: brand
