@@ -2,7 +2,43 @@
 
 How OpenAct is made. OpenAct is open source project management with a board, a timeline and a calendar. MarketGrowth makes it and shares it under the MIT license.
 
-The app shows the same page at `/colophon`. Keep the two in step with `package.json` when versions change.
+The app shows the same page at `/colophon`. Keep the two in step with `package.json` when versions change, and add a build log row for each new milestone.
+
+## What it does
+
+| Feature | What it does |
+| --- | --- |
+| Kanban board | Drag cards between columns. Each project has its own columns, and each column says what it means, so progress and late checks keep working. |
+| Gantt timeline | Drag a bar to move a task, or an edge to change its length. Tasks group by phase, and a line marks today. |
+| Calendar | A month view with start cards and deadline pills. Drag either to change the date. Phones get an agenda list. |
+| Tasks | Dates, phase, assignee, notes and files up to 25 MB. Web addresses in notes and descriptions show as links that open in a new tab. |
+| Companies | One install holds many companies. Switch from the top of the side panel. Each company has its own name, logo, people, email domain and AI defaults. |
+| Access | Project roles (owner, editor, viewer) and company roles (owner, admin, member, guest). Owners can make a project secret. People without access can ask for it. |
+| Search | Ctrl+K or Cmd+K searches every project you can see, by words and by meaning. The task drawer shows related tasks. |
+| Live updates | A change shows on every open page at once, including changes from the AI agent. The header shows who else is viewing. |
+| AI agent | Tell it what to do in plain words. It acts for you, never with more power than your role. Risky changes wait for your approval, and every action is logged. |
+| Topic check | A quick check reads each new request. Requests for another project get a link to it. New work gets an offer to start a project. Anything else gets a short decline. |
+| Note search | Owners can let the agent search task notes. It gets only short parts, with email addresses and phone numbers hidden. |
+| Sign-in | No passwords. People sign in with a 6-digit email code. |
+| Themes and phones | Light, dark, or follow the system. On a phone, the side panel opens as a drawer. |
+
+## Build log
+
+Milestones, oldest first.
+
+| # | Milestone | What it added | Commit |
+| --- | --- | --- | --- |
+| 01 | Board and timeline | Projects, a Kanban board, a Gantt timeline, email code sign-in, project roles, file attachments, and AI task drafts and status summaries. | [35dbe6d](https://github.com/marketgrowth/openact/commit/35dbe6d) |
+| 02 | Calendar and AG-UI | A month calendar with an agenda list on phones. The assistant starts to speak the AG-UI protocol. | [dd620a6](https://github.com/marketgrowth/openact/commit/dd620a6) |
+| 03 | Colophon | This page, and the matching page in the app. | [7e91cc8](https://github.com/marketgrowth/openact/commit/7e91cc8) |
+| 04 | Agent access and custom columns | The agent acts with the person's role. Owners set a policy per role. Approvals, an activity log, and board columns that each project names itself. | [3e0d2f7](https://github.com/marketgrowth/openact/commit/3e0d2f7) |
+| 05 | Topic check | A small model reads each new request and keeps the agent on its project. | [db30e51](https://github.com/marketgrowth/openact/commit/db30e51) |
+| 06 | Jev decision model | With a TypeSafe key, Jev answers typed questions about each request, and a truth table in code picks the route. | [cc0dff8](https://github.com/marketgrowth/openact/commit/cc0dff8) |
+| 07 | Note search | An owner setting lets the agent search task notes, with private details hidden. The board filter also searches notes. | [7bfb109](https://github.com/marketgrowth/openact/commit/7bfb109) |
+| 08 | Clickable links | Web addresses in descriptions and notes open in a new tab. OpenAct never fetches them. | [891540f](https://github.com/marketgrowth/openact/commit/891540f) |
+| 09 | Companies | Multi-tenant companies, a collapsible side panel with a company switcher, secret projects, access requests and email domain auto-join. | [61c310a](https://github.com/marketgrowth/openact/commit/61c310a) |
+| 10 | Search by meaning | Vectorize and Workers AI embeddings, merged with word search. Results are checked against what each person can see. | [f78f471](https://github.com/marketgrowth/openact/commit/f78f471) |
+| 11 | Live updates | A Durable Object per project holds hibernating WebSockets. Pages check for changes only when the connection is down. | [ce7e4e4](https://github.com/marketgrowth/openact/commit/ce7e4e4) |
 
 ## Platform
 
@@ -54,7 +90,8 @@ A small set of dependencies. The Worker has one runtime dependency, Hono.
 | [Vite](https://vite.dev) | 8.3.6 | Builds the web app |
 | [Wrangler](https://developers.cloudflare.com/workers/wrangler/) | 4.158.0 | Local development, migrations and deploys |
 | [@ag-ui/core](https://www.npmjs.com/package/@ag-ui/core) | 1.0.4 | AG-UI types, imported as types only |
-| Node test runner | Built in | Unit tests for dates, the AI planner, the AG-UI client, agent access rules and the topic check |
+| Node test runner | Built in | 64 unit tests for dates, the AI planner, the AG-UI client, agent access, company access, links, search ranking and the topic check |
+| Search pipeline test | Built in | 20 checks that run the real search code and migrations on Node's built-in SQLite, with a stand-in for Vectorize |
 | GitHub Actions | | Type checks, tests, a build and a deploy dry run on every push |
 
 ## Design
