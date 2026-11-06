@@ -142,6 +142,11 @@ const LOG: Array<{ title: string; detail: string; commit?: string }> = [
     title: "Docs site",
     detail: "The docs in docs/ build into a site for docs.openact.app, with a permissions guide and an SDK reference.",
     commit: "fa7d7fa"
+  },
+  {
+    title: "App directory",
+    detail: "OpenAct becomes a SaaS starter kit for Cloudflare. An app directory lists apps, and the common app names are reserved for official apps.",
+    commit: "c4efbda"
   }
 ];
 
