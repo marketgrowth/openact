@@ -40,5 +40,21 @@ export const INTERVIEWS = [
 ];
 
 export const CONTRACTORS = [
-  { name: "Ana Reyes", role: "Customer support lead", projects: ["Website relaunch"], projectRole: "Editor", ends: "Feb 28, 2027" }
+  { name: "Ana Reyes", role: "Customer support lead", city: "Davao City, Philippines", projects: ["Website relaunch"], projectRole: "Editor", ends: "Feb 28, 2027", hours: 32, rate: 11 },
+  { name: "Marco Dela Cruz", role: "Bookkeeper", city: "Quezon City, Philippines", projects: ["Fall fundraiser", "Office move"], projectRole: "Editor", ends: "Dec 31, 2026", hours: 18, rate: 14 }
 ];
+
+export const ACTIVITY = [
+  { icon: "video", text: "T-1042 accepted your interview for Tue, Nov 10, 9:00 a.m. PT.", when: "2 h ago" },
+  { icon: "briefcase", text: "Ana Reyes logged 6 h on Website relaunch.", when: "Yesterday" },
+  { icon: "star", text: "You shortlisted T-1187, Shopify developer.", when: "Yesterday" },
+  { icon: "users", text: "Marco Dela Cruz joined Fall fundraiser and Office move as a guest.", when: "Mon" }
+];
+
+/** A sample match score: higher when the talent fits the search. */
+export function matchScore(t: Talent, query: string): number {
+  const base = 70 + (parseInt(t.id.slice(2), 10) % 17);
+  const q = query.trim().toLowerCase();
+  if (q && t.skills.concat(t.role).some((s) => s.toLowerCase().includes(q))) return Math.min(98, base + 12);
+  return base;
+}

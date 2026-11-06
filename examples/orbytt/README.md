@@ -6,10 +6,12 @@ A mockup of the Orbytt app inside OpenAct. It shows how a second app looks in th
 - The talent, shortlists and contractors are sample data. Nothing is saved.
 - The real Orbytt app will call the Orbytt API on orbytt.ai from the Worker, with a key for each company.
 
+![Orbytt talent search inside OpenAct](../../docs/images/orbytt-talent.png)
+
 Try it:
 
 ```bash
-npm run openact -- add ./examples/orbytt
+npm run openact -- add orbytt
 npm run dev
 ```
 

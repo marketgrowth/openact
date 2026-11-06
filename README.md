@@ -15,11 +15,13 @@ Read the documentation at [docs.openact.app](https://docs.openact.app).
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/marketgrowth/openact)
 
-![The OpenAct board with the company side panel](docs/images/board.png)
+![All The World's A Stage: the OpenAct docs home page, with a theater stage behind the headline](docs/images/hero.jpg)
+
+![The OpenAct board with the app rail and the Projects panel](docs/images/board.png)
 
 ## Features
 
-- **Companies (multi-tenant).** One install holds many companies. Switch between them from the menu at the top of the side panel. Each company has its own projects, people, logo, email domain and AI defaults. Anyone signed in can create a company.
+- **Companies (multi-tenant).** One install holds many companies. Switch between them with the company mark at the top of the app rail. Each company has its own projects, people, logo, email domain and AI defaults. Anyone signed in can create a company.
 - **Secret projects and access requests.** Company members see every company project. Owners can make a project secret, so only invited people see it. Anyone who opens a link to a project they cannot see can ask for access, and the owners approve or decline.
 - **An app rail and a side panel.** The rail on the left shows your company, one icon for each app, settings and your menu. The panel beside it shows the active app. For projects, that is Pinned, Projects and Recent tasks. Collapse the panel to the rail with Ctrl+B or Cmd+B, or open both as a sheet on a phone.
 - **Apps and permissions per company.** Company owners and admins turn apps on or off. They choose what each role can do in each app, such as who can create projects. Apps declare their permissions, and the core checks them on every request.
@@ -45,25 +47,36 @@ Read the documentation at [docs.openact.app](https://docs.openact.app).
 
 ## Screenshots
 
-The screenshots use example data: a sample team and projects.
+The screenshots use example data: a sample team and projects, seen by Lyra, a company owner.
 
 | | |
 | --- | --- |
-| ![Company switcher open at the top of the side panel](docs/images/switcher.png) | ![Projects of the current company](docs/images/projects.png) |
-| **Company switcher.** Change company from the top of the side panel. | **Projects.** The current company's projects. Secret ones show a shield. |
+| ![Projects home page that greets Lyra, with Pinned, Projects and Recent in the panel](docs/images/projects.png) | ![Company menu open from the app rail](docs/images/switcher.png) |
+| **Projects.** The company's projects, with Pinned, Projects and Recent tasks in the panel. | **Company menu.** Change company from the mark at the top of the app rail. |
 | ![Gantt timeline with phases and today line](docs/images/timeline.png) | ![Month calendar with start cards and deadline pills](docs/images/calendar.png) |
 | **Timeline.** Drag bars to move tasks. Phases have summary bars. | **Calendar.** Cards show starts. Pills show deadlines. |
-| ![Task drawer with dates, assignee and files](docs/images/task.png) | ![Side panel collapsed to icons](docs/images/collapsed.png) |
-| **Task panel.** Edit details and attach files. | **Collapsed panel.** Icons only, for more room. |
+| ![Task drawer with dates, assignee and files](docs/images/task.png) | ![Panel collapsed to the app rail](docs/images/collapsed.png) |
+| **Task panel.** Edit details and attach files. | **Collapsed panel.** Only the app rail, for more room. |
 | ![People tab with an access request](docs/images/people.png) | ![Request access page](docs/images/request-access.png) |
 | **People.** Invite by email, and approve access requests. | **Request access.** The page never shows the project's name. |
-| ![Company settings with name, logo and email domain](docs/images/company.png) | ![Sign in with an email code](docs/images/signin.png) |
-| **Company settings.** Name, logo, auto-join domain, people and AI defaults. | **Sign-in.** An email code. No password. |
-| ![Board in dark theme](docs/images/board-dark.png) | ![Calendar in dark theme](docs/images/calendar-dark.png) |
-| **Dark theme.** Or follow the system setting. | **Dark calendar.** |
+| ![Company settings with name, logo and email domain](docs/images/company.png) | ![Permissions tab with a box for each role](docs/images/permissions.png) |
+| **Company settings.** Name, logo, auto-join domain, people, apps and AI defaults. | **Permissions.** Choose what each role can do in each app. |
+| ![Board in dark theme](docs/images/board-dark.png) | ![Sign in with an email code](docs/images/signin.png) |
+| **Dark theme.** Or follow the system setting. | **Sign-in.** An email code. No password. |
 
-<p align="center"><img src="docs/images/phone-calendar.png" alt="Calendar on a phone, as an agenda list" width="300"> &nbsp; <img src="docs/images/phone-menu.png" alt="Side panel as a drawer on a phone" width="300"></p>
-<p align="center"><b>Phones.</b> The calendar becomes an agenda list, and the side panel becomes a sheet.</p>
+<p align="center"><img src="docs/images/phone-calendar.png" alt="Calendar on a phone, as an agenda list" width="300"> &nbsp; <img src="docs/images/phone-menu.png" alt="App rail and panel as a sheet on a phone" width="300"></p>
+<p align="center"><b>Phones.</b> The calendar becomes an agenda list, and the app rail and panel open as one sheet.</p>
+
+### A second app: the Orbytt mockup
+
+`examples/orbytt` shows how another app sits beside Projects. Companies find remote talent in the US and the Philippines, and hire them as contractors on their projects. It is a mockup with sample data. Add it with `npm run openact -- add orbytt`, then turn it on in **Company settings > Apps**.
+
+| | |
+| --- | --- |
+| ![Orbytt talent search with match scores, skills and overlap with your workday](docs/images/orbytt-talent.png) | ![Hire dialog that picks the projects a contractor joins](docs/images/orbytt-hire.png) |
+| **Find talent.** Match scores, skills, rates and overlap with your workday. Names show after an interview. | **Hire.** Pick the projects, the role and the dates. The contractor joins as a guest. |
+| ![Orbytt overview with recent activity](docs/images/orbytt-overview.png) | ![Contractors with their projects, end dates and hours](docs/images/orbytt-contractors.png) |
+| **Overview.** What is new with your interviews, offers and contractors. | **Contractors.** Their projects, end dates and hours this week. |
 
 ## Companies and access
 
