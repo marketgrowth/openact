@@ -9,6 +9,9 @@ interface OrbyttState {
   toggleShortlist: (talentId: string) => void;
   query: string;
   setQuery: (q: string) => void;
+  /** The talent whose profile is open in the side drawer, or null. */
+  profileId: string | null;
+  openProfile: (talentId: string | null) => void;
 }
 
 const Ctx = createContext<OrbyttState | null>(null);
@@ -23,6 +26,7 @@ export function OrbyttProvider({ children }: { children: ReactNode }) {
   const [connected, setConnected] = useState(false);
   const [shortlist, setShortlist] = useState<string[]>(["T-1042", "T-1187"]);
   const [query, setQuery] = useState("");
+  const [profileId, openProfile] = useState<string | null>(null);
   const value = useMemo<OrbyttState>(
     () => ({
       connected,
@@ -30,9 +34,11 @@ export function OrbyttProvider({ children }: { children: ReactNode }) {
       shortlist,
       toggleShortlist: (id) => setShortlist((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id])),
       query,
-      setQuery
+      setQuery,
+      profileId,
+      openProfile
     }),
-    [connected, shortlist, query]
+    [connected, shortlist, query, profileId]
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

@@ -73,10 +73,10 @@ The screenshots use example data: a sample team and projects, seen by Lyra, a co
 
 | | |
 | --- | --- |
-| ![Orbytt talent search with match scores, skills and overlap with your workday](docs/images/orbytt-talent.png) | ![Hire dialog that picks the projects a contractor joins](docs/images/orbytt-hire.png) |
-| **Find talent.** Match scores, skills, rates and overlap with your workday. Names show after an interview. | **Hire.** Pick the projects, the role and the dates. The contractor joins as a guest. |
-| ![Orbytt overview with recent activity](docs/images/orbytt-overview.png) | ![Contractors with their projects, end dates and hours](docs/images/orbytt-contractors.png) |
-| **Overview.** What is new with your interviews, offers and contractors. | **Contractors.** Their projects, end dates and hours this week. |
+| ![Orbytt talent search with names, match scores, skills and overlap with your workday](docs/images/orbytt-talent.png) | ![A talent profile open in a drawer on the right](docs/images/orbytt-profile.png) |
+| **Find talent.** Names, match scores, skills, rates and overlap with your workday. | **Profile.** Select a name to open the full profile in a drawer, then shortlist or ask for an interview. |
+| ![Hire dialog that picks the projects a contractor joins](docs/images/orbytt-hire.png) | ![Contractors with their projects, end dates and hours](docs/images/orbytt-contractors.png) |
+| **Hire.** Pick the projects, the role and the dates. The contractor joins as a guest. | **Contractors.** Their projects, end dates and hours this week. |
 
 ## Companies and access
 

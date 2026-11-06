@@ -9,7 +9,8 @@ import { Input } from "@openact/ui/components/input";
 import { Label } from "@openact/ui/components/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@openact/ui/components/table";
 import { ToggleGroup, ToggleGroupItem } from "@openact/ui/components/toggle-group";
-import { ACTIVITY, CONTRACTORS, INTERVIEWS, TALENT, matchScore, type Talent } from "./data";
+import { ACTIVITY, CONTRACTORS, INTERVIEWS, TALENT, matchScore, talentById, type Talent } from "./data";
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@openact/ui/components/sheet";
 import { useOrbytt } from "./state";
 
 /* Pages of the Orbytt mockup. Every page says that it is a mockup, and nothing leaves the browser. */
@@ -143,12 +144,121 @@ function Overview() {
   );
 }
 
-/** The talent's photo stays hidden until they accept an interview. */
-function Anon({ size = 40 }: { size?: number }) {
+/** The talent's name, as a link that opens their profile in the side drawer. */
+function ProfileLink({ talent, className = "" }: { talent: Talent; className?: string }) {
+  const { openProfile } = useOrbytt();
   return (
-    <span className="flex shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground" style={{ width: size, height: size }}>
-      <Icon name="users" size={Math.round(size * 0.45)} />
+    <button type="button" className={`text-left font-semibold hover:underline ${className}`} onClick={() => openProfile(talent.id)} data-profile-link={talent.id}>
+      {talent.name}
+    </button>
+  );
+}
+
+function Rating({ talent }: { talent: Talent }) {
+  return (
+    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+      <Icon name="star" size={12} />
+      <span className="font-medium text-foreground">{talent.rating.toFixed(1)}</span> ({talent.reviews} reviews)
     </span>
+  );
+}
+
+/** A talent profile in a drawer on the right, so the employer keeps their place in the list. */
+function ProfileSheet() {
+  const { profileId, openProfile, shortlist, toggleShortlist } = useOrbytt();
+  const toast = useToast();
+  const t = profileId ? talentById(profileId) : undefined;
+  if (!t) return null;
+  const saved = shortlist.includes(t.id);
+  return (
+    <Sheet open onOpenChange={(o) => !o && openProfile(null)}>
+      <SheetContent side="right" className="w-full gap-0 p-0 sm:max-w-md" data-profile={t.id}>
+        <SheetHeader className="gap-3 border-b p-5 pr-12">
+          <div className="flex items-center gap-3">
+            <Avatar id={t.id} name={t.name} size={56} />
+            <div className="grid min-w-0 gap-0.5">
+              <SheetTitle className="text-lg">{t.name}</SheetTitle>
+              <SheetDescription>
+                {t.role} · {t.city}, {flag(t.country)}
+              </SheetDescription>
+              <Rating talent={t} />
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            <Badge variant="outline">
+              <Icon name="check" size={12} /> Vetted by Orbytt
+            </Badge>
+            <Badge variant="secondary">Starts {t.available.toLowerCase()}</Badge>
+            <Badge variant="secondary">{t.timeZone}</Badge>
+          </div>
+        </SheetHeader>
+        <div className="grid flex-1 content-start gap-5 overflow-y-auto p-5 text-sm">
+          <dl className="grid grid-cols-3 gap-3">
+            <div>
+              <dt className="text-xs text-muted-foreground">Rate</dt>
+              <dd className="font-medium">${t.rate}/h</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Experience</dt>
+              <dd className="font-medium">{t.years} years</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Match</dt>
+              <dd className="font-medium">{matchScore(t, "")}%</dd>
+            </div>
+          </dl>
+          <Overlap hours={t.overlap} />
+          <section className="grid gap-1.5">
+            <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">About</h3>
+            <p className="leading-relaxed">{t.bio}</p>
+          </section>
+          <section className="grid gap-1.5">
+            <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Skills</h3>
+            <div className="flex flex-wrap gap-1.5">
+              {t.skills.map((s) => (
+                <Badge key={s} variant="secondary">
+                  {s}
+                </Badge>
+              ))}
+            </div>
+          </section>
+          <section className="grid gap-2">
+            <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Experience</h3>
+            <ul className="grid gap-3">
+              {t.experience.map((e) => (
+                <li key={e.title + e.org} className="grid gap-0.5 border-l-2 pl-3">
+                  <span className="font-medium">{e.title}</span>
+                  <span className="text-muted-foreground">{e.org}</span>
+                  <span className="text-xs text-muted-foreground">{e.years}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+          <section className="grid gap-1.5">
+            <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Languages</h3>
+            <p>{t.languages.join(", ")}</p>
+          </section>
+          <section className="grid gap-1.5">
+            <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Links</h3>
+            <div className="flex flex-wrap gap-1.5">
+              {t.links.map((l) => (
+                <Badge key={l} variant="outline" title="Mockup: links are not live">
+                  <Icon name="external" size={12} /> {l}
+                </Badge>
+              ))}
+            </div>
+          </section>
+        </div>
+        <SheetFooter className="flex-row gap-2 border-t p-4">
+          <Button variant={saved ? "secondary" : "outline"} className="flex-1" onClick={() => toggleShortlist(t.id)} aria-pressed={saved}>
+            <Icon name="star" /> {saved ? "Shortlisted" : "Shortlist"}
+          </Button>
+          <Button className="flex-1" onClick={() => toast("Mockup: no interview request was sent.")}>
+            <Icon name="video" /> Ask for interview
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -169,7 +279,7 @@ function Overlap({ hours }: { hours: number }) {
 }
 
 export function TalentPage() {
-  const { query, setQuery, shortlist, toggleShortlist } = useOrbytt();
+  const { query, setQuery, shortlist, toggleShortlist, openProfile } = useOrbytt();
   const [country, setCountry] = useState<"all" | "PH" | "US">("all");
   const q = query.trim().toLowerCase();
   const list = TALENT.filter(
@@ -188,18 +298,20 @@ export function TalentPage() {
           </ToggleGroup>
           <span className="text-sm text-muted-foreground">{list.length} people</span>
         </div>
-        <p className="text-xs text-muted-foreground">Names show after a person accepts your interview request. Overlap is with your workday in Pacific time.</p>
+        <p className="text-xs text-muted-foreground">Select a name to see the full profile. Overlap is with your workday in Pacific time.</p>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {list.map((t) => {
             const saved = shortlist.includes(t.id);
             return (
               <Card key={t.id} className="gap-3 py-4" data-talent={t.id}>
                 <CardHeader className="flex flex-row items-center gap-3 px-4">
-                  <Anon />
+                  <Avatar id={t.id} name={t.name} size={40} />
                   <div className="grid min-w-0 flex-1 gap-0.5">
-                    <CardTitle className="text-base">{t.role}</CardTitle>
+                    <CardTitle className="text-base">
+                      <ProfileLink talent={t} />
+                    </CardTitle>
                     <CardDescription className="truncate">
-                      {t.id} · {t.city}, {t.country}
+                      {t.role} · {t.city}, {t.country}
                     </CardDescription>
                   </div>
                   <Badge variant="secondary" className="shrink-0">
@@ -237,14 +349,15 @@ export function TalentPage() {
                   <Button size="sm" variant={saved ? "secondary" : "outline"} onClick={() => toggleShortlist(t.id)} aria-pressed={saved}>
                     <Icon name="star" /> {saved ? "Shortlisted" : "Shortlist"}
                   </Button>
-                  <Button size="sm" variant="ghost" title="Mockup">
-                    <Icon name="video" /> Ask for interview
+                  <Button size="sm" variant="ghost" onClick={() => openProfile(t.id)}>
+                    View profile
                   </Button>
                 </CardFooter>
               </Card>
             );
           })}
         </div>
+        <ProfileSheet />
       </PageBody>
     </>
   );
@@ -262,11 +375,11 @@ export function ShortlistPage() {
         <div className="grid gap-3">
           {list.map((t) => (
             <Card key={t.id} className="flex-row flex-wrap items-center gap-4 px-4 py-3">
-              <Anon />
+              <Avatar id={t.id} name={t.name} size={40} />
               <div className="grid min-w-0 flex-1 gap-0.5">
-                <span className="font-medium">{t.role}</span>
+                <ProfileLink talent={t} />
                 <span className="text-xs text-muted-foreground">
-                  {t.id} · {t.city}, {flag(t.country)} · ${t.rate}/h · {t.overlap} h overlap
+                  {t.role} · {t.city}, {flag(t.country)} · ${t.rate}/h · {t.overlap} h overlap
                 </span>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -284,6 +397,7 @@ export function ShortlistPage() {
           ))}
         </div>
         {hiring && <HireDialog talent={hiring} onClose={() => setHiring(null)} />}
+        <ProfileSheet />
       </PageBody>
     </>
   );
@@ -306,16 +420,18 @@ function HireDialog({ talent, onClose }: { talent: Talent; onClose: () => void }
   }, [current]);
   return (
     <Modal
-      title={`Hire ${talent.id} as a contractor`}
+      title={`Hire ${talent.name} as a contractor`}
       description="Orbytt sends the offer and the contract. When the talent accepts, they join your company as a guest on the projects you pick, until the end date."
       onClose={onClose}
       wide
     >
       <div className="grid gap-4">
         <div className="flex items-center gap-3 rounded-lg border p-3">
-          <Anon size={36} />
+          <Avatar id={talent.id} name={talent.name} size={36} />
           <div className="grid min-w-0 flex-1 text-sm">
-            <span className="font-medium">{talent.role}</span>
+            <span className="font-medium">
+              {talent.name}, {talent.role}
+            </span>
             <span className="text-xs text-muted-foreground">
               {talent.city}, {flag(talent.country)} · {talent.skills.join(", ")}
             </span>
@@ -377,8 +493,20 @@ export function InterviewsPage() {
         <SimpleTable
           empty="No interviews yet."
           head={["Talent", "Role", "When", "Status"]}
-          rows={INTERVIEWS.map((i) => [i.talentId, i.role, i.when, <Badge variant={i.status === "Accepted" ? "default" : "outline"}>{i.status}</Badge>])}
+          rows={INTERVIEWS.map((i) => {
+            const t = talentById(i.talentId)!;
+            return [
+              <span className="flex items-center gap-2">
+                <Avatar id={t.id} name={t.name} size={28} />
+                <ProfileLink talent={t} />
+              </span>,
+              t.role,
+              i.when,
+              <Badge variant={i.status === "Accepted" ? "default" : "outline"}>{i.status}</Badge>
+            ];
+          })}
         />
+        <ProfileSheet />
       </PageBody>
     </>
   );
