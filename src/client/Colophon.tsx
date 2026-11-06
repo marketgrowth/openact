@@ -28,9 +28,21 @@ const FEATURES: Row[] = [
     detail: "Dates, phase, assignee, notes and files up to 25 MB. Web addresses in notes and descriptions show as links that open in a new tab."
   },
   {
+    name: "Apps",
+    detail: "OpenAct is a core plus apps. Project management is the first app. Add more from GitHub with one command, and each app gets sign-in, companies and the shell."
+  },
+  {
+    name: "App rail",
+    detail: "A narrow column on the left shows the company, one icon for each app, settings and your menu. The panel beside it shows the active app."
+  },
+  {
+    name: "Pinned and Recent",
+    detail: "Pin projects to the top of the panel. Recent shows the tasks you opened lately, and one click opens a task again. Both are yours only."
+  },
+  {
     name: "Companies",
     detail:
-      "One install holds many companies. Switch from the top of the side panel. Each company has its own name, logo, people, email domain and AI defaults."
+      "One install holds many companies. Switch from the company mark at the top of the app rail. Each company has its own name, logo, people, email domain and AI defaults."
   },
   {
     name: "Access",
@@ -51,8 +63,8 @@ const FEATURES: Row[] = [
   },
   { name: "Note search", detail: "Owners can let the agent search task notes. It gets only short parts, with email addresses and phone numbers hidden." },
   { name: "Sign-in", detail: "No passwords. People sign in with a 6-digit email code." },
-  { name: "Themes and phones", detail: "Light, dark, or follow the system. On a phone, the side panel opens as a sheet." },
-  { name: "Keyboard", detail: "Ctrl+K or Cmd+K opens search. Ctrl+B or Cmd+B opens and closes the side panel." }
+  { name: "Themes and phones", detail: "Light, dark, or follow the system. On a phone, the rail and the panel open as one sheet." },
+  { name: "Keyboard", detail: "Ctrl+K or Cmd+K opens search. Ctrl+B or Cmd+B opens and closes the app panel." }
 ];
 
 /** Milestones in the order they shipped. Each links to its commit. */
@@ -214,16 +226,16 @@ const SECTIONS: Array<{ title: string; intro: string; rows: Row[] }> = [
       { name: "React 19.3", detail: "The web app. No state library.", href: "https://react.dev" },
       {
         name: "shadcn/ui",
-        detail: "The UI components, copied into src/client/components/ui and owned by this project. New York style, neutral colors.",
+        detail: "The UI components, copied into packages/ui/src/components and owned by this project. New York style, neutral colors.",
         href: "https://ui.shadcn.com"
       },
       { name: "Radix UI", detail: "Accessible parts under the components: dialogs, menus, tooltips, tabs and switches.", href: "https://www.radix-ui.com" },
-      { name: "Tailwind CSS 4.3", detail: "Styles, with the theme as CSS variables in src/client/index.css.", href: "https://tailwindcss.com" },
+      { name: "Tailwind CSS 4.3", detail: "Styles, with the theme as CSS variables in packages/ui/src/theme.css.", href: "https://tailwindcss.com" },
       { name: "Vite 8.3", detail: "Builds the web app.", href: "https://vite.dev" },
       { name: "Wrangler 4.158", detail: "Local development, migrations and deploys.", href: "https://developers.cloudflare.com/workers/wrangler/" },
       {
         name: "Node test runner",
-        detail: "64 unit tests for dates, the AI planner, the AG-UI client, agent access, company access, links, search ranking and the topic check."
+        detail: "68 unit tests for app paths, dates, the AI planner, the AG-UI client, agent access, company access, links, search ranking and the topic check."
       },
       {
         name: "Search pipeline test",
@@ -241,7 +253,7 @@ const SECTIONS: Array<{ title: string; intro: string; rows: Row[] }> = [
       { name: "Lucide", detail: "Icons. Outline style with a 2 px stroke, at 16 px in most places.", href: "https://lucide.dev" },
       {
         name: "Layout",
-        detail: "An inset side panel that collapses to icons, and a 48 px page header with the panel toggle, as in shadcn's dashboard-01 block."
+        detail: "An app rail and an inset app panel, as in shadcn's sidebar-09 block, and a 48 px page header with the panel toggle, as in dashboard-01."
       },
       { name: "Themes", detail: "Light, dark, or follow the system setting." },
       { name: "Writing", detail: "Short, simple sentences in active voice, based on ASD-STE100 Simplified Technical English. American spelling." }

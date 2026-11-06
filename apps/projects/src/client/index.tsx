@@ -1,4 +1,4 @@
-import { lazy, useCallback, useState, type ReactNode } from "react";
+import { lazy, useCallback, type ReactNode } from "react";
 import { defineClientApp, useShell, useWorkspace } from "@openact/ui";
 import type { CompanyDetail } from "../shared/types";
 import { ProjectsProvider } from "./projects-context";
@@ -7,7 +7,7 @@ import { ProjectsPage } from "./pages/Projects";
 
 /*
  * The projects app in the web app: the projects page, a project's board, timeline, calendar and people,
- * the projects list in the side panel, and task search (Ctrl+K or Cmd+K).
+ * the Pinned, Projects and Recent groups in its panel, and task search (Ctrl+K or Cmd+K).
  */
 
 const ProjectPage = lazy(() => import("./pages/Project").then((m) => ({ default: m.ProjectPage })));
@@ -18,15 +18,15 @@ const AiDefaultsTab = lazy(() => import("./components/AiDefaultsTab").then((m) =
 type View = "board" | "timeline" | "calendar" | "members";
 
 function Provider({ children }: { children: ReactNode }) {
+  const shell = useShell();
+  const newProject = useCallback(() => shell.runCommand("projects.new"), [shell]);
+  return <ProjectsProvider onNewProject={newProject}>{children}</ProjectsProvider>;
+}
+
+function NewProject({ onClose }: { onClose: () => void }) {
   const { current } = useWorkspace();
-  const [creating, setCreating] = useState(false);
-  const newProject = useCallback(() => setCreating(true), []);
-  return (
-    <ProjectsProvider onNewProject={newProject}>
-      {children}
-      {creating && current && <NewProjectDialog company={current} onClose={() => setCreating(false)} />}
-    </ProjectsProvider>
-  );
+  if (!current) return null;
+  return <NewProjectDialog company={current} onClose={onClose} />;
 }
 
 function ProjectRoute({ id, view }: { id: string; view: View }) {
@@ -43,6 +43,8 @@ function Search({ onClose }: { onClose: () => void }) {
 export default defineClientApp({
   id: "projects",
   name: "Projects",
+  icon: "projects",
+  ownsPath: (path) => path === "/" || path.startsWith("/p/"),
   Provider,
   Home: ProjectsPage,
   routes: [
@@ -53,7 +55,10 @@ export default defineClientApp({
   ],
   nav: [{ label: "All projects", icon: "projects", path: "/" }],
   SidebarSection: ProjectsSection,
-  commands: [{ id: "projects.search", label: "Search", icon: "search", shortcut: "k", inSidebar: true, Dialog: Search }],
+  commands: [
+    { id: "projects.new", label: "New project", icon: "plus", inSidebar: false, Dialog: NewProject },
+    { id: "projects.search", label: "Search", icon: "search", shortcut: "k", inSidebar: true, Dialog: Search }
+  ],
   companySettingsTabs: [
     {
       id: "projects.ai",

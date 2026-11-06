@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import {
   ArrowLeft,
   Bot,
+  BriefcaseBusiness,
   Calendar,
   ChartGantt,
   Check,
@@ -9,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronsUpDown,
+  Clock,
   Download,
   Ellipsis,
   ExternalLink,
@@ -22,14 +24,20 @@ import {
   Monitor,
   Moon,
   Paperclip,
+  Pin,
+  PinOff,
+  Plug,
   Plus,
   Search,
   Settings,
   Sparkles,
+  Star,
   SquareKanban,
   Sun,
   Trash2,
+  UserRoundSearch,
   Users,
+  Video,
   X,
   type LucideIcon
 } from "lucide-react";
@@ -73,7 +81,15 @@ const ICONS: Record<string, LucideIcon> = {
   chat: MessageSquare,
   dots: Ellipsis,
   shield: Lock,
-  bot: Bot
+  bot: Bot,
+  pin: Pin,
+  unpin: PinOff,
+  clock: Clock,
+  star: Star,
+  briefcase: BriefcaseBusiness,
+  plug: Plug,
+  talent: UserRoundSearch,
+  video: Video
 };
 
 export function Icon({ name, size = 16, className }: { name: keyof typeof ICONS | string; size?: number; className?: string }) {

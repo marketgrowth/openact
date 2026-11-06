@@ -12,6 +12,7 @@ import {
   type ProjectColor,
   type ProjectDetail,
   type ProjectSummary,
+  type RecentTask,
   type Role
 } from "../shared/types";
 import { AGENT_LEVELS, AGENT_SCOPES, type AgentAction, type AgentLevel, type AiPolicy } from "../shared/types";
@@ -31,10 +32,10 @@ export const projectRoutes = new Hono<AppEnv>();
 projectRoutes.get("/", async (c) => {
   const user = requireUser(c);
   const companyId = c.req.query("company") || (await currentCompanyId(c.env, user.id));
-  if (!companyId) return c.json({ companyId: null, projects: [] });
+  if (!companyId) return c.json({ companyId: null, projects: [], recentTasks: [] });
   await requireCompanyRole(c.env, companyId, user.id, [...COMPANY_ROLES]);
   const visible = await visibleProjectIds(c.env, companyId, user.id);
-  if (!visible.length) return c.json({ companyId, projects: [] });
+  if (!visible.length) return c.json({ companyId, projects: [], recentTasks: [] });
   const byId = new Map(visible.map((v) => [v.id, v]));
   const marks = visible.map(() => "?").join(", ");
   const rows = await c.env.DB.prepare(
@@ -48,6 +49,21 @@ projectRoutes.get("/", async (c) => {
   )
     .bind(todayIso(), ...visible.map((v) => v.id))
     .all<{ id: string; name: string; description: string; color: ProjectColor; visibility: Visibility; updated_at: string; task_count: number; done_count: number; late_count: number; member_count: number }>();
+  // The person's own pins and recent tasks, only for projects they can still see.
+  const ids = visible.map((v) => v.id);
+  const [pinRows, recentRows] = await Promise.all([
+    c.env.DB.prepare(`SELECT project_id, created_at FROM projects_pins WHERE user_id = ? AND project_id IN (${marks})`)
+      .bind(user.id, ...ids)
+      .all<{ project_id: string; created_at: string }>(),
+    c.env.DB.prepare(
+      `SELECT r.task_id, r.project_id, r.opened_at, t.title FROM projects_recent_tasks r JOIN tasks t ON t.id = r.task_id
+       WHERE r.user_id = ? AND r.project_id IN (${marks}) ORDER BY r.opened_at DESC LIMIT ${RECENT_SHOWN}`
+    )
+      .bind(user.id, ...ids)
+      .all<{ task_id: string; project_id: string; opened_at: string; title: string }>()
+  ]);
+  const pins = new Map(pinRows.results.map((r) => [r.project_id, r.created_at]));
+  const recentTasks: RecentTask[] = recentRows.results.map((r) => ({ taskId: r.task_id, projectId: r.project_id, title: r.title, openedAt: r.opened_at }));
   const projects: ProjectSummary[] = rows.results.map((r) => ({
     id: r.id,
     name: r.name,
@@ -60,9 +76,51 @@ projectRoutes.get("/", async (c) => {
     doneCount: r.done_count,
     lateCount: r.late_count,
     memberCount: r.member_count,
-    updatedAt: r.updated_at
+    updatedAt: r.updated_at,
+    pinnedAt: pins.get(r.id) ?? null
   }));
-  return c.json({ companyId, projects });
+  return c.json({ companyId, projects, recentTasks });
+});
+
+/** How many recent tasks the side panel shows, and how many the server keeps per person. */
+const RECENT_SHOWN = 8;
+const RECENT_KEPT = 20;
+
+/* Pins and recent tasks belong to one person. They need only view access, and they never bump the project's revision. */
+
+projectRoutes.put("/:id/pin", async (c) => {
+  const user = requireUser(c);
+  const id = c.req.param("id");
+  await requireRole(c.env, id, user.id, "viewer");
+  await c.env.DB.prepare("INSERT OR IGNORE INTO projects_pins (user_id, project_id, created_at) VALUES (?, ?, ?)").bind(user.id, id, nowIso()).run();
+  return c.json({ pinned: true });
+});
+
+projectRoutes.delete("/:id/pin", async (c) => {
+  const user = requireUser(c);
+  await c.env.DB.prepare("DELETE FROM projects_pins WHERE user_id = ? AND project_id = ?").bind(user.id, c.req.param("id")).run();
+  return c.json({ pinned: false });
+});
+
+/** Records that the person opened a task, for the Recent list. */
+projectRoutes.post("/:id/tasks/:taskId/opened", async (c) => {
+  const user = requireUser(c);
+  const id = c.req.param("id");
+  const taskId = c.req.param("taskId");
+  await requireRole(c.env, id, user.id, "viewer");
+  const task = await c.env.DB.prepare("SELECT id FROM tasks WHERE id = ? AND project_id = ?").bind(taskId, id).first();
+  if (!task) throw new HttpError(404, "This task does not exist in this project. It may have been deleted.");
+  await c.env.DB.batch([
+    c.env.DB.prepare(
+      `INSERT INTO projects_recent_tasks (user_id, task_id, project_id, opened_at) VALUES (?, ?, ?, ?)
+       ON CONFLICT (user_id, task_id) DO UPDATE SET opened_at = excluded.opened_at`
+    ).bind(user.id, taskId, id, nowIso()),
+    c.env.DB.prepare(
+      `DELETE FROM projects_recent_tasks WHERE user_id = ? AND task_id NOT IN
+         (SELECT task_id FROM projects_recent_tasks WHERE user_id = ? ORDER BY opened_at DESC LIMIT ${RECENT_KEPT})`
+    ).bind(user.id, user.id)
+  ]);
+  return c.json({ ok: true });
 });
 
 /** Sample tasks for the "Example plan" template. Offsets are in days from the start date. */

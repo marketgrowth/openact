@@ -9,11 +9,13 @@ The app shows the same page at `/colophon`. Keep the two in step with `package.j
 | Feature | What it does |
 | --- | --- |
 | Apps | OpenAct is a core plus apps. Project management is the first app. Add more from GitHub with one command, and each app gets sign-in, companies and the shell. |
+| App rail | A narrow column on the left shows the company, one icon for each app, settings and your menu. The panel beside it shows the active app. |
 | Kanban board | Drag cards between columns. Each project has its own columns, and each column says what it means, so progress and late checks keep working. |
 | Gantt timeline | Drag a bar to move a task, or an edge to change its length. Tasks group by phase, and a line marks today. |
 | Calendar | A month view with start cards and deadline pills. Drag either to change the date. Phones get an agenda list. |
 | Tasks | Dates, phase, assignee, notes and files up to 25 MB. Web addresses in notes and descriptions show as links that open in a new tab. |
-| Companies | One install holds many companies. Switch from the top of the side panel. Each company has its own name, logo, people, email domain and AI defaults. |
+| Pinned and Recent | Pin projects to the top of the panel. Recent shows the tasks you opened lately, and one click opens a task again. Both are yours only. |
+| Companies | One install holds many companies. Switch from the company mark at the top of the app rail. Each company has its own name, logo, people, email domain and AI defaults. |
 | Access | Project roles (owner, editor, viewer) and company roles (owner, admin, member, guest). Owners can make a project secret. People without access can ask for it. |
 | Search | Ctrl+K or Cmd+K searches every project you can see, by words and by meaning. The task panel shows related tasks. |
 | Live updates | A change shows on every open page at once, including changes from the AI agent. The header shows who else is viewing. |
@@ -21,8 +23,8 @@ The app shows the same page at `/colophon`. Keep the two in step with `package.j
 | Topic check | A quick check reads each new request. Requests for another project get a link to it. New work gets an offer to start a project. Anything else gets a short decline. |
 | Note search | Owners can let the agent search task notes. It gets only short parts, with email addresses and phone numbers hidden. |
 | Sign-in | No passwords. People sign in with a 6-digit email code. |
-| Themes and phones | Light, dark, or follow the system. On a phone, the side panel opens as a sheet. |
-| Keyboard | Ctrl+K or Cmd+K opens search. Ctrl+B or Cmd+B opens and closes the side panel. |
+| Themes and phones | Light, dark, or follow the system. On a phone, the rail and the panel open as one sheet. |
+| Keyboard | Ctrl+K or Cmd+K opens search. Ctrl+B or Cmd+B opens and closes the app panel. |
 
 ## Build log
 
@@ -92,13 +94,13 @@ A small set of dependencies. The Worker has one runtime dependency, Hono.
 | [TypeScript](https://www.typescriptlang.org) | 5.9.3 | Strict mode for the Worker and the web app |
 | [Hono](https://hono.dev) | 4.13.16 | The API router on the Worker |
 | [React](https://react.dev) | 19.3.1 | The web app. No state library. |
-| [shadcn/ui](https://ui.shadcn.com) | New York style | The UI components, copied into `src/client/components/ui` and owned by this project. Neutral colors. |
+| [shadcn/ui](https://ui.shadcn.com) | New York style | The UI components, copied into `packages/ui/src/components` and owned by this project. Neutral colors. |
 | [Radix UI](https://www.radix-ui.com) | 1.8.1 | Accessible parts under the components: dialogs, menus, tooltips, tabs and switches |
-| [Tailwind CSS](https://tailwindcss.com) | 4.3.4 | Styles, with the theme as CSS variables in `src/client/index.css` |
+| [Tailwind CSS](https://tailwindcss.com) | 4.3.4 | Styles, with the theme as CSS variables in `packages/ui/src/theme.css` |
 | [Vite](https://vite.dev) | 8.3.6 | Builds the web app |
 | [Wrangler](https://developers.cloudflare.com/workers/wrangler/) | 4.158.0 | Local development, migrations and deploys |
 | [@ag-ui/core](https://www.npmjs.com/package/@ag-ui/core) | 1.0.4 | AG-UI types, imported as types only |
-| Node test runner | Built in | 64 unit tests for dates, the AI planner, the AG-UI client, agent access, company access, links, search ranking and the topic check |
+| Node test runner | Built in | 68 unit tests for app paths, dates, the AI planner, the AG-UI client, agent access, company access, links, search ranking and the topic check |
 | Search pipeline test | Built in | 20 checks that run the real search code and migrations on Node's built-in SQLite, with a stand-in for Vectorize |
 | GitHub Actions | | Type checks, tests, a build and a deploy dry run on every push |
 
@@ -111,7 +113,7 @@ The shadcn/ui design system, with OpenAct's own colors for status, priority and 
 | [Geist](https://fonts.google.com/specimen/Geist) | Text and headings |
 | [Geist Mono](https://fonts.google.com/specimen/Geist+Mono) | Dates and the sign-in code |
 | [Lucide](https://lucide.dev) | Icons. Outline style with a 2 px stroke, at 16 px in most places. |
-| Layout | An inset side panel that collapses to icons, and a 48 px page header with the panel toggle, as in shadcn's dashboard-01 block |
+| Layout | An app rail and an inset app panel, as in shadcn's sidebar-09 block, and a 48 px page header with the panel toggle, as in dashboard-01 |
 | Themes | Light, dark, or follow the system setting |
 | Writing | Short, simple sentences in active voice, based on ASD-STE100 Simplified Technical English. American spelling. |
 

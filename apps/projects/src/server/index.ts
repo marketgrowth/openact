@@ -118,6 +118,11 @@ export default defineServerApp({
           userId,
           companyId
         ),
+        env.DB.prepare("DELETE FROM projects_pins WHERE user_id = ? AND project_id IN (SELECT id FROM projects WHERE company_id = ?)").bind(userId, companyId),
+        env.DB.prepare("DELETE FROM projects_recent_tasks WHERE user_id = ? AND project_id IN (SELECT id FROM projects WHERE company_id = ?)").bind(
+          userId,
+          companyId
+        ),
         env.DB.prepare("UPDATE projects SET rev = rev + 1, updated_at = ? WHERE company_id = ?").bind(iso, companyId)
       ]);
       for (const p of projects.results) markProjectChanged(p.id);

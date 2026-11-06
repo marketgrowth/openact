@@ -10,7 +10,7 @@ OpenAct is a light project management tool with a Kanban board, a Gantt timeline
 
 - **Companies (multi-tenant).** One install holds many companies. Switch between them from the menu at the top of the side panel. Each company has its own projects, people, logo, email domain and AI defaults. Anyone signed in can create a company.
 - **Secret projects and access requests.** Company members see every company project. Owners can make a project secret, so only invited people see it. Anyone who opens a link to a project they cannot see can ask for access, and the owners approve or decline.
-- **A collapsible side panel.** The company switcher, the company's projects and your settings. Collapse it to icons with Ctrl+B or Cmd+B, or open it as a sheet on a phone. When it is collapsed, tooltips show each name.
+- **An app rail and a side panel.** The rail on the left shows your company, one icon for each app, settings and your menu. The panel beside it shows the active app. For projects, that is Pinned, Projects and Recent tasks. Collapse the panel to the rail with Ctrl+B or Cmd+B, or open both as a sheet on a phone.
 - **Many projects.** Each project has its own board, timeline, people and files.
 - **Unlimited people.** There are no seat limits. Invite anyone by email.
 - **Kanban board with your own columns.** Add, rename, reorder and delete columns per project. Each column says what it means (not started, in progress, in review or done), so progress and late checks keep working. Drag cards between columns.

@@ -38,6 +38,7 @@ import type { UiToolHandlers } from "../agui/tools";
 import { PROJECT_VIEWS, UI_TOOLS, type OpenActAgentState, type ProjectView } from "../../shared/agui";
 import { useWorkspace } from "@openact/ui";
 import { onOpenTask, takePendingTask } from "../openTask";
+import { useProjects } from "../projects-context";
 
 // Views and panels load on first use, so a project opens with less code.
 const named = <K extends string, M extends Record<K, React.ComponentType<any>>>(load: () => Promise<M>, key: K) =>
@@ -169,6 +170,13 @@ export function ProjectPage({ projectId, view, me, config }: { projectId: string
     if (id) setDrawer({ kind: "edit", id });
   }, [loaded, projectId]);
   useEffect(() => onOpenTask((pid, id) => pid === projectId && setDrawer({ kind: "edit", id })), [projectId]);
+
+  // Opening a task puts it at the top of the Recent list in the side panel.
+  const { noteTaskOpened } = useProjects();
+  const openedTaskId = drawer?.kind === "edit" ? drawer.id : null;
+  useEffect(() => {
+    if (openedTaskId) noteTaskOpened(projectId, openedTaskId);
+  }, [openedTaskId, projectId]);
 
   const canEdit = data?.role === "owner" || data?.role === "editor";
   const isOwner = data?.role === "owner";

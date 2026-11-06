@@ -141,6 +141,16 @@ export interface ProjectSummary {
   lateCount: number;
   memberCount: number;
   updatedAt: string;
+  /** When the person pinned the project to the top of the side panel. null when it is not pinned. */
+  pinnedAt: string | null;
+}
+
+/** A task the person opened lately, for the Recent list in the side panel. */
+export interface RecentTask {
+  taskId: string;
+  projectId: string;
+  title: string;
+  openedAt: string;
 }
 
 export interface ProjectDetail {

@@ -1,0 +1,17 @@
+{
+  "name": "@openact/example-orbytt-mock",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A mockup of the Orbytt app in OpenAct: the app rail icon, the panel and sample pages. It has no server and saves nothing.",
+  "license": "MIT",
+  "type": "module",
+  "openact": {
+    "id": "orbytt",
+    "name": "Orbytt",
+    "client": "./src/client/index.tsx"
+  },
+  "dependencies": {
+    "@openact/ui": "^0.2.0",
+    "react": "^19.3.1"
+  }
+}

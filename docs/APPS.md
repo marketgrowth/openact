@@ -111,18 +111,35 @@ const DirectoryPage = lazy(() => import("./DirectoryPage"));
 export default defineClientApp({
   id: "directory",
   name: "Directory",
-  nav: [{ label: "Directory", icon: "users", path: "/directory" }],
-  routes: [{ pattern: /^\/directory\/?$/, render: () => <DirectoryPage /> }]
+  icon: "users",
+  routes: [{ pattern: /^\/a\/directory\/?$/, render: () => <DirectoryPage /> }]
 });
 ```
 
+### The app rail and the app panel
+
+The side panel has two columns, like a desktop chat app:
+
+- **The app rail** on the left. It shows the company, one icon for each app, the footer items, Company settings and the person's menu. Projects is first, because it is installed first.
+- **The app panel** beside it. It shows the active app's name, its commands, its `nav` items and its `SidebarSection`. The projects app shows Pinned, Projects and Recent here.
+
+Ctrl+B or Cmd+B collapses the panel and leaves only the rail. On a phone, both columns open as one sheet.
+
+![The app rail with Projects and an Orbytt mockup, and the Projects panel with Pinned, Projects and Recent](images/app-rail.png)
+
+An app shows in the rail when it has an `icon` or a `Mark`. Its pages live under `/a/<id>/` by default, and the rail lights the app that owns the current page. See `examples/orbytt` for a second app with its own icon, panel and pages.
+
 | Part | What it is for |
 | --- | --- |
+| `icon` | The app's icon in the rail, as a Lucide name for `Icon`, such as `"users"` |
+| `Mark` | A custom rail icon, such as a brand mark. Draw it with `currentColor`. |
+| `home` | Where the rail icon goes. Default: `/` for the first app with a home page, otherwise `/a/<id>` |
+| `ownsPath` | Says which paths belong to the app. Default: the home, `/a/<id>/...` and the app's routes |
 | `routes` | Pages. Start each one with `SiteHeader` and put its content in `PageBody`. |
 | `Home` | The page at `/`. The first app with a home page owns it. |
-| `nav` | Items in the side panel, near the top (`main`) or the bottom (`footer`) |
-| `SidebarSection` | A block in the side panel, such as the projects list |
-| `commands` | Dialogs that open from the side panel or a shortcut, such as Ctrl+K search |
+| `nav` | Items at the top of the app's panel (`main`), or icons at the bottom of the rail for every app (`footer`) |
+| `SidebarSection` | Groups in the app's panel, such as Pinned, Projects and Recent |
+| `commands` | Dialogs that open from the app's panel (`inSidebar`), a shortcut such as Ctrl+K, or `useShell().runCommand(id)` |
 | `companySettingsTabs` | Tabs in Company settings |
 | `Provider` | State for your app around the whole shell |
 | `publicRoutes` | Pages that work without sign-in |

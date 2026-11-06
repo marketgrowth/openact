@@ -155,7 +155,7 @@ function SignedIn({ me, config, apps, onMe }: { me: User; config: AppConfig; app
 
   // App providers wrap the shell, in install order.
   let body: ReactNode = (
-    <SidebarProvider open={open} onOpenChange={onOpenChange} style={{ "--header-height": "calc(var(--spacing) * 12)" } as CSSProperties}>
+    <SidebarProvider open={open} onOpenChange={onOpenChange} style={{ "--header-height": "calc(var(--spacing) * 12)", "--sidebar-width": "19rem" } as CSSProperties}>
       <AppSidebar
         me={me}
         appName={config.appName}
