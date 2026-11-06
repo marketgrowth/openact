@@ -124,7 +124,7 @@
 
 /* The nav bar: a slightly larger logo, and a compact search after the menu links */
 .VPNavBarTitle .logo { height: 30px; width: 30px; }
-.VPNavBarTitle .title { font-size: 17px; }
+.VPNavBarTitle .title { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
 .VPNavBarTitle .logo { margin-right: 6px; }
 @media (min-width: 768px) {
   .VPNavBar .content-body > * { order: 3; }
