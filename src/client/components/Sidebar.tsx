@@ -32,6 +32,7 @@ export interface SidebarProps {
   onNewCompany: () => void;
   onCompanySettings: () => void;
   onAccount: () => void;
+  onSearch: () => void;
 }
 
 /** The left side panel: the company switcher, the company's projects, and the person's settings. */
@@ -53,6 +54,13 @@ export function Sidebar(p: SidebarProps) {
       </div>
 
       <nav className="sp-nav" aria-label="Projects">
+        {current && (
+          <button type="button" className="sp-item" onClick={p.onSearch} aria-keyshortcuts="Control+K Meta+K" {...label("Search")}>
+            <Icon name="search" size={18} />
+            <span className="sp-label">Search</span>
+            {!p.collapsed && <kbd className="sp-kbd">{/Mac|iPhone|iPad/.test(navigator.platform) ? "⌘K" : "Ctrl K"}</kbd>}
+          </button>
+        )}
         <Link to="/" className="sp-item" aria-current={path === "/" ? "page" : undefined} onClick={p.onNavigate} {...label("All projects")}>
           <Icon name="board" size={18} />
           <span className="sp-label">All projects</span>

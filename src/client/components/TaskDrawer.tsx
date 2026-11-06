@@ -11,6 +11,7 @@ import {
 } from "../../shared/types";
 import { dn, fmtDateTime, fmtSize, isoWeek, workDays } from "../dates";
 import { ConfirmButton, Icon, LinkList, useToast } from "../ui";
+import { RelatedTasks } from "./SearchDialog";
 import { columnOf } from "./Board";
 
 export type DrawerTarget = { kind: "new"; columnId?: string; start?: string; end?: string } | { kind: "edit"; id: string };
@@ -231,6 +232,8 @@ export function TaskDrawer({ target, task, tasks, columns, members, attachments,
                 <LinkList text={form.notes} label="Links in the notes" />
               </div>
             </fieldset>
+
+            {!isNew && task && <RelatedTasks taskId={task.id} />}
 
             {!isNew && task && (
               <section className="files-block" aria-label="Files">

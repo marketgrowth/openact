@@ -23,9 +23,11 @@
     "preview": "npm run build && wrangler dev --local",
     "typecheck": "tsc -p tsconfig.worker.json --noEmit && tsc -p tsconfig.client.json --noEmit",
     "test": "node --experimental-strip-types --test test/*.test.ts",
+    "test:search": "node test/pipeline/search.mjs",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
-    "deploy": "npm run db:migrate:remote && wrangler deploy"
+    "search:setup": "node scripts/setup-search.mjs",
+    "deploy": "npm run db:migrate:remote && npm run search:setup && wrangler deploy"
   },
   "cloudflare": {
     "bindings": {
@@ -87,6 +89,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.2.1",
+    "esbuild": "^0.28.2",
     "typescript": "^5.9.3",
     "vite": "^8.3.6",
     "wrangler": "^4.158.0"

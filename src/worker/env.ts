@@ -15,6 +15,10 @@ export interface Env {
   AI_MODEL?: string;
   /** A small, fast model for the scope check. Empty uses the default for the provider. */
   AI_SCOPE_MODEL?: string;
+  /** Vectorize index for search by meaning. Optional: without it, search uses words only. */
+  VECTORS?: VectorizeIndex;
+  /** Workers AI embedding model. It must give vectors with the index's dimensions (768). */
+  AI_EMBED_MODEL?: string;
   /** Secret. When set, Jev (TypeSafe) runs the scope check. */
   TYPESAFE_API_KEY?: string;
   /** A versioned Jev model, such as jev-1.14.0. Empty uses the pinned default. */

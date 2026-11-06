@@ -34,8 +34,8 @@ export function redact(text: string): string {
     .replace(/\+?\d[\d\s().-]{6,}\d/g, (m) => (m.replace(/\D/g, "").length >= 10 ? "[phone]" : m));
 }
 
-/** A short part of the note around the first match, on one line. */
-export function snippet(notes: string, terms: string[]): string {
+/** A short part of the note around the first match, on one line. Email addresses and phone numbers are hidden unless redactPii is false. */
+export function snippet(notes: string, terms: string[], redactPii = true): string {
   const flat = notes.replace(/\s+/g, " ").trim();
   if (!flat) return "";
   const lower = flat.toLowerCase();
@@ -43,7 +43,8 @@ export function snippet(notes: string, terms: string[]): string {
   const at = hits.length ? Math.min(...hits) : 0;
   const start = Math.max(0, at - SNIPPET_RADIUS);
   const end = Math.min(flat.length, at + SNIPPET_RADIUS * 2);
-  return `${start > 0 ? "…" : ""}${redact(flat.slice(start, end))}${end < flat.length ? "…" : ""}`;
+  const part = flat.slice(start, end);
+  return `${start > 0 ? "…" : ""}${redactPii ? redact(part) : part}${end < flat.length ? "…" : ""}`;
 }
 
 export interface NoteHit {

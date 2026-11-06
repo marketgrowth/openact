@@ -37,8 +37,8 @@ test("bad or empty policies fall back to the defaults", () => {
 
 test("tools match the level", () => {
   const names = (l: Parameters<typeof toolsForLevel>[0]) => toolsForLevel(l).map((t) => t.name).sort();
-  assert.deepEqual(names("ask"), []);
-  assert.deepEqual(names("edit"), ["add_column", "create_task", "update_column", "update_task"]);
+  assert.deepEqual(names("ask"), ["search_tasks"]);
+  assert.deepEqual(names("edit"), ["add_column", "create_task", "search_tasks", "update_column", "update_task"]);
   assert.ok(names("delete").includes("delete_task") && !names("delete").includes("remove_member"));
   assert.ok(names("admin").includes("invite_member"));
 });
@@ -123,8 +123,8 @@ test("note search is off by default and needs a setting", () => {
   assert.equal(parsePolicy({ readNotes: true }).readNotes, true);
   const off = toolsForLevel("ask", parsePolicy("{}")).map((t) => t.name);
   const on = toolsForLevel("ask", parsePolicy({ readNotes: true })).map((t) => t.name);
-  assert.deepEqual(off, []);
-  assert.deepEqual(on, ["search_notes"]);
+  assert.deepEqual(off, ["search_tasks"]);
+  assert.deepEqual(on, ["search_tasks", "search_notes"]);
   assert.equal(toolAllowedByPolicy("search_notes", { readNotes: false }), false);
 });
 

@@ -69,6 +69,14 @@ const ROLE = { type: "string", enum: ["owner", "editor", "viewer"] };
 
 export const BACKEND_TOOLS: BackendTool[] = [
   {
+    name: "search_tasks",
+    description:
+      "Find tasks in this project by words or by meaning, for example \"anything about the venue\". Use it when the task list in your instructions does not show every task, or to find related work. Returns up to 15 tasks with their ids, columns and dates.",
+    level: "ask",
+    risk: "read",
+    parameters: { type: "object", properties: { query: str("What to find, in plain words.") }, required: ["query"] }
+  },
+  {
     name: "search_notes",
     description:
       "Find tasks whose title or notes contain all of the given words, for example a casting director, a contact or a location. Returns each matching task with a short part of its notes. Email addresses and phone numbers are hidden.",

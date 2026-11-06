@@ -30,6 +30,7 @@ import { useAgent } from "../agui/useAgent";
 import type { UiToolHandlers } from "../agui/tools";
 import { PROJECT_VIEWS, UI_TOOLS, type OpenActAgentState, type ProjectView } from "../../shared/agui";
 import { useWorkspace } from "../workspace";
+import { onOpenTask, takePendingTask } from "../openTask";
 
 type View = ProjectView;
 const POLL_MS = 5000;
@@ -118,6 +119,14 @@ export function ProjectPage({ projectId, view, me, config }: { projectId: string
   useEffect(() => {
     if (projectCompany && currentCompany?.id !== projectCompany && companies?.some((c) => c.id === projectCompany)) switchTo(projectCompany);
   }, [projectCompany, currentCompany?.id, companies, switchTo]);
+
+  // Open a task that search asked for: when the project loads, or at once when it is already open.
+  useEffect(() => {
+    if (!loaded) return;
+    const id = takePendingTask(projectId);
+    if (id) setDrawer({ kind: "edit", id });
+  }, [loaded, projectId]);
+  useEffect(() => onOpenTask((pid, id) => pid === projectId && setDrawer({ kind: "edit", id })), [projectId]);
 
   const canEdit = data?.role === "owner" || data?.role === "editor";
   const isOwner = data?.role === "owner";

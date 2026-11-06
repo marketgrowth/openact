@@ -137,6 +137,7 @@ Every action is saved in the `agent_actions` table. All members can read it unde
 
 | Tool | Level | Approval |
 | --- | --- | --- |
+| `search_tasks` (read only) | Ask only | Never. Finds tasks by words and by meaning. Notes count only when note search is on. |
 | `search_notes` (read only) | Ask only, and the project's note search setting must be on | Never. Reads do not count toward a batch. |
 | `create_task` | Ask and edit | At 5 or more changes |
 | `update_task` (title, column, phase, priority, dates, assignee, notes) | Ask and edit | At 5 or more changes |
@@ -212,6 +213,10 @@ To test the topic check, start a message with `/scope` and a route:
 ```
 
 Do not use `dev-scripted` in production.
+
+## Big projects
+
+When a project has more than 80 tasks, the agent does not get all of them. It gets the tasks that match the message (by words and by meaning), then work in progress, late work and work due soon, up to 80. The instructions tell it how many tasks are hidden, and it calls `search_tasks` to find them. The code is in `src/worker/search/rank.ts`.
 
 ## Data limits
 

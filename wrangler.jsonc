@@ -32,11 +32,21 @@
     }
   ],
 
+  // Search by meaning. Create the index once with: npm run search:setup
+  // 768 dimensions, cosine, for @cf/baai/bge-base-en-v1.5.
+  "vectorize": [
+    {
+      "binding": "VECTORS",
+      "index_name": "openact-tasks",
+      "remote": true
+    }
+  ],
+
   // Workers AI. Requests go through AI Gateway when AI_GATEWAY_ID is set.
   "ai": { "binding": "AI", "remote": true },
 
-  // Daily clean-up of expired sign-in codes and sessions.
-  "triggers": { "crons": ["17 3 * * *"] },
+  // Daily clean-up of expired sign-in codes and sessions, and search indexing every 10 minutes.
+  "triggers": { "crons": ["17 3 * * *", "*/10 * * * *"] },
 
   "vars": {
     "APP_NAME": "OpenAct",

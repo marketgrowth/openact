@@ -37,6 +37,8 @@ Run `npm run typecheck`, `npm test` and `npm run build` before you say a task is
 
 11. **Companies isolate data.** Every project has a `company_id`. Never show, search or route to a project in another company. A person added to one project from outside the company joins it as a guest.
 
+12. **Search never decides access.** Vectorize results are hints. Check every result against `visibleProjectIds` before you show it or send it to a model. Embed notes only when the project's note search is on.
+
 ## Writing style for text in the app and docs
 
 - Short, simple sentences. Active voice. One idea per sentence.

@@ -8,6 +8,7 @@ import { NewProjectDialog, ProjectsPage } from "./pages/Projects";
 import { CompanyMark, Sidebar } from "./components/Sidebar";
 import { CompanySettings, NewCompanyDialog } from "./components/CompanyDialogs";
 import { WorkspaceProvider, useWorkspace } from "./workspace";
+import { SearchDialog } from "./components/SearchDialog";
 import { ProjectPage } from "./pages/Project";
 import { Colophon } from "./pages/Colophon";
 
@@ -61,7 +62,7 @@ function SignedIn({ me, config, onMe }: { me: User; config: AppConfig; onMe: (u:
   const ws = useWorkspace();
   const [collapsed, setCollapsed] = useState(readCollapsed);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [dialog, setDialog] = useState<null | "account" | "project" | "company" | "settings">(null);
+  const [dialog, setDialog] = useState<null | "account" | "project" | "company" | "settings" | "search">(null);
   const close = useCallback(() => setDialog(null), []);
   const { reloadProjects } = ws;
 
@@ -70,6 +71,18 @@ function SignedIn({ me, config, onMe }: { me: User; config: AppConfig; onMe: (u:
     reloadProjects();
     setMobileOpen(false);
   }, [path]);
+
+  // Ctrl+K or Cmd+K opens search from anywhere.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setDialog((d) => (d === "search" ? null : "search"));
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
 
   const toggle = () => {
     // On a phone the button closes the drawer. On a wide screen it collapses the panel.
@@ -100,6 +113,7 @@ function SignedIn({ me, config, onMe }: { me: User; config: AppConfig; onMe: (u:
         onNewCompany={() => setDialog("company")}
         onCompanySettings={() => setDialog("settings")}
         onAccount={() => setDialog("account")}
+        onSearch={() => setDialog("search")}
       />
       <div className="sp-scrim" onClick={() => setMobileOpen(false)} aria-hidden="true" />
       <div className="main">
@@ -120,6 +134,7 @@ function SignedIn({ me, config, onMe }: { me: User; config: AppConfig; onMe: (u:
       {dialog === "project" && ws.current && <NewProjectDialog company={ws.current} onClose={close} />}
       {dialog === "company" && <NewCompanyDialog onClose={close} />}
       {dialog === "settings" && ws.current && <CompanySettings companyId={ws.current.id} me={me} onClose={close} />}
+      {dialog === "search" && ws.current && <SearchDialog companyId={ws.current.id} companyName={ws.current.name} onClose={close} />}
     </div>
   );
 }

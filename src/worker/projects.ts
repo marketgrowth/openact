@@ -20,6 +20,7 @@ import { bumpRev, deletePrefix, projectAccess, requireCompanyRole, requireRole, 
 import { canCreateProjects } from "../shared/access";
 import { currentCompanyId } from "./companies";
 import { accessGrantedEmail, accessRequestEmail, sendEmail } from "./email";
+import { reindexProjectStatement } from "./search";
 import { changeMemberRole, defaultColumnStatements, inviteMember, removeMember } from "./services";
 import { HttpError, addDays, appUrl, newId, nowIso, oneOf, readJson, requireUser, text, todayIso } from "./util";
 
@@ -273,7 +274,11 @@ projectRoutes.patch("/:id/ai-policy", async (c) => {
     if (typeof body.readNotes !== "boolean") throw new HttpError(400, "Note search must be true or false.");
     policy.readNotes = body.readNotes;
   }
-  const res = await c.env.DB.batch([c.env.DB.prepare("UPDATE projects SET ai_policy = ? WHERE id = ?").bind(JSON.stringify(policy), id), bumpRev(c.env, id)]);
+  const before = parsePolicy(row?.ai_policy);
+  const stmts = [c.env.DB.prepare("UPDATE projects SET ai_policy = ? WHERE id = ?").bind(JSON.stringify(policy), id)];
+  // Notes are embedded for search only when note search is on, so a change re-indexes the project.
+  if (before.readNotes !== policy.readNotes) stmts.push(reindexProjectStatement(c.env, id));
+  const res = await c.env.DB.batch([...stmts, bumpRev(c.env, id)]);
   return c.json({ aiPolicy: policy, rev: revFrom(res) });
 });
 

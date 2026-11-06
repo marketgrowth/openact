@@ -5,6 +5,7 @@ import type { AppConfig } from "../shared/types";
 import { authRoutes, meRoutes, sessionMiddleware } from "./auth";
 import { projectRoutes } from "./projects";
 import { companyRoutes } from "./companies";
+import { processVectorOutbox, searchRoutes, vectorsEnabled } from "./search";
 import { attachmentRoutes, columnRoutes, projectTaskRoutes, taskRoutes } from "./tasks";
 import { aiRoutes } from "./ai";
 import { aguiRoutes } from "./agui";
@@ -31,7 +32,15 @@ const sameOrigin: MiddlewareHandler<AppEnv> = async (c, next) => {
   await next();
 };
 
-app.use("/api/*", securityHeaders, sameOrigin, sessionMiddleware);
+/** After a change, index the changed tasks for search in the background. */
+const indexAfterWrites: MiddlewareHandler<AppEnv> = async (c, next) => {
+  await next();
+  if (c.req.method !== "GET" && vectorsEnabled(c.env)) {
+    c.executionCtx.waitUntil(processVectorOutbox(c.env, 32).catch((e) => console.warn("[openact] search indexing failed", e)));
+  }
+};
+
+app.use("/api/*", securityHeaders, sameOrigin, sessionMiddleware, indexAfterWrites);
 
 app.get("/api/config", (c) => {
   const config: AppConfig = {
@@ -53,6 +62,7 @@ app.route("/api/projects", aguiRoutes);
 app.route("/api/tasks", taskRoutes);
 app.route("/api/columns", columnRoutes);
 app.route("/api/attachments", attachmentRoutes);
+app.route("/api/search", searchRoutes);
 
 app.get("/api/health", (c) => c.json({ ok: true }));
 
@@ -83,7 +93,16 @@ async function cleanup(env: Env): Promise<void> {
 
 export default {
   fetch: app.fetch,
-  scheduled: async (_event, env, ctx) => {
-    ctx.waitUntil(cleanup(env));
+  scheduled: async (event, env, ctx) => {
+    if (event.cron === "17 3 * * *") ctx.waitUntil(cleanup(env));
+    // Catch up on search indexing that did not finish after a request.
+    ctx.waitUntil(
+      (async () => {
+        for (let i = 0; i < 6; i++) {
+          const r = await processVectorOutbox(env, 64);
+          if (!r.indexed && !r.deleted) break;
+        }
+      })().catch((e) => console.warn("[openact] search indexing failed", e))
+    );
   }
 } satisfies ExportedHandler<Env>;
