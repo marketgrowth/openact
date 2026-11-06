@@ -28,8 +28,8 @@ npm run build
 
 ## Rules
 
-- **Database changes.** Add a new file in `migrations/`, such as `0003_add_comments.sql`. Do not edit a migration that is already released.
-- **Access checks.** Every route that reads or changes a project must call `requireRole` with the lowest role that can do the action.
+- **Database changes.** Add a new file in `migrations/`, such as `0004_add_comments.sql`. Do not edit a migration that is already released.
+- **Access checks.** Every route that reads or changes a project must call `requireRole` with the lowest role that can do the action. It checks the project role, the company role and the project's visibility together.
 - **Sync.** Every change to a project must include `bumpRev` in the same D1 batch, so other open pages reload.
 - **One place for business rules.** Put task, column and member logic in `src/worker/services.ts`. API routes and the AI agent both call it, so they share the same checks.
 - **Secrets.** Never store a raw sign-in code or session token. Never log email contents in production.

@@ -1,5 +1,5 @@
 export class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(public status: number, message: string, public code?: string) {
     super(message);
   }
 }
@@ -24,8 +24,9 @@ export async function api<T>(path: string, opts: Options = {}): Promise<T> {
   let data: unknown = null;
   if ((res.headers.get("content-type") || "").includes("application/json")) data = await res.json().catch(() => null);
   if (!res.ok) {
-    const msg = data && typeof data === "object" && "error" in data ? String((data as { error: unknown }).error) : `The request failed (${res.status}).`;
-    throw new ApiError(res.status, msg);
+    const obj = data && typeof data === "object" ? (data as { error?: unknown; code?: unknown }) : null;
+    const msg = obj && "error" in obj ? String(obj.error) : `The request failed (${res.status}).`;
+    throw new ApiError(res.status, msg, typeof obj?.code === "string" ? obj.code : undefined);
   }
   return data as T;
 }

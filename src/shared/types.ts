@@ -18,6 +18,50 @@ export const ROLES = ["owner", "editor", "viewer"] as const;
 export type Role = (typeof ROLES)[number];
 export const ROLE_LABELS: Record<Role, string> = { owner: "Owner", editor: "Editor", viewer: "Viewer" };
 
+/** Company roles. Guests see only the projects they are invited to. */
+export const COMPANY_ROLES = ["owner", "admin", "member", "guest"] as const;
+export type CompanyRole = (typeof COMPANY_ROLES)[number];
+export const COMPANY_ROLE_LABELS: Record<CompanyRole, string> = { owner: "Owner", admin: "Admin", member: "Member", guest: "Guest" };
+export const COMPANY_ROLE_HELP: Record<CompanyRole, string> = {
+  owner: "Manages the company, its people, its owners and every company project. Can delete the company.",
+  admin: "Manages the company, its people and every company project.",
+  member: "Sees every project that the company can see, and can create projects.",
+  guest: "Sees only the projects they are invited to."
+};
+
+/** company: every company member can see it. secret: only its own members can see it. */
+export const VISIBILITIES = ["company", "secret"] as const;
+export type Visibility = (typeof VISIBILITIES)[number];
+export const VISIBILITY_LABELS: Record<Visibility, string> = { company: "Company", secret: "Secret" };
+export const VISIBILITY_HELP: Record<Visibility, string> = {
+  company: "Everyone in the company can see this project. Company owners and admins can manage it.",
+  secret: "Only people you invite can see this project. Others who have the link can ask for access."
+};
+
+export interface Company {
+  id: string;
+  name: string;
+  role: CompanyRole;
+  /** A URL for the logo, or null. */
+  logoUrl: string | null;
+}
+
+export interface CompanyDetail extends Company {
+  emailDomain: string | null;
+  aiDefaults: AiPolicy;
+  members: Array<{ userId: string; email: string; name: string; role: CompanyRole }>;
+  invitations: Array<{ id: string; email: string; role: CompanyRole; createdAt: string }>;
+}
+
+export interface AccessRequest {
+  id: string;
+  userId: string;
+  name: string;
+  email: string;
+  note: string;
+  createdAt: string;
+}
+
 export const PROJECT_COLORS = ["indigo", "teal", "amber", "rose", "violet", "slate"] as const;
 export type ProjectColor = (typeof PROJECT_COLORS)[number];
 
@@ -101,6 +145,8 @@ export interface ProjectInfo {
   name: string;
   description: string;
   color: ProjectColor;
+  companyId: string | null;
+  visibility: Visibility;
   rev: number;
   createdAt: string;
   updatedAt: string;
@@ -112,6 +158,9 @@ export interface ProjectSummary {
   description: string;
   color: ProjectColor;
   role: Role;
+  visibility: Visibility;
+  /** True when the person is on the project. False when they see it through the company. */
+  isMember: boolean;
   taskCount: number;
   doneCount: number;
   lateCount: number;
@@ -129,6 +178,8 @@ export interface ProjectDetail {
   agentLevel: AgentLevel;
   members: Member[];
   invitations: Invitation[];
+  /** Pending access requests. Only project owners get them. */
+  accessRequests: AccessRequest[];
   tasks: Task[];
   attachments: Attachment[];
 }

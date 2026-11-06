@@ -11,8 +11,8 @@ OpenAct runs on Cloudflare. One Worker serves the API and the web app.
 | Part | What it does |
 | --- | --- |
 | [Cloudflare Workers](https://developers.cloudflare.com/workers/) | Runs the API and serves the web app as static assets. Compatibility date 2026-10-01, with `nodejs_compat`. |
-| [Cloudflare D1](https://developers.cloudflare.com/d1/) | SQLite database for people, projects, members, tasks and sessions. SQL migrations run on every deploy. |
-| [Cloudflare R2](https://developers.cloudflare.com/r2/) | Object storage for task attachments, up to 25 MB per file. |
+| [Cloudflare D1](https://developers.cloudflare.com/d1/) | SQLite database for companies, people, projects, members, tasks and sessions. SQL migrations run on every deploy. |
+| [Cloudflare R2](https://developers.cloudflare.com/r2/) | Object storage for task attachments (up to 25 MB per file) and company logos. |
 | [Cron Triggers](https://developers.cloudflare.com/workers/configuration/cron-triggers/) | A daily job deletes expired sign-in codes and sessions, and expires agent approvals that nobody answered. |
 | [Deploy to Cloudflare](https://developers.cloudflare.com/workers/platform/deploy-buttons/) | One-click deploy. It creates the database and the bucket, then asks for the secrets. |
 

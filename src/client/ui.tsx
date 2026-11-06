@@ -26,6 +26,8 @@ const PATHS: Record<string, string> = {
   flag: "M5 17.5V3M5 3.5h9l-2 3.5 2 3.5H5",
   left: "M12.5 4.5L7 10l5.5 5.5",
   right: "M7.5 4.5L13 10l-5.5 5.5",
+  chevron: "M6 8l4 4 4-4",
+  menu: "M3 5h14M3 10h14M3 15h14",
   external: "M11 4h5v5M16 4l-7 7M14 11.5V15a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h3.5",
   chat: "M3.5 4.5h13v9h-7l-4 3v-3h-2z",
   dots: "M5 10h.01M10 10h.01M15 10h.01",

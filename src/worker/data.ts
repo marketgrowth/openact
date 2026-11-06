@@ -1,19 +1,82 @@
 import type { Env } from "./env";
-import type { Attachment, Column, Priority, Role, Status, Task } from "../shared/types";
+import type { Attachment, Column, CompanyRole, Priority, Role, Status, Task, Visibility } from "../shared/types";
+import { effectiveProjectRole } from "../shared/access";
 import { HttpError, nowIso } from "./util";
 
 const RANK: Record<Role, number> = { viewer: 1, editor: 2, owner: 3 };
 
-/** Returns the person's role in the project, or throws 404/403. Non-members get 404 so project ids do not leak. */
+export interface ProjectAccess {
+  role: Role | null;
+  projectRole: Role | null;
+  companyId: string | null;
+  companyRole: CompanyRole | null;
+  visibility: Visibility;
+}
+
+/** How a person can reach a project, through the project and through its company. null when the project does not exist. */
+export async function projectAccess(env: Env, projectId: string, userId: string): Promise<ProjectAccess | null> {
+  const row = await env.DB.prepare(
+    `SELECT p.visibility, p.company_id, pm.role AS project_role, cm.role AS company_role
+     FROM projects p
+     LEFT JOIN project_members pm ON pm.project_id = p.id AND pm.user_id = ?
+     LEFT JOIN company_members cm ON cm.company_id = p.company_id AND cm.user_id = ?
+     WHERE p.id = ?`
+  )
+    .bind(userId, userId, projectId)
+    .first<{ visibility: Visibility; company_id: string | null; project_role: Role | null; company_role: CompanyRole | null }>();
+  if (!row) return null;
+  const a = { visibility: row.visibility, projectRole: row.project_role, companyRole: row.company_role };
+  return { ...a, companyId: row.company_id, role: effectiveProjectRole(a) };
+}
+
+/**
+ * Checks that the person can reach the project with at least `min`. Returns their effective role.
+ * 404 when the project does not exist. 403 with code "no_access" when it exists but they cannot open it.
+ */
 export async function requireRole(env: Env, projectId: string, userId: string, min: Role): Promise<Role> {
-  const row = await env.DB.prepare("SELECT role FROM project_members WHERE project_id = ? AND user_id = ?")
-    .bind(projectId, userId)
-    .first<{ role: Role }>();
-  if (!row) throw new HttpError(404, "This project does not exist, or you do not have access to it.");
-  if (RANK[row.role] < RANK[min]) {
+  const access = await projectAccess(env, projectId, userId);
+  if (!access) throw new HttpError(404, "This project does not exist.");
+  if (!access.role) throw new HttpError(403, "You do not have access to this project. You can ask an owner for access.", "no_access");
+  if (RANK[access.role] < RANK[min]) {
     throw new HttpError(403, min === "owner" ? "Only a project owner can do this." : "Your role in this project is view only.");
   }
-  return row.role;
+  return access.role;
+}
+
+/** The company role of a person, or null. */
+export async function companyRole(env: Env, companyId: string, userId: string): Promise<CompanyRole | null> {
+  const row = await env.DB.prepare("SELECT role FROM company_members WHERE company_id = ? AND user_id = ?").bind(companyId, userId).first<{ role: CompanyRole }>();
+  return row?.role ?? null;
+}
+
+/** Checks the company role. Guests and outsiders get 404, so a company id reveals nothing. */
+export async function requireCompanyRole(env: Env, companyId: string, userId: string, allowed: CompanyRole[]): Promise<CompanyRole> {
+  const role = await companyRole(env, companyId, userId);
+  if (!role) throw new HttpError(404, "This company does not exist, or you are not in it.");
+  if (!allowed.includes(role)) {
+    throw new HttpError(403, allowed.includes("admin") ? "Only company owners and admins can do this." : allowed.includes("member") ? "Guests cannot do this. Ask a company admin to make you a member." : "Only a company owner can do this.");
+  }
+  return role;
+}
+
+/** Projects the person can see in a company, newest first. */
+export async function visibleProjectIds(env: Env, companyId: string, userId: string): Promise<Array<{ id: string; name: string; role: Role; isMember: boolean }>> {
+  const rows = await env.DB.prepare(
+    `SELECT p.id, p.name, p.visibility, pm.role AS project_role, cm.role AS company_role
+     FROM projects p
+     LEFT JOIN project_members pm ON pm.project_id = p.id AND pm.user_id = ?
+     LEFT JOIN company_members cm ON cm.company_id = p.company_id AND cm.user_id = ?
+     WHERE p.company_id = ?
+     ORDER BY p.updated_at DESC`
+  )
+    .bind(userId, userId, companyId)
+    .all<{ id: string; name: string; visibility: Visibility; project_role: Role | null; company_role: CompanyRole | null }>();
+  const out: Array<{ id: string; name: string; role: Role; isMember: boolean }> = [];
+  for (const r of rows.results) {
+    const role = effectiveProjectRole({ visibility: r.visibility, projectRole: r.project_role, companyRole: r.company_role });
+    if (role) out.push({ id: r.id, name: r.name, role, isMember: !!r.project_role });
+  }
+  return out;
 }
 
 /** A statement that marks the project as changed. Clients poll `rev` to know when to reload. */
@@ -98,9 +161,9 @@ export async function nextOrder(env: Env, projectId: string, status: Status): Pr
   return (row?.m ?? 0) + 1000;
 }
 
+/** True when the person can open the project, through the project or its company. */
 export async function isMember(env: Env, projectId: string, userId: string): Promise<boolean> {
-  const row = await env.DB.prepare("SELECT 1 AS ok FROM project_members WHERE project_id = ? AND user_id = ?").bind(projectId, userId).first();
-  return !!row;
+  return !!(await projectAccess(env, projectId, userId))?.role;
 }
 
 /** Deletes every R2 object under a prefix. Used when a project is deleted. */

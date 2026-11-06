@@ -3,7 +3,7 @@ import type { AppEnv, Env } from "./env";
 import { AGENT_LEVEL_LABELS, ROLE_LABELS, STATUSES, type AgentLevel, type AiPolicy, type Role, type User } from "../shared/types";
 import { CUSTOM_EVENTS, EventType, UI_TOOLS, type AguiEvent, type Interrupt, type Message, type ResumeEntry, type ScopeNotice } from "../shared/agui";
 import { APPROVAL_TTL_MINUTES, BACKEND_TOOLS, BACKEND_TOOL_NAMES, atLeast, effectiveLevel, needsApproval, parsePolicy, toolAllowedByPolicy, toolsForLevel } from "../shared/agent-policy";
-import { requireRole } from "./data";
+import { requireRole, visibleProjectIds } from "./data";
 import { fromAguiMessages, type AgentMsg, type ToolCall, type ToolDef } from "./agent/messages";
 import { runModel } from "./agent/model";
 import { isFollowUp, messageToCheck, scopeAction, scopeReply, scopeRule, scopeSummary } from "./agent/scope";
@@ -131,11 +131,10 @@ aguiRoutes.post("/:id/agent", async (c) => {
       const lastReply = [...history].reverse().find((m) => m.role === "assistant" && m.content.trim())?.content ?? "";
       if (toCheck && !isFollowUp(toCheck, !!lastReply)) {
         await send({ type: EventType.STEP_STARTED, stepName: "check_scope" });
-        const others = await env.DB.prepare(
-          "SELECT p.id, p.name FROM projects p JOIN project_members m ON m.project_id = p.id AND m.user_id = ? WHERE p.id != ? ORDER BY p.updated_at DESC LIMIT 30"
-        )
-          .bind(user.id, projectId)
-          .all<{ id: string; name: string }>();
+        // Only projects this person can see in the same company.
+        const companyRow = await env.DB.prepare("SELECT company_id FROM projects WHERE id = ?").bind(projectId).first<{ company_id: string | null }>();
+        const visible = companyRow?.company_id ? await visibleProjectIds(env, companyRow.company_id, user.id) : [];
+        const others = { results: visible.filter((p) => p.id !== projectId).slice(0, 30).map((p) => ({ id: p.id, name: p.name })) };
         const { decision, decider } = await checkScope(env, {
           projectName: snap.projectName,
           projectDescription: policyRow?.description ?? "",

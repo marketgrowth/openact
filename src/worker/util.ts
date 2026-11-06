@@ -3,7 +3,8 @@ import type { AppEnv, Env } from "./env";
 import type { User } from "../shared/types";
 
 export class HttpError extends Error {
-  constructor(public status: number, message: string) {
+  /** code: a stable name the web app can act on, such as "no_access". */
+  constructor(public status: number, message: string, public code?: string) {
     super(message);
   }
 }

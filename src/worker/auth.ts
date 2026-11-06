@@ -1,4 +1,5 @@
 import { Hono, type MiddlewareHandler } from "hono";
+import { companyAllowsSignup, joinCompaniesAtSignIn } from "./companies";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import type { AppEnv, Env } from "./env";
 import type { User } from "../shared/types";
@@ -47,8 +48,9 @@ async function checkSignupAllowed(env: Env, email: string): Promise<void> {
   if (!anyUser) return; // The first person can always sign up.
   const invited = await env.DB.prepare("SELECT id FROM invitations WHERE email = ? LIMIT 1").bind(email).first();
   if (invited) return; // An invitation overrides the sign-up limits.
+  if (await companyAllowsSignup(env, email)) return; // So does a company invitation or a company's email domain.
   if ((env.SIGNUP_MODE || "open").trim() === "invite") {
-    throw new HttpError(403, "There is no account for this email. Ask a project owner to invite you.");
+    throw new HttpError(403, "There is no account for this email. Ask a project owner or a company admin to invite you.");
   }
   const domains = (env.ALLOWED_EMAIL_DOMAINS || "")
     .split(",")
@@ -189,12 +191,18 @@ authRoutes.post("/verify", async (c) => {
           inv.role,
           iso
         ),
+        // A project invitation makes the person a company guest, so they see only this project.
+        c.env.DB.prepare(
+          "INSERT OR IGNORE INTO company_members (company_id, user_id, role, created_at) SELECT company_id, ?, 'guest', ? FROM projects WHERE id = ? AND company_id IS NOT NULL"
+        ).bind(user.id, iso, inv.project_id),
         c.env.DB.prepare("DELETE FROM invitations WHERE id = ?").bind(inv.id),
         c.env.DB.prepare("UPDATE projects SET rev = rev + 1, updated_at = ? WHERE id = ?").bind(iso, inv.project_id)
       );
     }
     await c.env.DB.batch(stmts);
   }
+
+  await joinCompaniesAtSignIn(c.env, user).catch((e) => console.error("[openact] joining companies at sign-in failed", e));
 
   await createSession(c, user.id);
   return c.json({ user });

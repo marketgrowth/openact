@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ROLES, ROLE_LABELS, type ProjectDetail, type Role, type User } from "../../shared/types";
+import { ROLES, ROLE_LABELS, type AccessRequest, type ProjectDetail, type Role, type User } from "../../shared/types";
 import { api, errorText } from "../api";
 import { navigate } from "../router";
 import { Avatar, ConfirmButton, useToast } from "../ui";
@@ -90,10 +90,28 @@ export function Members({ data, me, isOwner, onChanged }: { data: ProjectDetail;
         </form>
       )}
 
+      {isOwner && data.accessRequests.length > 0 && (
+        <section>
+          <h2>
+            Access requests <span className="count">{data.accessRequests.length}</span>
+          </h2>
+          <ul className="people">
+            {data.accessRequests.map((r) => (
+              <AccessRequestRow key={r.id} projectId={pid} request={r} onDone={onChanged} />
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section>
         <h2>
           People <span className="count">{data.members.length}</span>
         </h2>
+        <p className="hint">
+          {data.project.visibility === "secret"
+            ? "This project is secret. Only the people below can see it."
+            : "Everyone in the company can also see this project as a viewer. Company owners and admins can manage it. Make the project secret in Project settings to limit it to the people below."}
+        </p>
         <ul className="people">
           {data.members.map((m) => (
             <li key={m.userId}>
@@ -148,5 +166,45 @@ export function Members({ data, me, isOwner, onChanged }: { data: ProjectDetail;
         </section>
       )}
     </div>
+  );
+}
+
+function AccessRequestRow({ projectId, request, onDone }: { projectId: string; request: AccessRequest; onDone: () => void }) {
+  const toast = useToast();
+  const [role, setRole] = useState<Role>("viewer");
+  const [busy, setBusy] = useState(false);
+  const answer = async (approve: boolean) => {
+    setBusy(true);
+    try {
+      await api(`/api/projects/${projectId}/access-requests/${request.id}`, { body: approve ? { approve, role } : { approve } });
+      toast(approve ? `${request.name || request.email} can now open the project.` : "Request declined.");
+      onDone();
+    } catch (err) {
+      toast(errorText(err));
+      setBusy(false);
+    }
+  };
+  return (
+    <li>
+      <Avatar id={request.userId} name={request.name || request.email} size={34} />
+      <span className="who">
+        <b>{request.name || request.email}</b>
+        <span className="mono muted">{request.email}</span>
+        {request.note && <span className="req-note">{request.note}</span>}
+      </span>
+      <select aria-label={`Role for ${request.name || request.email}`} value={role} onChange={(e) => setRole(e.target.value as Role)} disabled={busy}>
+        {ROLES.map((r) => (
+          <option key={r} value={r}>
+            {ROLE_LABELS[r]}
+          </option>
+        ))}
+      </select>
+      <button type="button" className="btn ghost sm" disabled={busy} onClick={() => answer(false)}>
+        Decline
+      </button>
+      <button type="button" className="btn primary sm" disabled={busy} onClick={() => answer(true)}>
+        Approve
+      </button>
+    </li>
   );
 }

@@ -4,6 +4,7 @@ import type { AppEnv, Env } from "./env";
 import type { AppConfig } from "../shared/types";
 import { authRoutes, meRoutes, sessionMiddleware } from "./auth";
 import { projectRoutes } from "./projects";
+import { companyRoutes } from "./companies";
 import { attachmentRoutes, columnRoutes, projectTaskRoutes, taskRoutes } from "./tasks";
 import { aiRoutes } from "./ai";
 import { aguiRoutes } from "./agui";
@@ -44,6 +45,7 @@ app.get("/api/config", (c) => {
 
 app.route("/api/auth", authRoutes);
 app.route("/api/me", meRoutes);
+app.route("/api/companies", companyRoutes);
 app.route("/api/projects", projectRoutes);
 app.route("/api/projects", projectTaskRoutes);
 app.route("/api/projects", aiRoutes);
@@ -60,7 +62,7 @@ app.notFound((c) => {
 });
 
 app.onError((err, c) => {
-  if (err instanceof HttpError) return c.json({ error: err.message }, err.status as ContentfulStatusCode);
+  if (err instanceof HttpError) return c.json({ error: err.message, ...(err.code ? { code: err.code } : {}) }, err.status as ContentfulStatusCode);
   console.error("[openact] Unhandled error", err);
   return c.json({ error: "Something went wrong on the server. Try again." }, 500);
 });

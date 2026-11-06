@@ -283,6 +283,10 @@ export async function inviteMember(env: Env, actor: User, projectId: string, bod
     if (already) throw new HttpError(409, "This person is already a member of the project.");
     const res = await env.DB.batch([
       env.DB.prepare("INSERT INTO project_members (project_id, user_id, role, created_at) VALUES (?, ?, ?, ?)").bind(projectId, existing.id, role, iso),
+      // Someone from outside the company joins it as a guest, so they see only this project.
+      env.DB.prepare(
+        "INSERT OR IGNORE INTO company_members (company_id, user_id, role, created_at) SELECT company_id, ?, 'guest', ? FROM projects WHERE id = ? AND company_id IS NOT NULL"
+      ).bind(existing.id, iso, projectId),
       bumpRev(env, projectId)
     ]);
     const mail = inviteEmail(env, { to: email, projectName: project!.name, inviterName: actor.name, role: ROLE_LABELS[role], url, hasAccount: true });

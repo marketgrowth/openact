@@ -4,16 +4,19 @@ OpenAct is a light project management tool with a Kanban board, a Gantt timeline
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/marketgrowth/openact)
 
-![The OpenAct board with tasks in five columns](docs/images/board.png)
+![The OpenAct board with the company side panel](docs/images/board.png)
 
 ## Features
 
+- **Companies (multi-tenant).** One install holds many companies. Switch between them from the menu at the top of the side panel. Each company has its own projects, people, logo, email domain and AI defaults. Anyone signed in can create a company.
+- **Secret projects and access requests.** Company members see every company project. Owners can make a project secret, so only invited people see it. Anyone who opens a link to a project they cannot see can ask for access, and the owners approve or decline.
+- **A collapsible side panel.** The company switcher, the company's projects and your settings. Collapse it to icons, or open it as a drawer on a phone.
 - **Many projects.** Each project has its own board, timeline, people and files.
 - **Unlimited people.** There are no seat limits. Invite anyone by email.
 - **Kanban board with your own columns.** Add, rename, reorder and delete columns per project. Each column says what it means (not started, in progress, in review or done), so progress and late checks keep working. Drag cards between columns.
 - **Gantt timeline.** Drag a bar to move a task. Drag an edge to change its length. Tasks group by phase, with a summary bar for each phase. The header shows days or ISO weeks, and a line marks today.
 - **Calendar.** A month view. Each task shows as a card on its start date and as a deadline pill on its end date. Click either to open the task in the side drawer. Drag a card to move the task, or drag a pill to change the deadline. Phones get an agenda list.
-- **Roles.** Owners manage people and settings. Editors change tasks. Viewers only look.
+- **Roles.** In a project, owners manage people and settings, editors change tasks, and viewers only look. In a company, owners and admins manage the company, members see company projects, and guests see only the projects they are invited to.
 - **Sign-in without passwords.** People type their email and get a 6-digit code. [Resend](https://resend.com) sends the email.
 - **File attachments.** Attach files up to 25 MB to a task. Files go to R2.
 - **AI agent with role-based access.** Tell the agent what to do in plain words: "Move the late tasks to next week" or "Rename Review to QA". The agent acts for you and never has more power than your role. Owners choose how much each role may hand to the agent. Deletes, people changes and large batches wait for your approval, and every agent action is logged. Read [docs/AGUI.md](docs/AGUI.md).
@@ -31,124 +34,53 @@ The screenshots use example data: a sample team and projects.
 
 | | |
 | --- | --- |
+| ![Company switcher open at the top of the side panel](docs/images/switcher.png) | ![Projects of the current company](docs/images/projects.png) |
+| **Company switcher.** Change company from the top of the side panel. | **Projects.** The current company's projects. Secret ones show a shield. |
 | ![Gantt timeline with phases and today line](docs/images/timeline.png) | ![Month calendar with start cards and deadline pills](docs/images/calendar.png) |
 | **Timeline.** Drag bars to move tasks. Phases have summary bars. | **Calendar.** Cards show starts. Pills show deadlines. |
-| ![Task drawer with dates, assignee and files](docs/images/task.png) | ![Projects list with progress](docs/images/projects.png) |
-| **Task drawer.** Edit details and attach files. | **Projects.** Progress, late tasks and team size at a glance. |
-| ![People and roles](docs/images/people.png) | ![Sign in with an email code](docs/images/signin.png) |
-| **People.** Invite by email. Set Owner, Editor or Viewer. | **Sign-in.** An email code. No password. |
+| ![Task drawer with dates, assignee and files](docs/images/task.png) | ![Side panel collapsed to icons](docs/images/collapsed.png) |
+| **Task drawer.** Edit details and attach files. | **Collapsed panel.** Icons only, for more room. |
+| ![People tab with an access request](docs/images/people.png) | ![Request access page](docs/images/request-access.png) |
+| **People.** Invite by email, and approve access requests. | **Request access.** The page never shows the project's name. |
+| ![Company settings with name, logo and email domain](docs/images/company.png) | ![Sign in with an email code](docs/images/signin.png) |
+| **Company settings.** Name, logo, auto-join domain, people and AI defaults. | **Sign-in.** An email code. No password. |
 | ![Board in dark theme](docs/images/board-dark.png) | ![Calendar in dark theme](docs/images/calendar-dark.png) |
 | **Dark theme.** Or follow the system setting. | **Dark calendar.** |
 
-<p align="center"><img src="docs/images/phone-calendar.png" alt="Calendar on a phone, as an agenda list" width="320"></p>
-<p align="center"><b>Phones.</b> The calendar becomes an agenda list.</p>
+<p align="center"><img src="docs/images/phone-calendar.png" alt="Calendar on a phone, as an agenda list" width="300"> &nbsp; <img src="docs/images/phone-menu.png" alt="Side panel as a drawer on a phone" width="300"></p>
+<p align="center"><b>Phones.</b> The calendar becomes an agenda list, and the side panel becomes a drawer.</p>
 
-## Deploy with one click
+## Companies and access
 
-1. Click **Deploy to Cloudflare** above.
-2. Sign in to Cloudflare. Connect GitHub or GitLab. Cloudflare copies this repository to your account.
-3. Cloudflare creates the D1 database and the R2 bucket for you.
-4. Fill in the form:
-   - `RESEND_API_KEY`: your [Resend API key](https://resend.com/api-keys).
-   - `AUTH_SECRET`: a long random string. Make one with `openssl rand -hex 32`.
-   - `EMAIL_FROM`: the sender, for example `OpenAct <no-reply@yourdomain.com>`.
-5. Click **Deploy**. The deploy script applies the database migrations, then deploys the Worker.
+Every project belongs to one company. A person can be in many companies and switch between them at the top of the side panel.
 
-After the first deploy:
-
-1. In Resend, verify the domain that you use in `EMAIL_FROM`. Without this step, sign-in emails do not arrive.
-2. In the Cloudflare dashboard, go to **AI > AI Gateway** and make a gateway named `openact`. If the gateway does not exist, AI requests still work, but without gateway logs and limits.
-3. Open your Worker URL. Type your email. The first person can always sign up.
-
-## Deploy by hand
-
-You need Node.js 20 or later and a Cloudflare account.
-
-```sh
-git clone https://github.com/marketgrowth/openact.git
-cd openact
-npm install
-npx wrangler login
-
-# Make the database. Copy the database_id from the output into wrangler.jsonc, under d1_databases.
-npx wrangler d1 create openact
-
-# Make the file bucket.
-npx wrangler r2 bucket create openact-files
-
-# Add the secrets.
-npx wrangler secret put RESEND_API_KEY
-npx wrangler secret put AUTH_SECRET
-
-# Set EMAIL_FROM and the other settings in wrangler.jsonc under "vars". Then build and deploy.
-npm run build
-npm run deploy
-```
-
-`npm run deploy` applies new migrations first, then deploys. Use it for every update.
-
-## Run it on your computer
-
-```sh
-npm install
-cp .dev.vars.example .dev.vars   # optional
-npm run dev
-```
-
-Open http://localhost:8787.
-
-- Without `RESEND_API_KEY`, OpenAct does not send email. It prints each sign-in code in the terminal.
-- `npm run dev` runs fully local, so AI assist is off. To use AI on your computer, run `npx wrangler login`, then `npm run dev:ai`.
-- For hot reload of the web app, run `npx wrangler dev --local` in one terminal and `npm run dev:ui` in a second terminal. Then open http://localhost:5173.
-
-Other commands:
-
-| Command | What it does |
+| Company role | What they can do |
 | --- | --- |
-| `npm run typecheck` | Checks the types of the Worker and the web app |
-| `npm test` | Runs the unit tests |
-| `npm run build` | Builds the web app into `dist/client` |
-| `npm run db:migrate:local` | Applies migrations to the local database |
-| `npm run db:migrate:remote` | Applies migrations to the Cloudflare database |
+| Owner | Manage the company, its people, its owners and every company project. Delete the company. |
+| Admin | Manage the company, its people and every company project. |
+| Member | See every company project as a viewer. Create projects. |
+| Guest | See only the projects they are invited to. |
 
-## Settings
+| Project visibility | Who can see it |
+| --- | --- |
+| Company | Every company member, as a viewer. Company owners and admins manage it. People on the project keep their project role. |
+| Secret | Only the people on the project. Company owners and admins do not see it unless they are on it. |
 
-Set these under `vars` in `wrangler.jsonc`, or in the Cloudflare dashboard.
-
-| Name | Default | What it does |
-| --- | --- | --- |
-| `APP_NAME` | `OpenAct` | The name in the app and in emails |
-| `APP_URL` | empty | The public URL used in email links. Empty means the URL of the request. |
-| `EMAIL_FROM` | `OpenAct <no-reply@example.com>` | The sender address. The domain must be verified in Resend. |
-| `SIGNUP_MODE` | `open` | `open`: anyone can sign up. `invite`: only invited people can sign up. |
-| `ALLOWED_EMAIL_DOMAINS` | empty | A comma-separated list of domains that can sign up, for example `example.com,example.org` |
-| `AI_PROVIDER` | `workers-ai` | `workers-ai`, `anthropic` or `openai` |
-| `AI_MODEL` | `@cf/meta/llama-3.3-70b-instruct-fp8-fast` | The model ID for the provider |
-| `AI_SCOPE_MODEL` | (empty) | A small, fast model for the topic check. Empty uses `@cf/meta/llama-3.1-8b-instruct-fast`, `claude-haiku-5-5` or `gpt-4.1-mini`, by provider. |
-| `AI_GATEWAY_ID` | `openact` | The AI Gateway name. Empty turns the gateway off. |
-| `CF_ACCOUNT_ID` | empty | Your account ID. Needed for `anthropic` and `openai`. |
-| `TYPESAFE_MODEL` | `jev-1.14.0` | The Jev release for the topic check. Pinned, because the thresholds are set for it. |
-| `TYPESAFE_BASE_URL` | `https://api.typesafe.ai` | Another URL for the TypeSafe API, such as a gateway |
-
-Set these secrets with `npx wrangler secret put NAME`:
-
-| Secret | Needed | What it does |
-| --- | --- | --- |
-| `RESEND_API_KEY` | Yes | Sends sign-in codes and invitations |
-| `AUTH_SECRET` | Yes | Protects stored sign-in codes. Use 32 or more random characters. |
-| `ANTHROPIC_API_KEY` | For `anthropic` | Anthropic API key, sent through AI Gateway |
-| `OPENAI_API_KEY` | For `openai` | OpenAI API key, sent through AI Gateway |
-| `AI_GATEWAY_TOKEN` | No | Needed only if your AI Gateway uses authentication |
-| `TYPESAFE_API_KEY` | No | Turns on Jev for the topic check. Get a key from TypeSafe. |
-
-The first person to sign in can always make an account, even in `invite` mode. An invitation always lets that email sign up, even when `ALLOWED_EMAIL_DOMAINS` does not include its domain.
+- **Invite to the company** from **Company settings > People**. People join as members or admins.
+- **Invite to one project** from that project's **People** tab. Someone from outside the company joins as a guest and sees only that project.
+- **Email domain auto-join.** Set a domain such as `acme.com` in **Company settings**. People who sign in with that domain join as members. Public domains such as gmail.com are refused, your own email must use the domain, and each domain belongs to one company.
+- **Request access.** A person who opens a project link without access sees a request form. The project owners get an email and approve (with a role) or decline in the **People** tab. Approving someone from outside the company makes them a guest. The page never shows the project's name.
+- **AI defaults.** Company owners and admins set the AI access, note search and topic scope that new projects start with.
+- **Removing someone from a company** removes them from all its projects.
+- **Upgrading an older install.** Migration `0003_companies.sql` gives each project owner a company that holds their projects. Everyone else becomes a guest, so nobody can see more than before. Make people members in **Company settings** when you are ready.
+- The AI agent only routes requests to projects in the same company.
 
 ## How sign-in works
 
 1. A person types their email. OpenAct makes a random 6-digit code and sends it with Resend.
 2. The code works for 10 minutes and for 5 tries. Only the newest code works.
 3. When the code is correct, OpenAct sets a session cookie for 30 days. The cookie is `HttpOnly` and `SameSite=Lax`, and `Secure` on HTTPS.
-4. Pending invitations for that email become project memberships.
+4. Pending project and company invitations for that email become memberships. If a company claimed the email's domain, the person joins it as a member.
 
 OpenAct stores only SHA-256 hashes of codes and session tokens. It limits code requests to 5 for each email in 15 minutes and 30 for each IP address in one hour. A daily cron job deletes old codes and sessions.
 
@@ -169,10 +101,12 @@ For the full list of tools, services, fonts and versions, read the [Colophon](do
 ```
 src/
   shared/types.ts      Types and constants for the API and the web app
+  shared/access.ts     Who can open a project: project role, company role and visibility
   worker/              The API
     index.ts           Routes, security headers, error handling, cron
     auth.ts            Email code sign-in and sessions
-    projects.ts        Projects, members and invitations
+    companies.ts       Companies, company people, logos, auto-join
+    projects.ts        Projects, members, invitations and access requests
     tasks.ts           Tasks and file attachments
     ai.ts, plan.ts     AI assist through AI Gateway
     agui.ts            AG-UI endpoint for the project assistant

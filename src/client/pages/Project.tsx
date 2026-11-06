@@ -2,6 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   PROJECT_COLORS,
   STATUSES,
+  VISIBILITIES,
+  VISIBILITY_HELP,
+  VISIBILITY_LABELS,
+  type Visibility,
   type AppConfig,
   type Attachment,
   type ProjectColor,
@@ -25,6 +29,7 @@ import { AiDialog } from "../components/AiDialog";
 import { useAgent } from "../agui/useAgent";
 import type { UiToolHandlers } from "../agui/tools";
 import { PROJECT_VIEWS, UI_TOOLS, type OpenActAgentState, type ProjectView } from "../../shared/agui";
+import { useWorkspace } from "../workspace";
 
 type View = ProjectView;
 const POLL_MS = 5000;
@@ -39,6 +44,8 @@ export function ProjectPage({ projectId, view, me, config }: { projectId: string
   const toast = useToast();
   const [data, setData] = useState<ProjectDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [noAccess, setNoAccess] = useState(false);
+  const ws = useWorkspace();
   const [offline, setOffline] = useState(false);
   const [q, setQ] = useState("");
   const [mine, setMine] = useState(false);
@@ -57,6 +64,7 @@ export function ProjectPage({ projectId, view, me, config }: { projectId: string
       setData(d);
       setError(null);
     } catch (e) {
+      if (e instanceof ApiError && e.code === "no_access") setNoAccess(true);
       if (e instanceof ApiError && (e.status === 404 || e.status === 403)) setError(e.message);
       else setError(errorText(e));
     }
@@ -69,7 +77,7 @@ export function ProjectPage({ projectId, view, me, config }: { projectId: string
   // Stay in sync with other people: poll a cheap revision number, reload when it changes.
   useEffect(() => {
     const tick = async () => {
-      if (document.visibilityState !== "visible" || busyRef.current) return;
+      if (document.visibilityState !== "visible" || busyRef.current || !revRef.current) return;
       try {
         const r = await api<{ rev: number }>(`/api/projects/${projectId}/rev`);
         setOffline(false);
@@ -103,6 +111,13 @@ export function ProjectPage({ projectId, view, me, config }: { projectId: string
     setAiDraft(h.text);
     setAiOpen(true);
   }, [loaded, projectId]);
+
+  // Opening a project from another company makes that company current, so the side panel matches.
+  const projectCompany = data?.project.companyId ?? null;
+  const { current: currentCompany, companies, switchTo } = ws;
+  useEffect(() => {
+    if (projectCompany && currentCompany?.id !== projectCompany && companies?.some((c) => c.id === projectCompany)) switchTo(projectCompany);
+  }, [projectCompany, currentCompany?.id, companies, switchTo]);
 
   const canEdit = data?.role === "owner" || data?.role === "editor";
   const isOwner = data?.role === "owner";
@@ -305,6 +320,7 @@ export function ProjectPage({ projectId, view, me, config }: { projectId: string
     }
   };
 
+  if (noAccess && !data) return <RequestAccess projectId={projectId} />;
   if (error && !data) {
     return (
       <main className="wrap page">
@@ -524,13 +540,17 @@ function ProjectSettings({
   const [name, setName] = useState(data.project.name);
   const [description, setDescription] = useState(data.project.description);
   const [color, setColor] = useState<ProjectColor>(data.project.color);
+  const [visibility, setVisibility] = useState<Visibility>(data.project.visibility);
   const [busy, setBusy] = useState(false);
+  const onProject = data.members.some((m) => m.userId === me.id);
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
     try {
-      await api(`/api/projects/${data.project.id}`, { method: "PATCH", body: { name, description, color } });
+      const body: Record<string, unknown> = { name, description, color };
+      if (isOwner && visibility !== data.project.visibility) body.visibility = visibility;
+      await api(`/api/projects/${data.project.id}`, { method: "PATCH", body });
       toast("Project saved.");
       onSaved();
       onClose();
@@ -584,6 +604,19 @@ function ProjectSettings({
             </div>
           </fieldset>
         </fieldset>
+        <fieldset className="field" disabled={!isOwner}>
+          <legend className="lbl">Who can see it</legend>
+          {VISIBILITIES.map((v) => (
+            <label key={v} className="radio-row">
+              <input type="radio" name="ps-visibility" checked={visibility === v} onChange={() => setVisibility(v)} />
+              <span>
+                <b>{VISIBILITY_LABELS[v]}</b>
+                <span className="hint">{VISIBILITY_HELP[v]}</span>
+              </span>
+            </label>
+          ))}
+          {!isOwner && <p className="hint">Only project owners can change who can see the project.</p>}
+        </fieldset>
         {canEdit && (
           <div className="row-end">
             <button type="submit" className="btn primary" disabled={busy || !name.trim()}>
@@ -595,7 +628,7 @@ function ProjectSettings({
       <hr />
       <div className="stack">
         <div className="row-wrap">
-          <ConfirmButton label="Leave project" confirmLabel="Click again to leave" onConfirm={leave} />
+          {onProject && <ConfirmButton label="Leave project" confirmLabel="Click again to leave" onConfirm={leave} />}
           {isOwner && <ConfirmButton label={<><Icon name="trash" size={16} /> Delete project</>} confirmLabel="Click again to delete everything" onConfirm={remove} />}
         </div>
         {isOwner && <p className="hint">Deleting a project removes its tasks and files for everyone. You cannot undo it.</p>}
@@ -603,5 +636,69 @@ function ProjectSettings({
       <hr />
       <AiSettings projectId={data.project.id} policy={data.aiPolicy} isOwner={isOwner} members={data.members} onSaved={onSaved} />
     </Modal>
+  );
+}
+
+/** Shown when someone opens a link to a project they cannot see. It never shows the project's name. */
+function RequestAccess({ projectId }: { projectId: string }) {
+  const toast = useToast();
+  const [state, setState] = useState<"loading" | "ready" | "sent">("loading");
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    api<{ hasAccess: boolean; requested: boolean }>(`/api/projects/${projectId}/access`)
+      .then((r) => (r.hasAccess ? location.reload() : setState(r.requested ? "sent" : "ready")))
+      .catch(() => setState("ready"));
+  }, [projectId]);
+
+  const send = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      await api(`/api/projects/${projectId}/access-requests`, { body: { note } });
+      setState("sent");
+    } catch (err) {
+      toast(errorText(err));
+      setBusy(false);
+    }
+  };
+
+  return (
+    <main className="wrap page">
+      <div className="state access-state">
+        <span className="access-icon" aria-hidden="true">
+          <Icon name="shield" size={26} />
+        </span>
+        {state === "sent" ? (
+          <>
+            <h3>Your request was sent</h3>
+            <p>The project owners got an email. You get an email when they approve it. Then this link opens the project.</p>
+            <Link to="/" className="btn">
+              Go to your projects
+            </Link>
+          </>
+        ) : (
+          <>
+            <h3>You need access to this project</h3>
+            <p>This project is private, or it belongs to a company that you are not in. Ask the owners for access.</p>
+            <form className="stack access-form" onSubmit={send}>
+              <div className="field">
+                <label htmlFor="ra-note">Note to the owners (optional)</label>
+                <textarea id="ra-note" rows={3} maxLength={300} value={note} onChange={(e) => setNote(e.target.value)} placeholder="For example: I am the new designer on this launch." />
+              </div>
+              <div className="row-end">
+                <Link to="/" className="btn ghost">
+                  Cancel
+                </Link>
+                <button type="submit" className="btn primary" disabled={busy || state === "loading"}>
+                  Request access
+                </button>
+              </div>
+            </form>
+          </>
+        )}
+      </div>
+    </main>
   );
 }
