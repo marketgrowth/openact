@@ -30,23 +30,32 @@
   padding: 0 0 64px;
 }
 
-/* The stage behind the home hero. Light theme: house lights up. Dark theme: house lights down, spotlight on. */
+/* The stage behind the home hero. Light theme: the stage under work lights. Dark theme: the show, with one spotlight. */
 :root {
-  --stage-wall: #f4ece0;
-  --stage-glow-color: rgba(255, 246, 222, 1);
-  --stage-glow: 0.9;
-  --stage-beam-color: rgba(255, 250, 236, 0.9);
-  --stage-beam: 0.35;
-  --stage-floor: #c79f74;
-  --stage-planks: 0.55;
-  --stage-pool: 0.55;
-  --stage-lip: #6b4a30;
-  --stage-bulb: #f3cf86;
-  --stage-bulb-glow: rgba(243, 207, 134, 0.25);
-  --stage-curtain: #a31f36;
-  --stage-curtain-shade: #741427;
-  --stage-curtain-shine: #c43d55;
-  --stage-gold: #d9a441;
+  --stage-wall: #c8b9a6;
+  --stage-drape-o: 0.18;
+  --stage-cyc: rgba(255, 247, 232, 1);
+  --stage-cyc-o: 0.92;
+  --stage-beam-color: rgba(255, 248, 230, 0.9);
+  --stage-beam: 0.22;
+  --stage-dust: 0;
+  --stage-wood: #a3703f;
+  --stage-wood-dark: #4f3018;
+  --stage-floor-depth: rgba(48, 28, 12, 0.5);
+  --stage-pool-color: rgba(255, 240, 210, 0.6);
+  --stage-pool: 0.7;
+  --stage-trim: #3a2414;
+  --stage-trim-light: #6b4a2e;
+  --stage-bulb: #ffe7b0;
+  --stage-bulb-glow: rgba(255, 214, 150, 0.3);
+  --velvet-shadow: #42050f;
+  --velvet-base: #8b1424;
+  --velvet-light: #c12a41;
+  --velvet-rim: rgba(255, 196, 170, 0.45);
+  --stage-gold: #d4a24a;
+  --stage-gold-dark: #7a561c;
+  --stage-vignette: rgba(40, 24, 12, 0.28);
+  --stage-grain: 0.07;
   /* For footage */
   --stage-footage-filter: brightness(1.08) saturate(0.95);
   --stage-house: rgba(255, 250, 242, 0.62);
@@ -54,21 +63,30 @@
   --stage-spot-dim: 0.6;
 }
 .dark {
-  --stage-wall: #0c0a10;
-  --stage-glow-color: rgba(255, 228, 170, 1);
-  --stage-glow: 0.16;
-  --stage-beam-color: rgba(255, 232, 180, 0.55);
-  --stage-beam: 0.5;
-  --stage-floor: #2b1d14;
-  --stage-planks: 0.8;
-  --stage-pool: 0.38;
-  --stage-lip: #120c08;
+  --stage-wall: #060508;
+  --stage-drape-o: 0.6;
+  --stage-cyc: rgba(255, 214, 150, 1);
+  --stage-cyc-o: 0.08;
+  --stage-beam-color: rgba(255, 234, 196, 0.8);
+  --stage-beam: 0.6;
+  --stage-dust: 0.9;
+  --stage-wood: #4a2d18;
+  --stage-wood-dark: #160c05;
+  --stage-floor-depth: rgba(0, 0, 0, 0.82);
+  --stage-pool-color: rgba(255, 210, 150, 0.55);
+  --stage-pool: 0.95;
+  --stage-trim: #0b0705;
+  --stage-trim-light: #2a1b10;
   --stage-bulb: #ffd88a;
-  --stage-bulb-glow: rgba(255, 196, 92, 0.55);
-  --stage-curtain: #4d0c19;
-  --stage-curtain-shade: #2a050e;
-  --stage-curtain-shine: #6a1729;
-  --stage-gold: #9a7330;
+  --stage-bulb-glow: rgba(255, 186, 90, 0.6);
+  --velvet-shadow: #120105;
+  --velvet-base: #470812;
+  --velvet-light: #7c1424;
+  --velvet-rim: rgba(255, 178, 110, 0.32);
+  --stage-gold: #a07a34;
+  --stage-gold-dark: #43300f;
+  --stage-vignette: rgba(0, 0, 0, 0.75);
+  --stage-grain: 0.09;
   --stage-footage-filter: brightness(0.62) saturate(1.05);
   --stage-house: rgba(8, 6, 10, 0.35);
   --stage-dim: rgba(4, 3, 6, 0.92);
