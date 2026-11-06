@@ -36,9 +36,10 @@
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
 
-  /* OpenAct brand: the logo and the live dot */
-  --brand: #3347cf;
+  /* OpenAct brand, Playbill ink: near-black ink with a stage gold accent */
+  --brand: #1c1824;
   --brand-foreground: #ffffff;
+  --brand-gold: #8a6420;
 
   /* Status of a task or a column */
   --s-backlog: #8d97a9;
@@ -99,15 +100,16 @@
   --ring: oklch(0.556 0 0);
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-primary: #ece7f2;
+  --sidebar-primary-foreground: #1c1824;
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
 
-  --brand: #8090ff;
-  --brand-foreground: #0d1120;
+  --brand: #ece7f2;
+  --brand-foreground: #1c1824;
+  --brand-gold: #e3b85c;
   --s-backlog: #7e899d;
   --s-todo: #6c9ae8;
   --s-doing: #e8a13a;
@@ -175,6 +177,7 @@
 
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
+  --color-brand-gold: var(--brand-gold);
   --color-warn: var(--warn);
   --color-warn-foreground: var(--warn-foreground);
   --color-warn-border: var(--warn-border);

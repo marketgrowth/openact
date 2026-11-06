@@ -1,34 +1,36 @@
 /* OpenAct brand on the VitePress theme: the app's indigo and the Geist fonts. */
 :root {
   --oa-display-font: "Playfair Display", "Didot", "Bodoni 72", Georgia, "Times New Roman", serif;
-  --vp-c-brand-1: #3347cf;
-  --vp-c-brand-2: #4558d8;
-  --vp-c-brand-3: #3347cf;
-  --vp-c-brand-soft: rgba(51, 71, 207, 0.12);
+  /* Playbill ink: near-black ink, with stage gold for links and highlights */
+  --oa-ink: #1c1824;
+  --oa-gold: #d4a24a;
+  --vp-c-brand-1: #8a6420;
+  --vp-c-brand-2: #a3772a;
+  --vp-c-brand-3: #1c1824;
+  --vp-c-brand-soft: rgba(212, 162, 74, 0.16);
+  --vp-button-brand-bg: #1c1824;
+  --vp-button-brand-hover-bg: #2c2636;
+  --vp-button-brand-active-bg: #0f0d14;
+  --vp-button-brand-text: #ffffff;
   --vp-font-family-base: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --vp-font-family-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  --vp-home-hero-name-color: transparent;
-  --vp-home-hero-name-background: linear-gradient(120deg, #3347cf 30%, #7a4fc4);
+  --vp-home-hero-name-color: var(--vp-c-text-1);
 }
 
 .dark {
-  --vp-c-brand-1: #8b9bff;
-  --vp-c-brand-2: #a4b0ff;
-  --vp-c-brand-3: #5b6ef0;
-  --vp-c-brand-soft: rgba(139, 155, 255, 0.16);
-  --vp-home-hero-name-background: linear-gradient(120deg, #8b9bff 30%, #b89cf0);
+  --vp-c-brand-1: #e3b85c;
+  --vp-c-brand-2: #ecc874;
+  --vp-c-brand-3: #d4a24a;
+  --vp-c-brand-soft: rgba(212, 162, 74, 0.16);
+  --vp-button-brand-bg: #ece7f2;
+  --vp-button-brand-hover-bg: #ffffff;
+  --vp-button-brand-active-bg: #d9d2e3;
+  --vp-button-brand-text: #1c1824;
 }
 
 .vp-doc img {
   border: 1px solid var(--vp-c-divider);
   border-radius: 10px;
-}
-
-/* Text sections under the home page features. VitePress already adds the page gutters. */
-.home-more {
-  max-width: 1152px;
-  margin: 48px auto 0;
-  padding: 0 0 64px;
 }
 
 /* The stage behind the home hero. Light theme: the stage under work lights. Dark theme: the show, with one spotlight. */

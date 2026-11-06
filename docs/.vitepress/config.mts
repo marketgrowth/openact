@@ -21,7 +21,7 @@ export default defineConfig({
     ["meta", { property: "og:site_name", content: "OpenAct docs" }]
   ],
   themeConfig: {
-    logo: "/logo.svg",
+    logo: { light: "/logo.svg", dark: "/logo-dark.svg", alt: "OpenAct" },
     siteTitle: "OpenAct",
     nav: [
       { text: "Guide", link: "/getting-started", activeMatch: "^/(getting-started|companies|apps|permissions)" },

@@ -123,11 +123,10 @@ async function copy(a: DirApp) {
 .dir-head { display: flex; align-items: center; gap: 10px; }
 .dir-tile {
   flex: none; width: 36px; height: 36px; border-radius: 9px; display: grid; place-items: center;
-  font-weight: 600; color: #fff; background: var(--vp-c-brand-1);
+  font-weight: 600; color: var(--vp-button-brand-text); background: var(--vp-button-brand-bg);
 }
 .dir-tile[data-status="planned"] { background: var(--vp-c-default-soft); color: var(--vp-c-text-2); border: 1px dashed var(--vp-c-divider); }
 .dir-tile[data-status="example"] { background: var(--vp-c-brand-soft); color: var(--vp-c-brand-1); }
-.dark .dir-tile[data-status="built-in"], .dark .dir-tile[data-status="available"] { color: #0d1120; }
 .dir-title { display: grid; min-width: 0; flex: 1; line-height: 1.3; }
 .dir-name { font-weight: 600; color: var(--vp-c-text-1) !important; text-decoration: none !important; }
 .dir-name:hover { color: var(--vp-c-brand-1) !important; }
