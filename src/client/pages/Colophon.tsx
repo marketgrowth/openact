@@ -106,7 +106,8 @@ const LOG: Array<{ title: string; detail: string; commit?: string }> = [
   { title: "Features and build log", detail: "This page lists what OpenAct does and how it was built.", commit: "c01bf9a" },
   {
     title: "shadcn/ui",
-    detail: "The whole web app moves to shadcn/ui, Tailwind CSS and Lucide icons, with the dashboard-01 layout. The chat keeps your place when you scroll up."
+    detail: "The whole web app moves to shadcn/ui, Tailwind CSS and Lucide icons, with the dashboard-01 layout. The chat keeps your place when you scroll up.",
+    commit: "07ea4d1"
   }
 ];
 
