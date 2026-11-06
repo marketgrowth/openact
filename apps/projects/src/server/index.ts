@@ -73,6 +73,19 @@ async function acceptInvitations(env: Env, user: User): Promise<void> {
 export default defineServerApp({
   id: "projects",
   name: "Projects",
+  permissions: {
+    "projects.create": {
+      label: "Create projects",
+      description: "Start new projects in this company. The person who creates a project is its owner.",
+      roles: ["owner", "admin", "member"]
+    },
+    "projects.browse": {
+      label: "See all company projects",
+      description: "Open every project with company visibility as a viewer, without an invitation. Secret projects stay hidden.",
+      roles: ["owner", "admin", "member"],
+      locked: ["owner", "admin"]
+    }
+  },
   routes: (api) => {
     api.route("/api/projects", liveRoutes);
     api.route("/api/projects", projectRoutes);

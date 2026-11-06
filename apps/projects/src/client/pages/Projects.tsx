@@ -11,8 +11,7 @@ import {
   type User,
   type Visibility
 } from "../../shared/types";
-import { canCreateProjects } from "../../shared/access";
-import { useShell, useWorkspace } from "@openact/ui";
+import { useCan, useShell, useWorkspace } from "@openact/ui";
 import { useProjects } from "../projects-context";
 import { api, errorText } from "@openact/ui";
 import { Link, navigate } from "@openact/ui";
@@ -51,7 +50,7 @@ export function ProjectsPage() {
     );
   }
 
-  const canCreate = canCreateProjects(current?.role ?? null);
+  const canCreate = useCan("projects.create");
   const totals = (projects ?? []).reduce((t, p) => ({ tasks: t.tasks + p.taskCount, done: t.done + p.doneCount, late: t.late + p.lateCount }), {
     tasks: 0,
     done: 0,

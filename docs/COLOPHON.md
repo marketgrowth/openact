@@ -17,6 +17,7 @@ The app shows the same page at `/colophon`. Keep the two in step with `package.j
 | Pinned and Recent | Pin projects to the top of the panel. Recent shows the tasks you opened lately, and one click opens a task again. Both are yours only. |
 | Companies | One install holds many companies. Switch from the company mark at the top of the app rail. Each company has its own name, logo, people, email domain and AI defaults. |
 | Access | Project roles (owner, editor, viewer) and company roles (owner, admin, member, guest). Owners can make a project secret. People without access can ask for it. |
+| Permissions | Owners and admins turn apps on or off for their company, and choose what each role can do in each app. Apps declare their permissions, and the core checks them. |
 | Search | Ctrl+K or Cmd+K searches every project you can see, by words and by meaning. The task panel shows related tasks. |
 | Live updates | A change shows on every open page at once, including changes from the AI agent. The header shows who else is viewing. |
 | AI agent | Tell it what to do in plain words. It acts for you, never with more power than your role. Risky changes wait for your approval, and every action is logged. |
@@ -101,7 +102,7 @@ A small set of dependencies. The Worker has one runtime dependency, Hono.
 | [Vite](https://vite.dev) | 8.3.6 | Builds the web app |
 | [Wrangler](https://developers.cloudflare.com/workers/wrangler/) | 4.158.0 | Local development, migrations and deploys |
 | [@ag-ui/core](https://www.npmjs.com/package/@ag-ui/core) | 1.0.4 | AG-UI types, imported as types only |
-| Node test runner | Built in | 68 unit tests for app paths, dates, the AI planner, the AG-UI client, agent access, company access, links, search ranking and the topic check |
+| Node test runner | Built in | 74 unit tests for app paths, permissions, dates, the AI planner, the AG-UI client, agent access, company access, links, search ranking and the topic check |
 | Search pipeline test | Built in | 20 checks that run the real search code and migrations on Node's built-in SQLite, with a stand-in for Vectorize |
 | GitHub Actions | | Type checks, tests, a build and a deploy dry run on every push |
 

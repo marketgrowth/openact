@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { canCreateProjects, canManageCompany, effectiveProjectRole, emailDomainProblem } from "../apps/projects/src/shared/access.ts";
+import { canManageCompany, effectiveProjectRole, emailDomainProblem } from "../apps/projects/src/shared/access.ts";
 
 const role = (visibility: "company" | "secret", projectRole: "owner" | "editor" | "viewer" | null, companyRole: "owner" | "admin" | "member" | "guest" | null) =>
   effectiveProjectRole({ visibility, projectRole, companyRole });
@@ -24,9 +24,15 @@ test("secret projects: only their own members, whatever the company role", () =>
   assert.equal(role("secret", "editor", "guest"), "editor");
 });
 
-test("who can manage the company and create projects", () => {
+test("who can manage the company", () => {
   assert.deepEqual(["owner", "admin", "member", "guest", null].map((r) => canManageCompany(r as never)), [true, true, false, false, false]);
-  assert.deepEqual(["owner", "admin", "member", "guest", null].map((r) => canCreateProjects(r as never)), [true, true, true, false, false]);
+});
+
+test("members without projects.browse see only projects they are on", () => {
+  const r = (projectRole: "viewer" | null) => effectiveProjectRole({ visibility: "company", projectRole, companyRole: "member", canBrowse: false });
+  assert.equal(r(null), null);
+  assert.equal(r("viewer"), "viewer");
+  assert.equal(effectiveProjectRole({ visibility: "company", projectRole: null, companyRole: "admin", canBrowse: false }), "owner");
 });
 
 test("auto-join domains must be real, private and the admin's own", () => {

@@ -22,3 +22,13 @@ export {
 } from "./live.ts";
 export { defineServerApp, getApps, runHook, type ServerApp, type AppHooks } from "./apps.ts";
 export { createWorker, DAILY_CRON } from "./worker.ts";
+export {
+  requirePermission,
+  hasPermission,
+  requireAppOn,
+  appOffError,
+  companyAppState,
+  getCatalog,
+  type AppInfo,
+  type CompanyAppState
+} from "./permissions.ts";

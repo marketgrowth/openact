@@ -34,7 +34,7 @@ The core must never import from an app. If the core needs something from apps, a
 
 ## Rules you must follow
 
-1. **Check access.** Every project route calls `requireRole(env, projectId, userId, minRole)`. Use the lowest role that can do the action. `requireRole` combines the project role, the company role and the project's visibility (`apps/projects/src/shared/access.ts`). Never decide access by reading `project_members` alone. To list projects, use `visibleProjectIds`. Company routes call `requireCompanyRole`.
+1. **Check access.** Every project route calls `requireRole(env, projectId, userId, minRole)`. Use the lowest role that can do the action. `requireRole` combines the project role, the company role and the project's visibility (`apps/projects/src/shared/access.ts`). Never decide access by reading `project_members` alone. To list projects, use `visibleProjectIds`. Both also check that the projects app is on and read `projects.browse`. Company routes call `requireCompanyRole`. App routes call `requirePermission` with a permission the app declares.
 2. **Bump the revision.** Every write to a project's data includes `bumpRev(env, projectId)` in the same `DB.batch`. `bumpRev` also marks the project as changed, so its live room tells open pages to reload. If you change `rev` with raw SQL, call `markProjectChanged(projectId)` too. Writes that happen after a streamed response starts (the agent) must call `flushProjectChanges(env)`. Other apps use `markChanged(kind, id)` and `flushChanges(env)` from the core.
 3. **Validate input** with the helpers in `packages/core/src/server/util.ts`. Throw `HttpError` with a plain message that the web app can show.
 4. **Protect secrets.** Store only hashes of codes and tokens. Never log codes, tokens or email bodies when `RESEND_API_KEY` is set.
@@ -53,7 +53,7 @@ The core must never import from an app. If the core needs something from apps, a
 
 14. **Use shadcn/ui.** Build UI from the components in `packages/ui/src/components` (import `@openact/ui/components/<name>`) and Tailwind classes. Add a component by running `npx shadcn@latest add <name>` in `packages/ui`. Do not add another UI kit, CSS framework or icon set. Use Lucide icons through `Icon` from `@openact/ui`. Keep the dashboard-01 layout: every signed-in page starts with `SiteHeader` and puts its content in `PageBody`.
 
-15. **Apps stay in their lane.** Prefix an app's tables, routes, file keys, room kinds and command ids with its id. An app reads people and companies through the core. It cleans up its data in the `companyMemberRemoved` and `companyDeleting` hooks.
+15. **Apps stay in their lane.** Prefix an app's tables, routes, file keys, room kinds and command ids with its id. An app reads people and companies through the core. It cleans up its data in the `companyMemberRemoved` and `companyDeleting` hooks. It declares its permissions in `defineServerApp({ permissions })` and never hard-codes company roles in a route.
 
 ## Writing style for text in the app and docs
 

@@ -18,13 +18,12 @@ import {
 import { AGENT_LEVELS, AGENT_SCOPES, type AgentAction, type AgentLevel, type AiPolicy } from "../shared/types";
 import { ROLE_CEILING, effectiveLevel, levelRank, parsePolicy } from "../shared/agent-policy";
 import { bumpRev, deletePrefix, projectAccess, requireCompanyRole, requireRole, revFrom, toAttachment, toColumn, toTask, visibleProjectIds, type AttachmentRow, type TaskRow } from "./data";
-import { canCreateProjects } from "../shared/access";
 import { currentCompanyId } from "./companies";
 import { accessGrantedEmail, accessRequestEmail, sendEmail } from "./email";
 import { reindexProjectStatement } from "./search";
 import { markProjectChanged } from "./live";
 import { changeMemberRole, defaultColumnStatements, inviteMember, removeMember } from "./services";
-import { HttpError, addDays, appUrl, newId, nowIso, oneOf, readJson, requireUser, text, todayIso } from "./util";
+import { HttpError, addDays, appUrl, newId, nowIso, oneOf, readJson, requireAppOn, requirePermission, requireUser, text, todayIso } from "./util";
 
 export const projectRoutes = new Hono<AppEnv>();
 
@@ -34,6 +33,7 @@ projectRoutes.get("/", async (c) => {
   const companyId = c.req.query("company") || (await currentCompanyId(c.env, user.id));
   if (!companyId) return c.json({ companyId: null, projects: [], recentTasks: [] });
   await requireCompanyRole(c.env, companyId, user.id, [...COMPANY_ROLES]);
+  await requireAppOn(c.env, companyId, "projects");
   const visible = await visibleProjectIds(c.env, companyId, user.id);
   if (!visible.length) return c.json({ companyId, projects: [], recentTasks: [] });
   const byId = new Map(visible.map((v) => [v.id, v]));
@@ -148,8 +148,7 @@ projectRoutes.post("/", async (c) => {
   const visibility = body.visibility === undefined ? "company" : oneOf(body.visibility, "Visibility", VISIBILITIES);
   const companyId = typeof body.companyId === "string" ? body.companyId : await currentCompanyId(c.env, user.id);
   if (!companyId) throw new HttpError(400, "Create a company first. Every project belongs to a company.");
-  const cRole = await requireCompanyRole(c.env, companyId, user.id, [...COMPANY_ROLES]);
-  if (!canCreateProjects(cRole)) throw new HttpError(403, "Guests cannot create projects. Ask a company admin to make you a member.");
+  await requirePermission(c.env, companyId, user.id, "projects.create");
   // New projects start with the company's AI defaults.
   const co = await c.env.DB.prepare("SELECT ai_defaults FROM companies WHERE id = ?").bind(companyId).first<{ ai_defaults: string }>();
   const aiPolicy = JSON.stringify(parsePolicy(co?.ai_defaults));

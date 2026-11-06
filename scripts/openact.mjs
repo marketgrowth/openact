@@ -11,7 +11,9 @@
  *
  * An app is a folder with a package.json that has an "openact" field:
  *   { "id": "orbytt", "name": "Orbytt", "server": "./src/server/index.ts", "client": "./src/client/index.tsx",
- *     "migrations": "./migrations", "durableObjects": ["GroupRoom"] }
+ *     "migrations": "./migrations", "durableObjects": ["GroupRoom"], "enabledByDefault": true }
+ *
+ * "enabledByDefault": false makes each company turn the app on in Company settings before it shows.
  *
  * Like shadcn/ui, `add` copies the app's code into your repository. You own it, and you can read and change it.
  * `update` replaces the folder, so keep your own changes in git or send them to the app's authors.
@@ -57,7 +59,8 @@ function manifest(dir, label = relative(ROOT, dir)) {
   for (const key of ["server", "client"]) {
     if (m[key] && !existsSync(join(dir, m[key]))) fail(`The app "${m.id}" lists ${key}: ${m[key]}, but that file does not exist.`);
   }
-  return { ...m, name: m.name ?? m.id, durableObjects: m.durableObjects ?? [] };
+  if (m.enabledByDefault !== undefined && typeof m.enabledByDefault !== "boolean") fail(`The app "${m.id}" has "enabledByDefault": it must be true or false.`);
+  return { ...m, name: m.name ?? m.id, durableObjects: m.durableObjects ?? [], enabledByDefault: m.enabledByDefault ?? true };
 }
 
 /** A path for an import in a file inside .openact/. */
@@ -88,9 +91,12 @@ function sync() {
   writeFileSync(
     join(OUT, "server.ts"),
     header +
-      `import type { ServerApp } from "@openact/core/server";\n` +
+      `import type { AppInfo, ServerApp } from "@openact/core/server";\n` +
       server.map((a, i) => `import app${i} from "${fromOut(join(a.dir, a.server))}";\n`).join("") +
-      `\nexport const apps: ServerApp[] = [${server.map((_, i) => `app${i}`).join(", ")}];\n`
+      `\nexport const apps: ServerApp[] = [${server.map((_, i) => `app${i}`).join(", ")}];\n` +
+      `\n/** Every installed app, also apps with only web code. */\nexport const catalog: AppInfo[] = ${JSON.stringify(
+        loaded.map((a) => ({ id: a.id, name: a.name, enabledByDefault: a.enabledByDefault }))
+      )};\n`
   );
   writeFileSync(
     join(OUT, "durable-objects.ts"),

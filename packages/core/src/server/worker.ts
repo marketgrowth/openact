@@ -6,7 +6,9 @@ import { authRoutes, meRoutes, sessionMiddleware } from "./auth";
 import { companyRoutes } from "./companies";
 import { liveChanges } from "./live";
 import { HttpError, appName } from "./util";
-import { getApps, setApps, type ServerApp } from "./apps";
+import { setApps, type ServerApp } from "./apps";
+import { companyAppRoutes } from "./company-apps";
+import { getCatalog, setCatalog, type AppInfo } from "./permissions";
 
 const securityHeaders: MiddlewareHandler<AppEnv> = async (c, next) => {
   await next();
@@ -43,9 +45,11 @@ export const DAILY_CRON = "17 3 * * *";
 /**
  * Builds the Worker from the core and the installed apps.
  * The host's worker entry calls this with the apps from openact.apps.json.
+ * `catalog` lists every installed app, also apps with only web code. Without it, the catalog is the server apps.
  */
-export function createWorker({ apps }: { apps: ServerApp[] }): ExportedHandler<Env> {
+export function createWorker({ apps, catalog }: { apps: ServerApp[]; catalog?: AppInfo[] }): ExportedHandler<Env> {
   setApps(apps);
+  setCatalog(catalog ?? apps.map((a) => ({ id: a.id, name: a.name, enabledByDefault: true })));
   const app = new Hono<AppEnv>();
 
   app.use("/api/*", securityHeaders, sameOrigin, sessionMiddleware, liveChanges);
@@ -57,7 +61,7 @@ export function createWorker({ apps }: { apps: ServerApp[] }): ExportedHandler<E
       emailEnabled: !!c.env.RESEND_API_KEY,
       signupMode: (c.env.SIGNUP_MODE || "open").trim() === "invite" ? "invite" : "open",
       aiProvider: (c.env.AI_PROVIDER || "workers-ai").trim(),
-      apps: getApps().map((a) => ({ id: a.id, name: a.name }))
+      apps: getCatalog().map((a) => ({ id: a.id, name: a.name }))
     };
     return c.json(config);
   });
@@ -65,6 +69,7 @@ export function createWorker({ apps }: { apps: ServerApp[] }): ExportedHandler<E
   app.route("/api/auth", authRoutes);
   app.route("/api/me", meRoutes);
   app.route("/api/companies", companyRoutes);
+  app.route("/api/companies", companyAppRoutes);
   for (const a of apps) a.routes?.(app);
 
   app.get("/api/health", (c) => c.json({ ok: true }));

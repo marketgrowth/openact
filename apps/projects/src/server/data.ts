@@ -1,4 +1,4 @@
-import { HttpError, markChanged, nowIso, type Env } from "@openact/core/server";
+import { HttpError, appOffError, companyAppState, markChanged, nowIso, type Env } from "@openact/core/server";
 import type { Attachment, Column, CompanyRole, Priority, Role, Status, Task, Visibility } from "../shared/types";
 import { effectiveProjectRole } from "../shared/access";
 
@@ -14,6 +14,8 @@ export interface ProjectAccess {
   role: Role | null;
   projectRole: Role | null;
   companyId: string | null;
+  /** True when the company turned the projects app off. */
+  appOff: boolean;
   companyRole: CompanyRole | null;
   visibility: Visibility;
 }
@@ -30,8 +32,11 @@ export async function projectAccess(env: Env, projectId: string, userId: string)
     .bind(userId, userId, projectId)
     .first<{ visibility: Visibility; company_id: string | null; project_role: Role | null; company_role: CompanyRole | null }>();
   if (!row) return null;
-  const a = { visibility: row.visibility, projectRole: row.project_role, companyRole: row.company_role };
-  return { ...a, companyId: row.company_id, role: effectiveProjectRole(a) };
+  const state = row.company_id ? await companyAppState(env, row.company_id) : null;
+  const appOff = !!state && !state.enabled("projects");
+  const canBrowse = !!state && !!row.company_role && state.roles("projects.browse").includes(row.company_role);
+  const a = { visibility: row.visibility, projectRole: row.project_role, companyRole: row.company_role, canBrowse };
+  return { ...a, companyId: row.company_id, appOff, role: appOff ? null : effectiveProjectRole(a) };
 }
 
 /**
@@ -41,6 +46,7 @@ export async function projectAccess(env: Env, projectId: string, userId: string)
 export async function requireRole(env: Env, projectId: string, userId: string, min: Role): Promise<Role> {
   const access = await projectAccess(env, projectId, userId);
   if (!access) throw new HttpError(404, "This project does not exist.");
+  if (access.appOff) throw appOffError("projects");
   if (!access.role) throw new HttpError(403, "You do not have access to this project. You can ask an owner for access.", "no_access");
   if (RANK[access.role] < RANK[min]) {
     throw new HttpError(403, min === "owner" ? "Only a project owner can do this." : "Your role in this project is view only.");
@@ -54,6 +60,9 @@ export async function visibleProjectIds(
   companyId: string,
   userId: string
 ): Promise<Array<{ id: string; name: string; role: Role; isMember: boolean }>> {
+  const state = await companyAppState(env, companyId);
+  if (!state.enabled("projects")) return [];
+  const browseRoles = state.roles("projects.browse");
   const rows = await env.DB.prepare(
     `SELECT p.id, p.name, p.visibility, pm.role AS project_role, cm.role AS company_role
      FROM projects p
@@ -66,7 +75,8 @@ export async function visibleProjectIds(
     .all<{ id: string; name: string; visibility: Visibility; project_role: Role | null; company_role: CompanyRole | null }>();
   const out: Array<{ id: string; name: string; role: Role; isMember: boolean }> = [];
   for (const r of rows.results) {
-    const role = effectiveProjectRole({ visibility: r.visibility, projectRole: r.project_role, companyRole: r.company_role });
+    const canBrowse = !!r.company_role && browseRoles.includes(r.company_role);
+    const role = effectiveProjectRole({ visibility: r.visibility, projectRole: r.project_role, companyRole: r.company_role, canBrowse });
     if (role) out.push({ id: r.id, name: r.name, role, isMember: !!r.project_role });
   }
   return out;

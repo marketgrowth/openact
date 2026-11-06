@@ -5,7 +5,7 @@ import { api, errorText } from "../api";
 import { Link, navigate, usePath } from "../router";
 import { Field, Modal, ToastProvider, useToast } from "../ui";
 import { WorkspaceProvider, useWorkspace } from "../workspace";
-import { ShellContext, type ClientApp, type Shell } from "../apps";
+import { ShellContext, appHome, railApps, type ClientApp, type Shell } from "../apps";
 import { SignIn } from "./SignIn";
 import { AppSidebar } from "./Sidebar";
 import { PageBody, SiteHeader } from "./SiteHeader";
@@ -99,7 +99,11 @@ function SignedIn({ me, config, apps, onMe }: { me: User; config: AppConfig; app
   const [open, setOpen] = useState(readPanelOpen);
   const [dialog, setDialog] = useState<Dialog>(null);
   const close = useCallback(() => setDialog(null), []);
-  const commands = useMemo(() => apps.flatMap((a) => a.commands ?? []), [apps]);
+  // Apps that are off in this company leave the rail, the commands and the routes.
+  const disabled = ws.access?.disabledApps ?? [];
+  const disabledKey = disabled.join(",");
+  const onApps = useMemo(() => apps.filter((a) => !disabled.includes(a.id)), [apps, disabledKey]);
+  const commands = useMemo(() => onApps.flatMap((a) => a.commands ?? []), [onApps]);
 
   // Ctrl or Cmd with a command's letter opens it from anywhere. Ctrl+B or Cmd+B (in the sidebar) toggles the side panel.
   useEffect(() => {
@@ -140,16 +144,20 @@ function SignedIn({ me, config, apps, onMe }: { me: User; config: AppConfig; app
     for (const r of app.routes ?? []) {
       const m = path.match(r.pattern);
       if (m) {
-        page = r.render(m);
+        page = onApps.includes(app) ? r.render(m) : <AppOff name={app.name} />;
         break;
       }
     }
     if (page) break;
   }
-  if (!page) {
-    const Home = path === "/" ? apps.find((a) => a.Home)?.Home : undefined;
-    page = Home ? <Home /> : <NotFound />;
+  if (!page && path === "/") {
+    const Home = onApps.find((a) => a.Home)?.Home;
+    const first = railApps(onApps)[0];
+    if (Home) page = <Home />;
+    else if (first && ws.access) page = <Redirect to={appHome(first, onApps)} />;
+    else if (ws.access) page = <AppOff name="" />;
   }
+  if (!page) page = ws.access || path !== "/" ? <NotFound /> : null;
 
   const activeCommand = dialog && typeof dialog === "object" ? commands.find((c) => c.id === dialog.command) : undefined;
 
@@ -159,7 +167,7 @@ function SignedIn({ me, config, apps, onMe }: { me: User; config: AppConfig; app
       <AppSidebar
         me={me}
         appName={config.appName}
-        apps={apps}
+        apps={onApps}
         onRunCommand={(id) => setDialog({ command: id })}
         onNewCompany={() => setDialog("newCompany")}
         onCompanySettings={() => setDialog("companySettings")}
@@ -180,13 +188,33 @@ function SignedIn({ me, config, apps, onMe }: { me: User; config: AppConfig; app
       <Suspense fallback={null}>
         {dialog === "account" && <AccountDialog me={me} onChange={onMe} onSignOut={signOut} onClose={close} />}
         {dialog === "newCompany" && <NewCompanyDialog onClose={close} />}
-        {dialog === "companySettings" && ws.current && <CompanySettings companyId={ws.current.id} me={me} apps={apps} onClose={close} />}
+        {dialog === "companySettings" && ws.current && <CompanySettings companyId={ws.current.id} me={me} apps={onApps} onClose={close} />}
         {activeCommand && <activeCommand.Dialog onClose={close} />}
       </Suspense>
     </SidebarProvider>
   );
   for (const app of [...apps].reverse()) if (app.Provider) body = <app.Provider>{body}</app.Provider>;
   return <ShellContext.Provider value={shell}>{body}</ShellContext.Provider>;
+}
+
+function Redirect({ to }: { to: string }) {
+  useEffect(() => navigate(to, true), [to]);
+  return null;
+}
+
+/** An app that is off in this company. An empty name means that every app is off. */
+function AppOff({ name }: { name: string }) {
+  return (
+    <>
+      <SiteHeader title={name || "No apps"} />
+      <PageBody>
+        <div className="mx-auto flex w-full max-w-lg flex-col items-center gap-3 rounded-xl border border-dashed p-8 text-center" data-app-off="">
+          <h2 className="text-lg font-semibold">{name ? `${name} is off for this company` : "No apps are on for this company"}</h2>
+          <p className="text-sm text-muted-foreground">A company owner or admin can turn it on in Company settings, on the Apps tab.</p>
+        </div>
+      </PageBody>
+    </>
+  );
 }
 
 function NotFound() {

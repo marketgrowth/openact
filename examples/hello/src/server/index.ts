@@ -1,14 +1,17 @@
 import { Hono } from "hono";
-import { defineServerApp, newId, nowIso, readJson, requireCompanyRole, requireUser, text, type AppEnv } from "@openact/core/server";
+import { defineServerApp, newId, nowIso, readJson, requirePermission, requireUser, text, type AppEnv } from "@openact/core/server";
 
-/* The Hello app: short notes that everyone in a company can read. Members and up can add one. */
+/*
+ * The Hello app: short notes that everyone in a company can read. Members and up can add one.
+ * The permissions below are the defaults. Company owners and admins can change them in Company settings.
+ */
 
 const routes = new Hono<AppEnv>();
 
 routes.get("/companies/:id/notes", async (c) => {
   const user = requireUser(c);
   const companyId = c.req.param("id");
-  await requireCompanyRole(c.env, companyId, user.id, ["owner", "admin", "member", "guest"]);
+  await requirePermission(c.env, companyId, user.id, "hello.read");
   const rows = await c.env.DB.prepare(
     "SELECT n.id, n.body, n.created_at, u.name AS author FROM hello_notes n LEFT JOIN users u ON u.id = n.user_id WHERE n.company_id = ? ORDER BY n.created_at DESC LIMIT 50"
   )
@@ -20,7 +23,7 @@ routes.get("/companies/:id/notes", async (c) => {
 routes.post("/companies/:id/notes", async (c) => {
   const user = requireUser(c);
   const companyId = c.req.param("id");
-  await requireCompanyRole(c.env, companyId, user.id, ["owner", "admin", "member"]);
+  await requirePermission(c.env, companyId, user.id, "hello.write");
   const body = text((await readJson(c)).body, "Note", { max: 500, required: true });
   const id = newId();
   await c.env.DB.prepare("INSERT INTO hello_notes (id, company_id, user_id, body, created_at) VALUES (?, ?, ?, ?, ?)")
@@ -32,6 +35,10 @@ routes.post("/companies/:id/notes", async (c) => {
 export default defineServerApp({
   id: "hello",
   name: "Hello",
+  permissions: {
+    "hello.read": { label: "Read notes", roles: ["owner", "admin", "member", "guest"], guests: true },
+    "hello.write": { label: "Add notes", roles: ["owner", "admin", "member"] }
+  },
   routes: (api) => api.route("/api/apps/hello", routes),
   hooks: {
     // Notes stay when their author leaves, but no longer show the author's name.

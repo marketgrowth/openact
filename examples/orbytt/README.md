@@ -13,4 +13,6 @@ npm run openact -- add ./examples/orbytt
 npm run dev
 ```
 
+The app starts off in every company. A company owner or admin turns it on in Company settings, on the Apps tab.
+
 Remove it with `npm run openact -- remove orbytt`.

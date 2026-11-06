@@ -8,7 +8,8 @@
   "openact": {
     "id": "orbytt",
     "name": "Orbytt",
-    "client": "./src/client/index.tsx"
+    "client": "./src/client/index.tsx",
+    "enabledByDefault": false
   },
   "dependencies": {
     "@openact/ui": "^0.2.0",

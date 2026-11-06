@@ -1,4 +1,4 @@
-import { Icon, Link, usePath, useCloseOnPhone, useWorkspace } from "@openact/ui";
+import { Icon, Link, usePath, useCan, useCloseOnPhone } from "@openact/ui";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@openact/ui/components/collapsible";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@openact/ui/components/dropdown-menu";
 import {
@@ -14,7 +14,6 @@ import {
 } from "@openact/ui/components/sidebar";
 import type { ReactNode } from "react";
 import type { ProjectSummary } from "../shared/types";
-import { canCreateProjects } from "../shared/access";
 import { useProjects } from "./projects-context";
 import { requestOpenTask } from "./openTask";
 
@@ -23,9 +22,8 @@ import { requestOpenTask } from "./openTask";
  * Pinned and Recent belong to the person. Projects lists the rest of the company's projects they can see.
  */
 export function ProjectsSection() {
-  const { current } = useWorkspace();
   const { projects, recentTasks, newProject } = useProjects();
-  const canCreate = canCreateProjects(current?.role ?? null);
+  const canCreate = useCan("projects.create");
   const pinned = (projects ?? []).filter((p) => p.pinnedAt).sort((a, b) => a.pinnedAt!.localeCompare(b.pinnedAt!));
   const rest = (projects ?? []).filter((p) => !p.pinnedAt);
   const byId = new Map((projects ?? []).map((p) => [p.id, p]));

@@ -36,6 +36,10 @@ const FEATURES: Row[] = [
     detail: "A narrow column on the left shows the company, one icon for each app, settings and your menu. The panel beside it shows the active app."
   },
   {
+    name: "Permissions",
+    detail: "Owners and admins turn apps on or off for their company, and choose what each role can do in each app. Apps declare their permissions, and the core checks them."
+  },
+  {
     name: "Pinned and Recent",
     detail: "Pin projects to the top of the panel. Recent shows the tasks you opened lately, and one click opens a task again. Both are yours only."
   },
@@ -240,7 +244,7 @@ const SECTIONS: Array<{ title: string; intro: string; rows: Row[] }> = [
       { name: "Wrangler 4.158", detail: "Local development, migrations and deploys.", href: "https://developers.cloudflare.com/workers/wrangler/" },
       {
         name: "Node test runner",
-        detail: "68 unit tests for app paths, dates, the AI planner, the AG-UI client, agent access, company access, links, search ranking and the topic check."
+        detail: "74 unit tests for app paths, permissions, dates, the AI planner, the AG-UI client, agent access, company access, links, search ranking and the topic check."
       },
       {
         name: "Search pipeline test",

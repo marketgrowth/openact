@@ -6,6 +6,7 @@ import { navigate } from "../router";
 import { Avatar, ConfirmButton, Field, Modal, Notice, useToast } from "../ui";
 import { useWorkspace } from "../workspace";
 import { CompanyMark } from "./Sidebar";
+import { AppsTab, PermissionsTab } from "./AppSettings";
 import { Button } from "@openact/ui/components/button";
 import { Input } from "@openact/ui/components/input";
 import { Label } from "@openact/ui/components/label";
@@ -106,6 +107,8 @@ export function CompanySettings({ companyId, me, apps, onClose }: { companyId: s
             <TabsList aria-label="Company settings">
               <TabsTrigger value="general">General</TabsTrigger>
               <TabsTrigger value="people">People ({detail.members.length})</TabsTrigger>
+              <TabsTrigger value="apps">Apps</TabsTrigger>
+              <TabsTrigger value="permissions">Permissions</TabsTrigger>
               {appTabs.map((t) => (
                 <TabsTrigger key={t.id} value={t.id}>
                   {t.label}
@@ -117,6 +120,12 @@ export function CompanySettings({ companyId, me, apps, onClose }: { companyId: s
             </TabsContent>
             <TabsContent value="people" className="pt-2">
               <PeopleTab detail={detail} me={me} onChanged={changed} />
+            </TabsContent>
+            <TabsContent value="apps" className="pt-2">
+              <AppsTab companyId={companyId} />
+            </TabsContent>
+            <TabsContent value="permissions" className="pt-2">
+              <PermissionsTab companyId={companyId} />
             </TabsContent>
             {appTabs.map((t) => (
               <TabsContent key={t.id} value={t.id} className="pt-2">

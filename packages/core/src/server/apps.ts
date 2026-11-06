@@ -2,6 +2,8 @@ import type { Hono } from "hono";
 import type { MiddlewareHandler } from "hono";
 import type { AppEnv, Env } from "./env";
 import type { User } from "../shared/types";
+import { COMPANY_ROLES } from "../shared/types";
+import { PERMISSION_ID, permissionApp, type PermissionDef } from "../shared/permissions";
 
 /*
  * Server side of an OpenAct app.
@@ -19,6 +21,11 @@ export interface ServerApp {
   routes?: (api: Hono<AppEnv>) => void;
   /** Middleware that runs on every API request, after the session is read. */
   middleware?: MiddlewareHandler<AppEnv>[];
+  /**
+   * What people can do in the app, by company role. Ids start with the app id, such as "projects.create".
+   * Check them in routes with requirePermission(). Company owners and admins can change the roles in Company settings.
+   */
+  permissions?: Record<string, PermissionDef>;
   /** Runs on each cron trigger. `cron` is the schedule that fired. */
   scheduled?: (env: Env, cron: string) => Promise<void>;
   hooks?: AppHooks;
@@ -43,6 +50,12 @@ export interface AppHooks {
 
 export function defineServerApp(app: ServerApp): ServerApp {
   if (!/^[a-z][a-z0-9-]{1,30}$/.test(app.id)) throw new Error(`App id "${app.id}" must be lowercase letters, numbers and dashes.`);
+  for (const [id, def] of Object.entries(app.permissions ?? {})) {
+    if (!PERMISSION_ID.test(id) || permissionApp(id) !== app.id) throw new Error(`Permission "${id}" must start with "${app.id}.", such as "${app.id}.edit".`);
+    if (!def.label || !def.roles.every((r) => (COMPANY_ROLES as readonly string[]).includes(r)))
+      throw new Error(`Permission "${id}" needs a label and roles from owner, admin, member and guest.`);
+    if (def.roles.includes("guest") && !def.guests) throw new Error(`Permission "${id}" gives guests access. Set guests: true if that is safe.`);
+  }
   return app;
 }
 

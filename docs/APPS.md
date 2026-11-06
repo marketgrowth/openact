@@ -50,7 +50,8 @@ An app is a folder with a `package.json` that has an `openact` field:
     "server": "./src/server/index.ts",
     "client": "./src/client/index.tsx",
     "migrations": "./migrations",
-    "durableObjects": []
+    "durableObjects": [],
+    "enabledByDefault": true
   },
   "dependencies": { "@openact/core": "^0.2.0", "@openact/ui": "^0.2.0", "hono": "^4.13.16", "react": "^19.3.1" }
 }
@@ -58,17 +59,19 @@ An app is a folder with a `package.json` that has an `openact` field:
 
 The `id` is 2 to 31 lowercase letters, numbers or dashes. It must be unique in a deploy.
 
+`enabledByDefault` is optional. Set it to `false` when each company must turn the app on first, for example a paid add-on.
+
 ### Server side
 
 ```ts
 // src/server/index.ts
 import { Hono } from "hono";
-import { defineServerApp, requireCompanyRole, requireUser, type AppEnv } from "@openact/core/server";
+import { defineServerApp, requirePermission, requireUser, type AppEnv } from "@openact/core/server";
 
 const routes = new Hono<AppEnv>();
 routes.get("/companies/:id/people", async (c) => {
   const user = requireUser(c);
-  await requireCompanyRole(c.env, c.req.param("id"), user.id, ["owner", "admin", "member"]);
+  await requirePermission(c.env, c.req.param("id"), user.id, "directory.view");
   const rows = await c.env.DB.prepare("SELECT * FROM directory_profiles WHERE company_id = ?").bind(c.req.param("id")).all();
   return c.json({ people: rows.results });
 });
@@ -76,6 +79,10 @@ routes.get("/companies/:id/people", async (c) => {
 export default defineServerApp({
   id: "directory",
   name: "Directory",
+  permissions: {
+    "directory.view": { label: "See the directory", roles: ["owner", "admin", "member"] },
+    "directory.edit": { label: "Edit profiles", roles: ["owner", "admin"] }
+  },
   routes: (api) => api.route("/api/apps/directory", routes),
   hooks: {
     companyMemberRemoved: async (env, companyId, userId) => {
@@ -87,6 +94,7 @@ export default defineServerApp({
 
 | Part | What it is for |
 | --- | --- |
+| `permissions` | What people can do in your app, by company role. See [Permissions](#permissions). |
 | `routes` | Your API. Use `/api/apps/<id>/...`. The projects app keeps its older paths. |
 | `middleware` | Runs on every API request after the session is read |
 | `scheduled` | Runs on each cron trigger |
@@ -96,6 +104,35 @@ export default defineServerApp({
 | `hooks.companyDeleting` | Delete your data and files for that company |
 | `hooks.companyCreated` | Set up a new company |
 | `hooks.companyDetail`, `hooks.companyUpdate` | Read and save your app's company settings through `/api/companies/:id` |
+
+### Permissions
+
+You declare what people can do in your app. The core stores each company's choices and checks them. You do not write a settings screen.
+
+1. **Declare.** List each permission in `defineServerApp({ permissions })`. Give it an id that starts with your app id, a label, and the company roles that have it by default.
+2. **Check on the server.** Call `requirePermission(env, companyId, userId, "directory.edit")` in every route that reads or changes company data. It checks four things in order:
+   - The person is in the company. If not, it sends 404.
+   - The app is on in the company. If not, it sends 403 with the code `app_off`.
+   - The person's company role has the permission. If not, it sends 403 with the code `no_permission`.
+   - It returns the person's company role.
+3. **Check in the web app.** `useCan("directory.edit")` from `@openact/ui` is true when the person has the permission. Use it to hide or turn off buttons. The server check is still the real check.
+4. **Owners and admins choose.** Company settings has an **Apps** tab, where they turn apps on or off, and a **Permissions** tab, with a row for each of your permissions and a box for each role.
+
+Some rules never change:
+
+- The company owner always has every permission.
+- Roles in `locked` always have the permission. Use it for roles that manage everything, as the projects app does for "See all company projects".
+- Guests get a permission only when you set `guests: true`. Guests see only what someone shares with them, so use it only for safe actions.
+
+Access to one item, such as one secret project, stays in your app. Combine your item check with the company permission, as `requireRole` in the projects app does with `projects.browse`. `companyAppState(env, companyId)` reads every switch and permission for a company in one query.
+
+| Helper | What it does |
+| --- | --- |
+| `requirePermission(env, companyId, userId, id)` | Throws 404 or 403 when the person cannot do it. Returns their company role. |
+| `hasPermission(env, companyId, userId, id)` | The same check as true or false |
+| `requireAppOn(env, companyId, appId)` | Throws 403 `app_off` when the app is off |
+| `companyAppState(env, companyId)` | `enabled(appId)` and `roles(permissionId)` for one company |
+| `useCan(id)`, `useAppOn(appId)` | The same answers in the web app, for the current company |
 
 Live updates: call `registerRoomKind("directory-group", readRevisions)` once, `markChanged("directory-group", id)` when data changes, and `acceptLive()` in a route that checks access first. Pages use `useLive()` from `@openact/ui`.
 
@@ -153,7 +190,7 @@ Put numbered SQL files in `migrations/`, such as `0001_init.sql`. `npm run sync`
 ## Rules for apps
 
 1. **Prefix everything with your id.** Tables (`directory_profiles`), routes (`/api/apps/directory`), R2 keys (`directory/...`), room kinds and command ids.
-2. **Scope your data to a company.** Every row has a `company_id`. Check access with `requireCompanyRole` or your own check built on it.
+2. **Scope your data to a company.** Every row has a `company_id`. Check access with `requirePermission`, or your own item check built on it.
 3. **Use the core for people.** Never read or write `users`, `sessions`, `companies` or `company_members` directly, except for read-only joins. Never handle sign-in yourself.
 4. **Follow the UI rules** in AGENTS.md: shadcn/ui components, Tailwind token classes, Lucide icons, `SiteHeader` and `PageBody`.
 5. **Clean up through hooks.** When a person leaves a company, or a company is deleted, your hooks remove their access and data.
