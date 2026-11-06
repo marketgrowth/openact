@@ -121,3 +121,20 @@
 @media (max-width: 640px) {
   .VPHome .VPHero { padding-left: 48px !important; padding-right: 48px !important; }
 }
+
+/* The nav bar: a slightly larger logo, and a compact search after the menu links */
+.VPNavBarTitle .logo { height: 30px; width: 30px; }
+.VPNavBarTitle .title { font-size: 17px; }
+.VPNavBarTitle .logo { margin-right: 6px; }
+@media (min-width: 768px) {
+  .VPNavBar .content-body > * { order: 3; }
+  .VPNavBar .content-body > .VPNavBarMenu { order: 1; }
+  .VPNavBar .content-body > .VPNavBarSearch { order: 2; flex-grow: 0; padding-left: 12px; }
+  .VPNavBarSearch .DocSearch-Button {
+    height: 32px; padding: 0 8px 0 10px; border-radius: 8px; font-size: 13px; gap: 6px;
+  }
+  .VPNavBarSearch .DocSearch-Button .DocSearch-Search-Icon { width: 14px; height: 14px; }
+  .VPNavBarSearch .DocSearch-Button .DocSearch-Button-Placeholder { font-size: 13px; padding: 0 6px 0 4px; }
+  .VPNavBarSearch .DocSearch-Button .DocSearch-Button-Keys { min-width: auto; }
+  .VPNavBarSearch .DocSearch-Button .DocSearch-Button-Key { font-size: 11px; height: 20px; line-height: 20px; }
+}
