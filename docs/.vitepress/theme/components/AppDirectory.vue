@@ -91,7 +91,7 @@ async function copy(a: DirApp) {
           <button v-if="command(a)" type="button" class="dir-copy" :title="command(a)!" @click="copy(a)">
             {{ copied === a.id ? "Copied" : "Copy install command" }}
           </button>
-          <span v-else-if="a.status === 'planned'" class="dir-note">Name reserved</span>
+          <span v-else-if="a.status === 'planned'" class="dir-note">Under review</span>
           <span v-else class="dir-note">Installed with OpenAct</span>
         </div>
       </li>

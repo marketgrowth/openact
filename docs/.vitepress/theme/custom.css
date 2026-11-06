@@ -23,15 +23,9 @@
   border-radius: 10px;
 }
 
-/* Text sections under the home page features. Same width and gutters as the features grid. */
+/* Text sections under the home page features. VitePress already adds the page gutters. */
 .home-more {
-  max-width: calc(1152px + 48px);
+  max-width: 1152px;
   margin: 48px auto 0;
-  padding: 0 24px 64px;
-}
-@media (min-width: 640px) {
-  .home-more { max-width: calc(1152px + 96px); padding: 0 48px 64px; }
-}
-@media (min-width: 960px) {
-  .home-more { max-width: calc(1152px + 128px); padding: 0 64px 64px; }
+  padding: 0 0 64px;
 }
