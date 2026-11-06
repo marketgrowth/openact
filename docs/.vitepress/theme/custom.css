@@ -76,7 +76,7 @@
 }
 
 .VPHome { position: relative; }
-.VPHome .VPHero { position: relative; z-index: 1; padding-bottom: 150px !important; }
+.VPHome .VPHero { position: relative; z-index: 1; padding-top: calc(var(--vp-nav-height) + clamp(96px, 14vw, 180px)) !important; padding-bottom: clamp(140px, 14vw, 190px) !important; }
 .VPHome .VPHero .container { justify-content: center; }
 .VPHome .VPHero .main { margin: 0 auto; max-width: 900px; text-align: center; }
 .VPHome .VPHero .name, .VPHome .VPHero .text, .VPHome .VPHero .tagline { text-wrap: balance; }
@@ -85,7 +85,7 @@
 /* The heading is plain text, not the brand gradient. */
 .VPHome .VPHero .name { --vp-home-hero-name-color: var(--vp-c-text-1); --vp-home-hero-name-background: none; }
 .VPHome .VPHero .name .clip { -webkit-text-fill-color: currentColor; background: none; }
-.VPHome .VPHero .text { font-size: clamp(17px, 1.9vw, 24px); line-height: 1.35; font-weight: 600; color: var(--vp-c-text-1); margin-top: 12px; }
+.VPHome .VPHero .text { font-size: clamp(17px, 1.9vw, 24px); line-height: 1.45; font-weight: 500; color: var(--vp-c-text-1); margin-top: 20px; max-width: 760px !important; }
 .VPHome .VPHero .tagline { margin-top: 18px; }
 .VPHome .VPHero .tagline { max-width: 620px; margin-left: auto; margin-right: auto; }
 .VPHome .VPHero .actions { justify-content: center; }

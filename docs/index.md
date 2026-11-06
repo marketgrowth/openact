@@ -3,18 +3,7 @@ layout: home
 title: OpenAct docs
 hero:
   name: All the world's a stage.
-  text: Your defining moment is here.
-  tagline: Use OpenAct to build a suite of agentic business apps on Cloudflare. It's open source and free to use.
-  actions:
-    - theme: brand
-      text: Get started
-      link: /getting-started
-    - theme: alt
-      text: Build an app
-      link: /apps
-    - theme: alt
-      text: App directory
-      link: /directory
+  text: If work is theater and every business a stage, use OpenAct to build, instead of buy, the apps that run your show. It's open source and free to use.
 features:
   - title: Projects app included
     details: Manage projects with Kanban, Gantt and calendar views, an AI agent and search. Use it as it is, or as a model for your own app.
