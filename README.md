@@ -27,6 +27,7 @@ OpenAct is a light project management tool with a Kanban board, a Gantt timeline
 - **AI tools.** Draft tasks from a goal, or write a status summary. All AI requests go through [Cloudflare AI Gateway](https://developers.cloudflare.com/ai-gateway/). Workers AI is the default, so you need no extra API key. Anthropic and OpenAI are optional.
 - **Built on AG-UI.** The agent speaks [AG-UI](https://docs.ag-ui.com). Approvals use AG-UI interrupts, so any AG-UI client can connect.
 - **Themes.** Light, dark, or follow the system setting.
+- **Apps.** OpenAct is a core plus apps. The core gives every app sign-in, people, companies, roles, live updates and the web shell. Project management is the first app. Add more from GitHub with one command: `npm run openact -- add github:owner/repo`. See [docs/APPS.md](docs/APPS.md).
 - **Built with shadcn/ui.** The web app uses [shadcn/ui](https://ui.shadcn.com) components, [Tailwind CSS](https://tailwindcss.com) and [Lucide](https://lucide.dev) icons, with the layout of shadcn's dashboard-01 block. Most React developers and coding agents already know these parts.
 - **Live updates.** When someone changes a project, every open page updates at once, including changes made by the AI agent. The header shows who else is viewing. Each project has a Durable Object that holds its WebSockets, and idle connections hibernate, so they cost almost nothing. If live updates are not available, pages check for changes every 5 seconds.
 
@@ -202,38 +203,34 @@ For the full list of tools, services, fonts and versions, read the [Colophon](do
 | Runtime | Cloudflare Workers |
 | API | [Hono](https://hono.dev) |
 | Web app | React and Vite, served as Workers static assets |
-| Database | Cloudflare D1, with SQL migrations in `migrations/` |
+| Database | Cloudflare D1, with SQL migrations from the core and each app, combined by `npm run sync` |
 | Files | Cloudflare R2 |
 | Email | Resend REST API |
 | AI | Workers AI, Anthropic or OpenAI, through Cloudflare AI Gateway |
 
+OpenAct is a core plus apps. Project management is the first app, and it is installed by default. To add another app, run `npm run openact -- add github:owner/repo`. Read [docs/APPS.md](docs/APPS.md) to build one.
+
 ```
-src/
-  shared/types.ts      Types and constants for the API and the web app
-  shared/access.ts     Who can open a project: project role, company role and visibility
-  worker/              The API
-    index.ts           Routes, security headers, error handling, cron
-    auth.ts            Email code sign-in and sessions
-    companies.ts       Companies, company people, logos, auto-join
-    projects.ts        Projects, members, invitations and access requests
-    tasks.ts           Tasks and file attachments
-    ai.ts, plan.ts     AI assist through AI Gateway
-    search/            Search by words (D1) and by meaning (Vectorize), and the index outbox
-    live.ts            Live updates: a Durable Object per project with hibernating WebSockets
-    agui.ts            AG-UI endpoint for the project assistant
-    email.ts           Resend emails
-  shared/agui.ts       AG-UI types, shared agent state and frontend tools
-  client/              The web app
-    index.css          Tailwind and the theme: shadcn tokens plus OpenAct's status, priority and project colors
-    components/ui/     shadcn/ui components, copied into the project (see components.json)
-    components/        OpenAct parts: side panel, board, timeline, calendar, task panel, AI agent
-    pages/             Sign-in, projects, project, colophon
-    agui/              AG-UI client: SSE parser, event reducer, tool runner
-migrations/            D1 schema
-test/                  Unit tests
+packages/core/         @openact/core: the core
+  src/server/            Sign-in, sessions, companies, roles, live rooms, email, the app system, the Worker factory
+  src/shared/            People, companies and config types, and company access rules
+  migrations/            D1 schema for the core (0001 to 0004 also create the projects tables, from before apps)
+packages/ui/           @openact/ui: the web shell and UI kit
+  src/shell/             App shell, side panel, sign-in, company settings
+  src/components/        shadcn/ui components (see components.json)
+  src/theme.css          Tailwind and the theme: shadcn tokens plus OpenAct's status, priority and project colors
+apps/projects/         The projects app
+  src/server/            Projects, tasks, people, AI assist, the AG-UI agent, search by words and by meaning
+  src/client/            Projects page, board, timeline, calendar, task panel, AI agent, search
+  src/shared/            Project types, access rules, agent policy, AG-UI types
+  migrations/            New database changes for this app
+src/                   The host: the Worker entry, the web app entry, and the colophon
+openact.apps.json      The installed apps, in order
+scripts/openact.mjs    Adds, updates and removes apps, and writes .openact/ (npm run sync)
+test/                  Unit tests and the search pipeline test
 ```
 
-Every request that changes a project raises the project's revision number (`rev`). After the response, the Worker tells the project's Durable Object (`ProjectRoom` in `src/worker/live.ts`), which sends the new `rev` to every open page over a WebSocket. Pages then reload the project through the normal API, with the normal access checks. WebSocket messages carry only revision numbers and who is viewing, never project data.
+Every request that changes a project raises the project's revision number (`rev`). After the response, the Worker tells the project's Durable Object (`ProjectRoom` in `packages/core/src/server/live.ts`), which sends the new `rev` to every open page over a WebSocket. Pages then reload the project through the normal API, with the normal access checks. WebSocket messages carry only revision numbers and who is viewing, never project data.
 
 - The Worker checks the session, the `Origin` header and the project role before it opens a WebSocket.
 - Rooms use the WebSocket Hibernation API, so idle connections do not add duration charges. Keep-alive pings get an automatic answer that does not wake the room.
@@ -264,7 +261,7 @@ Each project agent helps with its own project. Before the agent works on a new m
 
 ### Jev makes the judgments, code makes the decision
 
-Set the `TYPESAFE_API_KEY` secret to run the check with [Jev](https://typesafe.ai/), TypeSafe's System One model. Jev does not write text. It answers typed questions with probabilities, such as "Is the message about this project?" (yes or no) or "Which of the other projects is it about?" (a choice). A truth table in `src/worker/agent/scope-jev.ts` turns the answers into the route. It reads 0.7 or more as yes and 0.3 or less as no. Anything between is unsettled, and an unsettled request goes to the agent.
+Set the `TYPESAFE_API_KEY` secret to run the check with [Jev](https://typesafe.ai/), TypeSafe's System One model. Jev does not write text. It answers typed questions with probabilities, such as "Is the message about this project?" (yes or no) or "Which of the other projects is it about?" (a choice). A truth table in `apps/projects/src/server/agent/scope-jev.ts` turns the answers into the route. It reads 0.7 or more as yes and 0.3 or less as no. Anything between is unsettled, and an unsettled request goes to the agent.
 
 Without a TypeSafe key, a small language model does the check through AI Gateway. Jev is faster and cheaper for this kind of yes-or-no work, and its answers come with probabilities that code can test. Jev cannot suggest a project name, so the person types it.
 

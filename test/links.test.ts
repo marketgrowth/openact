@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { findLinks, linkLabel, safeHref, splitLinks } from "../src/client/links.ts";
+import { findLinks, linkLabel, safeHref, splitLinks } from "../packages/ui/src/links.ts";
 
 test("finds http, https and www addresses in text", () => {
   const s = splitLinks("Notice: https://castingnetworks.com/role/123 and www.backstage.com/x. Done");

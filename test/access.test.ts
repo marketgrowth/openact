@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { canCreateProjects, canManageCompany, effectiveProjectRole, emailDomainProblem } from "../src/shared/access.ts";
+import { canCreateProjects, canManageCompany, effectiveProjectRole, emailDomainProblem } from "../apps/projects/src/shared/access.ts";
 
 const role = (visibility: "company" | "secret", projectRole: "owner" | "editor" | "viewer" | null, companyRole: "owner" | "admin" | "member" | "guest" | null) =>
   effectiveProjectRole({ visibility, projectRole, companyRole });

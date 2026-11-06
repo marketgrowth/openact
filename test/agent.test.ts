@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { DEFAULT_POLICY, effectiveLevel, needsApproval, parsePolicy, toolsForLevel } from "../src/shared/agent-policy.ts";
+import { DEFAULT_POLICY, effectiveLevel, needsApproval, parsePolicy, toolsForLevel } from "../apps/projects/src/shared/agent-policy.ts";
 import {
   fromAguiMessages,
   pairToolResults,
@@ -11,7 +11,7 @@ import {
   toAnthropic,
   toOpenAi,
   type AgentMsg
-} from "../src/worker/agent/messages.ts";
+} from "../apps/projects/src/server/agent/messages.ts";
 
 /* Policy */
 
@@ -114,8 +114,8 @@ test("dev-scripted provider turns /tool lines into calls, then reports results",
 
 /* Note search */
 
-import { formatNoteResults, likePattern, redact, searchTerms, snippet } from "../src/worker/agent/notes.ts";
-import { toolAllowedByPolicy } from "../src/shared/agent-policy.ts";
+import { formatNoteResults, likePattern, redact, searchTerms, snippet } from "../apps/projects/src/server/agent/notes.ts";
+import { toolAllowedByPolicy } from "../apps/projects/src/shared/agent-policy.ts";
 
 test("note search is off by default and needs a setting", () => {
   assert.equal(parsePolicy("{}").readNotes, false);

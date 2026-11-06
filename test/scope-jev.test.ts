@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { DEFAULT_JEV_MODEL, buildJevRequest, decideScope, projectOptions, type JevAnswers } from "../src/worker/agent/scope-jev.ts";
-import { scopeSummary } from "../src/worker/agent/scope.ts";
+import { DEFAULT_JEV_MODEL, buildJevRequest, decideScope, projectOptions, type JevAnswers } from "../apps/projects/src/server/agent/scope-jev.ts";
+import { scopeSummary } from "../apps/projects/src/server/agent/scope.ts";
 
 const base = {
   projectName: "Website relaunch",

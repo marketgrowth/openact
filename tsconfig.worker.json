@@ -3,14 +3,26 @@
     "target": "ES2022",
     "module": "ES2022",
     "moduleResolution": "Bundler",
-    "lib": ["ES2022"],
-    "types": ["@cloudflare/workers-types"],
+    "lib": [
+      "ES2022"
+    ],
+    "types": [
+      "@cloudflare/workers-types"
+    ],
     "strict": true,
     "noUncheckedIndexedAccess": false,
     "skipLibCheck": true,
     "isolatedModules": true,
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src/worker", "src/shared"]
+  "include": [
+    "src/worker.ts",
+    ".openact/server.ts",
+    "packages/core/src",
+    "apps/*/src/server",
+    "apps/*/src/shared",
+    "examples/*/src/server"
+  ]
 }

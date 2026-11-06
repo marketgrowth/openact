@@ -1,0 +1,27 @@
+{
+  "name": "@openact/app-projects",
+  "version": "0.2.0",
+  "description": "The OpenAct projects app: board, timeline, calendar, AI agent and task search.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    "./server": "./src/server/index.ts",
+    "./client": "./src/client/index.tsx"
+  },
+  "openact": {
+    "id": "projects",
+    "name": "Projects",
+    "server": "./src/server/index.ts",
+    "client": "./src/client/index.tsx",
+    "migrations": "./migrations"
+  },
+  "dependencies": {
+    "@openact/core": "0.2.0",
+    "@openact/ui": "0.2.0",
+    "hono": "^4.13.16",
+    "react": "^19.3.1"
+  },
+  "devDependencies": {
+    "@ag-ui/core": "^1.0.4"
+  }
+}

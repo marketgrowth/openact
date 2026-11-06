@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { dn, ds, fmtRange, isoWeek, workDays } from "../src/client/dates.ts";
+import { dn, ds, fmtRange, isoWeek, workDays } from "../packages/ui/src/dates.ts";
 
 test("day numbers round-trip", () => {
   assert.equal(ds(dn("2026-11-05")), "2026-11-05");

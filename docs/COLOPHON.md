@@ -8,6 +8,7 @@ The app shows the same page at `/colophon`. Keep the two in step with `package.j
 
 | Feature | What it does |
 | --- | --- |
+| Apps | OpenAct is a core plus apps. Project management is the first app. Add more from GitHub with one command, and each app gets sign-in, companies and the shell. |
 | Kanban board | Drag cards between columns. Each project has its own columns, and each column says what it means, so progress and late checks keep working. |
 | Gantt timeline | Drag a bar to move a task, or an edge to change its length. Tasks group by phase, and a line marks today. |
 | Calendar | A month view with start cards and deadline pills. Drag either to change the date. Phones get an agenda list. |
@@ -42,6 +43,7 @@ Milestones, oldest first.
 | 11 | Live updates | A Durable Object per project holds hibernating WebSockets. Pages check for changes only when the connection is down. | [ce7e4e4](https://github.com/marketgrowth/openact/commit/ce7e4e4) |
 | 12 | Features and build log | This page lists what OpenAct does and how it was built. | [c01bf9a](https://github.com/marketgrowth/openact/commit/c01bf9a) |
 | 13 | shadcn/ui | The whole web app moves to shadcn/ui, Tailwind CSS and Lucide icons, with the dashboard-01 layout. The chat keeps your place when you scroll up. | [07ea4d1](https://github.com/marketgrowth/openact/commit/07ea4d1) |
+| 14 | Core and apps | OpenAct splits into a core, a UI kit and apps. Project management becomes the first app. New apps install from GitHub with `npm run openact -- add`. | This change |
 
 ## Platform
 

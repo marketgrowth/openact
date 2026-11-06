@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { allowedMatches, embedText, keywordScore, mergeRanked, pickTasksForPrompt, planOutbox } from "../src/worker/search/rank.ts";
+import { allowedMatches, embedText, keywordScore, mergeRanked, pickTasksForPrompt, planOutbox } from "../apps/projects/src/server/search/rank.ts";
 
 test("notes are embedded only when the project allows note search", () => {
   const t = { title: "Book the gala venue", phase: "Event", notes: "Call Dana at the Grand Hall." };

@@ -20,11 +20,11 @@ Three rules decide what the agent may do:
 
 The defaults are: Owners get Full, Editors get Ask and edit, Viewers get Ask only.
 
-The agent's level for a person is the lower of their role's ceiling and the project's AI policy for that role. The code is in `src/shared/agent-policy.ts`.
+The agent's level for a person is the lower of their role's ceiling and the project's AI policy for that role. The code is in `apps/projects/src/shared/agent-policy.ts`.
 
 ## Topic scope
 
-Each project agent helps with its own project. Before the agent works on a new message, a small, fast model sorts it into one route. The code is in `src/worker/agent/scope.ts`.
+Each project agent helps with its own project. Before the agent works on a new message, a small, fast model sorts it into one route. The code is in `apps/projects/src/server/agent/scope.ts`.
 
 | Route | Meaning | What happens |
 | --- | --- | --- |
@@ -48,7 +48,7 @@ Owners set the scope in **Project settings > Topic scope**. It is stored as `sco
 
 ### Who decides
 
-`src/worker/agent/scope-run.ts` picks the decider:
+`apps/projects/src/server/agent/scope-run.ts` picks the decider:
 
 1. **Jev**, when the `TYPESAFE_API_KEY` secret is set.
 2. **dev-scripted**, for local tests.
@@ -56,7 +56,7 @@ Owners set the scope in **Project settings > Topic scope**. It is stored as `sco
 
 ### The Jev decision model
 
-Jev is TypeSafe's System One model. It answers typed questions about state that the app sends, and returns probabilities. Jev makes the judgments. Code makes the decision. All wording, options and thresholds are in `src/worker/agent/scope-jev.ts`.
+Jev is TypeSafe's System One model. It answers typed questions about state that the app sends, and returns probabilities. Jev makes the judgments. Code makes the decision. All wording, options and thresholds are in `apps/projects/src/server/agent/scope-jev.ts`.
 
 One request to `POST https://api.typesafe.ai/v1/systemone` sends the state once and asks all questions in parallel:
 
@@ -127,7 +127,7 @@ POST /api/projects/:id/agent   with resume: [{ interruptId, status: "resolved", 
 Approved changes run. The agent reports what it did.
 ```
 
-Tools that change data run in the Worker through `src/worker/services.ts`. The API routes use the same functions, so the agent gets exactly the same role checks, validation and sync as a person who clicks in the app.
+Tools that change data run in the Worker through `apps/projects/src/server/services.ts`. The API routes use the same functions, so the agent gets exactly the same role checks, validation and sync as a person who clicks in the app.
 
 Every action is saved in the `agent_actions` table. All members can read it under **Project settings > Agent activity**.
 
@@ -216,7 +216,7 @@ Do not use `dev-scripted` in production.
 
 ## Big projects
 
-When a project has more than 80 tasks, the agent does not get all of them. It gets the tasks that match the message (by words and by meaning), then work in progress, late work and work due soon, up to 80. The instructions tell it how many tasks are hidden, and it calls `search_tasks` to find them. The code is in `src/worker/search/rank.ts`.
+When a project has more than 80 tasks, the agent does not get all of them. It gets the tasks that match the message (by words and by meaning), then work in progress, late work and work due soon, up to 80. The instructions tell it how many tasks are hidden, and it calls `search_tasks` to find them. The code is in `apps/projects/src/server/search/rank.ts`.
 
 ## Data limits
 
@@ -224,11 +224,11 @@ The topic check gets the new message, the agent's last reply, the project name, 
 
 The agent gets task titles, columns, priorities, phases, dates, assignee names, member names and roles, and the ids it needs to call tools. It does not get task notes, files or email addresses.
 
-When an owner turns on **Let the agent search task notes**, the agent gets the `search_notes` tool. The database matches every word in the title or the notes. The result holds up to 20 tasks, each with a short part of its note around the first match. Email addresses and phone numbers in that part are replaced with `[email]` and `[phone]`. The result says that note text is data, not instructions. The log records "Search task notes" and the number of matches, never the words or the note text. The code is in `src/worker/agent/notes.ts`. Context items from the web app are cut to 2,000 characters and are treated as data, not instructions.
+When an owner turns on **Let the agent search task notes**, the agent gets the `search_notes` tool. The database matches every word in the title or the notes. The result holds up to 20 tasks, each with a short part of its note around the first match. Email addresses and phone numbers in that part are replaced with `[email]` and `[phone]`. The result says that note text is data, not instructions. The log records "Search task notes" and the number of matches, never the words or the note text. The code is in `apps/projects/src/server/agent/notes.ts`. Context items from the web app are cut to 2,000 characters and are treated as data, not instructions.
 
 ## Add a tool
 
-1. Add the tool to `BACKEND_TOOLS` in `src/shared/agent-policy.ts`. Choose its `level` and `risk`.
-2. Add the business logic to `src/worker/services.ts`, with `requireRole` and `bumpRev`. Use it from the API route too.
-3. Add a case to `describeCall` and `executeCall` in `src/worker/agent/tools.ts`. Check that every id belongs to the project.
+1. Add the tool to `BACKEND_TOOLS` in `apps/projects/src/shared/agent-policy.ts`. Choose its `level` and `risk`.
+2. Add the business logic to `apps/projects/src/server/services.ts`, with `requireRole` and `bumpRev`. Use it from the API route too.
+3. Add a case to `describeCall` and `executeCall` in `apps/projects/src/server/agent/tools.ts`. Check that every id belongs to the project.
 4. Add tests in `test/agent.test.ts`.

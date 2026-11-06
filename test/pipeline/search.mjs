@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const out = join(mkdtempSync(join(tmpdir(), "openact-search-")), "bundle.mjs");
-await build({ stdin: { contents: `export { processVectorOutbox, hybridSearch } from "${join(root, "src/worker/search/index.ts")}";`, resolveDir: root, loader: "ts" }, bundle: true, platform: "node", format: "esm", outfile: out, logLevel: "warning",
+await build({ stdin: { contents: `export { processVectorOutbox, hybridSearch } from "${join(root, "apps/projects/src/server/search/index.ts")}";`, resolveDir: root, loader: "ts" }, bundle: true, platform: "node", format: "esm", outfile: out, logLevel: "warning",
   // Workers-only modules get small stand-ins. The search code does not use them.
   plugins: [{ name: "workers-stubs", setup(b) {
     b.onResolve({ filter: /^cloudflare:workers$/ }, () => ({ path: "cloudflare-workers", namespace: "stub" }));
@@ -25,7 +25,7 @@ const check = (name, cond, detail = "") => { results.push(cond); console.log((co
 // D1 over node:sqlite
 const sql = new DatabaseSync(":memory:");
 sql.exec("PRAGMA foreign_keys = ON");
-for (const f of readdirSync(join(root, "migrations")).sort()) sql.exec(readFileSync(join(root, "migrations", f), "utf8"));
+for (const f of readdirSync(join(root, "packages/core/migrations")).sort()) sql.exec(readFileSync(join(root, "packages/core/migrations", f), "utf8"));
 const norm = (v) => (v === undefined ? null : v);
 const D1 = {
   prepare(q) {

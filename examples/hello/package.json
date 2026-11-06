@@ -1,0 +1,21 @@
+{
+  "name": "@openact/example-hello",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A small OpenAct app: company notes. Copy it to start your own app.",
+  "license": "MIT",
+  "type": "module",
+  "openact": {
+    "id": "hello",
+    "name": "Hello",
+    "server": "./src/server/index.ts",
+    "client": "./src/client/index.tsx",
+    "migrations": "./migrations"
+  },
+  "dependencies": {
+    "@openact/core": "^0.2.0",
+    "@openact/ui": "^0.2.0",
+    "hono": "^4.13.16",
+    "react": "^19.3.1"
+  }
+}

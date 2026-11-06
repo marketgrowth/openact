@@ -1,0 +1,5 @@
+/* The theme, Tailwind, and the folders that Tailwind scans for class names. */
+@import "@openact/ui/theme.css";
+@import "../../.openact/sources.css";
+@source "../../packages/ui/src";
+@source "./";

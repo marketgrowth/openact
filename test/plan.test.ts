@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { extractJson, toPlannedTasks } from "../src/worker/plan.ts";
+import { extractJson, toPlannedTasks } from "../apps/projects/src/server/plan.ts";
 
 test("extractJson reads a fenced JSON block", () => {
   const reply = 'Here is the plan:\n```json\n{"tasks":[{"title":"Write brief"}]}\n```\nGood luck.';

@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "openact",
-  "main": "src/worker/index.ts",
+  "main": "src/worker.ts",
   "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat"],
   "upload_source_maps": true,
@@ -20,7 +20,7 @@
     {
       "binding": "DB",
       "database_name": "openact",
-      "migrations_dir": "migrations"
+      "migrations_dir": ".openact/migrations"
     }
   ],
 

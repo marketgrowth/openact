@@ -1,6 +1,6 @@
 {
   "name": "openact",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Open source project management with a Kanban board and a Gantt timeline. Runs on Cloudflare Workers, D1 and R2.",
   "license": "MIT",
   "author": "MarketGrowth (https://marketgrowth.io)",
@@ -16,18 +16,20 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "npm run build && npm run db:migrate:local && wrangler dev --local",
-    "dev:ai": "npm run build && npm run db:migrate:local && wrangler dev",
-    "dev:ui": "vite",
-    "build": "vite build",
+    "dev": "npm run sync && npm run build && npm run db:migrate:local && wrangler dev --local",
+    "dev:ai": "npm run sync && npm run build && npm run db:migrate:local && wrangler dev",
+    "dev:ui": "npm run sync && vite",
+    "build": "npm run sync && vite build",
     "preview": "npm run build && wrangler dev --local",
-    "typecheck": "tsc -p tsconfig.worker.json --noEmit && tsc -p tsconfig.client.json --noEmit",
+    "typecheck": "npm run sync && tsc -p tsconfig.worker.json --noEmit && tsc -p tsconfig.client.json --noEmit",
     "test": "node --experimental-strip-types --test test/*.test.ts",
     "test:search": "node test/pipeline/search.mjs",
-    "db:migrate:local": "wrangler d1 migrations apply DB --local",
-    "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
+    "db:migrate:local": "npm run sync && wrangler d1 migrations apply DB --local",
+    "db:migrate:remote": "npm run sync && wrangler d1 migrations apply DB --remote",
     "search:setup": "node scripts/setup-search.mjs",
-    "deploy": "npm run db:migrate:remote && npm run search:setup && wrangler deploy"
+    "deploy": "npm run db:migrate:remote && npm run search:setup && wrangler deploy",
+    "openact": "node scripts/openact.mjs",
+    "sync": "node scripts/openact.mjs sync"
   },
   "cloudflare": {
     "bindings": {
@@ -79,6 +81,9 @@
     }
   },
   "dependencies": {
+    "@openact/core": "0.2.0",
+    "@openact/ui": "0.2.0",
+    "@openact/app-projects": "0.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "hono": "^4.13.16",
@@ -101,5 +106,9 @@
     "typescript": "^5.9.3",
     "vite": "^8.3.6",
     "wrangler": "^4.158.0"
-  }
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ]
 }

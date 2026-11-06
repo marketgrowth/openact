@@ -1,9 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { SseParser } from "../src/client/agui/sse.ts";
-import { applyPatch, emptyRun, reduceEvent, type RunView } from "../src/client/agui/reducer.ts";
-import { executeToolCall } from "../src/client/agui/tools.ts";
-import type { AguiEvent } from "../src/shared/agui.ts";
+import { SseParser } from "../apps/projects/src/client/agui/sse.ts";
+import { applyPatch, emptyRun, reduceEvent, type RunView } from "../apps/projects/src/client/agui/reducer.ts";
+import { executeToolCall } from "../apps/projects/src/client/agui/tools.ts";
+import type { AguiEvent } from "../apps/projects/src/shared/agui.ts";
 
 test("SSE parser joins chunks and splits frames", () => {
   const p = new SseParser();

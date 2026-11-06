@@ -1,10 +1,7 @@
-import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import { App } from "./App";
-import "./index.css";
+import { createClient } from "@openact/ui";
+import { apps } from "../../.openact/client";
+import { site } from "./site";
+import "./main.css";
 
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>
-);
+// The installed apps come from openact.apps.json. Run `npm run openact -- add github:owner/repo` to add one.
+createClient({ apps: [...apps, site] });

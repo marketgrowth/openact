@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parsePolicy } from "../src/shared/agent-policy.ts";
+import { parsePolicy } from "../apps/projects/src/shared/agent-policy.ts";
 import {
   devScriptedScope,
   isFollowUp,
@@ -11,7 +11,7 @@ import {
   scopeReply,
   scopeRule,
   scopeSummary
-} from "../src/worker/agent/scope.ts";
+} from "../apps/projects/src/server/agent/scope.ts";
 
 const others = [
   { id: "p2", name: "Fall fundraiser" },

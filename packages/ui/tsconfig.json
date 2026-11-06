@@ -1,0 +1,9 @@
+{
+  "// note": "Used by the shadcn CLI to place new components. The root tsconfig files type check the code.",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "moduleResolution": "Bundler",
+    "baseUrl": ".",
+    "paths": { "@openact/ui/*": ["./src/*"] }
+  }
+}
