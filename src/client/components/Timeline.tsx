@@ -1,6 +1,12 @@
 import { useLayoutEffect, useMemo, useRef, useState, type PointerEvent as RPointerEvent } from "react";
 import { STATUSES, type Member, type Task } from "../../shared/types";
 import { MONTHS, WEEKDAYS, DAY, dn, dow, ds, fmtRange, fmtShort, isoWeek, today, workDays } from "../dates";
+import { EmptyState } from "../pages/Projects";
+import { Button } from "@/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { cn } from "@/lib/utils";
+
+const LABEL_W = 248;
 
 interface Props {
   tasks: Task[];
@@ -81,22 +87,16 @@ export function Timeline({ tasks, hasAny, members, canEdit, onOpen, onReschedule
 
   if (!hasAny) {
     return (
-      <div className="state">
-        <h3>No tasks yet</h3>
-        <p>Add a task with start and end dates to see it here.</p>
-        {canEdit && (
-          <button type="button" className="btn primary" onClick={onAdd}>
-            Add the first task
-          </button>
-        )}
-      </div>
+      <EmptyState title="No tasks yet" text="Add a task with start and end dates to see it here.">
+        {canEdit && <Button onClick={onAdd}>Add the first task</Button>}
+      </EmptyState>
     );
   }
 
   const down = (e: RPointerEvent<HTMLDivElement>, t: Task) => {
     if (e.button !== 0) return;
-    const target = e.target as HTMLElement;
-    const mode = target.classList.contains("h-l") ? "start" : target.classList.contains("h-r") ? "end" : "move";
+    const handle = (e.target as HTMLElement).dataset.handle;
+    const mode = handle === "start" ? "start" : handle === "end" ? "end" : "move";
     drag.current = { id: t.id, mode, x0: e.clientX, s0: dn(t.start!), e0: Math.max(dn(t.end!), dn(t.start!)), moved: false };
     e.currentTarget.setPointerCapture(e.pointerId);
     onDragState(true);
@@ -141,7 +141,7 @@ export function Timeline({ tasks, hasAny, members, canEdit, onOpen, onReschedule
 
   // Header: months, then days or ISO weeks.
   const months: Array<{ left: number; width: number; label: string }> = [];
-  for (let d = min; d <= max; ) {
+  for (let d = min; d <= max;) {
     const dt = new Date(d * DAY);
     const end = Math.min(max, Math.round(Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth() + 1, 1) / DAY) - 1);
     const w = (end - d + 1) * dayW;
@@ -152,84 +152,122 @@ export function Timeline({ tasks, hasAny, members, canEdit, onOpen, onReschedule
   if (zoom === "day") {
     for (let i = min; i <= max; i++) {
       const w = dow(i);
-      units.push({ left: (i - min) * dayW, width: dayW, label: String(new Date(i * DAY).getUTCDate()), title: `${WEEKDAYS[w]} ${fmtShort(ds(i))}`, weekend: w === 0 || w === 6, today: i === todayN });
+      units.push({
+        left: (i - min) * dayW,
+        width: dayW,
+        label: String(new Date(i * DAY).getUTCDate()),
+        title: `${WEEKDAYS[w]} ${fmtShort(ds(i))}`,
+        weekend: w === 0 || w === 6,
+        today: i === todayN
+      });
     }
   } else {
     for (let i = min; i <= max; i += 7) {
-      units.push({ left: (i - min) * dayW, width: 7 * dayW, label: `W${isoWeek(i)}`, title: `ISO week ${isoWeek(i)}, starts ${fmtShort(ds(i))}`, today: todayN >= i && todayN < i + 7 });
+      units.push({
+        left: (i - min) * dayW,
+        width: 7 * dayW,
+        label: `W${isoWeek(i)}`,
+        title: `ISO week ${isoWeek(i)}, starts ${fmtShort(ds(i))}`,
+        today: todayN >= i && todayN < i + 7
+      });
     }
   }
 
+  const pickZoom = (z: Zoom) => {
+    setZoom(z);
+    try {
+      localStorage.setItem(ZOOM_KEY, z);
+    } catch {
+      /* storage can be blocked */
+    }
+  };
+
   return (
-    <>
-      <div className="tl-tools">
-        <div className="seg" role="group" aria-label="Zoom">
-          {(["day", "week"] as const).map((z) => (
-            <button
-              key={z}
-              type="button"
-              aria-pressed={zoom === z}
-              onClick={() => {
-                setZoom(z);
-                try {
-                  localStorage.setItem(ZOOM_KEY, z);
-                } catch {
-                  /* storage can be blocked */
-                }
-              }}
-            >
-              {z === "day" ? "Days" : "Weeks"}
-            </button>
-          ))}
-        </div>
-        <button type="button" className="btn ghost sm" onClick={scrollToToday}>
+    <div className="grid gap-4">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <ToggleGroup type="single" variant="outline" size="sm" value={zoom} onValueChange={(v) => v && pickZoom(v as Zoom)} aria-label="Zoom">
+          <ToggleGroupItem value="day" className="px-3">
+            Days
+          </ToggleGroupItem>
+          <ToggleGroupItem value="week" className="px-3">
+            Weeks
+          </ToggleGroupItem>
+        </ToggleGroup>
+        <Button type="button" variant="outline" size="sm" onClick={scrollToToday}>
           Go to today
-        </button>
-        <div className="legend">
+        </Button>
+        <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground md:ml-auto" aria-label="Status colors">
           {STATUSES.map((s) => (
-            <span key={s.id} className="lg" style={{ ["--c" as string]: `var(--s-${s.id})` }}>
-              <span className="sw" />
+            <span key={s.id} className="inline-flex items-center gap-1.5">
+              <span className="h-2 w-3 rounded-[2px]" style={{ background: `var(--s-${s.id})` }} />
               {s.label}
             </span>
           ))}
         </div>
       </div>
 
-      <div className="gantt" ref={scroller} style={{ ["--dayw" as string]: `${dayW}px` }}>
-        <div className="g-head">
-          <div className="g-corner">Task</div>
-          <div className="g-scale" style={{ width }}>
-            <div className="g-months">
+      <div
+        className="relative max-h-[calc(100dvh-260px)] min-h-[340px] overflow-auto overscroll-contain rounded-xl border bg-card"
+        ref={scroller}
+        style={{ ["--dayw" as string]: `${dayW}px` }}
+        data-gantt=""
+      >
+        <div className="sticky top-0 z-[4] flex w-max min-w-full border-b bg-card">
+          <div
+            className="sticky left-0 z-[5] flex shrink-0 items-end border-r bg-card px-3 py-2 text-xs font-medium text-muted-foreground"
+            style={{ width: LABEL_W }}
+          >
+            Task
+          </div>
+          <div className="relative shrink-0" style={{ width }}>
+            <div className="relative h-6">
               {months.map((m) => (
-                <div key={m.left} className="g-m" style={{ left: m.left, width: m.width }}>
+                <div
+                  key={m.left}
+                  className="absolute top-0 h-6 overflow-hidden border-l px-2 py-1 text-xs font-medium whitespace-nowrap"
+                  style={{ left: m.left, width: m.width }}
+                >
                   {m.label}
                 </div>
               ))}
             </div>
-            <div className="g-units">
+            <div className="relative h-6 border-t">
               {units.map((u) => (
-                <div key={u.left} className={`g-u${u.weekend ? " we" : ""}${u.today ? " today" : ""}`} style={{ left: u.left, width: u.width }} title={u.title}>
+                <div
+                  key={u.left}
+                  className={cn(
+                    "absolute top-0 flex h-[23px] items-center justify-center border-l font-mono text-[11px] text-muted-foreground tabular",
+                    u.weekend && "bg-weekend text-muted-foreground/60",
+                    u.today && "font-medium text-today shadow-[inset_0_-2px_0_var(--today)]"
+                  )}
+                  style={{ left: u.left, width: u.width }}
+                  title={u.title}
+                >
                   {u.label}
                 </div>
               ))}
             </div>
           </div>
         </div>
-        <div className="g-body">
+        <div className="relative w-max min-w-full">
           {groups.map(([phase, ts]) => {
             const s0 = Math.min(...ts.map((t) => dn(t.start!)));
             const e0 = Math.max(...ts.map((t) => dn(t.end!)));
             return (
               <div key={phase} role="rowgroup">
-                <div className="g-row ph">
-                  <div className="g-label">
-                    <span className="ph-name">{phase}</span>
-                    <span className="g-meta">
+                <div className="flex h-8 border-b bg-muted/60">
+                  <div className="sticky left-0 z-[2] flex shrink-0 items-center justify-between gap-2 border-r bg-muted px-3" style={{ width: LABEL_W }}>
+                    <span className="truncate text-xs font-semibold tracking-wide uppercase">{phase}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground tabular">
                       {ts.length} {ts.length === 1 ? "task" : "tasks"}
                     </span>
                   </div>
-                  <div className="g-track" style={{ width }}>
-                    <div className="g-sum" style={{ left: (s0 - min) * dayW, width: (e0 - s0 + 1) * dayW }} title={`${phase}: ${fmtRange(ds(s0), ds(e0))}`} />
+                  <div className="relative shrink-0" style={{ width }}>
+                    <div
+                      className="absolute top-3 h-2 rounded-sm bg-muted-foreground/50"
+                      style={{ left: (s0 - min) * dayW, width: (e0 - s0 + 1) * dayW }}
+                      title={`${phase}: ${fmtRange(ds(s0), ds(e0))}`}
+                    />
                   </div>
                 </div>
                 {ts.map((t) => {
@@ -239,19 +277,30 @@ export function Timeline({ tasks, hasAny, members, canEdit, onOpen, onReschedule
                   const late = t.status !== "done" && t.end! < t0;
                   const who = t.assigneeId ? members[t.assigneeId] : undefined;
                   return (
-                    <div className="g-row" key={t.id}>
-                      <div className="g-label">
-                        <button type="button" className="g-title" onClick={() => onOpen(t.id)}>
+                    <div className="flex h-[42px] border-b" key={t.id}>
+                      <div className="sticky left-0 z-[2] flex min-w-0 shrink-0 flex-col justify-center border-r bg-card px-3" style={{ width: LABEL_W }}>
+                        <button
+                          type="button"
+                          className="truncate text-left text-sm leading-tight font-medium hover:underline focus-visible:underline focus-visible:outline-none"
+                          onClick={() => onOpen(t.id)}
+                          data-gantt-title=""
+                        >
                           {t.title}
                         </button>
-                        <span className="g-meta">
+                        <span className="truncate text-[11px] text-muted-foreground tabular">
                           {fmtRange(t.start, t.end)} · {workDays(t.start!, t.end!)} wd{who ? ` · ${who.name || who.email}` : ""}
                         </span>
                       </div>
-                      <div className="g-track" style={{ width }}>
+                      <div className="gantt-track relative shrink-0" style={{ width }}>
                         <div
-                          className={`g-bar${t.status === "done" ? " done" : ""}${late ? " late" : ""}${canEdit ? " edit" : ""}${p ? " drag" : ""}`}
-                          style={{ left: (s - min) * dayW, width: (e - s + 1) * dayW, ["--c" as string]: `var(--s-${t.status})` }}
+                          className={cn(
+                            "absolute top-[9px] flex h-6 cursor-pointer touch-pan-y items-center overflow-hidden rounded-md px-2 text-[var(--bar-ink)] select-none",
+                            canEdit && "cursor-grab",
+                            t.status === "done" && "opacity-60",
+                            late && "ring-2 ring-today ring-offset-2 ring-offset-card",
+                            p && "z-[3] cursor-grabbing shadow-lg"
+                          )}
+                          style={{ left: (s - min) * dayW, width: (e - s + 1) * dayW, background: `var(--s-${t.status})` }}
                           role="button"
                           tabIndex={0}
                           aria-label={`${t.title}, ${fmtRange(t.start, t.end)}`}
@@ -265,12 +314,13 @@ export function Timeline({ tasks, hasAny, members, canEdit, onOpen, onReschedule
                               onOpen(t.id);
                             }
                           }}
+                          data-gantt-bar=""
                         >
-                          <span className="g-bar-t">{zoom === "day" ? fmtRange(ds(s), ds(e)) : ""}</span>
+                          <span className="pointer-events-none truncate font-mono text-[11px] font-medium">{zoom === "day" ? fmtRange(ds(s), ds(e)) : ""}</span>
                           {canEdit && (
                             <>
-                              <span className="h h-l" />
-                              <span className="h h-r" />
+                              <span className="absolute inset-y-0 left-0 w-2 cursor-ew-resize hover:bg-(--bar-ink)/20" data-handle="start" />
+                              <span className="absolute inset-y-0 right-0 w-2 cursor-ew-resize hover:bg-(--bar-ink)/20" data-handle="end" />
                             </>
                           )}
                         </div>
@@ -282,30 +332,36 @@ export function Timeline({ tasks, hasAny, members, canEdit, onOpen, onReschedule
             );
           })}
           {!dated.length && (
-            <div className="g-row">
-              <div className="g-label">
-                <span className="g-meta">No scheduled tasks</span>
+            <div className="flex h-[42px] border-b">
+              <div className="sticky left-0 z-[2] flex shrink-0 items-center border-r bg-card px-3 text-xs text-muted-foreground" style={{ width: LABEL_W }}>
+                No scheduled tasks
               </div>
-              <div className="g-track" style={{ width }} />
+              <div className="gantt-track relative shrink-0" style={{ width }} />
             </div>
           )}
-          {todayN >= min && todayN <= max && <div className="g-today" style={{ left: `calc(var(--labelw) + ${(todayN - min) * dayW + dayW / 2 - 1}px)` }} />}
+          {todayN >= min && todayN <= max && (
+            <div
+              className="pointer-events-none absolute inset-y-0 z-[1] w-0.5 bg-today"
+              style={{ left: LABEL_W + (todayN - min) * dayW + dayW / 2 - 1 }}
+              aria-hidden="true"
+            />
+          )}
         </div>
       </div>
 
       {undated.length > 0 && (
-        <div className="undated">
-          <h3>Not scheduled ({undated.length})</h3>
-          <p className="hint">Add start and end dates to show these tasks on the timeline.</p>
-          <div className="row-wrap">
+        <div className="grid gap-2 rounded-xl border p-4">
+          <h3 className="text-sm font-medium">Not scheduled ({undated.length})</h3>
+          <p className="text-xs text-muted-foreground">Add start and end dates to show these tasks on the timeline.</p>
+          <div className="flex flex-wrap gap-2">
             {undated.map((t) => (
-              <button key={t.id} type="button" className="btn sm" onClick={() => onOpen(t.id)}>
+              <Button key={t.id} type="button" variant="outline" size="sm" onClick={() => onOpen(t.id)}>
                 {t.title}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

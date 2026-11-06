@@ -4,6 +4,8 @@ import { api, errorText } from "../api";
 import { fmtRange } from "../dates";
 import { requestOpenTask } from "../openTask";
 import { Icon } from "../ui";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { Kbd } from "@/components/ui/kbd";
 
 interface Result {
   taskId: string;
@@ -31,10 +33,7 @@ export function SearchDialog({ companyId, companyName, onClose }: { companyId: s
 
   useEffect(() => {
     input.current?.focus();
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, []);
 
   useEffect(() => {
     const text = q.trim();
@@ -78,11 +77,17 @@ export function SearchDialog({ companyId, companyName, onClose }: { companyId: s
   };
 
   return (
-    <>
-      <div className="scrim" onClick={onClose} />
-      <div className="search-dlg" role="dialog" aria-modal="true" aria-label={`Search ${companyName}`}>
-        <div className="search-bar">
-          <Icon name="search" size={18} />
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent
+        className="top-[12%] translate-y-0 gap-0 overflow-hidden p-0 sm:max-w-xl"
+        showCloseButton={false}
+        aria-label={`Search ${companyName}`}
+        data-search=""
+      >
+        <DialogTitle className="sr-only">Search {companyName}</DialogTitle>
+        <DialogDescription className="sr-only">Search tasks by words and by meaning.</DialogDescription>
+        <div className="flex h-12 items-center gap-2 border-b px-3">
+          <Icon name="search" className="shrink-0 opacity-50" />
           <input
             ref={input}
             value={q}
@@ -94,45 +99,65 @@ export function SearchDialog({ companyId, companyName, onClose }: { companyId: s
             aria-expanded={!!results?.length}
             aria-controls="search-results"
             aria-activedescendant={results?.length ? `sr-${active}` : undefined}
+            className="flex h-10 w-full bg-transparent py-3 text-sm outline-hidden placeholder:text-muted-foreground"
           />
-          <kbd>Esc</kbd>
+          <Kbd>Esc</Kbd>
         </div>
-        {error && <p className="error search-msg">{error}</p>}
-        {results && !results.length && !error && <p className="search-msg muted">No tasks match. Try other words.</p>}
+        {error && <p className="px-4 py-6 text-center text-sm text-destructive">{error}</p>}
+        {results && !results.length && !error && <p className="px-4 py-6 text-center text-sm text-muted-foreground">No tasks match. Try other words.</p>}
         {results && results.length > 0 && (
-          <ul className="search-results" id="search-results" role="listbox">
+          <ul className="max-h-[min(60dvh,420px)] overflow-y-auto p-1" id="search-results" role="listbox">
             {results.map((r, i) => (
-              <li key={r.taskId} id={`sr-${i}`} role="option" aria-selected={i === active} className={i === active ? "is-active" : undefined} onMouseEnter={() => setActive(i)} onClick={() => open(r)}>
-                <span className={`sp-dot pc-${r.projectColor}`} aria-hidden="true" />
-                <span className="sr-main">
-                  <span className="sr-title">{r.title}</span>
-                  <span className="sr-meta">
+              <li
+                key={r.taskId}
+                id={`sr-${i}`}
+                role="option"
+                aria-selected={i === active}
+                className="flex cursor-default items-start gap-3 rounded-sm px-2 py-2 text-sm aria-selected:bg-accent aria-selected:text-accent-foreground"
+                onMouseEnter={() => setActive(i)}
+                onClick={() => open(r)}
+              >
+                <span className="mt-1.5 size-2 shrink-0 rounded-full" style={{ background: `var(--pc-${r.projectColor})` }} aria-hidden="true" />
+                <span className="grid min-w-0 flex-1 gap-0.5">
+                  <span className="truncate font-medium">{r.title}</span>
+                  <span className="truncate text-xs text-muted-foreground">
                     {r.projectName}
                     {r.column ? ` · ${r.column}` : ""}
                     {r.start || r.end ? ` · ${fmtRange(r.start, r.end)}` : ""}
                   </span>
-                  {r.snippet && <span className="sr-snip">{r.snippet}</span>}
+                  {r.snippet && <span className="line-clamp-2 text-xs text-muted-foreground">{r.snippet}</span>}
                 </span>
                 {r.match !== "word" && (
-                  <span className="sr-why" title={r.match === "both" ? "Matches your words and their meaning" : "Matches the meaning of your words"}>
-                    <Icon name="sparkle" size={13} />
+                  <span
+                    className="mt-0.5 text-muted-foreground"
+                    title={r.match === "both" ? "Matches your words and their meaning" : "Matches the meaning of your words"}
+                  >
+                    <Icon name="sparkle" size={14} />
                   </span>
                 )}
               </li>
             ))}
           </ul>
         )}
-        <p className="search-foot">
-          {semantic === false ? "Search by words. Search by meaning turns on when Vectorize is set up." : "Search by words and by meaning."} Only projects you can see are searched.
+        <p className="border-t px-4 py-2.5 text-xs text-muted-foreground">
+          {semantic === false ? "Search by words. Search by meaning turns on when Vectorize is set up." : "Search by words and by meaning."} Only projects you
+          can see are searched.
         </p>
-      </div>
-    </>
+      </DialogContent>
+    </Dialog>
   );
 }
 
 /** Tasks with a similar meaning, shown in the task drawer. Hidden when search by meaning is not set up. */
 export function RelatedTasks({ taskId }: { taskId: string }) {
-  const [items, setItems] = useState<Array<{ taskId: string; projectId: string; projectName: string; projectColor: ProjectColor; title: string; column: string | null }> | null>(null);
+  const [items, setItems] = useState<Array<{
+    taskId: string;
+    projectId: string;
+    projectName: string;
+    projectColor: ProjectColor;
+    title: string;
+    column: string | null;
+  }> | null>(null);
   useEffect(() => {
     let live = true;
     api<{ available: boolean; results: NonNullable<typeof items> }>(`/api/search/related/${taskId}`)
@@ -144,15 +169,19 @@ export function RelatedTasks({ taskId }: { taskId: string }) {
   }, [taskId]);
   if (!items?.length) return null;
   return (
-    <section className="related" aria-label="Related tasks">
-      <h3 className="sub-h">Related tasks</h3>
-      <ul>
+    <section className="grid gap-2" aria-label="Related tasks">
+      <h3 className="text-sm font-medium">Related tasks</h3>
+      <ul className="grid gap-0.5">
         {items.map((r) => (
           <li key={r.taskId}>
-            <button type="button" onClick={() => requestOpenTask(r.projectId, r.taskId)}>
-              <span className={`sp-dot pc-${r.projectColor}`} aria-hidden="true" />
-              <span className="sr-title">{r.title}</span>
-              <span className="sr-meta">
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent"
+              onClick={() => requestOpenTask(r.projectId, r.taskId)}
+            >
+              <span className="size-2 shrink-0 rounded-full" style={{ background: `var(--pc-${r.projectColor})` }} aria-hidden="true" />
+              <span className="min-w-0 flex-1 truncate">{r.title}</span>
+              <span className="shrink-0 truncate text-xs text-muted-foreground">
                 {r.projectName}
                 {r.column ? ` · ${r.column}` : ""}
               </span>

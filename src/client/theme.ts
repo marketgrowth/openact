@@ -1,5 +1,6 @@
 export type ThemePref = "system" | "light" | "dark";
 const KEY = "openact-theme";
+const media = typeof window !== "undefined" ? window.matchMedia("(prefers-color-scheme: dark)") : null;
 
 export function getTheme(): ThemePref {
   try {
@@ -11,10 +12,14 @@ export function getTheme(): ThemePref {
   return "system";
 }
 
+/** Sets the `.dark` class on <html> from the choice. "system" follows the device setting. */
+function apply(t: ThemePref) {
+  const dark = t === "dark" || (t === "system" && !!media?.matches);
+  document.documentElement.classList.toggle("dark", dark);
+}
+
 export function setTheme(t: ThemePref) {
-  const root = document.documentElement;
-  if (t === "system") root.removeAttribute("data-theme");
-  else root.setAttribute("data-theme", t);
+  apply(t);
   try {
     if (t === "system") localStorage.removeItem(KEY);
     else localStorage.setItem(KEY, t);
@@ -22,3 +27,8 @@ export function setTheme(t: ThemePref) {
     /* storage can be blocked */
   }
 }
+
+// Follow the device when the person has not chosen a theme.
+media?.addEventListener("change", () => {
+  if (getTheme() === "system") apply("system");
+});

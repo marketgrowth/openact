@@ -1,16 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  MAX_ATTACHMENT_BYTES,
-  PRIORITIES,
-  type Attachment,
-  type Column,
-  type Member,
-  type Priority,
-  type Task,
-  type TaskInput
-} from "../../shared/types";
+import { MAX_ATTACHMENT_BYTES, PRIORITIES, type Attachment, type Column, type Member, type Priority, type Task, type TaskInput } from "../../shared/types";
 import { dn, fmtDateTime, fmtSize, isoWeek, workDays } from "../dates";
-import { ConfirmButton, Icon, LinkList, useToast } from "../ui";
+import { ConfirmButton, Icon, LinkList, Notice, useToast } from "../ui";
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { RelatedTasks } from "./SearchDialog";
 import { columnOf } from "./Board";
 
@@ -58,7 +56,9 @@ export function TaskDrawer({ target, task, tasks, columns, members, attachments,
   const isNew = target.kind === "new";
   const fallbackColumn = (columns.find((c) => c.category === "todo") ?? columns[0])?.id ?? "";
   const columnOfTask = (t: Task) => columnOf(t, columns) ?? fallbackColumn;
-  const [form, setForm] = useState<Form>(() => fromTask(task, task ? columnOfTask(task) : isNew ? target.columnId ?? fallbackColumn : fallbackColumn, isNew ? target : undefined));
+  const [form, setForm] = useState<Form>(() =>
+    fromTask(task, task ? columnOfTask(task) : isNew ? (target.columnId ?? fallbackColumn) : fallbackColumn, isNew ? target : undefined)
+  );
   const [dirty, setDirty] = useState(false);
   const [base, setBase] = useState(task?.updatedAt ?? null);
   const [error, setError] = useState<string | null>(null);
@@ -66,7 +66,6 @@ export function TaskDrawer({ target, task, tasks, columns, members, attachments,
   const [uploading, setUploading] = useState(false);
   const titleRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const opener = useRef<HTMLElement | null>(null);
 
   const gone = !isNew && !task;
   const changedElsewhere = !isNew && !!task && task.updatedAt !== base;
@@ -78,17 +77,6 @@ export function TaskDrawer({ target, task, tasks, columns, members, attachments,
       setBase(task.updatedAt);
     }
   }, [changedElsewhere, dirty, task]);
-
-  useEffect(() => {
-    opener.current = document.activeElement as HTMLElement | null;
-    window.setTimeout(() => (canEdit ? titleRef.current?.focus() : null), 30);
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      opener.current?.focus?.();
-    };
-  }, [canEdit, onClose]);
 
   const phases = useMemo(() => [...new Set(tasks.map((t) => t.phase).filter(Boolean))].sort(), [tasks]);
   const files = task ? attachments.filter((a) => a.taskId === task.id) : [];
@@ -154,81 +142,106 @@ export function TaskDrawer({ target, task, tasks, columns, members, attachments,
     if (fileRef.current) fileRef.current.value = "";
   };
 
+  const select = "w-full";
   return (
-    <>
-      <div className="scrim" onClick={onClose} />
-      <aside className="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
-        <form onSubmit={submit}>
-          <div className="d-head">
-            <h2 id="drawer-title">{isNew ? "New task" : canEdit ? "Edit task" : "Task"}</h2>
-            <button type="button" className="icon-btn" aria-label="Close" onClick={onClose}>
-              <Icon name="x" />
-            </button>
-          </div>
-          <div className="d-body">
-            {gone && <p className="note">Someone deleted this task.</p>}
-            {changedElsewhere && dirty && <p className="note">Someone else changed this task. Save to keep your version, or cancel to see theirs.</p>}
-            <fieldset className="stack plain" disabled={!canEdit || gone}>
-              <div className="field">
-                <label htmlFor="f-title">Title</label>
-                <input id="f-title" ref={titleRef} maxLength={140} value={form.title} onChange={(e) => set("title", e.target.value)} autoComplete="off" />
+    <Sheet open onOpenChange={(o) => !o && onClose()}>
+      <SheetContent
+        className="w-full gap-0 sm:max-w-md"
+        onOpenAutoFocus={(e) => {
+          // Put the cursor in the title for editors. Viewers start at the close button.
+          if (canEdit) {
+            e.preventDefault();
+            titleRef.current?.focus();
+          }
+        }}
+        data-drawer=""
+      >
+        <form onSubmit={submit} className="flex h-full min-h-0 flex-col">
+          <SheetHeader className="border-b">
+            <SheetTitle>{isNew ? "New task" : canEdit ? "Edit task" : "Task"}</SheetTitle>
+            <SheetDescription className="sr-only">{isNew ? "Add a task to the project." : "See and change the task."}</SheetDescription>
+          </SheetHeader>
+          <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto p-4">
+            {gone && <Notice>Someone deleted this task.</Notice>}
+            {changedElsewhere && dirty && <Notice>Someone else changed this task. Save to keep your version, or cancel to see theirs.</Notice>}
+            <fieldset className="grid gap-4 disabled:opacity-80" disabled={!canEdit || gone}>
+              <div className="grid gap-2">
+                <Label htmlFor="f-title">Title</Label>
+                <Input id="f-title" ref={titleRef} maxLength={140} value={form.title} onChange={(e) => set("title", e.target.value)} autoComplete="off" />
               </div>
-              <div className="row2">
-                <div className="field">
-                  <label htmlFor="f-column">Column</label>
-                  <select id="f-column" value={form.columnId} onChange={(e) => set("columnId", e.target.value)}>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-2">
+                  <Label htmlFor="f-column">Column</Label>
+                  <NativeSelect id="f-column" className={select} value={form.columnId} onChange={(e) => set("columnId", e.target.value)}>
                     {columns.map((c) => (
-                      <option key={c.id} value={c.id}>
+                      <NativeSelectOption key={c.id} value={c.id}>
                         {c.name}
-                      </option>
+                      </NativeSelectOption>
                     ))}
-                  </select>
+                  </NativeSelect>
                 </div>
-                <div className="field">
-                  <label htmlFor="f-priority">Priority</label>
-                  <select id="f-priority" value={form.priority} onChange={(e) => set("priority", e.target.value as Priority)}>
+                <div className="grid gap-2">
+                  <Label htmlFor="f-priority">Priority</Label>
+                  <NativeSelect id="f-priority" className={select} value={form.priority} onChange={(e) => set("priority", e.target.value as Priority)}>
                     {(Object.keys(PRIORITIES) as Priority[]).map((p) => (
-                      <option key={p} value={p}>
+                      <NativeSelectOption key={p} value={p}>
                         {PRIORITIES[p]}
-                      </option>
+                      </NativeSelectOption>
                     ))}
-                  </select>
+                  </NativeSelect>
                 </div>
               </div>
-              <div className="field">
-                <label htmlFor="f-phase">Phase</label>
-                <input id="f-phase" list="f-phases" maxLength={60} value={form.phase} placeholder="For example: Design" onChange={(e) => set("phase", e.target.value)} autoComplete="off" />
+              <div className="grid gap-2">
+                <Label htmlFor="f-phase">Phase</Label>
+                <Input
+                  id="f-phase"
+                  list="f-phases"
+                  maxLength={60}
+                  value={form.phase}
+                  placeholder="For example: Design"
+                  onChange={(e) => set("phase", e.target.value)}
+                  autoComplete="off"
+                />
                 <datalist id="f-phases">
                   {phases.map((p) => (
                     <option key={p} value={p} />
                   ))}
                 </datalist>
               </div>
-              <div className="row2">
-                <div className="field">
-                  <label htmlFor="f-start">Start</label>
-                  <input id="f-start" type="date" value={form.start} onChange={(e) => set("start", e.target.value)} />
+              <div className="grid gap-2">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="grid gap-2">
+                    <Label htmlFor="f-start">Start</Label>
+                    <Input id="f-start" type="date" value={form.start} onChange={(e) => set("start", e.target.value)} />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="f-end">End</Label>
+                    <Input id="f-end" type="date" value={form.end} onChange={(e) => set("end", e.target.value)} />
+                  </div>
                 </div>
-                <div className="field">
-                  <label htmlFor="f-end">End</label>
-                  <input id="f-end" type="date" value={form.end} onChange={(e) => set("end", e.target.value)} />
-                </div>
+                <p className="text-xs text-muted-foreground">{dateInfo}</p>
               </div>
-              <p className="hint">{dateInfo}</p>
-              <div className="field">
-                <label htmlFor="f-assignee">Assignee</label>
-                <select id="f-assignee" value={form.assigneeId} onChange={(e) => set("assigneeId", e.target.value)}>
-                  <option value="">Unassigned</option>
+              <div className="grid gap-2">
+                <Label htmlFor="f-assignee">Assignee</Label>
+                <NativeSelect id="f-assignee" className={select} value={form.assigneeId} onChange={(e) => set("assigneeId", e.target.value)}>
+                  <NativeSelectOption value="">Unassigned</NativeSelectOption>
                   {members.map((m) => (
-                    <option key={m.userId} value={m.userId}>
+                    <NativeSelectOption key={m.userId} value={m.userId}>
                       {m.name || m.email}
-                    </option>
+                    </NativeSelectOption>
                   ))}
-                </select>
+                </NativeSelect>
               </div>
-              <div className="field">
-                <label htmlFor="f-notes">Notes</label>
-                <textarea id="f-notes" rows={5} maxLength={8000} value={form.notes} placeholder="Add details, links or acceptance criteria." onChange={(e) => set("notes", e.target.value)} />
+              <div className="grid gap-2">
+                <Label htmlFor="f-notes">Notes</Label>
+                <Textarea
+                  id="f-notes"
+                  rows={5}
+                  maxLength={8000}
+                  value={form.notes}
+                  placeholder="Add details, links or acceptance criteria."
+                  onChange={(e) => set("notes", e.target.value)}
+                />
                 <LinkList text={form.notes} label="Links in the notes" />
               </div>
             </fieldset>
@@ -236,33 +249,47 @@ export function TaskDrawer({ target, task, tasks, columns, members, attachments,
             {!isNew && task && <RelatedTasks taskId={task.id} />}
 
             {!isNew && task && (
-              <section className="files-block" aria-label="Files">
-                <div className="files-head">
-                  <span className="lbl">Files</span>
+              <section className="grid gap-2" aria-label="Files">
+                <Separator />
+                <div className="flex items-center justify-between gap-2 pt-2">
+                  <span className="text-sm font-medium">Files</span>
                   {canEdit && (
                     <>
                       <input ref={fileRef} id="f-file" type="file" className="sr-only" onChange={(e) => upload(e.target.files?.[0])} />
-                      <label htmlFor="f-file" className={`btn sm${uploading ? " is-busy" : ""}`}>
-                        <Icon name="clip" size={14} /> {uploading ? "Uploading…" : "Attach a file"}
-                      </label>
+                      <Button asChild variant="outline" size="sm" aria-busy={uploading}>
+                        <label htmlFor="f-file" className="cursor-pointer">
+                          <Icon name="clip" /> {uploading ? "Uploading…" : "Attach a file"}
+                        </label>
+                      </Button>
                     </>
                   )}
                 </div>
                 {files.length === 0 ? (
-                  <p className="hint">No files. The limit is 25 MB per file.</p>
+                  <p className="text-xs text-muted-foreground">No files. The limit is 25 MB per file.</p>
                 ) : (
-                  <ul className="file-list">
+                  <ul className="grid gap-1">
                     {files.map((f) => (
-                      <li key={f.id}>
-                        <a href={`/api/attachments/${f.id}`} className="file-link" download={f.filename}>
-                          <Icon name="download" size={15} />
-                          <span className="file-name">{f.filename}</span>
-                          <span className="file-size">{fmtSize(f.size)}</span>
+                      <li key={f.id} className="flex items-center gap-1 rounded-md border pr-1">
+                        <a
+                          href={`/api/attachments/${f.id}`}
+                          className="flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2 text-sm hover:underline"
+                          download={f.filename}
+                        >
+                          <Icon name="download" size={14} className="shrink-0 text-muted-foreground" />
+                          <span className="truncate">{f.filename}</span>
+                          <span className="ml-auto shrink-0 text-xs text-muted-foreground tabular">{fmtSize(f.size)}</span>
                         </a>
                         {canEdit && (
-                          <button type="button" className="icon-btn" aria-label={`Remove ${f.filename}`} onClick={() => onDeleteAttachment(f.id)}>
-                            <Icon name="trash" size={16} />
-                          </button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="size-7"
+                            aria-label={`Remove ${f.filename}`}
+                            onClick={() => onDeleteAttachment(f.id)}
+                          >
+                            <Icon name="trash" size={14} />
+                          </Button>
                         )}
                       </li>
                     ))}
@@ -272,30 +299,35 @@ export function TaskDrawer({ target, task, tasks, columns, members, attachments,
             )}
 
             {task?.updatedAt && (
-              <p className="hint meta">
+              <p className="text-xs text-muted-foreground">
                 Last change by {editedBy ? editedBy.name || editedBy.email : "a former member"}, {fmtDateTime(task.updatedAt)}.
               </p>
             )}
-            {error && (
-              <p className="error" role="alert">
-                {error}
-              </p>
-            )}
+            {error && <Notice tone="error">{error}</Notice>}
           </div>
-          <div className="d-foot">
-            {canEdit && !isNew && task && <ConfirmButton label="Delete" confirmLabel="Click again to delete" onConfirm={() => { onDelete(task.id); onClose(); }} />}
-            <span className="grow" />
-            <button type="button" className="btn ghost" onClick={onClose}>
+          <SheetFooter className="flex-row items-center border-t">
+            {canEdit && !isNew && task && (
+              <ConfirmButton
+                label="Delete"
+                confirmLabel="Click again to delete"
+                onConfirm={() => {
+                  onDelete(task.id);
+                  onClose();
+                }}
+              />
+            )}
+            <span className="flex-1" />
+            <Button type="button" variant="outline" onClick={onClose}>
               {canEdit ? "Cancel" : "Close"}
-            </button>
+            </Button>
             {canEdit && (
-              <button type="submit" className="btn primary" disabled={busy || gone}>
+              <Button type="submit" disabled={busy || gone}>
                 {isNew ? "Add task" : "Save"}
-              </button>
+              </Button>
             )}
-          </div>
+          </SheetFooter>
         </form>
-      </aside>
-    </>
+      </SheetContent>
+    </Sheet>
   );
 }

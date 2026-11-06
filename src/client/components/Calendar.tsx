@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState, type DragEvent } from "react";
 import { STATUSES, type Column, type Member, type Task } from "../../shared/types";
 import { DAY, MONTHS, WEEKDAYS, dn, dow, ds, fmtRange, today } from "../dates";
 import { Icon } from "../ui";
+import { EmptyState } from "../pages/Projects";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 /*
  * Month calendar. A task shows as a card on its start date and as a deadline pill on its end date.
@@ -70,7 +73,12 @@ export function Calendar({ columns, tasks, hasAny, members, canEdit, focusDate, 
       }
     }
     for (const list of m.values()) {
-      list.sort((a, b) => (a.kind === "due" ? 1 : 0) - (b.kind === "due" ? 1 : 0) || PRIORITY_RANK[a.task.priority] - PRIORITY_RANK[b.task.priority] || a.task.title.localeCompare(b.task.title));
+      list.sort(
+        (a, b) =>
+          (a.kind === "due" ? 1 : 0) - (b.kind === "due" ? 1 : 0) ||
+          PRIORITY_RANK[a.task.priority] - PRIORITY_RANK[b.task.priority] ||
+          a.task.title.localeCompare(b.task.title)
+      );
     }
     return m;
   }, [tasks]);
@@ -89,15 +97,9 @@ export function Calendar({ columns, tasks, hasAny, members, canEdit, focusDate, 
 
   if (!hasAny) {
     return (
-      <div className="state">
-        <h3>No tasks yet</h3>
-        <p>Add a task with dates to see it on the calendar.</p>
-        {canEdit && (
-          <button type="button" className="btn primary" onClick={() => onAdd(t0)}>
-            Add the first task
-          </button>
-        )}
-      </div>
+      <EmptyState title="No tasks yet" text="Add a task with dates to see it on the calendar.">
+        {canEdit && <Button onClick={() => onAdd(t0)}>Add the first task</Button>}
+      </EmptyState>
     );
   }
 
@@ -147,14 +149,25 @@ export function Calendar({ columns, tasks, hasAny, members, canEdit, focusDate, 
         setDrag({ id: t.id, kind: e.kind });
         onDragState(true);
       },
-      onDragEnd: endDrag,
-      style: { ["--c" as string]: `var(--s-${t.status})` }
+      onDragEnd: endDrag
     };
+    const color = { borderLeftColor: `var(--s-${t.status})` };
     if (e.kind === "due") {
       return (
-        <div key={key} {...common} className={`cal-due${late ? " late" : ""}${t.status === "done" ? " done" : ""}`} aria-label={`Deadline: ${t.title}. ${labelOf(t)}.`} title={`Deadline for ${t.title} (${fmtRange(t.start, t.end)})`}>
-          <Icon name="flag" size={13} />
-          <span className="cal-due-t">{t.title}</span>
+        <div
+          key={key}
+          {...common}
+          className={cn(
+            "flex min-w-0 cursor-pointer items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium outline-none hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50",
+            late ? "border-priority-high/40 text-priority-high" : "text-muted-foreground",
+            t.status === "done" && "line-through opacity-60"
+          )}
+          aria-label={`Deadline: ${t.title}. ${labelOf(t)}.`}
+          title={`Deadline for ${t.title} (${fmtRange(t.start, t.end)})`}
+          data-cal-due=""
+        >
+          <Icon name="flag" size={12} className="shrink-0" />
+          <span className="truncate">{t.title}</span>
         </div>
       );
     }
@@ -162,20 +175,21 @@ export function Calendar({ columns, tasks, hasAny, members, canEdit, focusDate, 
       <div
         key={key}
         {...common}
-        className={`cal-card${late ? " late" : ""}${t.status === "done" ? " done" : ""}${compact ? " compact" : ""}`}
+        className={cn(
+          "grid min-w-0 cursor-pointer gap-0.5 rounded-md border border-l-[3px] bg-card px-2 py-1 text-xs shadow-xs outline-none hover:border-foreground/20 focus-visible:ring-[3px] focus-visible:ring-ring/50",
+          late && "ring-1 ring-priority-high/50",
+          t.status === "done" && "opacity-60",
+          compact && "py-1.5"
+        )}
+        style={color}
         aria-label={`${t.title}. ${fmtRange(t.start, t.end)}. ${labelOf(t)}.`}
         title={`${t.title} (${fmtRange(t.start, t.end)})`}
+        data-cal-card=""
       >
-        <span className="cal-title">
-          <Icon name="doc" size={14} />
-          <span>{t.title}</span>
-        </span>
-        <span className="cal-tags">
-          <span className="tag tag-phase">
-            {t.phase || "No phase"}
-            {whoName ? ` · ${whoName}` : ""}
-          </span>
-          <span className="tag tag-status">{e.kind === "start" ? `${labelOf(t)} · ends ${fmtRange(t.end, null)}` : labelOf(t)}</span>
+        <span className={cn("truncate font-medium", t.status === "done" && "line-through")}>{t.title}</span>
+        <span className="truncate text-[11px] text-muted-foreground">
+          {e.kind === "start" ? `${labelOf(t)} · ends ${fmtRange(t.end, null)}` : labelOf(t)}
+          {whoName ? ` · ${whoName}` : ""}
         </span>
       </div>
     );
@@ -190,30 +204,39 @@ export function Calendar({ columns, tasks, hasAny, members, canEdit, focusDate, 
   const agendaDays = days.filter((d) => d >= first && d <= last && byDay.has(d));
 
   return (
-    <>
-      <div className="cal-tools">
-        <h2 className="cal-month">{monthTitle}</h2>
-        <span className="grow" />
-        <div className="cal-nav">
-          <button type="button" className="icon-btn" aria-label="Previous month" onClick={() => setCursor((c) => shiftMonth(c, -1))}>
+    <div className="grid gap-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <h2 className="text-lg font-semibold tracking-tight" data-cal-month="">
+          {monthTitle}
+        </h2>
+        <div className="ml-auto flex items-center gap-1">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="size-8"
+            aria-label="Previous month"
+            onClick={() => setCursor((c) => shiftMonth(c, -1))}
+          >
             <Icon name="left" />
-          </button>
-          <button type="button" className="btn ghost sm" onClick={() => setCursor(monthOf(t0))}>
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={() => setCursor(monthOf(t0))}>
             Today
-          </button>
-          <button type="button" className="icon-btn" aria-label="Next month" onClick={() => setCursor((c) => shiftMonth(c, 1))}>
+          </Button>
+          <Button type="button" variant="outline" size="icon" className="size-8" aria-label="Next month" onClick={() => setCursor((c) => shiftMonth(c, 1))}>
             <Icon name="right" />
-          </button>
+          </Button>
         </div>
       </div>
-      <p className="hint cal-legend">
-        <Icon name="doc" size={13} /> Card: the task starts that day. <Icon name="flag" size={13} /> Pill: the deadline.
+      <p className="-mt-2 flex flex-wrap items-center gap-x-1 text-xs text-muted-foreground">
+        <span className="inline-block h-3 w-1 rounded-sm bg-status-todo" aria-hidden="true" /> Card: the task starts that day.
+        <Icon name="flag" size={12} className="ml-2" /> Pill: the deadline.
         {canEdit ? " Drag a card to move the task. Drag a pill to change the deadline." : ""}
       </p>
 
-      <div className="cal-grid" role="grid" aria-label={monthTitle}>
+      <div className="hidden overflow-hidden rounded-xl border bg-border md:grid md:grid-cols-7 md:gap-px" role="grid" aria-label={monthTitle} data-cal-grid="">
         {WEEKDAYS.map((w) => (
-          <div key={w} className="cal-wd" role="columnheader">
+          <div key={w} className="bg-muted/60 px-2 py-1.5 text-xs font-medium text-muted-foreground" role="columnheader">
             {w}
           </div>
         ))}
@@ -228,7 +251,12 @@ export function Calendar({ columns, tasks, hasAny, members, canEdit, focusDate, 
               key={d}
               role="gridcell"
               aria-label={`${WEEKDAYS[dow(d)]} ${ds(d)}, ${entries.length} ${entries.length === 1 ? "item" : "items"}`}
-              className={`cal-cell${outside ? " out" : ""}${d === todayN ? " is-today" : ""}${d === focusN ? " focus" : ""}${over === d ? " over" : ""}`}
+              className={cn(
+                "group/day flex min-h-28 min-w-0 flex-col gap-1 bg-card p-1.5",
+                outside && "bg-muted",
+                d === focusN && "ring-2 ring-ring ring-inset",
+                over === d && "bg-accent"
+              )}
               onDragOver={(e) => {
                 if (!drag) return;
                 e.preventDefault();
@@ -239,25 +267,44 @@ export function Calendar({ columns, tasks, hasAny, members, canEdit, focusDate, 
               }}
               onDrop={(e) => drop(e, d)}
             >
-              <div className="cal-day">
+              <div className="flex h-6 items-center justify-between">
+                <span
+                  className={cn(
+                    "flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-xs tabular",
+                    outside ? "text-muted-foreground/60" : "text-muted-foreground",
+                    d === todayN && "bg-today font-medium text-[var(--bar-ink)]"
+                  )}
+                >
+                  {dayLabel(d)}
+                </span>
                 {canEdit && (
-                  <button type="button" className="cal-add" aria-label={`Add a task on ${ds(d)}`} onClick={() => onAdd(ds(d))}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-6 opacity-0 group-hover/day:opacity-100 focus-visible:opacity-100"
+                    aria-label={`Add a task on ${ds(d)}`}
+                    onClick={() => onAdd(ds(d))}
+                  >
                     <Icon name="plus" size={14} />
-                  </button>
+                  </Button>
                 )}
-                <span className="cal-num">{dayLabel(d)}</span>
               </div>
-              <div className="cal-items">
+              <div className="grid min-w-0 gap-1">
                 {shown.map((e) => renderEntry(e))}
                 {hidden > 0 && (
-                  <button type="button" className="cal-more" onClick={() => setExpanded((s) => new Set(s).add(d))}>
+                  <button
+                    type="button"
+                    className="rounded px-1 text-left text-[11px] font-medium text-muted-foreground hover:text-foreground"
+                    onClick={() => setExpanded((s) => new Set(s).add(d))}
+                  >
                     {hidden} more
                   </button>
                 )}
                 {open && entries.length > MAX_PER_DAY && (
                   <button
                     type="button"
-                    className="cal-more"
+                    className="rounded px-1 text-left text-[11px] font-medium text-muted-foreground hover:text-foreground"
                     onClick={() =>
                       setExpanded((s) => {
                         const n = new Set(s);
@@ -275,31 +322,32 @@ export function Calendar({ columns, tasks, hasAny, members, canEdit, focusDate, 
         })}
       </div>
 
-      <div className="cal-agenda">
-        {agendaDays.length === 0 && <p className="hint">Nothing starts or is due in {monthTitle}.</p>}
+      <div className="grid gap-4 md:hidden" data-cal-agenda="">
+        {agendaDays.length === 0 && <p className="text-sm text-muted-foreground">Nothing starts or is due in {monthTitle}.</p>}
         {agendaDays.map((d) => (
-          <section key={d} className={`ag-day${d === todayN ? " is-today" : ""}`}>
-            <h3>
+          <section key={d} className="grid gap-2">
+            <h3 className={cn("text-sm font-medium", d === todayN && "text-today")}>
               {WEEKDAYS[dow(d)]}, {MONTHS[new Date(d * DAY).getUTCMonth()]} {new Date(d * DAY).getUTCDate()}
+              {d === todayN && " · Today"}
             </h3>
-            <div className="cal-items">{(byDay.get(d) ?? []).map((e) => renderEntry(e, true))}</div>
+            <div className="grid gap-1.5">{(byDay.get(d) ?? []).map((e) => renderEntry(e, true))}</div>
           </section>
         ))}
       </div>
 
       {undated.length > 0 && (
-        <div className="undated">
-          <h3>Not scheduled ({undated.length})</h3>
-          <p className="hint">Add start and end dates to show these tasks on the calendar.</p>
-          <div className="row-wrap">
+        <div className="grid gap-2 rounded-xl border p-4">
+          <h3 className="text-sm font-medium">Not scheduled ({undated.length})</h3>
+          <p className="text-xs text-muted-foreground">Add start and end dates to show these tasks on the calendar.</p>
+          <div className="flex flex-wrap gap-2">
             {undated.map((t) => (
-              <button key={t.id} type="button" className="btn sm" onClick={() => onOpen(t.id)}>
+              <Button key={t.id} type="button" variant="outline" size="sm" onClick={() => onOpen(t.id)}>
                 {t.title}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

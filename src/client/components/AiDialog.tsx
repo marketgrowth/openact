@@ -2,7 +2,12 @@ import { useState } from "react";
 import { PRIORITIES, type PlannedTask } from "../../shared/types";
 import { api, errorText } from "../api";
 import { fmtRange, today } from "../dates";
-import { Modal, useToast } from "../ui";
+import { Notice, useToast, Field } from "../ui";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { AskPanel, type ScopeHandlers } from "./AskPanel";
 import type { RunView } from "../agui/reducer";
 import type { Decision } from "../agui/useAgent";
@@ -102,103 +107,119 @@ export function AiDialog({
   };
 
   return (
-    <Modal title="AI agent" onClose={onClose} wide>
-      <div className="seg" role="tablist" aria-label="AI tools">
-        <button type="button" role="tab" aria-selected={tab === "ask"} aria-pressed={tab === "ask"} onClick={() => setTab("ask")}>
-          Agent
-        </button>
-        {canEdit && (
-          <button type="button" role="tab" aria-selected={tab === "plan"} aria-pressed={tab === "plan"} onClick={() => setTab("plan")}>
-            Draft tasks
-          </button>
-        )}
-        <button type="button" role="tab" aria-selected={tab === "summary"} aria-pressed={tab === "summary"} onClick={() => setTab("summary")}>
-          Status summary
-        </button>
-      </div>
-
-      {tab === "ask" && (
-        <AskPanel
-          view={agent.view}
-          level={level}
-          initialQuestion={initialQuestion}
-          scope={{ ...scope, onKeepHere: agent.keepHere }}
-          onAsk={agent.ask}
-          onDecide={agent.decide}
-          onStop={agent.stop}
-          onReset={agent.reset}
-        />
-      )}
-
-      {tab === "plan" && !drafts && (
-        <form className="stack" onSubmit={plan}>
-          <p className="muted">Describe the goal. AI drafts tasks with phases and dates. You check them before anything is added.</p>
-          <div className="field">
-            <label htmlFor="ai-goal">Goal</label>
-            <textarea id="ai-goal" rows={4} maxLength={2000} required value={goal} onChange={(e) => setGoal(e.target.value)} placeholder="For example: Launch a fall fundraising campaign with an email series, a donation page and two events." />
+    <Sheet open onOpenChange={(o) => !o && onClose()}>
+      <SheetContent className="w-full gap-0 sm:max-w-lg" data-ai-panel="">
+        <SheetHeader className="border-b">
+          <SheetTitle>AI agent</SheetTitle>
+          <SheetDescription>AI can make mistakes. Check the output. Provider: {provider}, through Cloudflare AI Gateway.</SheetDescription>
+        </SheetHeader>
+        <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="flex min-h-0 flex-1 flex-col gap-0">
+          <div className="px-4 pt-3">
+            <TabsList aria-label="AI tools" className="w-full">
+              <TabsTrigger value="ask">Agent</TabsTrigger>
+              {canEdit && <TabsTrigger value="plan">Draft tasks</TabsTrigger>}
+              <TabsTrigger value="summary">Status summary</TabsTrigger>
+            </TabsList>
           </div>
-          <div className="field narrow">
-            <label htmlFor="ai-start">Start date</label>
-            <input id="ai-start" type="date" value={start} onChange={(e) => setStart(e.target.value)} />
-          </div>
-          {error && <p className="error" role="alert">{error}</p>}
-          <div className="row-end">
-            <button type="submit" className="btn primary" disabled={busy || !goal.trim()}>
-              {busy ? "Drafting…" : "Draft tasks"}
-            </button>
-          </div>
-        </form>
-      )}
 
-      {tab === "plan" && drafts && (
-        <div className="stack">
-          <p className="muted">Clear the tasks you do not want. The rest go to the backlog.</p>
-          <ul className="draft-list">
-            {drafts.map((t, i) => (
-              <li key={i}>
-                <label>
-                  <input type="checkbox" checked={picked[i]} onChange={(e) => setPicked((p) => p.map((v, j) => (j === i ? e.target.checked : v)))} />
-                  <span>
-                    <b>{t.title}</b>
-                    <span className="hint">
-                      {t.phase || "No phase"} · {fmtRange(t.start, t.end)} · {PRIORITIES[t.priority]}
-                    </span>
-                    {t.notes && <span className="hint">{t.notes}</span>}
-                  </span>
-                </label>
-              </li>
-            ))}
-          </ul>
-          {error && <p className="error" role="alert">{error}</p>}
-          <div className="row-end">
-            <button type="button" className="btn ghost" onClick={() => setDrafts(null)}>
-              Change the goal
-            </button>
-            <button type="button" className="btn primary" disabled={busy || !picked.some(Boolean)} onClick={add}>
-              Add {picked.filter(Boolean).length} tasks
-            </button>
-          </div>
-        </div>
-      )}
+          <TabsContent value="ask" className="flex min-h-0 flex-1 flex-col">
+            <AskPanel
+              view={agent.view}
+              level={level}
+              initialQuestion={initialQuestion}
+              scope={{ ...scope, onKeepHere: agent.keepHere }}
+              onAsk={agent.ask}
+              onDecide={agent.decide}
+              onStop={agent.stop}
+              onReset={agent.reset}
+            />
+          </TabsContent>
 
-      {tab === "summary" && (
-        <div className="stack">
-          <p className="muted">AI reads the task titles, statuses, dates and assignees. It does not read notes, files or email addresses.</p>
-          {summary && <div className="ai-summary">{summary}</div>}
-          {error && <p className="error" role="alert">{error}</p>}
-          <div className="row-end">
-            {summary && (
-              <button type="button" className="btn ghost" onClick={copy}>
-                Copy
-              </button>
+          <TabsContent value="plan" className="min-h-0 flex-1 overflow-y-auto p-4">
+            {!drafts ? (
+              <form className="grid gap-4" onSubmit={plan}>
+                <p className="text-sm text-muted-foreground">
+                  Describe the goal. AI drafts tasks with phases and dates. You check them before anything is added.
+                </p>
+                <Field label="Goal" htmlFor="ai-goal">
+                  <Textarea
+                    id="ai-goal"
+                    rows={4}
+                    maxLength={2000}
+                    required
+                    value={goal}
+                    onChange={(e) => setGoal(e.target.value)}
+                    placeholder="For example: Launch a fall fundraising campaign with an email series, a donation page and two events."
+                  />
+                </Field>
+                <Field label="Start date" htmlFor="ai-start" className="max-w-48">
+                  <Input id="ai-start" type="date" value={start} onChange={(e) => setStart(e.target.value)} />
+                </Field>
+                {error && <Notice tone="error">{error}</Notice>}
+                <div className="flex justify-end">
+                  <Button type="submit" disabled={busy || !goal.trim()}>
+                    {busy ? "Drafting…" : "Draft tasks"}
+                  </Button>
+                </div>
+              </form>
+            ) : (
+              <div className="grid gap-4">
+                <p className="text-sm text-muted-foreground">Clear the tasks you do not want. The rest go to the backlog.</p>
+                <ul className="divide-y rounded-lg border">
+                  {drafts.map((t, i) => (
+                    <li key={i}>
+                      <label className="flex cursor-pointer items-start gap-3 px-3 py-2.5 hover:bg-accent/50">
+                        <input
+                          type="checkbox"
+                          className="mt-0.5 size-4 accent-primary"
+                          checked={picked[i]}
+                          onChange={(e) => setPicked((p) => p.map((v, j) => (j === i ? e.target.checked : v)))}
+                        />
+                        <span className="grid gap-0.5">
+                          <span className="text-sm font-medium">{t.title}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {t.phase || "No phase"} · {fmtRange(t.start, t.end)} · {PRIORITIES[t.priority]}
+                          </span>
+                          {t.notes && <span className="text-xs text-muted-foreground">{t.notes}</span>}
+                        </span>
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+                {error && <Notice tone="error">{error}</Notice>}
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setDrafts(null)}>
+                    Change the goal
+                  </Button>
+                  <Button type="button" disabled={busy || !picked.some(Boolean)} onClick={add}>
+                    Add {picked.filter(Boolean).length} tasks
+                  </Button>
+                </div>
+              </div>
             )}
-            <button type="button" className="btn primary" disabled={busy} onClick={summarize}>
-              {busy ? "Writing…" : summary ? "Write again" : "Write a summary"}
-            </button>
-          </div>
-        </div>
-      )}
-      <p className="hint ai-foot">AI can make mistakes. Check the output. Provider: {provider}, through Cloudflare AI Gateway.</p>
-    </Modal>
+          </TabsContent>
+
+          <TabsContent value="summary" className="min-h-0 flex-1 overflow-y-auto p-4">
+            <div className="grid gap-4">
+              <p className="text-sm text-muted-foreground">
+                AI reads the task titles, statuses, dates and assignees. It does not read notes, files or email addresses.
+              </p>
+              {summary && <div className="rounded-lg border bg-muted/40 p-4 text-sm whitespace-pre-wrap">{summary}</div>}
+              {error && <Notice tone="error">{error}</Notice>}
+              <div className="flex justify-end gap-2">
+                {summary && (
+                  <Button type="button" variant="outline" onClick={copy}>
+                    Copy
+                  </Button>
+                )}
+                <Button type="button" disabled={busy} onClick={summarize}>
+                  {busy ? "Writing…" : summary ? "Write again" : "Write a summary"}
+                </Button>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </SheetContent>
+    </Sheet>
   );
 }

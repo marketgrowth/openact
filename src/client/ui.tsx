@@ -1,55 +1,93 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  ArrowLeft,
+  Bot,
+  Calendar,
+  ChartGantt,
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsUpDown,
+  Download,
+  Ellipsis,
+  ExternalLink,
+  FileText,
+  Flag,
+  FolderKanban,
+  Lock,
+  LogOut,
+  Menu,
+  MessageSquare,
+  Monitor,
+  Moon,
+  Paperclip,
+  Plus,
+  Search,
+  Settings,
+  Sparkles,
+  SquareKanban,
+  Sun,
+  Trash2,
+  Users,
+  X,
+  type LucideIcon
+} from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { cn } from "@/lib/utils";
 import { findLinks, linkLabel, splitLinks } from "./links";
 import { getTheme, setTheme, type ThemePref } from "./theme";
 
-/* Icons: one stroke style, 20px grid */
+/* Icons: Lucide, by the short names the app uses. */
 
-const PATHS: Record<string, string> = {
-  plus: "M10 4v12M4 10h12",
-  x: "M5 5l10 10M15 5L5 15",
-  sun: "M10 6.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zM10 2v1.5M10 16.5V18M2 10h1.5M16.5 10H18M4.3 4.3l1.1 1.1M14.6 14.6l1.1 1.1M4.3 15.7l1.1-1.1M14.6 5.4l1.1-1.1",
-  moon: "M16 12.5A6.5 6.5 0 0 1 7.5 4a6.5 6.5 0 1 0 8.5 8.5z",
-  monitor: "M3 4.5h14v9H3zM7.5 16.5h5M10 13.5v3",
-  sparkle: "M10 2.5l1.6 4.4 4.4 1.6-4.4 1.6L10 14.5l-1.6-4.4L4 8.5l4.4-1.6zM15.5 13l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z",
-  users: "M7.5 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 17c0-3 2.5-5 5.5-5s5.5 2 5.5 5M13 3.2a3 3 0 0 1 0 5.6M15 12.2c1.8.7 3 2.4 3 4.8",
-  board: "M3 3.5h4v13H3zM8 3.5h4v9H8zM13 3.5h4v6h-4z",
-  timeline: "M3 4h8M6 9h9M4 14h6M3 2v16",
-  trash: "M4 6h12M8 6V4h4v2M5.5 6l.8 10.5h7.4L14.5 6M8.5 9v5M11.5 9v5",
-  clip: "M15 9.5l-5.6 5.6a3.5 3.5 0 0 1-5-5l6.4-6.4a2.3 2.3 0 0 1 3.3 3.3l-6.3 6.3a1.2 1.2 0 0 1-1.7-1.7l5.6-5.6",
-  download: "M10 3v10M6 9l4 4 4-4M4 16.5h12",
-  back: "M12 4l-6 6 6 6",
-  out: "M8 4H4v12h4M12 6.5L15.5 10 12 13.5M15.5 10H8",
-  gear: "M10 7a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM10 2v2M10 16v2M2 10h2M16 10h2M4.3 4.3l1.4 1.4M14.3 14.3l1.4 1.4M4.3 15.7l1.4-1.4M14.3 5.7l1.4-1.4",
-  check: "M4 10.5l4 4 8-9",
-  calendar: "M3.5 5h13v11.5h-13zM3.5 8.5h13M7 3v3.5M13 3v3.5",
-  doc: "M5.5 2.5h6l3 3v12h-9zM11.5 2.5v3h3M7.5 10h5M7.5 13h5",
-  flag: "M5 17.5V3M5 3.5h9l-2 3.5 2 3.5H5",
-  left: "M12.5 4.5L7 10l5.5 5.5",
-  right: "M7.5 4.5L13 10l-5.5 5.5",
-  search: "M8.5 14a5.5 5.5 0 1 0 0-11 5.5 5.5 0 0 0 0 11zM12.5 12.5L17 17",
-  chevron: "M6 8l4 4 4-4",
-  menu: "M3 5h14M3 10h14M3 15h14",
-  external: "M11 4h5v5M16 4l-7 7M14 11.5V15a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h3.5",
-  chat: "M3.5 4.5h13v9h-7l-4 3v-3h-2z",
-  dots: "M5 10h.01M10 10h.01M15 10h.01",
-  shield: "M10 2.5l6 2.5v4.5c0 4-2.6 6.8-6 8-3.4-1.2-6-4-6-8V5z"
+const ICONS: Record<string, LucideIcon> = {
+  plus: Plus,
+  x: X,
+  sun: Sun,
+  moon: Moon,
+  monitor: Monitor,
+  sparkle: Sparkles,
+  users: Users,
+  board: SquareKanban,
+  projects: FolderKanban,
+  timeline: ChartGantt,
+  trash: Trash2,
+  clip: Paperclip,
+  download: Download,
+  back: ArrowLeft,
+  out: LogOut,
+  gear: Settings,
+  check: Check,
+  calendar: Calendar,
+  doc: FileText,
+  flag: Flag,
+  left: ChevronLeft,
+  right: ChevronRight,
+  search: Search,
+  chevron: ChevronDown,
+  updown: ChevronsUpDown,
+  menu: Menu,
+  external: ExternalLink,
+  chat: MessageSquare,
+  dots: Ellipsis,
+  shield: Lock,
+  bot: Bot
 };
 
-export function Icon({ name, size = 18 }: { name: keyof typeof PATHS | string; size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d={PATHS[name] ?? ""} />
-    </svg>
-  );
+export function Icon({ name, size = 16, className }: { name: keyof typeof ICONS | string; size?: number; className?: string }) {
+  const C = ICONS[name] ?? Ellipsis;
+  return <C size={size} className={className} aria-hidden="true" />;
 }
 
-export function Logo() {
+export function Logo({ size = 24 }: { size?: number }) {
   return (
-    <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true">
-      <rect width="32" height="32" rx="7" fill="var(--accent)" />
-      <rect x="6" y="8" width="13" height="4" rx="2" fill="var(--accent-ink)" />
-      <rect x="11" y="14" width="15" height="4" rx="2" fill="var(--accent-ink)" opacity=".8" />
-      <rect x="8" y="20" width="9" height="4" rx="2" fill="var(--accent-ink)" opacity=".6" />
+    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true" className="shrink-0">
+      <rect width="32" height="32" rx="7" fill="var(--brand)" />
+      <rect x="6" y="8" width="13" height="4" rx="2" fill="var(--brand-foreground)" />
+      <rect x="11" y="14" width="15" height="4" rx="2" fill="var(--brand-foreground)" opacity=".8" />
+      <rect x="8" y="20" width="9" height="4" rx="2" fill="var(--brand-foreground)" opacity=".6" />
     </svg>
   );
 }
@@ -63,14 +101,23 @@ function hash(s: string): number {
 }
 
 export function initials(name: string): string {
-  const parts = name.trim().split(/[\s._-]+/).filter(Boolean);
+  const parts = name
+    .trim()
+    .split(/[\s._-]+/)
+    .filter(Boolean);
   if (!parts.length) return "?";
   return (parts[0][0] + (parts[1]?.[0] ?? "")).toUpperCase();
 }
 
-export function Avatar({ id, name, size = 22 }: { id: string; name: string; size?: number }) {
+export function Avatar({ id, name, size = 22, className }: { id: string; name: string; size?: number; className?: string }) {
   return (
-    <span className={`av av-${hash(id) % 8}`} style={{ width: size, height: size, fontSize: Math.round(size * 0.42) }} title={name} aria-label={name}>
+    <span
+      className={cn("inline-flex shrink-0 select-none items-center justify-center rounded-full font-medium text-[var(--av-ink)]", className)}
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.42), background: `var(--av-${hash(id) % 8})` }}
+      title={name}
+      aria-label={name}
+      data-avatar=""
+    >
       {initials(name)}
     </span>
   );
@@ -92,49 +139,49 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastCtx.Provider value={show}>
       {children}
-      <div className="toast" role="status" aria-live="polite" hidden={!msg}>
+      <div
+        role="status"
+        aria-live="polite"
+        hidden={!msg}
+        className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 z-[60] max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-md border bg-popover px-4 py-2.5 text-sm text-popover-foreground shadow-lg"
+      >
         {msg}
       </div>
     </ToastCtx.Provider>
   );
 }
 
-/* Modal dialog with Escape and focus return */
+/* Modal: a shadcn Dialog with a title. Escape, focus trapping and focus return come from Radix. */
 
-export function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: ReactNode; wide?: boolean }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const prev = document.activeElement as HTMLElement | null;
-    const first = ref.current?.querySelector<HTMLElement>("input, textarea, select, button:not(.icon-btn)");
-    first?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      prev?.focus?.();
-    };
-  }, [onClose]);
+export function Modal({
+  title,
+  description,
+  onClose,
+  children,
+  wide
+}: {
+  title: string;
+  description?: string;
+  onClose: () => void;
+  children: ReactNode;
+  wide?: boolean;
+}) {
   return (
-    <>
-      <div className="scrim" onClick={onClose} />
-      <div className={`modal${wide ? " wide" : ""}`} role="dialog" aria-modal="true" aria-label={title} ref={ref}>
-        <div className="modal-head">
-          <h2>{title}</h2>
-          <button type="button" className="icon-btn" aria-label="Close" onClick={onClose}>
-            <Icon name="x" />
-          </button>
-        </div>
-        <div className="modal-body">{children}</div>
-      </div>
-    </>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className={cn("max-h-[calc(100dvh-2rem)] overflow-y-auto", wide ? "sm:max-w-2xl" : "sm:max-w-lg")}>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          {description ? <DialogDescription>{description}</DialogDescription> : <DialogDescription className="sr-only">{title}</DialogDescription>}
+        </DialogHeader>
+        <div className="flex min-w-0 flex-col gap-4">{children}</div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
 /* Theme switch: System, Light, Dark */
 
-export function ThemeSwitch() {
+export function ThemeSwitch({ className }: { className?: string }) {
   const [pref, setPref] = useState<ThemePref>(getTheme);
   const opts: Array<[ThemePref, string, string]> = [
     ["system", "monitor", "Use system theme"],
@@ -142,29 +189,44 @@ export function ThemeSwitch() {
     ["dark", "moon", "Dark theme"]
   ];
   return (
-    <div className="theme-switch" role="radiogroup" aria-label="Theme">
+    <ToggleGroup
+      type="single"
+      variant="outline"
+      size="sm"
+      value={pref}
+      aria-label="Theme"
+      className={className}
+      onValueChange={(v) => {
+        if (!v) return;
+        setTheme(v as ThemePref);
+        setPref(v as ThemePref);
+      }}
+    >
       {opts.map(([v, icon, label]) => (
-        <button
-          key={v}
-          type="button"
-          role="radio"
-          aria-checked={pref === v}
-          aria-label={label}
-          title={label}
-          onClick={() => {
-            setTheme(v);
-            setPref(v);
-          }}
-        >
-          <Icon name={icon} size={16} />
-        </button>
+        <ToggleGroupItem key={v} value={v} aria-label={label} title={label}>
+          <Icon name={icon} />
+        </ToggleGroupItem>
       ))}
-    </div>
+    </ToggleGroup>
   );
 }
 
 /** Two-step confirm button. The first click arms it; the second click within 4 seconds runs the action. */
-export function ConfirmButton({ label, confirmLabel, onConfirm, className = "", disabled }: { label: ReactNode; confirmLabel: string; onConfirm: () => void; className?: string; disabled?: boolean }) {
+export function ConfirmButton({
+  label,
+  confirmLabel,
+  onConfirm,
+  className,
+  disabled,
+  size = "sm"
+}: {
+  label: ReactNode;
+  confirmLabel: string;
+  onConfirm: () => void;
+  className?: string;
+  disabled?: boolean;
+  size?: "sm" | "default";
+}) {
   const [armed, setArmed] = useState(false);
   useEffect(() => {
     if (!armed) return;
@@ -172,10 +234,13 @@ export function ConfirmButton({ label, confirmLabel, onConfirm, className = "", 
     return () => window.clearTimeout(t);
   }, [armed]);
   return (
-    <button
+    <Button
       type="button"
-      className={`btn ${armed ? "danger armed" : "ghost danger"} ${className}`}
+      size={size}
+      variant={armed ? "destructive" : "ghost"}
+      className={cn(!armed && "text-destructive hover:text-destructive", className)}
       disabled={disabled}
+      data-armed={armed || undefined}
       onClick={() => {
         if (armed) {
           setArmed(false);
@@ -184,7 +249,7 @@ export function ConfirmButton({ label, confirmLabel, onConfirm, className = "", 
       }}
     >
       {armed ? confirmLabel : label}
-    </button>
+    </Button>
   );
 }
 
@@ -194,7 +259,13 @@ export function LinkedText({ text }: { text: string }) {
     <>
       {splitLinks(text).map((s, i) =>
         s.kind === "link" ? (
-          <a key={i} href={s.href} target="_blank" rel="noopener noreferrer nofollow" className="text-link">
+          <a
+            key={i}
+            href={s.href}
+            target="_blank"
+            rel="noopener noreferrer nofollow"
+            className="break-all font-medium text-foreground underline underline-offset-4"
+          >
             {s.text}
           </a>
         ) : (
@@ -210,15 +281,64 @@ export function LinkList({ text, label = "Links" }: { text: string; label?: stri
   const links = findLinks(text);
   if (!links.length) return null;
   return (
-    <ul className="link-list" aria-label={label}>
+    <ul className="flex flex-wrap gap-1.5" aria-label={label} data-links="">
       {links.map((l) => (
-        <li key={l.href}>
-          <a href={l.href} target="_blank" rel="noopener noreferrer nofollow" title={l.href}>
-            <Icon name="external" size={14} />
-            <span>{linkLabel(l.href)}</span>
+        <li key={l.href} className="min-w-0">
+          <a
+            href={l.href}
+            target="_blank"
+            rel="noopener noreferrer nofollow"
+            title={l.href}
+            className="inline-flex max-w-full items-center gap-1.5 rounded-md border bg-background px-2 py-1 text-xs font-medium shadow-xs hover:bg-accent"
+          >
+            <Icon name="external" size={12} className="shrink-0 text-muted-foreground" />
+            <span className="truncate">{linkLabel(l.href)}</span>
           </a>
         </li>
       ))}
     </ul>
+  );
+}
+
+/** A short notice: a warning or an error message. */
+export function Notice({ children, tone = "warn", className }: { children: ReactNode; tone?: "warn" | "error" | "info"; className?: string }) {
+  return (
+    <div
+      role={tone === "error" ? "alert" : undefined}
+      className={cn(
+        "rounded-md border px-3 py-2 text-sm",
+        tone === "warn" && "border-warn-border bg-warn text-warn-foreground",
+        tone === "error" && "border-destructive/30 bg-destructive/10 text-destructive",
+        tone === "info" && "bg-muted text-muted-foreground",
+        className
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+/** A form field: a label, the control, and optional help text. */
+export function Field({
+  label,
+  htmlFor,
+  help,
+  children,
+  className
+}: {
+  label: ReactNode;
+  htmlFor?: string;
+  help?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("grid gap-2", className)}>
+      <label htmlFor={htmlFor} className="text-sm font-medium leading-none">
+        {label}
+      </label>
+      {children}
+      {help && <p className="text-xs text-muted-foreground">{help}</p>}
+    </div>
   );
 }

@@ -1,32 +1,42 @@
-import { useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState, type CSSProperties } from "react";
 import type { AppConfig, User } from "../shared/types";
 import { api, errorText } from "./api";
 import { Link, navigate, usePath } from "./router";
-import { Icon, Logo, Modal, ToastProvider, useToast } from "./ui";
+import { Modal, ToastProvider, useToast, Field } from "./ui";
 import { SignIn } from "./pages/SignIn";
 import { NewProjectDialog, ProjectsPage } from "./pages/Projects";
-import { CompanyMark, Sidebar } from "./components/Sidebar";
-import { CompanySettings, NewCompanyDialog } from "./components/CompanyDialogs";
+import { AppSidebar } from "./components/Sidebar";
 import { WorkspaceProvider, useWorkspace } from "./workspace";
-import { SearchDialog } from "./components/SearchDialog";
 import { ProjectPage } from "./pages/Project";
-import { Colophon } from "./pages/Colophon";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+
+// Loaded on first use, so the first page loads less code.
+const CompanySettings = lazy(() => import("./components/CompanyDialogs").then((m) => ({ default: m.CompanySettings })));
+const NewCompanyDialog = lazy(() => import("./components/CompanyDialogs").then((m) => ({ default: m.NewCompanyDialog })));
+const SearchDialog = lazy(() => import("./components/SearchDialog").then((m) => ({ default: m.SearchDialog })));
+const Colophon = lazy(() => import("./pages/Colophon").then((m) => ({ default: m.Colophon })));
 
 export function App() {
   return (
-    <ToastProvider>
-      <Shell />
-    </ToastProvider>
+    <TooltipProvider delayDuration={200}>
+      <ToastProvider>
+        <Shell />
+      </ToastProvider>
+    </TooltipProvider>
   );
 }
 
-const COLLAPSE_KEY = "openact-sidepanel";
+const PANEL_KEY = "openact-sidepanel";
 
-function readCollapsed(): boolean {
+function readPanelOpen(): boolean {
   try {
-    return localStorage.getItem(COLLAPSE_KEY) === "collapsed";
+    return localStorage.getItem(PANEL_KEY) !== "collapsed";
   } catch {
-    return false;
+    return true;
   }
 }
 
@@ -47,8 +57,13 @@ function Shell() {
       .catch(() => {});
   }, []);
 
-  if (path === "/colophon") return <Colophon config={config} signedIn={!!me} />;
-  if (me === undefined) return <div className="splash" aria-busy="true" />;
+  if (path === "/colophon")
+    return (
+      <Suspense fallback={<div className="min-h-dvh bg-background" aria-busy="true" />}>
+        <Colophon config={config} signedIn={!!me} />
+      </Suspense>
+    );
+  if (me === undefined) return <div className="min-h-dvh bg-background" aria-busy="true" />;
   if (!me) return <SignIn config={config} onSignedIn={setMe} />;
   return (
     <WorkspaceProvider key={me.id}>
@@ -60,8 +75,7 @@ function Shell() {
 function SignedIn({ me, config, onMe }: { me: User; config: AppConfig; onMe: (u: User | null) => void }) {
   const path = usePath();
   const ws = useWorkspace();
-  const [collapsed, setCollapsed] = useState(readCollapsed);
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [open, setOpen] = useState(readPanelOpen);
   const [dialog, setDialog] = useState<null | "account" | "project" | "company" | "settings" | "search">(null);
   const close = useCallback(() => setDialog(null), []);
   const { reloadProjects } = ws;
@@ -69,10 +83,9 @@ function SignedIn({ me, config, onMe }: { me: User; config: AppConfig; onMe: (u:
   // Keep the side panel's project list fresh when the person moves around.
   useEffect(() => {
     reloadProjects();
-    setMobileOpen(false);
   }, [path]);
 
-  // Ctrl+K or Cmd+K opens search from anywhere.
+  // Ctrl+K or Cmd+K opens search from anywhere. Ctrl+B or Cmd+B (in the sidebar) toggles the side panel.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
@@ -84,62 +97,69 @@ function SignedIn({ me, config, onMe }: { me: User; config: AppConfig; onMe: (u:
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
-  const toggle = () => {
-    // On a phone the button closes the drawer. On a wide screen it collapses the panel.
-    if (window.matchMedia("(max-width: 860px)").matches) {
-      setMobileOpen(false);
-      return;
+  const onOpenChange = (next: boolean) => {
+    setOpen(next);
+    try {
+      localStorage.setItem(PANEL_KEY, next ? "open" : "collapsed");
+    } catch {
+      /* Storage can be blocked. The panel still works. */
     }
-    setCollapsed((c) => {
-      try {
-        localStorage.setItem(COLLAPSE_KEY, c ? "open" : "collapsed");
-      } catch {
-        /* Storage can be blocked. The panel still works. */
-      }
-      return !c;
-    });
+  };
+
+  const signOut = async (everywhere: boolean) => {
+    await api(everywhere ? "/api/me/sign-out-everywhere" : "/api/auth/logout", { method: "POST" }).catch(() => {});
+    onMe(null);
+    navigate("/", true);
   };
 
   const match = path.match(/^\/p\/([^/]+)(?:\/(board|timeline|calendar|members))?\/?$/);
   return (
-    <div className={`layout${collapsed ? " is-collapsed" : ""}${mobileOpen ? " is-open" : ""}`}>
-      <Sidebar
+    <SidebarProvider open={open} onOpenChange={onOpenChange} style={{ "--header-height": "calc(var(--spacing) * 12)" } as CSSProperties}>
+      <AppSidebar
         me={me}
         appName={config.appName}
-        collapsed={collapsed && !mobileOpen}
-        onToggle={toggle}
-        onNavigate={() => setMobileOpen(false)}
         onNewProject={() => setDialog("project")}
         onNewCompany={() => setDialog("company")}
         onCompanySettings={() => setDialog("settings")}
         onAccount={() => setDialog("account")}
         onSearch={() => setDialog("search")}
+        onSignOut={signOut}
       />
-      <div className="sp-scrim" onClick={() => setMobileOpen(false)} aria-hidden="true" />
-      <div className="main">
-        <header className="mobilebar">
-          <button type="button" className="icon-btn" aria-label="Open the menu" aria-expanded={mobileOpen} onClick={() => setMobileOpen(true)}>
-            <Icon name="menu" />
-          </button>
-          {ws.current ? <CompanyMark company={ws.current} size={26} /> : <Logo />}
-          <span className="mobilebar-name">{ws.current?.name ?? config.appName}</span>
-        </header>
+      <SidebarInset className="min-w-0">
         {match ? (
-          <ProjectPage key={match[1]} projectId={match[1]} view={(match[2] as "board" | "timeline" | "calendar" | "members") || "board"} me={me} config={config} />
+          <ProjectPage
+            key={match[1]}
+            projectId={match[1]}
+            view={(match[2] as "board" | "timeline" | "calendar" | "members") || "board"}
+            me={me}
+            config={config}
+          />
         ) : (
           <ProjectsPage me={me} onNewProject={() => setDialog("project")} onNewCompany={() => setDialog("company")} />
         )}
-      </div>
-      {dialog === "account" && <AccountDialog me={me} onChange={onMe} onClose={close} />}
-      {dialog === "project" && ws.current && <NewProjectDialog company={ws.current} onClose={close} />}
-      {dialog === "company" && <NewCompanyDialog onClose={close} />}
-      {dialog === "settings" && ws.current && <CompanySettings companyId={ws.current.id} me={me} onClose={close} />}
-      {dialog === "search" && ws.current && <SearchDialog companyId={ws.current.id} companyName={ws.current.name} onClose={close} />}
-    </div>
+      </SidebarInset>
+      <Suspense fallback={null}>
+        {dialog === "account" && <AccountDialog me={me} onChange={onMe} onSignOut={signOut} onClose={close} />}
+        {dialog === "project" && ws.current && <NewProjectDialog company={ws.current} onClose={close} />}
+        {dialog === "company" && <NewCompanyDialog onClose={close} />}
+        {dialog === "settings" && ws.current && <CompanySettings companyId={ws.current.id} me={me} onClose={close} />}
+        {dialog === "search" && ws.current && <SearchDialog companyId={ws.current.id} companyName={ws.current.name} onClose={close} />}
+      </Suspense>
+    </SidebarProvider>
   );
 }
 
-function AccountDialog({ me, onChange, onClose }: { me: User; onChange: (u: User | null) => void; onClose: () => void }) {
+function AccountDialog({
+  me,
+  onChange,
+  onSignOut,
+  onClose
+}: {
+  me: User;
+  onChange: (u: User | null) => void;
+  onSignOut: (everywhere: boolean) => void;
+  onClose: () => void;
+}) {
   const toast = useToast();
   const [name, setName] = useState(me.name);
   const [busy, setBusy] = useState(false);
@@ -157,39 +177,33 @@ function AccountDialog({ me, onChange, onClose }: { me: User; onChange: (u: User
       setBusy(false);
     }
   };
-  const signOut = async (everywhere: boolean) => {
-    await api(everywhere ? "/api/me/sign-out-everywhere" : "/api/auth/logout", { method: "POST" }).catch(() => {});
-    onChange(null);
-    navigate("/", true);
-  };
   return (
-    <Modal title="Your account" onClose={onClose}>
-      <form className="stack" onSubmit={save}>
-        <div className="field">
-          <label htmlFor="acc-name">Name</label>
-          <input id="acc-name" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} autoComplete="name" />
+    <Modal title="Your account" description="Your name shows on tasks, comments and the people list." onClose={onClose}>
+      <form className="grid gap-4" onSubmit={save}>
+        <Field label="Name" htmlFor="acc-name">
+          <Input id="acc-name" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} autoComplete="name" />
+        </Field>
+        <div className="grid gap-2">
+          <span className="text-sm font-medium leading-none">Email</span>
+          <span className="font-mono text-sm text-muted-foreground">{me.email}</span>
         </div>
-        <div className="field">
-          <span className="lbl">Email</span>
-          <span className="mono">{me.email}</span>
-        </div>
-        <div className="row-end">
-          <button type="submit" className="btn primary" disabled={busy || !name.trim()}>
+        <div className="flex justify-end">
+          <Button type="submit" disabled={busy || !name.trim()}>
             Save name
-          </button>
+          </Button>
         </div>
       </form>
-      <hr />
-      <div className="row-wrap">
-        <button type="button" className="btn" onClick={() => signOut(false)}>
-          <Icon name="out" size={16} /> Sign out
-        </button>
-        <button type="button" className="btn ghost" onClick={() => signOut(true)}>
+      <Separator />
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" variant="outline" onClick={() => onSignOut(false)}>
+          Sign out
+        </Button>
+        <Button type="button" variant="ghost" onClick={() => onSignOut(true)}>
           Sign out on all devices
-        </button>
+        </Button>
       </div>
-      <p className="hint">
-        <Link to="/colophon" onClick={onClose}>
+      <p className="text-xs text-muted-foreground">
+        <Link to="/colophon" onClick={onClose} className="underline underline-offset-4 hover:text-foreground">
           How OpenAct is made
         </Link>{" "}
         · Open source by MarketGrowth

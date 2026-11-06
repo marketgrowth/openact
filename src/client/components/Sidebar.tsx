@@ -1,13 +1,53 @@
-import { useEffect, useRef, useState } from "react";
 import { COMPANY_ROLE_LABELS, type Company, type User } from "../../shared/types";
 import { canCreateProjects, canManageCompany } from "../../shared/access";
 import { Link, usePath } from "../router";
-import { Avatar, Icon, ThemeSwitch } from "../ui";
+import { Avatar, Icon } from "../ui";
 import { useWorkspace } from "../workspace";
+import { getTheme, setTheme, type ThemePref } from "../theme";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupAction,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarRail,
+  useSidebar
+} from "@/components/ui/sidebar";
+import { Kbd } from "@/components/ui/kbd";
 
-/** A company's logo, or its initials on a colored square. */
-export function CompanyMark({ company, size = 32 }: { company: Pick<Company, "id" | "name" | "logoUrl">; size?: number }) {
-  if (company.logoUrl) return <img className="co-mark" src={company.logoUrl} alt="" width={size} height={size} />;
+/** A company's logo, or its initials on a square. */
+export function CompanyMark({ company, size = 32, className }: { company: Pick<Company, "id" | "name" | "logoUrl">; size?: number; className?: string }) {
+  if (company.logoUrl)
+    return (
+      <img
+        className={cn("shrink-0 rounded-lg object-cover", className)}
+        src={company.logoUrl}
+        alt=""
+        width={size}
+        height={size}
+        style={{ width: size, height: size }}
+        data-company-mark=""
+      />
+    );
   const initials =
     company.name
       .split(/\s+/)
@@ -16,214 +56,308 @@ export function CompanyMark({ company, size = 32 }: { company: Pick<Company, "id
       .map((w) => w[0]!.toUpperCase())
       .join("") || "?";
   return (
-    <span className="co-mark co-initials" style={{ width: size, height: size, fontSize: size * 0.4 }} aria-hidden="true">
+    <span
+      className={cn("flex shrink-0 items-center justify-center rounded-lg bg-sidebar-primary font-semibold text-sidebar-primary-foreground", className)}
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.38) }}
+      aria-hidden="true"
+      data-company-mark=""
+    >
       {initials}
     </span>
   );
 }
 
-export interface SidebarProps {
+export interface AppSidebarProps {
   me: User;
   appName: string;
-  collapsed: boolean;
-  onToggle: () => void;
-  onNavigate: () => void;
   onNewProject: () => void;
   onNewCompany: () => void;
   onCompanySettings: () => void;
   onAccount: () => void;
   onSearch: () => void;
+  onSignOut: (everywhere: boolean) => void;
 }
 
-/** The left side panel: the company switcher, the company's projects, and the person's settings. */
-export function Sidebar(p: SidebarProps) {
+const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
+
+/** The left side panel: the company switcher, the company's projects, and the person's menu. */
+export function AppSidebar(p: AppSidebarProps) {
   const ws = useWorkspace();
   const path = usePath();
+  const { isMobile, setOpenMobile } = useSidebar();
   const current = ws.current;
   const canCreate = canCreateProjects(current?.role ?? null);
   const canManage = canManageCompany(current?.role ?? null);
-  const label = (text: string) => (p.collapsed ? { title: text, "aria-label": text } : {});
+  // On a phone, close the sheet after the person picks a place to go.
+  const done = () => isMobile && setOpenMobile(false);
 
   return (
-    <aside className="sidepanel" aria-label="Main">
-      <div className="sp-head">
-        <CompanySwitcher appName={p.appName} collapsed={p.collapsed} onNewCompany={p.onNewCompany} onCompanySettings={p.onCompanySettings} onPick={p.onNavigate} />
-        <button type="button" className="sp-toggle" onClick={p.onToggle} aria-label={p.collapsed ? "Open the side panel" : "Close the side panel"} aria-expanded={!p.collapsed}>
-          <Icon name={p.collapsed ? "right" : "left"} size={14} />
-        </button>
-      </div>
+    <Sidebar variant="inset" collapsible="icon" aria-label="Main">
+      <SidebarHeader>
+        <CompanySwitcher appName={p.appName} onNewCompany={p.onNewCompany} onCompanySettings={p.onCompanySettings} onPick={done} />
+      </SidebarHeader>
 
-      <nav className="sp-nav" aria-label="Projects">
-        {current && (
-          <button type="button" className="sp-item" onClick={p.onSearch} aria-keyshortcuts="Control+K Meta+K" {...label("Search")}>
-            <Icon name="search" size={18} />
-            <span className="sp-label">Search</span>
-            {!p.collapsed && <kbd className="sp-kbd">{/Mac|iPhone|iPad/.test(navigator.platform) ? "⌘K" : "Ctrl K"}</kbd>}
-          </button>
-        )}
-        <Link to="/" className="sp-item" aria-current={path === "/" ? "page" : undefined} onClick={p.onNavigate} {...label("All projects")}>
-          <Icon name="board" size={18} />
-          <span className="sp-label">All projects</span>
-        </Link>
-        {current && <p className="sp-section">Projects</p>}
-        {ws.projects === null && current && <p className="sp-empty sp-label">Loading…</p>}
-        {ws.projects?.map((proj) => {
-          const active = path === `/p/${proj.id}` || path.startsWith(`/p/${proj.id}/`);
-          return (
-            <Link
-              key={proj.id}
-              to={`/p/${proj.id}`}
-              className="sp-item"
-              aria-current={active ? "page" : undefined}
-              onClick={p.onNavigate}
-              {...label(proj.visibility === "secret" ? `${proj.name} (secret)` : proj.name)}
-            >
-              <span className={`sp-dot pc-${proj.color}`} aria-hidden="true" />
-              <span className="sp-label">{proj.name}</span>
-              {proj.visibility === "secret" && !p.collapsed && (
-                <span className="sp-lock" title="Secret project">
-                  <Icon name="shield" size={13} />
-                </span>
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {current && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton tooltip="Search" onClick={p.onSearch} aria-keyshortcuts="Control+K Meta+K">
+                    <Icon name="search" />
+                    <span>Search</span>
+                    <Kbd className="ml-auto group-data-[collapsible=icon]:hidden">{isMac ? "⌘K" : "Ctrl K"}</Kbd>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               )}
-            </Link>
-          );
-        })}
-        {ws.projects && !ws.projects.length && current && <p className="sp-empty sp-label">No projects yet.</p>}
-        {canCreate && (
-          <button type="button" className="sp-item sp-add" onClick={p.onNewProject} {...label("New project")}>
-            <Icon name="plus" size={18} />
-            <span className="sp-label">New project</span>
-          </button>
-        )}
-      </nav>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="All projects" isActive={path === "/"}>
+                  <Link to="/" onClick={done}>
+                    <Icon name="projects" />
+                    <span>All projects</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
 
-      <div className="sp-foot">
-        {canManage && (
-          <button type="button" className="sp-item" onClick={p.onCompanySettings} {...label("Company settings")}>
-            <Icon name="gear" size={18} />
-            <span className="sp-label">Company settings</span>
-          </button>
+        {current && (
+          <Collapsible defaultOpen className="group/collapsible">
+            <SidebarGroup>
+              <SidebarGroupLabel asChild>
+                <CollapsibleTrigger>
+                  Projects
+                  <Icon name="chevron" size={14} className="ml-1 transition-transform group-data-[state=closed]/collapsible:-rotate-90" />
+                </CollapsibleTrigger>
+              </SidebarGroupLabel>
+              {canCreate && (
+                <SidebarGroupAction title="New project" onClick={p.onNewProject}>
+                  <Icon name="plus" />
+                  <span className="sr-only">New project</span>
+                </SidebarGroupAction>
+              )}
+              <CollapsibleContent>
+                <SidebarGroupContent>
+                  <SidebarMenu aria-label="Projects" data-nav="projects">
+                    {ws.projects === null && <p className="px-2 py-1.5 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">Loading…</p>}
+                    {ws.projects?.map((proj) => {
+                      const active = path === `/p/${proj.id}` || path.startsWith(`/p/${proj.id}/`);
+                      const label = proj.visibility === "secret" ? `${proj.name} (secret)` : proj.name;
+                      return (
+                        <SidebarMenuItem key={proj.id}>
+                          <SidebarMenuButton asChild tooltip={label} isActive={active}>
+                            <Link to={`/p/${proj.id}`} onClick={done}>
+                              <span className="flex size-4 items-center justify-center" aria-hidden="true">
+                                <span className="size-2.5 rounded-full" style={{ background: `var(--pc-${proj.color})` }} />
+                              </span>
+                              <span>{proj.name}</span>
+                              {proj.visibility === "secret" && (
+                                <span className="ml-auto text-muted-foreground" title="Secret project">
+                                  <Icon name="shield" size={13} />
+                                </span>
+                              )}
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      );
+                    })}
+                    {ws.projects && !ws.projects.length && (
+                      <p className="px-2 py-1.5 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">No projects yet.</p>
+                    )}
+                    {canCreate && (
+                      <SidebarMenuItem>
+                        <SidebarMenuButton tooltip="New project" onClick={p.onNewProject} className="text-muted-foreground">
+                          <Icon name="plus" />
+                          <span>New project</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    )}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </SidebarGroup>
+          </Collapsible>
         )}
-        <Link to="/colophon" className="sp-item" onClick={p.onNavigate} {...label("Colophon")}>
-          <Icon name="doc" size={18} />
-          <span className="sp-label">Colophon</span>
-        </Link>
-        {!p.collapsed && (
-          <div className="sp-theme">
-            <ThemeSwitch />
-          </div>
-        )}
-        <button type="button" className="sp-item sp-me" onClick={p.onAccount} {...label("Your account")}>
-          <Avatar id={p.me.id} name={p.me.name || p.me.email} size={26} />
-          <span className="sp-label">
-            <span className="sp-me-name">{p.me.name || p.me.email}</span>
-            <span className="sp-me-mail">{p.me.email}</span>
-          </span>
-        </button>
-      </div>
-    </aside>
+
+        <SidebarGroup className="mt-auto">
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {canManage && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton tooltip="Company settings" onClick={p.onCompanySettings} size="sm">
+                    <Icon name="gear" />
+                    <span>Company settings</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Colophon" size="sm" isActive={path === "/colophon"}>
+                  <Link to="/colophon" onClick={done}>
+                    <Icon name="doc" />
+                    <span>Colophon</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+
+      <SidebarFooter>
+        <NavUser me={p.me} onAccount={p.onAccount} onSignOut={p.onSignOut} />
+      </SidebarFooter>
+      <SidebarRail />
+    </Sidebar>
   );
 }
 
 function CompanySwitcher({
   appName,
-  collapsed,
   onNewCompany,
   onCompanySettings,
   onPick
 }: {
   appName: string;
-  collapsed: boolean;
   onNewCompany: () => void;
   onCompanySettings: () => void;
   onPick: () => void;
 }) {
   const ws = useWorkspace();
-  const [open, setOpen] = useState(false);
-  const box = useRef<HTMLDivElement>(null);
+  const { isMobile } = useSidebar();
   const current = ws.current;
 
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      if (box.current && !box.current.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
-
   const pick = async (id: string) => {
-    setOpen(false);
     onPick();
     if (id !== current?.id) await ws.switchTo(id);
   };
 
   return (
-    <div className="co-switch" ref={box}>
-      <button
-        type="button"
-        className="co-btn"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-label={current ? `Company: ${current.name}. Change company` : "Choose a company"}
-        onClick={() => setOpen((o) => !o)}
-      >
-        {current ? <CompanyMark company={current} /> : <span className="co-mark co-initials co-empty"><Icon name="plus" size={16} /></span>}
-        <span className="co-text sp-label">
-          <span className="co-name">{current?.name ?? "No company yet"}</span>
-          <span className="co-app">{appName}</span>
-        </span>
-        <span className="co-chev sp-label" aria-hidden="true">
-          <Icon name="chevron" size={14} />
-        </span>
-      </button>
-      {open && (
-        <div className={`co-menu${collapsed ? " is-side" : ""}`} role="menu" aria-label="Companies">
-          <p className="co-menu-h">Your companies</p>
-          {(ws.companies ?? []).map((co) => (
-            <button key={co.id} type="button" role="menuitemradio" aria-checked={co.id === current?.id} className="co-opt" onClick={() => pick(co.id)}>
-              <CompanyMark company={co} size={26} />
-              <span className="co-opt-text">
-                <span className="co-name">{co.name}</span>
-                <span className="co-role">{COMPANY_ROLE_LABELS[co.role]}</span>
-              </span>
-              {co.id === current?.id && <Icon name="check" size={16} />}
-            </button>
-          ))}
-          <hr />
-          {current && canManageCompany(current.role) && (
-            <button
-              type="button"
-              role="menuitem"
-              className="co-opt co-act"
-              onClick={() => {
-                setOpen(false);
-                onCompanySettings();
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <SidebarMenuButton
+              size="lg"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              aria-label={current ? `Company: ${current.name}. Change company` : "Choose a company"}
+              data-company-switch=""
+            >
+              {current ? (
+                <CompanyMark company={current} />
+              ) : (
+                <span className="flex size-8 items-center justify-center rounded-lg border border-dashed">
+                  <Icon name="plus" />
+                </span>
+              )}
+              <div className="grid flex-1 text-left text-sm leading-tight">
+                <span className="truncate font-semibold" data-company-name="">
+                  {current?.name ?? "No company yet"}
+                </span>
+                <span className="truncate text-xs text-muted-foreground">{appName}</span>
+              </div>
+              <Icon name="updown" className="ml-auto" />
+            </SidebarMenuButton>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            className="w-(--radix-dropdown-menu-trigger-width) min-w-60 rounded-lg"
+            align="start"
+            side={isMobile ? "bottom" : "right"}
+            sideOffset={4}
+          >
+            <DropdownMenuLabel className="text-xs text-muted-foreground">Your companies</DropdownMenuLabel>
+            <DropdownMenuRadioGroup value={current?.id ?? ""} onValueChange={pick}>
+              {(ws.companies ?? []).map((co) => (
+                <DropdownMenuRadioItem key={co.id} value={co.id} className="gap-2 py-1.5">
+                  <CompanyMark company={co} size={24} className="rounded-md" />
+                  <span className="grid min-w-0 flex-1 leading-tight">
+                    <span className="truncate">{co.name}</span>
+                    <span className="truncate text-xs text-muted-foreground">{COMPANY_ROLE_LABELS[co.role]}</span>
+                  </span>
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+            <DropdownMenuSeparator />
+            {current && canManageCompany(current.role) && (
+              <DropdownMenuItem onSelect={onCompanySettings}>
+                <Icon name="gear" /> Company settings
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem onSelect={onNewCompany}>
+              <Icon name="plus" /> Create a company
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </SidebarMenuItem>
+    </SidebarMenu>
+  );
+}
+
+function NavUser({ me, onAccount, onSignOut }: { me: User; onAccount: () => void; onSignOut: (everywhere: boolean) => void }) {
+  const { isMobile } = useSidebar();
+  const [theme, setPref] = useState<ThemePref>(getTheme);
+  const name = me.name || me.email;
+  return (
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <SidebarMenuButton
+              size="lg"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              aria-label="Your account"
+              data-account=""
+            >
+              <Avatar id={me.id} name={name} size={32} />
+              <div className="grid flex-1 text-left text-sm leading-tight">
+                <span className="truncate font-medium">{name}</span>
+                <span className="truncate text-xs text-muted-foreground">{me.email}</span>
+              </div>
+              <Icon name="updown" className="ml-auto" />
+            </SidebarMenuButton>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+            side={isMobile ? "bottom" : "right"}
+            align="end"
+            sideOffset={4}
+          >
+            <DropdownMenuLabel className="p-0 font-normal">
+              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                <Avatar id={me.id} name={name} size={32} />
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-medium">{name}</span>
+                  <span className="truncate text-xs text-muted-foreground">{me.email}</span>
+                </div>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={onAccount}>
+              <Icon name="users" /> Account
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-xs text-muted-foreground">Theme</DropdownMenuLabel>
+            <DropdownMenuRadioGroup
+              value={theme}
+              onValueChange={(v) => {
+                setTheme(v as ThemePref);
+                setPref(v as ThemePref);
               }}
             >
-              <Icon name="gear" size={16} /> Company settings
-            </button>
-          )}
-          <button
-            type="button"
-            role="menuitem"
-            className="co-opt co-act"
-            onClick={() => {
-              setOpen(false);
-              onNewCompany();
-            }}
-          >
-            <Icon name="plus" size={16} /> Create a company
-          </button>
-        </div>
-      )}
-    </div>
+              <DropdownMenuRadioItem value="system">System</DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="light">Light</DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="dark">Dark</DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => onSignOut(false)}>
+              <Icon name="out" /> Sign out
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => onSignOut(true)}>
+              <Icon name="out" /> Sign out on all devices
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </SidebarMenuItem>
+    </SidebarMenu>
   );
 }

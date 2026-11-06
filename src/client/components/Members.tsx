@@ -3,6 +3,12 @@ import { ROLES, ROLE_LABELS, type AccessRequest, type ProjectDetail, type Role, 
 import { api, errorText } from "../api";
 import { navigate } from "../router";
 import { Avatar, ConfirmButton, useToast } from "../ui";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import type { ReactNode } from "react";
 
 const ROLE_HELP: Record<Role, string> = {
   owner: "Manages people and settings. Can delete the project.",
@@ -67,105 +73,131 @@ export function Members({ data, me, isOwner, onChanged }: { data: ProjectDetail;
     onChanged();
   };
 
+  const roleOptions = ROLES.map((r) => (
+    <NativeSelectOption key={r} value={r}>
+      {ROLE_LABELS[r]}
+    </NativeSelectOption>
+  ));
   return (
-    <div className="members">
+    <div className="grid max-w-3xl gap-6" data-members="">
       {isOwner && (
-        <form className="invite" onSubmit={invite}>
-          <h2>Invite people</h2>
-          <p className="hint">There is no limit on people. Each person signs in with their email and a one-time code.</p>
-          <div className="invite-row">
-            <input type="email" required placeholder="name@company.com" aria-label="Email address" value={email} onChange={(e) => setEmail(e.target.value)} />
-            <select aria-label="Role" value={role} onChange={(e) => setRole(e.target.value as Role)}>
-              {ROLES.map((r) => (
-                <option key={r} value={r}>
-                  {ROLE_LABELS[r]}
-                </option>
-              ))}
-            </select>
-            <button type="submit" className="btn primary" disabled={busy || !email.trim()}>
-              Send invitation
-            </button>
-          </div>
-          <p className="hint">{ROLE_HELP[role]}</p>
-        </form>
+        <Card className="gap-4 shadow-xs">
+          <CardHeader>
+            <CardTitle>Invite people</CardTitle>
+            <CardDescription>There is no limit on people. Each person signs in with their email and a one-time code.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form className="grid gap-2" onSubmit={invite}>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Input
+                  type="email"
+                  required
+                  placeholder="name@company.com"
+                  aria-label="Email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="sm:flex-1"
+                />
+                <NativeSelect aria-label="Role" value={role} onChange={(e) => setRole(e.target.value as Role)}>
+                  {roleOptions}
+                </NativeSelect>
+                <Button type="submit" disabled={busy || !email.trim()}>
+                  Send invitation
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">{ROLE_HELP[role]}</p>
+            </form>
+          </CardContent>
+        </Card>
       )}
 
       {isOwner && data.accessRequests.length > 0 && (
-        <section>
-          <h2>
-            Access requests <span className="count">{data.accessRequests.length}</span>
-          </h2>
-          <ul className="people">
-            {data.accessRequests.map((r) => (
-              <AccessRequestRow key={r.id} projectId={pid} request={r} onDone={onChanged} />
-            ))}
-          </ul>
-        </section>
+        <PeopleSection title="Access requests" count={data.accessRequests.length}>
+          {data.accessRequests.map((r) => (
+            <AccessRequestRow key={r.id} projectId={pid} request={r} onDone={onChanged} />
+          ))}
+        </PeopleSection>
       )}
 
-      <section>
-        <h2>
-          People <span className="count">{data.members.length}</span>
-        </h2>
-        <p className="hint">
-          {data.project.visibility === "secret"
+      <PeopleSection
+        title="People"
+        count={data.members.length}
+        description={
+          data.project.visibility === "secret"
             ? "This project is secret. Only the people below can see it."
-            : "Everyone in the company can also see this project as a viewer. Company owners and admins can manage it. Make the project secret in Project settings to limit it to the people below."}
-        </p>
-        <ul className="people">
-          {data.members.map((m) => (
-            <li key={m.userId}>
-              <Avatar id={m.userId} name={m.name || m.email} size={34} />
-              <span className="who">
-                <b>
-                  {m.name || m.email}
-                  {m.userId === me.id && <span className="muted"> (you)</span>}
-                </b>
-                <span className="mono muted">{m.email}</span>
+            : "Everyone in the company can also see this project as a viewer. Company owners and admins can manage it. Make the project secret in Project settings to limit it to the people below."
+        }
+      >
+        {data.members.map((m) => (
+          <li key={m.userId} className="flex flex-wrap items-center gap-3 px-4 py-3">
+            <Avatar id={m.userId} name={m.name || m.email} size={34} />
+            <span className="grid min-w-0 flex-1 leading-tight">
+              <span className="truncate text-sm font-medium">
+                {m.name || m.email}
+                {m.userId === me.id && <span className="font-normal text-muted-foreground"> (you)</span>}
               </span>
-              {isOwner ? (
-                <select aria-label={`Role for ${m.name || m.email}`} value={m.role} onChange={(e) => changeRole(m.userId, e.target.value as Role)}>
-                  {ROLES.map((r) => (
-                    <option key={r} value={r}>
-                      {ROLE_LABELS[r]}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <span className="chip">{ROLE_LABELS[m.role]}</span>
-              )}
-              {(isOwner || m.userId === me.id) && (
-                <ConfirmButton label={m.userId === me.id ? "Leave" : "Remove"} confirmLabel="Click to confirm" onConfirm={() => remove(m.userId)} className="sm" />
-              )}
-            </li>
-          ))}
-        </ul>
-      </section>
+              <span className="truncate text-xs text-muted-foreground">{m.email}</span>
+            </span>
+            {isOwner ? (
+              <NativeSelect
+                size="sm"
+                aria-label={`Role for ${m.name || m.email}`}
+                value={m.role}
+                onChange={(e) => changeRole(m.userId, e.target.value as Role)}
+              >
+                {roleOptions}
+              </NativeSelect>
+            ) : (
+              <Badge variant="secondary">{ROLE_LABELS[m.role]}</Badge>
+            )}
+            {(isOwner || m.userId === me.id) && (
+              <ConfirmButton label={m.userId === me.id ? "Leave" : "Remove"} confirmLabel="Click to confirm" onConfirm={() => remove(m.userId)} />
+            )}
+          </li>
+        ))}
+      </PeopleSection>
 
       {isOwner && data.invitations.length > 0 && (
-        <section>
-          <h2>
-            Waiting to join <span className="count">{data.invitations.length}</span>
-          </h2>
-          <ul className="people">
-            {data.invitations.map((i) => (
-              <li key={i.id}>
-                <span className="av av-pending" aria-hidden="true">
-                  @
-                </span>
-                <span className="who">
-                  <b className="mono">{i.email}</b>
-                  <span className="muted">Invited as {ROLE_LABELS[i.role].toLowerCase()}. They join the first time they sign in.</span>
-                </span>
-                <button type="button" className="btn ghost sm" onClick={() => revoke(i.id)}>
-                  Cancel invitation
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
+        <PeopleSection title="Waiting to join" count={data.invitations.length}>
+          {data.invitations.map((i) => (
+            <li key={i.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
+              <span
+                className="flex size-[34px] shrink-0 items-center justify-center rounded-full border border-dashed text-sm text-muted-foreground"
+                aria-hidden="true"
+              >
+                @
+              </span>
+              <span className="grid min-w-0 flex-1 leading-tight">
+                <span className="truncate font-mono text-sm">{i.email}</span>
+                <span className="text-xs text-muted-foreground">Invited as {ROLE_LABELS[i.role].toLowerCase()}. They join the first time they sign in.</span>
+              </span>
+              <Button type="button" variant="ghost" size="sm" onClick={() => revoke(i.id)}>
+                Cancel invitation
+              </Button>
+            </li>
+          ))}
+        </PeopleSection>
       )}
     </div>
+  );
+}
+
+function PeopleSection({ title, count, description, children }: { title: string; count: number; description?: string; children: ReactNode }) {
+  return (
+    <Card className="gap-0 py-0 shadow-xs">
+      <CardHeader className="border-b py-4 [.border-b]:pb-4">
+        <CardTitle className="flex items-center gap-2">
+          {title}
+          <Badge variant="secondary" className="h-5 min-w-5 rounded-full px-1.5 tabular">
+            {count}
+          </Badge>
+        </CardTitle>
+        {description && <CardDescription>{description}</CardDescription>}
+      </CardHeader>
+      <ul className="divide-y" data-people="">
+        {children}
+      </ul>
+    </Card>
   );
 }
 
@@ -185,26 +217,32 @@ function AccessRequestRow({ projectId, request, onDone }: { projectId: string; r
     }
   };
   return (
-    <li>
+    <li className="flex flex-wrap items-center gap-3 px-4 py-3">
       <Avatar id={request.userId} name={request.name || request.email} size={34} />
-      <span className="who">
-        <b>{request.name || request.email}</b>
-        <span className="mono muted">{request.email}</span>
-        {request.note && <span className="req-note">{request.note}</span>}
+      <span className="grid min-w-0 flex-1 gap-0.5 leading-tight">
+        <span className="truncate text-sm font-medium">{request.name || request.email}</span>
+        <span className="truncate text-xs text-muted-foreground">{request.email}</span>
+        {request.note && <span className="mt-1 rounded-md bg-muted px-2 py-1 text-xs">{request.note}</span>}
       </span>
-      <select aria-label={`Role for ${request.name || request.email}`} value={role} onChange={(e) => setRole(e.target.value as Role)} disabled={busy}>
+      <NativeSelect
+        size="sm"
+        aria-label={`Role for ${request.name || request.email}`}
+        value={role}
+        onChange={(e) => setRole(e.target.value as Role)}
+        disabled={busy}
+      >
         {ROLES.map((r) => (
-          <option key={r} value={r}>
+          <NativeSelectOption key={r} value={r}>
             {ROLE_LABELS[r]}
-          </option>
+          </NativeSelectOption>
         ))}
-      </select>
-      <button type="button" className="btn ghost sm" disabled={busy} onClick={() => answer(false)}>
+      </NativeSelect>
+      <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={() => answer(false)}>
         Decline
-      </button>
-      <button type="button" className="btn primary sm" disabled={busy} onClick={() => answer(true)}>
+      </Button>
+      <Button type="button" size="sm" disabled={busy} onClick={() => answer(true)}>
         Approve
-      </button>
+      </Button>
     </li>
   );
 }

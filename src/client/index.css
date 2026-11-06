@@ -1,0 +1,233 @@
+/* OpenAct theme. shadcn/ui (new-york, neutral) tokens plus the OpenAct colors that carry meaning:
+   status, priority, project and avatar colors. Dark mode is the `.dark` class on <html>,
+   set by theme.ts from the person's choice or the system setting. */
+
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+
+  /* OpenAct brand: the logo and the live dot */
+  --brand: #3347cf;
+  --brand-foreground: #ffffff;
+
+  /* Status of a task or a column */
+  --s-backlog: #8d97a9;
+  --s-todo: #4a78c8;
+  --s-doing: #d4861a;
+  --s-review: #8758c4;
+  --s-done: #2c9661;
+  /* Priority */
+  --p-high: #c0402c;
+  --p-med: #a8701a;
+  --p-low: #737373;
+  /* Timeline */
+  --bar-ink: #ffffff;
+  --today: #d53f2a;
+  --weekend: oklch(0.145 0 0 / 4%);
+  /* Notices */
+  --warn: oklch(0.97 0.04 85);
+  --warn-foreground: oklch(0.42 0.09 70);
+  --warn-border: oklch(0.86 0.09 85);
+  --live: #2c9661;
+  /* Project colors */
+  --pc-indigo: #3347cf;
+  --pc-teal: #11847a;
+  --pc-amber: #c27a0e;
+  --pc-rose: #c23a5f;
+  --pc-violet: #7a4fc4;
+  --pc-slate: #4f5d75;
+  /* Avatar colors */
+  --av-0: #3347cf;
+  --av-1: #11847a;
+  --av-2: #c27a0e;
+  --av-3: #c23a5f;
+  --av-4: #7a4fc4;
+  --av-5: #2c7fb8;
+  --av-6: #5f7a1f;
+  --av-7: #a3478c;
+  --av-ink: #ffffff;
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+
+  --brand: #8090ff;
+  --brand-foreground: #0d1120;
+  --s-backlog: #7e899d;
+  --s-todo: #6c9ae8;
+  --s-doing: #e8a13a;
+  --s-review: #a884e6;
+  --s-done: #4abd82;
+  --p-high: #f27b63;
+  --p-med: #e2aa4c;
+  --p-low: #a3a3a3;
+  --bar-ink: #0d1120;
+  --today: #ff6a54;
+  --weekend: oklch(1 0 0 / 3%);
+  --warn: oklch(0.27 0.04 75);
+  --warn-foreground: oklch(0.86 0.1 85);
+  --warn-border: oklch(0.42 0.07 75);
+  --live: #4abd82;
+  --pc-indigo: #8090ff;
+  --pc-teal: #3cc2b3;
+  --pc-amber: #e8a13a;
+  --pc-rose: #f07a9a;
+  --pc-violet: #a884e6;
+  --pc-slate: #9aa7bd;
+  --av-0: #5a6ee6;
+  --av-1: #1f9a8e;
+  --av-2: #b9770f;
+  --av-3: #c94d70;
+  --av-4: #8a62d1;
+  --av-5: #3a8ccc;
+  --av-6: #6f8c27;
+  --av-7: #b3579c;
+}
+
+@theme inline {
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, Menlo, Consolas, monospace;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-warn: var(--warn);
+  --color-warn-foreground: var(--warn-foreground);
+  --color-warn-border: var(--warn-border);
+  --color-live: var(--live);
+  --color-today: var(--today);
+  --color-weekend: var(--weekend);
+  --color-status-backlog: var(--s-backlog);
+  --color-status-todo: var(--s-todo);
+  --color-status-doing: var(--s-doing);
+  --color-status-review: var(--s-review);
+  --color-status-done: var(--s-done);
+  --color-priority-high: var(--p-high);
+  --color-priority-med: var(--p-med);
+  --color-priority-low: var(--p-low);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "ss01";
+  }
+  /* Numbers line up in dates, counts and tables. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* The Gantt timeline and the month calendar are drawn with absolute positions.
+   These few rules are easier to read here than as long class lists. */
+@layer components {
+  /* Day lines and weekend shading on a timeline row. The range always starts on a Monday. */
+  .gantt-track {
+    background-image:
+      linear-gradient(to right, color-mix(in oklab, var(--border) 70%, transparent) 0 1px, transparent 1px),
+      linear-gradient(to right, transparent 0 calc(var(--dayw) * 5), var(--weekend) calc(var(--dayw) * 5) calc(var(--dayw) * 7));
+    background-size: calc(var(--dayw) * 7) 100%;
+  }
+  .drop-target {
+    @apply ring-2 ring-ring/60 ring-offset-2 ring-offset-background;
+  }
+}
+
+/* A native select with w-full fills its row. The shadcn wrapper is w-fit, so this rule sits outside
+   the layers to win over that utility. */
+[data-slot="native-select-wrapper"]:has(> select.w-full) {
+  width: 100%;
+}

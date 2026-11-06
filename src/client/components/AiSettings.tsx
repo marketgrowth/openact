@@ -18,6 +18,45 @@ import { ROLE_CEILING, levelRank } from "../../shared/agent-policy";
 import { api, errorText } from "../api";
 import { fmtDateTime } from "../dates";
 import { useToast } from "../ui";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { cn } from "@/lib/utils";
+import type { ReactNode } from "react";
+
+const STATUS_TONE: Partial<Record<AgentAction["status"], string>> = {
+  done: "border-status-done/40 text-status-done",
+  approved: "border-status-done/40 text-status-done",
+  pending: "border-status-doing/40 text-status-doing",
+  rejected: "text-muted-foreground",
+  denied: "border-destructive/40 text-destructive",
+  failed: "border-destructive/40 text-destructive",
+  expired: "text-muted-foreground"
+};
+
+function Section({ title, help, children }: { title: string; help: ReactNode; children?: ReactNode }) {
+  return (
+    <section className="grid gap-3">
+      <div className="grid gap-1">
+        <h3 className="text-sm font-medium">{title}</h3>
+        <p className="text-sm text-muted-foreground">{help}</p>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function PolicyRow({ label, help, children }: { label: string; help: string; children: ReactNode }) {
+  return (
+    <div className="grid gap-1 px-3 py-2.5 sm:grid-cols-[7rem_auto_1fr] sm:items-center sm:gap-3">
+      <span className="text-sm font-medium">{label}</span>
+      {children}
+      <span className="text-xs text-muted-foreground">{help}</span>
+    </div>
+  );
+}
 
 const ROLE_ORDER: Role[] = ["owner", "editor", "viewer"];
 const STATUS_TEXT: Record<AgentAction["status"], string> = {
@@ -37,7 +76,19 @@ function statusText(a: AgentAction): string {
 }
 
 /** The project's AI agent policy (owners edit it) and the log of what the agent did. */
-export function AiSettings({ projectId, policy, isOwner, members, onSaved }: { projectId: string; policy: AiPolicy; isOwner: boolean; members: Member[]; onSaved: () => void }) {
+export function AiSettings({
+  projectId,
+  policy,
+  isOwner,
+  members,
+  onSaved
+}: {
+  projectId: string;
+  policy: AiPolicy;
+  isOwner: boolean;
+  members: Member[];
+  onSaved: () => void;
+}) {
   const toast = useToast();
   const [draft, setDraft] = useState<AiPolicy>(policy);
   const [busy, setBusy] = useState(false);
@@ -66,93 +117,103 @@ export function AiSettings({ projectId, policy, isOwner, members, onSaved }: { p
   };
 
   return (
-    <div className="stack">
-      <div>
-        <h3 className="sub-h">AI agent access</h3>
-        <p className="hint">The agent acts for the person who uses it. It can never do more than that person's role allows. {isOwner ? "You can give each role less." : "Owners set this."}</p>
-      </div>
-      <div className="policy">
-        {ROLE_ORDER.map((role) => (
-          <div key={role} className="policy-row">
-            <span className="policy-role">{ROLE_LABELS[role]}s</span>
-            <select
-              aria-label={`Agent access for ${ROLE_LABELS[role]}s`}
-              value={draft[role]}
-              disabled={!isOwner}
-              onChange={(e) => setDraft((d) => ({ ...d, [role]: e.target.value as AgentLevel }))}
-            >
-              {AGENT_LEVELS.filter((l) => levelRank(l) <= levelRank(ROLE_CEILING[role])).map((l) => (
-                <option key={l} value={l}>
-                  {AGENT_LEVEL_LABELS[l]}
-                </option>
-              ))}
-            </select>
-            <span className="hint">{AGENT_LEVEL_HELP[draft[role]]}</span>
-          </div>
-        ))}
-      </div>
-      <p className="hint">Deletes, changes to people, and 5 or more changes at once always wait for the person to approve them.</p>
-      <div>
-        <h3 className="sub-h">Task notes</h3>
-        <p className="hint">
-          Notes can hold private details, so the agent cannot read them unless you turn this on. When it is on, the agent can search notes for words, such as a
-          name. The AI provider gets only a short part of each matching note, with email addresses and phone numbers hidden.
-        </p>
-      </div>
-      <label className="toggle policy-toggle">
-        <input type="checkbox" checked={draft.readNotes} disabled={!isOwner} onChange={(e) => setDraft((d) => ({ ...d, readNotes: e.target.checked }))} />
-        Let the agent search task notes
-      </label>
-      <div>
-        <h3 className="sub-h">Topic scope</h3>
-        <p className="hint">
-          A quick check reads each new request first. Requests for another project or for new work get a link to the right place. Other requests get a short
-          decline and do not use the main AI model.
-        </p>
-      </div>
-      <div className="policy">
-        <div className="policy-row">
-          <span className="policy-role">Scope</span>
-          <select aria-label="Topic scope" value={draft.scope} disabled={!isOwner} onChange={(e) => setDraft((d) => ({ ...d, scope: e.target.value as AgentScope }))}>
-            {AGENT_SCOPES.map((sc) => (
-              <option key={sc} value={sc}>
-                {AGENT_SCOPE_LABELS[sc]}
-              </option>
-            ))}
-          </select>
-          <span className="hint">{AGENT_SCOPE_HELP[draft.scope]}</span>
+    <div className="grid gap-6" data-ai-settings="">
+      <Section
+        title="AI agent access"
+        help={
+          <>
+            The agent acts for the person who uses it. It can never do more than that person's role allows.{" "}
+            {isOwner ? "You can give each role less." : "Owners set this."}
+          </>
+        }
+      >
+        <div className="divide-y rounded-lg border" data-policy="">
+          {ROLE_ORDER.map((role) => (
+            <PolicyRow key={role} label={`${ROLE_LABELS[role]}s`} help={AGENT_LEVEL_HELP[draft[role]]}>
+              <NativeSelect
+                size="sm"
+                aria-label={`Agent access for ${ROLE_LABELS[role]}s`}
+                value={draft[role]}
+                disabled={!isOwner}
+                onChange={(e) => setDraft((d) => ({ ...d, [role]: e.target.value as AgentLevel }))}
+              >
+                {AGENT_LEVELS.filter((l) => levelRank(l) <= levelRank(ROLE_CEILING[role])).map((l) => (
+                  <NativeSelectOption key={l} value={l}>
+                    {AGENT_LEVEL_LABELS[l]}
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+            </PolicyRow>
+          ))}
         </div>
-      </div>
+        <p className="text-xs text-muted-foreground">Deletes, changes to people, and 5 or more changes at once always wait for the person to approve them.</p>
+      </Section>
+
+      <Section
+        title="Task notes"
+        help="Notes can hold private details, so the agent cannot read them unless you turn this on. When it is on, the agent can search notes for words, such as a name. The AI provider gets only a short part of each matching note, with email addresses and phone numbers hidden."
+      >
+        <div className="flex items-center gap-3" data-policy-toggle="">
+          <Switch id="ai-notes" checked={draft.readNotes} disabled={!isOwner} onCheckedChange={(v) => setDraft((d) => ({ ...d, readNotes: v }))} />
+          <Label htmlFor="ai-notes">Let the agent search task notes</Label>
+        </div>
+      </Section>
+
+      <Section
+        title="Topic scope"
+        help="A quick check reads each new request first. Requests for another project or for new work get a link to the right place. Other requests get a short decline and do not use the main AI model."
+      >
+        <div className="rounded-lg border">
+          <PolicyRow label="Scope" help={AGENT_SCOPE_HELP[draft.scope]}>
+            <NativeSelect
+              size="sm"
+              aria-label="Topic scope"
+              value={draft.scope}
+              disabled={!isOwner}
+              onChange={(e) => setDraft((d) => ({ ...d, scope: e.target.value as AgentScope }))}
+            >
+              {AGENT_SCOPES.map((sc) => (
+                <NativeSelectOption key={sc} value={sc}>
+                  {AGENT_SCOPE_LABELS[sc]}
+                </NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </PolicyRow>
+        </div>
+      </Section>
       {isOwner && (
-        <div className="row-end">
-          <button type="button" className="btn primary" disabled={!dirty || busy} onClick={save}>
+        <div className="flex justify-end">
+          <Button type="button" disabled={!dirty || busy} onClick={save}>
             Save AI access
-          </button>
+          </Button>
         </div>
       )}
 
-      <div>
-        <h3 className="sub-h">Agent activity</h3>
-        <p className="hint">Every change the agent makes or proposes, and every request it declines or sends elsewhere. Declined requests show a short topic, not the message.</p>
-      </div>
-      {actions === null && <p className="hint">Loading…</p>}
-      {actions && actions.length === 0 && <p className="hint">The agent has not made any changes yet.</p>}
-      {actions && actions.length > 0 && (
-        <ul className="activity">
-          {actions.map((a) => (
-            <li key={a.id}>
-              <span className={`chip st-${a.status}`}>{statusText(a)}</span>
-              <span className="act-main">
-                <span>{a.summary}</span>
-                <span className="hint">
-                  For {a.userId ? names[a.userId] ?? "a former member" : "a deleted account"}, {fmtDateTime(a.createdAt)}
-                  {a.result && a.status !== "done" && a.status !== "approved" ? `. ${a.result}` : ""}
+      <Section
+        title="Agent activity"
+        help="Every change the agent makes or proposes, and every request it declines or sends elsewhere. Declined requests show a short topic, not the message."
+      >
+        {actions === null && <p className="text-sm text-muted-foreground">Loading…</p>}
+        {actions && actions.length === 0 && <p className="text-sm text-muted-foreground">The agent has not made any changes yet.</p>}
+        {actions && actions.length > 0 && (
+          <ul className="divide-y rounded-lg border" data-activity="">
+            {actions.map((a) => (
+              <li key={a.id} className="flex items-start gap-3 px-3 py-2.5">
+                <Badge variant="outline" className={cn("mt-0.5 shrink-0", STATUS_TONE[a.status])}>
+                  {statusText(a)}
+                </Badge>
+                <span className="grid min-w-0 gap-0.5">
+                  <span className="text-sm">{a.summary}</span>
+                  <span className="text-xs text-muted-foreground">
+                    For {a.userId ? (names[a.userId] ?? "a former member") : "a deleted account"}, {fmtDateTime(a.createdAt)}
+                    {a.result && a.status !== "done" && a.status !== "approved" ? `. ${a.result}` : ""}
+                  </span>
                 </span>
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Section>
     </div>
   );
 }

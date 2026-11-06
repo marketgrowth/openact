@@ -3,18 +3,19 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="description" content="OpenAct: open source project management with a Kanban board and a Gantt timeline." />
+    <meta name="description" content="OpenAct: open source project management with a Kanban board, a Gantt timeline and a calendar." />
     <meta name="color-scheme" content="light dark" />
     <title>OpenAct</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&family=Geist+Mono:wght@400..600&display=swap" />
     <script>
       // Apply the saved theme before the first paint, so the page does not flash.
       try {
         var t = localStorage.getItem("openact-theme");
-        if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        var dark = t === "dark" || (t !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.classList.toggle("dark", dark);
       } catch (e) {}
     </script>
   </head>

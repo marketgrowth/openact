@@ -1,8 +1,12 @@
 import { useState } from "react";
 import type { AppConfig, User } from "../../shared/types";
 import { api, errorText } from "../api";
-import { Logo, ThemeSwitch } from "../ui";
+import { Logo, Notice, ThemeSwitch } from "../ui";
 import { Link } from "../router";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 /** Passwordless sign-in: email first, then the 6-digit code from the inbox. */
 export function SignIn({ config, onSignedIn }: { config: AppConfig; onSignedIn: (u: User) => void }) {
@@ -48,90 +52,111 @@ export function SignIn({ config, onSignedIn }: { config: AppConfig; onSignedIn: 
   };
 
   return (
-    <div className="signin">
-      <div className="signin-top">
+    <div className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-muted px-4 py-10 md:px-10">
+      <div className="fixed top-[max(1rem,env(safe-area-inset-top))] right-4">
         <ThemeSwitch />
       </div>
-      <main className="signin-card">
-        <div className="brand">
+      <main className="flex w-full max-w-sm flex-col gap-6">
+        <div className="flex items-center gap-2 self-center font-semibold">
           <Logo />
           <span>{config.appName}</span>
         </div>
-        {step === "email" ? (
-          <form className="stack" onSubmit={sendCode}>
-            <h1>Sign in</h1>
-            <p className="muted">Type your email. We send you a sign-in code. You do not need a password.</p>
-            <div className="field">
-              <label htmlFor="si-email">Email</label>
-              <input id="si-email" type="email" required autoComplete="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} autoFocus />
-            </div>
-            {error && (
-              <p className="error" role="alert">
-                {error}
-              </p>
-            )}
-            <button type="submit" className="btn primary block" disabled={busy || !email.trim()}>
-              {busy ? "Sending…" : "Send sign-in code"}
-            </button>
-            <p className="hint">
-              {config.signupMode === "invite"
-                ? "No account? Ask a project owner to invite you."
-                : "New here? Type your email to make an account."}
-            </p>
-          </form>
-        ) : (
-          <form className="stack" onSubmit={verify}>
-            <h1>Check your email</h1>
-            {notice && <p className="muted">{notice}</p>}
-            <div className="field">
-              <label htmlFor="si-code">Sign-in code</label>
-              <input
-                id="si-code"
-                className="code-input"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                pattern="[0-9]{6}"
-                maxLength={6}
-                required
-                value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                autoFocus
-              />
-            </div>
-            {error && (
-              <p className="error" role="alert">
-                {error}
-              </p>
-            )}
-            <button type="submit" className="btn primary block" disabled={busy || code.length !== 6}>
-              {busy ? "Checking…" : "Sign in"}
-            </button>
-            <div className="row-wrap">
-              <button type="button" className="btn ghost sm" onClick={() => sendCode()} disabled={busy}>
-                Send a new code
-              </button>
-              <button
-                type="button"
-                className="btn ghost sm"
-                onClick={() => {
-                  setStep("email");
-                  setError(null);
-                }}
-              >
-                Use a different email
-              </button>
-            </div>
-          </form>
-        )}
+        <Card>
+          {step === "email" ? (
+            <>
+              <CardHeader className="text-center">
+                <CardTitle className="text-xl" role="heading" aria-level={1}>
+                  Sign in
+                </CardTitle>
+                <CardDescription>Type your email. We send you a sign-in code. You do not need a password.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form className="grid gap-5" onSubmit={sendCode}>
+                  <div className="grid gap-2">
+                    <Label htmlFor="si-email">Email</Label>
+                    <Input
+                      id="si-email"
+                      type="email"
+                      required
+                      autoComplete="email"
+                      inputMode="email"
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      autoFocus
+                    />
+                  </div>
+                  {error && <Notice tone="error">{error}</Notice>}
+                  <Button type="submit" className="w-full" disabled={busy || !email.trim()}>
+                    {busy ? "Sending…" : "Send sign-in code"}
+                  </Button>
+                  <p className="text-center text-sm text-muted-foreground">
+                    {config.signupMode === "invite" ? "No account? Ask a project owner to invite you." : "New here? Type your email to make an account."}
+                  </p>
+                </form>
+              </CardContent>
+            </>
+          ) : (
+            <>
+              <CardHeader className="text-center">
+                <CardTitle className="text-xl" role="heading" aria-level={1}>
+                  Check your email
+                </CardTitle>
+                {notice && <CardDescription>{notice}</CardDescription>}
+              </CardHeader>
+              <CardContent>
+                <form className="grid gap-5" onSubmit={verify}>
+                  <div className="grid gap-2">
+                    <Label htmlFor="si-code">Sign-in code</Label>
+                    <Input
+                      id="si-code"
+                      className="h-12 text-center font-mono text-2xl tracking-[0.4em]"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      pattern="[0-9]{6}"
+                      maxLength={6}
+                      required
+                      value={code}
+                      onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                      autoFocus
+                    />
+                  </div>
+                  {error && <Notice tone="error">{error}</Notice>}
+                  <Button type="submit" className="w-full" disabled={busy || code.length !== 6}>
+                    {busy ? "Checking…" : "Sign in"}
+                  </Button>
+                  <div className="flex flex-wrap justify-center gap-1">
+                    <Button type="button" variant="ghost" size="sm" onClick={() => sendCode()} disabled={busy}>
+                      Send a new code
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setStep("email");
+                        setError(null);
+                      }}
+                    >
+                      Use a different email
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </>
+          )}
+        </Card>
+        <p className="text-center text-xs text-balance text-muted-foreground" data-signin-foot="">
+          Open source by MarketGrowth.{" "}
+          <a href="https://github.com/marketgrowth/openact" target="_blank" rel="noreferrer" className="underline underline-offset-4 hover:text-foreground">
+            View on GitHub
+          </a>{" "}
+          ·{" "}
+          <Link to="/colophon" className="underline underline-offset-4 hover:text-foreground">
+            Colophon
+          </Link>
+        </p>
       </main>
-      <p className="signin-foot">
-        Open source by MarketGrowth.{" "}
-        <a href="https://github.com/marketgrowth/openact" target="_blank" rel="noreferrer">
-          View on GitHub
-        </a>{" "}
-        ·{" "}
-        <Link to="/colophon">Colophon</Link>
-      </p>
     </div>
   );
 }

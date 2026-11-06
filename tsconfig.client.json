@@ -10,7 +10,9 @@
     "isolatedModules": true,
     "noEmit": true,
     "types": [],
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": { "@/*": ["src/client/*"] }
   },
   "include": ["src/client", "src/shared"]
 }

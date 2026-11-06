@@ -1,7 +1,36 @@
-import { useEffect, useMemo, useRef, useState, type DragEvent } from "react";
+import { useEffect, useMemo, useState, type DragEvent } from "react";
 import { CATEGORY_LABELS, PRIORITIES, STATUS_IDS, type Attachment, type Column, type Member, type Status, type Task } from "../../shared/types";
 import { fmtRange, today, workDays } from "../dates";
 import { Avatar, Icon } from "../ui";
+import { EmptyState } from "../pages/Projects";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from "@/components/ui/alert-dialog";
+import { cn } from "@/lib/utils";
 
 export interface ColumnActions {
   add: (name: string, category: Status) => void;
@@ -44,27 +73,18 @@ export function Board({ columns, tasks, hasAny, members, attachments, canEdit, i
     return m;
   }, [attachments]);
 
-  const lanes = useMemo(
-    () => columns.map((c) => ({ ...c, items: tasks.filter((t) => columnOf(t, columns) === c.id).sort(sortTasks) })),
-    [columns, tasks]
-  );
+  const lanes = useMemo(() => columns.map((c) => ({ ...c, items: tasks.filter((t) => columnOf(t, columns) === c.id).sort(sortTasks) })), [columns, tasks]);
 
   if (!hasAny && columns.length) {
     return (
-      <div className="state">
-        <h3>No tasks yet</h3>
-        <p>Add a task, or ask the AI agent to draft a plan from a goal.</p>
-        {canEdit && (
-          <button type="button" className="btn primary" onClick={() => onAdd(columns.find((c) => c.category === "todo")?.id ?? columns[0].id)}>
-            Add the first task
-          </button>
-        )}
-      </div>
+      <EmptyState title="No tasks yet" text="Add a task, or ask the AI agent to draft a plan from a goal.">
+        {canEdit && <Button onClick={() => onAdd(columns.find((c) => c.category === "todo")?.id ?? columns[0].id)}>Add the first task</Button>}
+      </EmptyState>
     );
   }
 
   const indexAt = (list: HTMLElement, y: number) => {
-    const cards = [...list.querySelectorAll<HTMLElement>(".card:not(.dragging)")];
+    const cards = [...list.querySelectorAll<HTMLElement>("[data-card]:not([data-dragging])")];
     const i = cards.findIndex((c) => {
       const r = c.getBoundingClientRect();
       return y < r.top + r.height / 2;
@@ -93,13 +113,14 @@ export function Board({ columns, tasks, hasAny, members, attachments, canEdit, i
   };
 
   let visibleIndex = 0;
+  const dropLine = <div className="h-0.5 rounded-full bg-primary" aria-hidden="true" />;
   return (
-    <div className="board">
+    <div className="-mx-4 flex items-start gap-3 overflow-x-auto px-4 pb-4 lg:-mx-6 lg:px-6" data-board="">
       {lanes.map((col, ci) => {
         visibleIndex = 0;
         const dropCount = col.items.filter((t) => t.id !== dragId).length;
         return (
-          <section key={col.id} className="col" style={{ ["--c" as string]: `var(--s-${col.category})` }} aria-label={col.name}>
+          <section key={col.id} className="flex w-72 shrink-0 flex-col gap-2 rounded-xl bg-muted/50 p-2" aria-label={col.name} data-column="">
             <ColumnHeader
               column={col}
               count={col.items.length}
@@ -113,7 +134,7 @@ export function Board({ columns, tasks, hasAny, members, attachments, canEdit, i
               nextId={ci < lanes.length - 1 ? lanes[ci + 1].id : null}
             />
             <div
-              className={`list${over?.col === col.id ? " over" : ""}`}
+              className={cn("flex min-h-16 flex-col gap-2 rounded-lg transition-colors", over?.col === col.id && "bg-accent/60")}
               onDragOver={(e) => {
                 if (!dragId) return;
                 e.preventDefault();
@@ -124,14 +145,19 @@ export function Board({ columns, tasks, hasAny, members, attachments, canEdit, i
                 if (!e.currentTarget.contains(e.relatedTarget as Node)) setOver(null);
               }}
               onDrop={(e) => drop(e, col.id)}
+              data-list=""
             >
-              {col.items.length === 0 && over?.col !== col.id && <p className="col-empty">{canEdit ? "Drop a task here." : "No tasks."}</p>}
+              {col.items.length === 0 && over?.col !== col.id && (
+                <p className="rounded-lg border border-dashed px-3 py-6 text-center text-xs text-muted-foreground">
+                  {canEdit ? "Drop a task here." : "No tasks."}
+                </p>
+              )}
               {col.items.map((t) => {
                 const vi = t.id === dragId ? -1 : visibleIndex++;
                 return (
-                  <div key={t.id} className="card-slot">
-                    {vi >= 0 && over?.col === col.id && over.index === vi && <div className="drop-ind" />}
-                    <Card
+                  <div key={t.id} className="contents">
+                    {vi >= 0 && over?.col === col.id && over.index === vi && dropLine}
+                    <TaskCard
                       task={t}
                       t0={t0}
                       member={t.assigneeId ? members[t.assigneeId] : undefined}
@@ -149,12 +175,12 @@ export function Board({ columns, tasks, hasAny, members, attachments, canEdit, i
                   </div>
                 );
               })}
-              {over?.col === col.id && over.index >= dropCount && <div className="drop-ind" />}
+              {over?.col === col.id && over.index >= dropCount && dropLine}
             </div>
             {canEdit && (
-              <button type="button" className="btn sm col-add" onClick={() => onAdd(col.id)}>
-                <Icon name="plus" size={14} /> Add task
-              </button>
+              <Button type="button" variant="ghost" size="sm" className="justify-start text-muted-foreground" onClick={() => onAdd(col.id)}>
+                <Icon name="plus" /> Add task
+              </Button>
             )}
           </section>
         );
@@ -189,24 +215,11 @@ function ColumnHeader({
 }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(column.name);
-  const [menu, setMenu] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const others = columns.filter((c) => c.id !== column.id);
   const [moveTo, setMoveTo] = useState<string>(others[0]?.id ?? "");
-  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => setName(column.name), [column.name]);
-  useEffect(() => {
-    if (!menu) return;
-    const close = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && (setMenu(false), setDeleting(false));
-    const esc = (e: KeyboardEvent) => e.key === "Escape" && (setMenu(false), setDeleting(false));
-    document.addEventListener("mousedown", close);
-    document.addEventListener("keydown", esc);
-    return () => {
-      document.removeEventListener("mousedown", close);
-      document.removeEventListener("keydown", esc);
-    };
-  }, [menu]);
 
   const commit = () => {
     setEditing(false);
@@ -216,11 +229,11 @@ function ColumnHeader({
   };
 
   return (
-    <div className="col-h" ref={ref}>
-      <span className="dot" title={CATEGORY_LABELS[column.category]} />
+    <div className="flex h-8 items-center gap-2 px-1" data-column-head="">
+      <span className="size-2 shrink-0 rounded-full" style={{ background: `var(--s-${column.category})` }} title={CATEGORY_LABELS[column.category]} />
       {editing ? (
-        <input
-          className="col-name-input"
+        <Input
+          className="h-7 px-2 text-sm"
           value={name}
           maxLength={40}
           autoFocus
@@ -236,75 +249,89 @@ function ColumnHeader({
           }}
         />
       ) : (
-        <h2 onDoubleClick={() => canEdit && setEditing(true)} title={canEdit ? "Double-click to rename" : undefined}>
+        <h2 className="truncate text-sm font-medium" onDoubleClick={() => canEdit && setEditing(true)} title={canEdit ? "Double-click to rename" : undefined}>
           {column.name}
         </h2>
       )}
-      <span className="count">{count}</span>
-      <span className="grow" />
+      <Badge variant="secondary" className="h-5 min-w-5 rounded-full px-1.5 tabular">
+        {count}
+      </Badge>
       {canEdit && (
-        <button type="button" className="icon-btn col-menu-btn" aria-label={`Column options for ${column.name}`} aria-expanded={menu} onClick={() => setMenu((m) => !m)}>
-          <Icon name="dots" size={16} />
-        </button>
-      )}
-      {menu && (
-        <div className="popover" role="menu">
-          {!deleting ? (
-            <>
-              <button type="button" role="menuitem" onClick={() => (setMenu(false), setEditing(true))}>
-                Rename
-              </button>
-              <label className="pop-field">
-                <span className="lbl">Means</span>
-                <select value={column.category} onChange={(e) => actions.setCategory(column.id, e.target.value as Status)}>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="ml-auto size-7 text-muted-foreground"
+              aria-label={`Column options for ${column.name}`}
+              data-column-menu=""
+            >
+              <Icon name="dots" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem onSelect={() => setEditing(true)}>Rename</DropdownMenuItem>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>Means</DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                <DropdownMenuLabel className="text-xs text-muted-foreground">What this column means</DropdownMenuLabel>
+                <DropdownMenuRadioGroup value={column.category} onValueChange={(v) => actions.setCategory(column.id, v as Status)}>
                   {STATUS_IDS.map((s) => (
-                    <option key={s} value={s}>
+                    <DropdownMenuRadioItem key={s} value={s}>
                       {CATEGORY_LABELS[s]}
-                    </option>
+                    </DropdownMenuRadioItem>
                   ))}
-                </select>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem disabled={first} onSelect={() => actions.moveAfter(column.id, prevId)}>
+              Move left
+            </DropdownMenuItem>
+            <DropdownMenuItem disabled={last} onSelect={() => actions.moveAfter(column.id, nextId)}>
+              Move right
+            </DropdownMenuItem>
+            {isOwner && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem variant="destructive" disabled={!others.length} onSelect={() => setDeleting(true)}>
+                  Delete column
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+      <AlertDialog open={deleting} onOpenChange={setDeleting}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete the {column.name} column?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {count > 0 ? "Its tasks move to another column. No task is deleted." : "The column is empty. No task is deleted."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {count > 0 && (
+            <div className="grid gap-2">
+              <label htmlFor={`move-${column.id}`} className="text-sm font-medium">
+                Move its {count} {count === 1 ? "task" : "tasks"} to
               </label>
-              <button type="button" role="menuitem" disabled={first} onClick={() => (setMenu(false), actions.moveAfter(column.id, prevId))}>
-                Move left
-              </button>
-              <button type="button" role="menuitem" disabled={last} onClick={() => (setMenu(false), actions.moveAfter(column.id, nextId))}>
-                Move right
-              </button>
-              {isOwner && (
-                <button type="button" role="menuitem" className="danger" disabled={!others.length} onClick={() => setDeleting(true)}>
-                  Delete column
-                </button>
-              )}
-            </>
-          ) : (
-            <div className="pop-delete">
-              <p>
-                Delete <b>{column.name}</b>?
-              </p>
-              {count > 0 && (
-                <label className="pop-field">
-                  <span className="lbl">Move its {count} {count === 1 ? "task" : "tasks"} to</span>
-                  <select value={moveTo} onChange={(e) => setMoveTo(e.target.value)}>
-                    {others.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-              <div className="row-wrap">
-                <button type="button" className="btn sm ghost" onClick={() => setDeleting(false)}>
-                  Cancel
-                </button>
-                <button type="button" className="btn sm danger armed" onClick={() => (setMenu(false), setDeleting(false), actions.remove(column.id, count > 0 ? moveTo : null))}>
-                  Delete column
-                </button>
-              </div>
+              <NativeSelect id={`move-${column.id}`} value={moveTo} onChange={(e) => setMoveTo(e.target.value)}>
+                {others.map((c) => (
+                  <NativeSelectOption key={c.id} value={c.id}>
+                    {c.name}
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
             </div>
           )}
-        </div>
-      )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={() => actions.remove(column.id, count > 0 ? moveTo : null)}>
+              Delete column
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -316,14 +343,14 @@ function AddColumn({ onAdd, count }: { onAdd: (name: string, category: Status) =
   if (count >= 12) return null;
   if (!open) {
     return (
-      <button type="button" className="col-new" onClick={() => setOpen(true)}>
-        <Icon name="plus" size={16} /> Add column
-      </button>
+      <Button type="button" variant="outline" className="w-72 shrink-0 border-dashed text-muted-foreground" onClick={() => setOpen(true)}>
+        <Icon name="plus" /> Add column
+      </Button>
     );
   }
   return (
     <form
-      className="col-new-form"
+      className="grid w-72 shrink-0 gap-3 rounded-xl border bg-card p-3"
       onSubmit={(e) => {
         e.preventDefault();
         if (!name.trim()) return;
@@ -332,33 +359,51 @@ function AddColumn({ onAdd, count }: { onAdd: (name: string, category: Status) =
         setOpen(false);
       }}
     >
-      <label className="field">
-        <span className="lbl">Column name</span>
-        <input autoFocus maxLength={40} value={name} onChange={(e) => setName(e.target.value)} placeholder="For example: QA" />
-      </label>
-      <label className="field">
-        <span className="lbl">Means</span>
-        <select value={category} onChange={(e) => setCategory(e.target.value as Status)}>
+      <div className="grid gap-1.5">
+        <label htmlFor="new-col-name" className="text-xs font-medium">
+          Column name
+        </label>
+        <Input
+          id="new-col-name"
+          className="h-8"
+          autoFocus
+          maxLength={40}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="For example: QA"
+        />
+      </div>
+      <div className="grid gap-1.5">
+        <label htmlFor="new-col-means" className="text-xs font-medium">
+          Means
+        </label>
+        <NativeSelect id="new-col-means" size="sm" value={category} onChange={(e) => setCategory(e.target.value as Status)} className="w-full">
           {STATUS_IDS.map((s) => (
-            <option key={s} value={s}>
+            <NativeSelectOption key={s} value={s}>
               {CATEGORY_LABELS[s]}
-            </option>
+            </NativeSelectOption>
           ))}
-        </select>
-      </label>
-      <div className="row-wrap">
-        <button type="submit" className="btn primary sm" disabled={!name.trim()}>
+        </NativeSelect>
+      </div>
+      <div className="flex gap-2">
+        <Button type="submit" size="sm" disabled={!name.trim()}>
           Add column
-        </button>
-        <button type="button" className="btn ghost sm" onClick={() => setOpen(false)}>
+        </Button>
+        <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
           Cancel
-        </button>
+        </Button>
       </div>
     </form>
   );
 }
 
-function Card({
+const PRIORITY_CLASS: Record<string, string> = {
+  high: "text-priority-high border-priority-high/30",
+  med: "text-priority-med border-priority-med/30",
+  low: "text-priority-low"
+};
+
+function TaskCard({
   task: t,
   t0,
   member,
@@ -384,7 +429,11 @@ function Card({
   const late = !!t.end && t.status !== "done" && t.end < t0;
   return (
     <div
-      className={`card${done ? " done" : ""}${dragging ? " dragging" : ""}`}
+      className={cn(
+        "grid cursor-pointer gap-2 rounded-lg border bg-card p-3 text-card-foreground shadow-xs transition-[box-shadow,border-color] outline-none hover:border-foreground/20 focus-visible:ring-[3px] focus-visible:ring-ring/50",
+        dragging && "opacity-40",
+        done && "opacity-70"
+      )}
       role="button"
       tabIndex={0}
       draggable={canEdit}
@@ -402,28 +451,39 @@ function Card({
         onDragStart();
       }}
       onDragEnd={onDragEnd}
+      data-card=""
+      data-dragging={dragging || undefined}
     >
-      <div className="card-top">
-        <span className="phase">{t.phase || "No phase"}</span>
-        <span className={`chip prio-${t.priority}`}>{PRIORITIES[t.priority]}</span>
+      <div className="flex items-center justify-between gap-2">
+        <span className="truncate text-xs text-muted-foreground">{t.phase || "No phase"}</span>
+        <Badge variant="outline" className={cn("h-5 px-1.5 text-[11px]", PRIORITY_CLASS[t.priority])}>
+          {PRIORITIES[t.priority]}
+        </Badge>
       </div>
-      <div className="card-title">{t.title}</div>
-      <div className="card-foot">
-        <span className={`dates${late ? " late" : ""}`}>{fmtRange(t.start, t.end)}</span>
+      <div className={cn("text-sm leading-snug font-medium", done && "line-through decoration-muted-foreground/50")} data-card-title="">
+        {t.title}
+      </div>
+      <div className="flex min-h-5 items-center gap-2 text-xs text-muted-foreground">
+        <span className={cn("tabular", late && "font-medium text-priority-high")}>{fmtRange(t.start, t.end)}</span>
         {t.start && t.end && (
-          <span className="wd" title="Work days, Monday to Friday">
+          <span className="tabular" title="Work days, Monday to Friday">
             {workDays(t.start, t.end)} wd
           </span>
         )}
-        {late && <span className="chip late-chip">Late</span>}
-        <span className="grow" />
-        {files > 0 && (
-          <span className="files" title={`${files} ${files === 1 ? "file" : "files"}`}>
-            <Icon name="clip" size={14} />
-            {files}
-          </span>
+        {late && (
+          <Badge variant="destructive" className="h-5 px-1.5 text-[11px]">
+            Late
+          </Badge>
         )}
-        {member && <Avatar id={member.userId} name={member.name || member.email} />}
+        <span className="ml-auto flex items-center gap-2">
+          {files > 0 && (
+            <span className="flex items-center gap-0.5 tabular" title={`${files} ${files === 1 ? "file" : "files"}`}>
+              <Icon name="clip" size={13} />
+              {files}
+            </span>
+          )}
+          {member && <Avatar id={member.userId} name={member.name || member.email} size={20} />}
+        </span>
       </div>
     </div>
   );

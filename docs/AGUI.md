@@ -155,7 +155,7 @@ Every id must belong to the current project. The agent cannot remove the person 
 
 | Tool | Arguments | What the web app does |
 | --- | --- | --- |
-| `open_task` | `taskId` | Opens the task in the right-side drawer |
+| `open_task` | `taskId` | Opens the task in the side panel on the right |
 | `show_view` | `view` | Switches to Board, Timeline, Calendar or People |
 | `go_to_date` | `date` | Shows that month on the calendar and highlights the day |
 | `filter_tasks` | `query`, `mine` | Sets the task filter |

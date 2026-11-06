@@ -14,13 +14,14 @@ The app shows the same page at `/colophon`. Keep the two in step with `package.j
 | Tasks | Dates, phase, assignee, notes and files up to 25 MB. Web addresses in notes and descriptions show as links that open in a new tab. |
 | Companies | One install holds many companies. Switch from the top of the side panel. Each company has its own name, logo, people, email domain and AI defaults. |
 | Access | Project roles (owner, editor, viewer) and company roles (owner, admin, member, guest). Owners can make a project secret. People without access can ask for it. |
-| Search | Ctrl+K or Cmd+K searches every project you can see, by words and by meaning. The task drawer shows related tasks. |
+| Search | Ctrl+K or Cmd+K searches every project you can see, by words and by meaning. The task panel shows related tasks. |
 | Live updates | A change shows on every open page at once, including changes from the AI agent. The header shows who else is viewing. |
 | AI agent | Tell it what to do in plain words. It acts for you, never with more power than your role. Risky changes wait for your approval, and every action is logged. |
 | Topic check | A quick check reads each new request. Requests for another project get a link to it. New work gets an offer to start a project. Anything else gets a short decline. |
 | Note search | Owners can let the agent search task notes. It gets only short parts, with email addresses and phone numbers hidden. |
 | Sign-in | No passwords. People sign in with a 6-digit email code. |
-| Themes and phones | Light, dark, or follow the system. On a phone, the side panel opens as a drawer. |
+| Themes and phones | Light, dark, or follow the system. On a phone, the side panel opens as a sheet. |
+| Keyboard | Ctrl+K or Cmd+K opens search. Ctrl+B or Cmd+B opens and closes the side panel. |
 
 ## Build log
 
@@ -39,6 +40,8 @@ Milestones, oldest first.
 | 09 | Companies | Multi-tenant companies, a collapsible side panel with a company switcher, secret projects, access requests and email domain auto-join. | [61c310a](https://github.com/marketgrowth/openact/commit/61c310a) |
 | 10 | Search by meaning | Vectorize and Workers AI embeddings, merged with word search. Results are checked against what each person can see. | [f78f471](https://github.com/marketgrowth/openact/commit/f78f471) |
 | 11 | Live updates | A Durable Object per project holds hibernating WebSockets. Pages check for changes only when the connection is down. | [ce7e4e4](https://github.com/marketgrowth/openact/commit/ce7e4e4) |
+| 12 | Features and build log | This page lists what OpenAct does and how it was built. | [c01bf9a](https://github.com/marketgrowth/openact/commit/c01bf9a) |
+| 13 | shadcn/ui | The whole web app moves to shadcn/ui, Tailwind CSS and Lucide icons, with the dashboard-01 layout. The chat keeps your place when you scroll up. | This change |
 
 ## Platform
 
@@ -86,7 +89,10 @@ A small set of dependencies. The Worker has one runtime dependency, Hono.
 | --- | --- | --- |
 | [TypeScript](https://www.typescriptlang.org) | 5.9.3 | Strict mode for the Worker and the web app |
 | [Hono](https://hono.dev) | 4.13.16 | The API router on the Worker |
-| [React](https://react.dev) | 19.3.1 | The web app. No UI framework and no state library. |
+| [React](https://react.dev) | 19.3.1 | The web app. No state library. |
+| [shadcn/ui](https://ui.shadcn.com) | New York style | The UI components, copied into `src/client/components/ui` and owned by this project. Neutral colors. |
+| [Radix UI](https://www.radix-ui.com) | 1.8.1 | Accessible parts under the components: dialogs, menus, tooltips, tabs and switches |
+| [Tailwind CSS](https://tailwindcss.com) | 4.3.4 | Styles, with the theme as CSS variables in `src/client/index.css` |
 | [Vite](https://vite.dev) | 8.3.6 | Builds the web app |
 | [Wrangler](https://developers.cloudflare.com/workers/wrangler/) | 4.158.0 | Local development, migrations and deploys |
 | [@ag-ui/core](https://www.npmjs.com/package/@ag-ui/core) | 1.0.4 | AG-UI types, imported as types only |
@@ -96,15 +102,15 @@ A small set of dependencies. The Worker has one runtime dependency, Hono.
 
 ## Design
 
-One stylesheet with color tokens for light and dark themes.
+The shadcn/ui design system, with OpenAct's own colors for status, priority and projects.
 
 | Part | What it does |
 | --- | --- |
-| [Archivo](https://fonts.google.com/specimen/Archivo) | Headings. A variable font with width and weight axes. |
-| [IBM Plex Sans](https://fonts.google.com/specimen/IBM+Plex+Sans) | Body text and controls |
-| [IBM Plex Mono](https://fonts.google.com/specimen/IBM+Plex+Mono) | Dates, counts and labels, so numbers line up |
+| [Geist](https://fonts.google.com/specimen/Geist) | Text and headings |
+| [Geist Mono](https://fonts.google.com/specimen/Geist+Mono) | Dates and the sign-in code |
+| [Lucide](https://lucide.dev) | Icons. Outline style with a 2 px stroke, at 16 px in most places. |
+| Layout | An inset side panel that collapses to icons, and a 48 px page header with the panel toggle, as in shadcn's dashboard-01 block |
 | Themes | Light, dark, or follow the system setting |
-| Icons and logo | Drawn for OpenAct as inline SVG. No icon library. |
 | Writing | Short, simple sentences in active voice, based on ASD-STE100 Simplified Technical English. American spelling. |
 
 ## Source and license

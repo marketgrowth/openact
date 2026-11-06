@@ -10,23 +10,24 @@ OpenAct is a light project management tool with a Kanban board, a Gantt timeline
 
 - **Companies (multi-tenant).** One install holds many companies. Switch between them from the menu at the top of the side panel. Each company has its own projects, people, logo, email domain and AI defaults. Anyone signed in can create a company.
 - **Secret projects and access requests.** Company members see every company project. Owners can make a project secret, so only invited people see it. Anyone who opens a link to a project they cannot see can ask for access, and the owners approve or decline.
-- **A collapsible side panel.** The company switcher, the company's projects and your settings. Collapse it to icons, or open it as a drawer on a phone.
+- **A collapsible side panel.** The company switcher, the company's projects and your settings. Collapse it to icons with Ctrl+B or Cmd+B, or open it as a sheet on a phone. When it is collapsed, tooltips show each name.
 - **Many projects.** Each project has its own board, timeline, people and files.
 - **Unlimited people.** There are no seat limits. Invite anyone by email.
 - **Kanban board with your own columns.** Add, rename, reorder and delete columns per project. Each column says what it means (not started, in progress, in review or done), so progress and late checks keep working. Drag cards between columns.
 - **Gantt timeline.** Drag a bar to move a task. Drag an edge to change its length. Tasks group by phase, with a summary bar for each phase. The header shows days or ISO weeks, and a line marks today.
-- **Calendar.** A month view. Each task shows as a card on its start date and as a deadline pill on its end date. Click either to open the task in the side drawer. Drag a card to move the task, or drag a pill to change the deadline. Phones get an agenda list.
+- **Calendar.** A month view. Each task shows as a card on its start date and as a deadline pill on its end date. Click either to open the task in the side panel. Drag a card to move the task, or drag a pill to change the deadline. Phones get an agenda list.
 - **Roles.** In a project, owners manage people and settings, editors change tasks, and viewers only look. In a company, owners and admins manage the company, members see company projects, and guests see only the projects they are invited to.
 - **Sign-in without passwords.** People type their email and get a 6-digit code. [Resend](https://resend.com) sends the email.
 - **File attachments.** Attach files up to 25 MB to a task. Files go to R2.
 - **AI agent with role-based access.** Tell the agent what to do in plain words: "Move the late tasks to next week" or "Rename Review to QA". The agent acts for you and never has more power than your role. Owners choose how much each role may hand to the agent. Deletes, people changes and large batches wait for your approval, and every agent action is logged. Read [docs/AGUI.md](docs/AGUI.md).
-- **Search by words and by meaning.** Press Ctrl+K or Cmd+K to search every project you can see in the company. Search finds "Book the gala hall" when you type "venue". It uses [Vectorize](https://developers.cloudflare.com/vectorize/) and Workers AI embeddings, and falls back to words only when Vectorize is not set up. The task drawer shows related tasks, and the agent can search big projects.
+- **Search by words and by meaning.** Press Ctrl+K or Cmd+K to search every project you can see in the company. Search finds "Book the gala hall" when you type "venue". It uses [Vectorize](https://developers.cloudflare.com/vectorize/) and Workers AI embeddings, and falls back to words only when Vectorize is not set up. The task panel shows related tasks, and the agent can search big projects.
 - **Clickable links.** Web addresses in a project description or in task notes show as links that open in a new tab. OpenAct never fetches them. Only `http` and `https` links work.
 - **Note search, when owners allow it.** Owners can let the agent search task notes, for example for a contact or a location. The agent gets only a short part of each matching note, with email addresses and phone numbers hidden. The filter box on the board also searches notes.
 - **The agent stays on topic.** A quick check reads each new request first. With a TypeSafe key, [Jev](https://typesafe.ai/) answers typed questions about the request, and code makes the decision. A request for another project gets a link that opens it there. New work gets an offer to start a project for it. Anything else gets a short decline and does not use the main AI model.
 - **AI tools.** Draft tasks from a goal, or write a status summary. All AI requests go through [Cloudflare AI Gateway](https://developers.cloudflare.com/ai-gateway/). Workers AI is the default, so you need no extra API key. Anthropic and OpenAI are optional.
 - **Built on AG-UI.** The agent speaks [AG-UI](https://docs.ag-ui.com). Approvals use AG-UI interrupts, so any AG-UI client can connect.
 - **Themes.** Light, dark, or follow the system setting.
+- **Built with shadcn/ui.** The web app uses [shadcn/ui](https://ui.shadcn.com) components, [Tailwind CSS](https://tailwindcss.com) and [Lucide](https://lucide.dev) icons, with the layout of shadcn's dashboard-01 block. Most React developers and coding agents already know these parts.
 - **Live updates.** When someone changes a project, every open page updates at once, including changes made by the AI agent. The header shows who else is viewing. Each project has a Durable Object that holds its WebSockets, and idle connections hibernate, so they cost almost nothing. If live updates are not available, pages check for changes every 5 seconds.
 
 ## Screenshots
@@ -40,7 +41,7 @@ The screenshots use example data: a sample team and projects.
 | ![Gantt timeline with phases and today line](docs/images/timeline.png) | ![Month calendar with start cards and deadline pills](docs/images/calendar.png) |
 | **Timeline.** Drag bars to move tasks. Phases have summary bars. | **Calendar.** Cards show starts. Pills show deadlines. |
 | ![Task drawer with dates, assignee and files](docs/images/task.png) | ![Side panel collapsed to icons](docs/images/collapsed.png) |
-| **Task drawer.** Edit details and attach files. | **Collapsed panel.** Icons only, for more room. |
+| **Task panel.** Edit details and attach files. | **Collapsed panel.** Icons only, for more room. |
 | ![People tab with an access request](docs/images/people.png) | ![Request access page](docs/images/request-access.png) |
 | **People.** Invite by email, and approve access requests. | **Request access.** The page never shows the project's name. |
 | ![Company settings with name, logo and email domain](docs/images/company.png) | ![Sign in with an email code](docs/images/signin.png) |
@@ -49,7 +50,7 @@ The screenshots use example data: a sample team and projects.
 | **Dark theme.** Or follow the system setting. | **Dark calendar.** |
 
 <p align="center"><img src="docs/images/phone-calendar.png" alt="Calendar on a phone, as an agenda list" width="300"> &nbsp; <img src="docs/images/phone-menu.png" alt="Side panel as a drawer on a phone" width="300"></p>
-<p align="center"><b>Phones.</b> The calendar becomes an agenda list, and the side panel becomes a drawer.</p>
+<p align="center"><b>Phones.</b> The calendar becomes an agenda list, and the side panel becomes a sheet.</p>
 
 ## Companies and access
 
@@ -223,6 +224,10 @@ src/
     email.ts           Resend emails
   shared/agui.ts       AG-UI types, shared agent state and frontend tools
   client/              The web app
+    index.css          Tailwind and the theme: shadcn tokens plus OpenAct's status, priority and project colors
+    components/ui/     shadcn/ui components, copied into the project (see components.json)
+    components/        OpenAct parts: side panel, board, timeline, calendar, task panel, AI agent
+    pages/             Sign-in, projects, project, colophon
     agui/              AG-UI client: SSE parser, event reducer, tool runner
 migrations/            D1 schema
 test/                  Unit tests

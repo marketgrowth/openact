@@ -20,9 +20,17 @@ import {
 import { ROLE_CEILING, levelRank } from "../../shared/agent-policy";
 import { api, errorText } from "../api";
 import { navigate } from "../router";
-import { Avatar, ConfirmButton, Modal, useToast } from "../ui";
+import { Avatar, ConfirmButton, Field, Modal, Notice, useToast } from "../ui";
 import { useWorkspace } from "../workspace";
 import { CompanyMark } from "./Sidebar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export function NewCompanyDialog({ onClose }: { onClose: () => void }) {
   const ws = useWorkspace();
@@ -49,25 +57,23 @@ export function NewCompanyDialog({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <Modal title="Create a company" onClose={onClose}>
-      <form className="stack" onSubmit={create}>
-        <p className="muted">A company holds projects and people. You are its owner. You can invite people and add a logo next.</p>
-        <div className="field">
-          <label htmlFor="nc-name">Company name</label>
-          <input id="nc-name" required maxLength={80} value={name} onChange={(e) => setName(e.target.value)} placeholder="For example: Acme Studio" />
-        </div>
-        {error && (
-          <p className="error" role="alert">
-            {error}
-          </p>
-        )}
-        <div className="row-end">
-          <button type="button" className="btn ghost" onClick={onClose}>
+    <Modal
+      title="Create a company"
+      description="A company holds projects and people. You are its owner. You can invite people and add a logo next."
+      onClose={onClose}
+    >
+      <form className="grid gap-4" onSubmit={create}>
+        <Field label="Company name" htmlFor="nc-name">
+          <Input id="nc-name" required maxLength={80} value={name} onChange={(e) => setName(e.target.value)} placeholder="For example: Acme Studio" />
+        </Field>
+        {error && <Notice tone="error">{error}</Notice>}
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button type="button" variant="outline" onClick={onClose}>
             Cancel
-          </button>
-          <button type="submit" className="btn primary" disabled={busy || !name.trim()}>
+          </Button>
+          <Button type="submit" disabled={busy || !name.trim()}>
             Create company
-          </button>
+          </Button>
         </div>
       </form>
     </Modal>
@@ -101,33 +107,33 @@ export function CompanySettings({ companyId, me, onClose }: { companyId: string;
 
   return (
     <Modal title="Company settings" onClose={onClose} wide>
-      {error && <div className="notice warn">{error}</div>}
-      {!detail && !error && <p className="muted">Loading…</p>}
+      {error && <Notice tone="error">{error}</Notice>}
+      {!detail && !error && <p className="text-sm text-muted-foreground">Loading…</p>}
       {detail && (
-        <div className="stack">
-          <div className="co-settings-head">
+        <div className="grid gap-4">
+          <div className="flex items-center gap-3" data-company-head="">
             <CompanyMark company={detail} size={40} />
-            <div>
-              <b>{detail.name}</b>
-              <p className="hint">You are {detail.role === "admin" ? "an admin" : "the owner"} of this company.</p>
+            <div className="grid min-w-0 gap-0.5">
+              <span className="truncate font-semibold">{detail.name}</span>
+              <span className="text-xs text-muted-foreground">You are {detail.role === "admin" ? "an admin" : "the owner"} of this company.</span>
             </div>
           </div>
-          <div className="seg" role="tablist" aria-label="Company settings">
-            {(
-              [
-                ["general", "General"],
-                ["people", `People (${detail.members.length})`],
-                ["ai", "AI defaults"]
-              ] as Array<[Tab, string]>
-            ).map(([id, text]) => (
-              <button key={id} type="button" role="tab" aria-selected={tab === id} onClick={() => setTab(id)}>
-                {text}
-              </button>
-            ))}
-          </div>
-          {tab === "general" && <GeneralTab detail={detail} me={me} onChanged={changed} onDeleted={onClose} />}
-          {tab === "people" && <PeopleTab detail={detail} me={me} onChanged={changed} />}
-          {tab === "ai" && <AiDefaultsTab detail={detail} onChanged={changed} />}
+          <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
+            <TabsList aria-label="Company settings">
+              <TabsTrigger value="general">General</TabsTrigger>
+              <TabsTrigger value="people">People ({detail.members.length})</TabsTrigger>
+              <TabsTrigger value="ai">AI defaults</TabsTrigger>
+            </TabsList>
+            <TabsContent value="general" className="pt-2">
+              <GeneralTab detail={detail} me={me} onChanged={changed} onDeleted={onClose} />
+            </TabsContent>
+            <TabsContent value="people" className="pt-2">
+              <PeopleTab detail={detail} me={me} onChanged={changed} />
+            </TabsContent>
+            <TabsContent value="ai" className="pt-2">
+              <AiDefaultsTab detail={detail} onChanged={changed} />
+            </TabsContent>
+          </Tabs>
         </div>
       )}
     </Modal>
@@ -195,50 +201,56 @@ function GeneralTab({ detail, me, onChanged, onDeleted }: { detail: CompanyDetai
   };
 
   return (
-    <div className="stack">
-      <form className="stack" onSubmit={save}>
-        <div className="field">
-          <label htmlFor="cs-name">Company name</label>
-          <input id="cs-name" required maxLength={80} value={name} onChange={(e) => setName(e.target.value)} />
-        </div>
-        <div className="field">
-          <span className="lbl">Logo</span>
-          <div className="logo-row">
+    <div className="grid gap-6">
+      <form className="grid gap-5" onSubmit={save}>
+        <Field label="Company name" htmlFor="cs-name">
+          <Input id="cs-name" required maxLength={80} value={name} onChange={(e) => setName(e.target.value)} />
+        </Field>
+        <Field label="Logo" help="PNG, JPEG or WebP, up to 1 MB. A square image looks best.">
+          <div className="flex flex-wrap items-center gap-3">
             <CompanyMark company={detail} size={48} />
-            <input ref={file} type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" id="cs-logo" onChange={(e) => upload(e.target.files?.[0])} />
-            <label htmlFor="cs-logo" className="btn">
-              {detail.logoUrl ? "Replace logo" : "Upload logo"}
-            </label>
+            <input
+              ref={file}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="sr-only"
+              id="cs-logo"
+              onChange={(e) => upload(e.target.files?.[0])}
+            />
+            <Button asChild variant="outline" size="sm">
+              <label htmlFor="cs-logo" className="cursor-pointer">
+                {detail.logoUrl ? "Replace logo" : "Upload logo"}
+              </label>
+            </Button>
             {detail.logoUrl && (
-              <button type="button" className="btn ghost" onClick={removeLogo}>
+              <Button type="button" variant="ghost" size="sm" onClick={removeLogo}>
                 Remove
-              </button>
+              </Button>
             )}
           </div>
-          <p className="hint">PNG, JPEG or WebP, up to 1 MB. A square image looks best.</p>
-        </div>
-        <div className="field">
-          <label htmlFor="cs-domain">Email domain for auto-join</label>
-          <input id="cs-domain" value={domain} maxLength={253} placeholder={myDomain || "example.com"} onChange={(e) => setDomain(e.target.value)} />
-          <p className="hint">
-            People who sign in with an email at this domain join the company as members. Leave it empty to turn this off. Your own email must use the domain, and public
-            domains such as gmail.com do not work.
-          </p>
-        </div>
-        <div className="row-end">
-          <button type="submit" className="btn primary" disabled={busy || !name.trim()}>
+        </Field>
+        <Field
+          label="Email domain for auto-join"
+          htmlFor="cs-domain"
+          help="People who sign in with an email at this domain join the company as members. Leave it empty to turn this off. Your own email must use the domain, and public domains such as gmail.com do not work."
+        >
+          <Input id="cs-domain" value={domain} maxLength={253} placeholder={myDomain || "example.com"} onChange={(e) => setDomain(e.target.value)} />
+        </Field>
+        <div className="flex justify-end">
+          <Button type="submit" disabled={busy || !name.trim()}>
             Save
-          </button>
+          </Button>
         </div>
       </form>
       {detail.role === "owner" && (
         <>
-          <hr />
-          <div className="stack">
-            <div className="row-wrap">
+          <Separator />
+          <div className="grid gap-2 rounded-lg border border-destructive/30 p-4">
+            <h3 className="text-sm font-medium">Delete company</h3>
+            <p className="text-sm text-muted-foreground">Deleting a company removes all its projects, tasks and files for everyone. You cannot undo it.</p>
+            <div>
               <ConfirmButton label="Delete company" confirmLabel="Click again to delete the company and all its projects" onConfirm={remove} />
             </div>
-            <p className="hint">Deleting a company removes all its projects, tasks and files for everyone. You cannot undo it.</p>
           </div>
         </>
       )}
@@ -300,45 +312,61 @@ function PeopleTab({ detail, me, onChanged }: { detail: CompanyDetail; me: User;
   };
 
   return (
-    <div className="stack">
-      <form className="invite" onSubmit={invite}>
-        <h3 className="sub-h">Invite people to the company</h3>
-        <p className="hint">Members see every project that is not secret. To share one project only, invite the person from that project's People tab. They join as a guest.</p>
-        <div className="invite-row">
-          <input type="email" required placeholder="name@company.com" aria-label="Email address" value={email} onChange={(e) => setEmail(e.target.value)} />
-          <select aria-label="Company role" value={role} onChange={(e) => setRole(e.target.value as "member" | "admin")}>
-            <option value="member">Member</option>
-            <option value="admin">Admin</option>
-          </select>
-          <button type="submit" className="btn primary" disabled={busy}>
+    <div className="grid gap-6">
+      <form className="grid gap-3" onSubmit={invite}>
+        <div className="grid gap-1">
+          <h3 className="text-sm font-medium">Invite people to the company</h3>
+          <p className="text-sm text-muted-foreground">
+            Members see every project that is not secret. To share one project only, invite the person from that project's People tab. They join as a guest.
+          </p>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Input
+            type="email"
+            required
+            placeholder="name@company.com"
+            aria-label="Email address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="sm:flex-1"
+          />
+          <NativeSelect aria-label="Company role" value={role} onChange={(e) => setRole(e.target.value as "member" | "admin")}>
+            <NativeSelectOption value="member">Member</NativeSelectOption>
+            <NativeSelectOption value="admin">Admin</NativeSelectOption>
+          </NativeSelect>
+          <Button type="submit" disabled={busy}>
             Invite
-          </button>
+          </Button>
         </div>
       </form>
-      <ul className="people">
+      <ul className="divide-y rounded-lg border" data-people="">
         {detail.members.map((m) => {
           const canEditRow = (isOwner || m.role !== "owner") && m.userId !== me.id;
           return (
-            <li key={m.userId}>
-              <Avatar id={m.userId} name={m.name || m.email} size={30} />
-              <span className="who">
-                <b>{m.name || m.email}</b>
-                <span className="hint">{m.email}</span>
+            <li key={m.userId} className="flex flex-wrap items-center gap-3 px-3 py-2.5">
+              <Avatar id={m.userId} name={m.name || m.email} size={32} />
+              <span className="grid min-w-0 flex-1 leading-tight">
+                <span className="truncate text-sm font-medium">{m.name || m.email}</span>
+                <span className="truncate text-xs text-muted-foreground">{m.email}</span>
               </span>
               {canEditRow ? (
-                <select aria-label={`Company role for ${m.name || m.email}`} value={m.role} onChange={(e) => changeRole(m.userId, e.target.value as CompanyRole)}>
+                <NativeSelect
+                  size="sm"
+                  aria-label={`Company role for ${m.name || m.email}`}
+                  value={m.role}
+                  onChange={(e) => changeRole(m.userId, e.target.value as CompanyRole)}
+                >
                   {COMPANY_ROLES.filter((r) => isOwner || r !== "owner").map((r) => (
-                    <option key={r} value={r}>
+                    <NativeSelectOption key={r} value={r}>
                       {COMPANY_ROLE_LABELS[r]}
-                    </option>
+                    </NativeSelectOption>
                   ))}
-                </select>
+                </NativeSelect>
               ) : (
-                <span className="chip">{COMPANY_ROLE_LABELS[m.role]}</span>
+                <Badge variant="secondary">{COMPANY_ROLE_LABELS[m.role]}</Badge>
               )}
               {(canEditRow || (m.userId === me.id && !(m.role === "owner" && ownerCount <= 1))) && (
                 <ConfirmButton
-                  className="ghost sm"
                   label={m.userId === me.id ? "Leave" : "Remove"}
                   confirmLabel={m.userId === me.id ? "Click again to leave" : "Click again to remove"}
                   onConfirm={() => remove(m.userId)}
@@ -349,32 +377,39 @@ function PeopleTab({ detail, me, onChanged }: { detail: CompanyDetail; me: User;
         })}
       </ul>
       {detail.invitations.length > 0 && (
-        <div>
-          <h3 className="sub-h">Waiting to sign in</h3>
-          <ul className="people">
+        <div className="grid gap-2">
+          <h3 className="text-sm font-medium">Waiting to sign in</h3>
+          <ul className="divide-y rounded-lg border">
             {detail.invitations.map((i) => (
-              <li key={i.id}>
-                <span className="who">
-                  <b>{i.email}</b>
-                  <span className="hint">Invited as {COMPANY_ROLE_LABELS[i.role].toLowerCase()}</span>
+              <li key={i.id} className="flex items-center gap-3 px-3 py-2.5">
+                <span className="grid min-w-0 flex-1 leading-tight">
+                  <span className="truncate text-sm font-medium">{i.email}</span>
+                  <span className="text-xs text-muted-foreground">Invited as {COMPANY_ROLE_LABELS[i.role].toLowerCase()}</span>
                 </span>
-                <button type="button" className="btn ghost sm" onClick={() => cancelInvite(i.id)}>
+                <Button type="button" variant="ghost" size="sm" onClick={() => cancelInvite(i.id)}>
                   Cancel
-                </button>
+                </Button>
               </li>
             ))}
           </ul>
         </div>
       )}
-      <dl className="role-help">
-        {COMPANY_ROLES.map((r) => (
-          <div key={r}>
-            <dt>{COMPANY_ROLE_LABELS[r]}</dt>
-            <dd>{COMPANY_ROLE_HELP[r]}</dd>
-          </div>
-        ))}
-      </dl>
+      <RoleHelp items={COMPANY_ROLES.map((r) => [COMPANY_ROLE_LABELS[r], COMPANY_ROLE_HELP[r]])} />
     </div>
+  );
+}
+
+/** A short list that says what each role can do. */
+export function RoleHelp({ items }: { items: Array<[string, string]> }) {
+  return (
+    <dl className="grid gap-2 rounded-lg bg-muted/50 p-4 text-sm sm:grid-cols-[auto_1fr] sm:gap-x-4">
+      {items.map(([name, help]) => (
+        <div key={name} className="contents">
+          <dt className="font-medium">{name}</dt>
+          <dd className="mb-1 text-muted-foreground sm:mb-0">{help}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
@@ -399,40 +434,52 @@ function AiDefaultsTab({ detail, onChanged }: { detail: CompanyDetail; onChanged
   };
 
   return (
-    <div className="stack">
-      <p className="hint">New projects in this company start with these settings. Project owners can change them later. Existing projects keep their own settings.</p>
-      <div className="policy">
+    <div className="grid gap-5">
+      <p className="text-sm text-muted-foreground">
+        New projects in this company start with these settings. Project owners can change them later. Existing projects keep their own settings.
+      </p>
+      <div className="divide-y rounded-lg border" data-policy="">
         {ROLE_ORDER.map((role) => (
-          <div key={role} className="policy-row">
-            <span className="policy-role">{ROLE_LABELS[role]}s</span>
-            <select aria-label={`Default agent level for ${ROLE_LABELS[role].toLowerCase()}s`} value={draft[role]} onChange={(e) => setDraft((d) => ({ ...d, [role]: e.target.value as AgentLevel }))}>
+          <div key={role} className="flex items-center justify-between gap-3 px-3 py-2.5">
+            <span className="text-sm font-medium">{ROLE_LABELS[role]}s</span>
+            <NativeSelect
+              size="sm"
+              aria-label={`Default agent level for ${ROLE_LABELS[role].toLowerCase()}s`}
+              value={draft[role]}
+              onChange={(e) => setDraft((d) => ({ ...d, [role]: e.target.value as AgentLevel }))}
+            >
               {AGENT_LEVELS.filter((l) => levelRank(l) <= levelRank(ROLE_CEILING[role])).map((l) => (
-                <option key={l} value={l}>
+                <NativeSelectOption key={l} value={l}>
                   {AGENT_LEVEL_LABELS[l]}
-                </option>
+                </NativeSelectOption>
               ))}
-            </select>
+            </NativeSelect>
           </div>
         ))}
-        <div className="policy-row">
-          <span className="policy-role">Topic scope</span>
-          <select aria-label="Default topic scope" value={draft.scope} onChange={(e) => setDraft((d) => ({ ...d, scope: e.target.value as AgentScope }))}>
+        <div className="flex items-center justify-between gap-3 px-3 py-2.5">
+          <span className="text-sm font-medium">Topic scope</span>
+          <NativeSelect
+            size="sm"
+            aria-label="Default topic scope"
+            value={draft.scope}
+            onChange={(e) => setDraft((d) => ({ ...d, scope: e.target.value as AgentScope }))}
+          >
             {AGENT_SCOPES.map((sc) => (
-              <option key={sc} value={sc}>
+              <NativeSelectOption key={sc} value={sc}>
                 {AGENT_SCOPE_LABELS[sc]}
-              </option>
+              </NativeSelectOption>
             ))}
-          </select>
+          </NativeSelect>
         </div>
       </div>
-      <label className="toggle policy-toggle">
-        <input type="checkbox" checked={draft.readNotes} onChange={(e) => setDraft((d) => ({ ...d, readNotes: e.target.checked }))} />
-        Let the agent search task notes
-      </label>
-      <div className="row-end">
-        <button type="button" className="btn primary" disabled={busy} onClick={save}>
+      <div className="flex items-center gap-3">
+        <Switch id="cs-notes" checked={draft.readNotes} onCheckedChange={(v) => setDraft((d) => ({ ...d, readNotes: v }))} />
+        <Label htmlFor="cs-notes">Let the agent search task notes</Label>
+      </div>
+      <div className="flex justify-end">
+        <Button type="button" disabled={busy} onClick={save}>
           Save AI defaults
-        </button>
+        </Button>
       </div>
     </div>
   );

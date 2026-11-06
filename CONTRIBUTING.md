@@ -34,7 +34,10 @@ npm run build
 - **One place for business rules.** Put task, column and member logic in `src/worker/services.ts`. API routes and the AI agent both call it, so they share the same checks.
 - **Secrets.** Never store a raw sign-in code or session token. Never log email contents in production.
 - **Text in the app.** Write short, simple sentences in active voice. Use American spelling. Do not use em dashes. Error messages say what went wrong and what to do next.
-- **Themes.** Every color is a token in `src/client/styles.css`, with a light value and a dark value.
+- **UI components.** Use the shadcn/ui components in `src/client/components/ui`. To add one, run `npx shadcn@latest add <name>`, which reads `components.json`. Change a copied component only when you must, and say why in the pull request.
+- **Styles.** Use Tailwind classes. Do not add a separate stylesheet. Shared rules that classes cannot express go in `src/client/index.css`.
+- **Themes.** Every color is a token in `src/client/index.css`, with a light value and a dark value. Use token classes such as `bg-muted` or `text-priority-high`. Do not use fixed palette colors such as `bg-red-500` or `text-white`.
+- **Icons.** Use Lucide icons through the `Icon` component in `src/client/ui.tsx`.
 
 ## Pull requests
 
