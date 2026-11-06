@@ -6,6 +6,10 @@ import { authRoutes, meRoutes, sessionMiddleware } from "./auth";
 import { projectRoutes } from "./projects";
 import { companyRoutes } from "./companies";
 import { processVectorOutbox, searchRoutes, vectorsEnabled } from "./search";
+import { liveChanges, liveRoutes } from "./live";
+
+// The Durable Object class must be exported from the main module.
+export { ProjectRoom } from "./live";
 import { attachmentRoutes, columnRoutes, projectTaskRoutes, taskRoutes } from "./tasks";
 import { aiRoutes } from "./ai";
 import { aguiRoutes } from "./agui";
@@ -15,6 +19,7 @@ const app = new Hono<AppEnv>();
 
 const securityHeaders: MiddlewareHandler<AppEnv> = async (c, next) => {
   await next();
+  if (c.res.status === 101) return; // A WebSocket upgrade. Its headers cannot change.
   c.header("X-Content-Type-Options", "nosniff");
   c.header("Referrer-Policy", "same-origin");
   if (!c.res.headers.has("Cache-Control")) c.header("Cache-Control", "no-store");
@@ -40,7 +45,7 @@ const indexAfterWrites: MiddlewareHandler<AppEnv> = async (c, next) => {
   }
 };
 
-app.use("/api/*", securityHeaders, sameOrigin, sessionMiddleware, indexAfterWrites);
+app.use("/api/*", securityHeaders, sameOrigin, sessionMiddleware, liveChanges, indexAfterWrites);
 
 app.get("/api/config", (c) => {
   const config: AppConfig = {
@@ -55,6 +60,7 @@ app.get("/api/config", (c) => {
 app.route("/api/auth", authRoutes);
 app.route("/api/me", meRoutes);
 app.route("/api/companies", companyRoutes);
+app.route("/api/projects", liveRoutes);
 app.route("/api/projects", projectRoutes);
 app.route("/api/projects", projectTaskRoutes);
 app.route("/api/projects", aiRoutes);

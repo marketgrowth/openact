@@ -2941,3 +2941,30 @@ body::before {
 .related .sp-dot {
   margin: 0;
 }
+
+/* Live updates */
+.viewing {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: center;
+  font-size: 12.5px;
+}
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--s-done);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--s-done) 22%, transparent);
+}
+.viewing-avatars {
+  display: inline-flex;
+}
+.viewing-avatars > span {
+  display: inline-flex;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--surface);
+}
+.viewing-avatars > span + span {
+  margin-left: -6px;
+}

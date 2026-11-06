@@ -18,7 +18,8 @@ import {
 import { api, ApiError, errorText } from "../api";
 import { Link, navigate } from "../router";
 import { fmtRange, fmtShort, today } from "../dates";
-import { ConfirmButton, Icon, LinkedText, Modal, useToast } from "../ui";
+import { Avatar, ConfirmButton, Icon, LinkedText, Modal, useToast } from "../ui";
+import { useLive, type Viewer } from "../live";
 import { Board, type ColumnActions } from "../components/Board";
 import { AiSettings } from "../components/AiSettings";
 import { Calendar } from "../components/Calendar";
@@ -66,8 +67,11 @@ export function ProjectPage({ projectId, view, me, config }: { projectId: string
       setError(null);
     } catch (e) {
       if (e instanceof ApiError && e.code === "no_access") setNoAccess(true);
-      if (e instanceof ApiError && (e.status === 404 || e.status === 403)) setError(e.message);
-      else setError(errorText(e));
+      if (e instanceof ApiError && (e.status === 404 || e.status === 403)) {
+        // Access was removed, or the project was deleted. Stop showing old data.
+        setData(null);
+        setError(e.message);
+      } else setError(errorText(e));
     }
   }, [projectId]);
 
@@ -75,16 +79,32 @@ export function ProjectPage({ projectId, view, me, config }: { projectId: string
     load();
   }, [load]);
 
-  // Stay in sync with other people: poll a cheap revision number, reload when it changes.
+  // Stay in sync with other people. A WebSocket tells this page when the project changes.
+  // While it is down, the page polls a cheap revision number instead.
+  const staleRef = useRef(false);
+  const onLiveRev = useCallback(
+    (rev: number) => {
+      if (rev === revRef.current) return;
+      if (busyRef.current) staleRef.current = true; // Reload after the drag ends.
+      else load();
+    },
+    [load]
+  );
+  const liveConn = useLive(projectId, !!data && !noAccess, onLiveRev);
+  const liveRef = useRef(false);
+  liveRef.current = liveConn.connected;
+
   useEffect(() => {
     const tick = async () => {
       if (document.visibilityState !== "visible" || busyRef.current || !revRef.current) return;
+      if (liveRef.current && !staleRef.current) return;
+      staleRef.current = false;
       try {
         const r = await api<{ rev: number }>(`/api/projects/${projectId}/rev`);
         setOffline(false);
         if (r.rev !== revRef.current) load();
       } catch (e) {
-        if (e instanceof ApiError && e.status === 404) setError(e.message);
+        if (e instanceof ApiError && (e.status === 404 || e.status === 403)) load();
         else setOffline(true);
       }
     };
@@ -96,6 +116,11 @@ export function ProjectPage({ projectId, view, me, config }: { projectId: string
       document.removeEventListener("visibilitychange", onVis);
     };
   }, [projectId, load]);
+
+  // The room sends the current revision on every connect, so a reconnect catches missed changes.
+  useEffect(() => {
+    if (liveConn.connected) setOffline(false);
+  }, [liveConn.connected]);
 
   // Open the agent with a request that another project's agent sent here.
   const loaded = !!data;
@@ -362,6 +387,7 @@ export function ProjectPage({ projectId, view, me, config }: { projectId: string
               </p>
             )}
           </div>
+          <ViewingNow viewers={liveConn.viewers} meId={me.id} live={liveConn.connected} />
           <nav className="tabs" aria-label="Project views">
             <Link to={base} aria-current={view === "board" ? "page" : undefined}>
               <Icon name="board" size={16} /> Board
@@ -709,5 +735,31 @@ function RequestAccess({ projectId }: { projectId: string }) {
         )}
       </div>
     </main>
+  );
+}
+
+/** Who else has this project open right now. Live updates only. */
+function ViewingNow({ viewers, meId, live }: { viewers: Viewer[]; meId: string; live: boolean }) {
+  const others = viewers.filter((v) => v.userId !== meId);
+  if (!live) return null;
+  return (
+    <div className="viewing" aria-live="polite">
+      <span className="live-dot" title="Live: changes from others appear at once" aria-hidden="true" />
+      {others.length ? (
+        <>
+          <span className="viewing-avatars">
+            {others.slice(0, 4).map((v) => (
+              <span key={v.userId} title={`${v.name} is viewing`}>
+                <Avatar id={v.userId} name={v.name} size={24} />
+              </span>
+            ))}
+          </span>
+          <span className="sr-only">{others.map((v) => v.name).join(", ")} also viewing</span>
+          {others.length > 4 && <span className="muted">+{others.length - 4}</span>}
+        </>
+      ) : (
+        <span className="muted viewing-text">Live</span>
+      )}
+    </div>
   );
 }

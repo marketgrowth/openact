@@ -21,6 +21,7 @@ import { canCreateProjects } from "../shared/access";
 import { currentCompanyId } from "./companies";
 import { accessGrantedEmail, accessRequestEmail, sendEmail } from "./email";
 import { reindexProjectStatement } from "./search";
+import { markProjectChanged } from "./live";
 import { changeMemberRole, defaultColumnStatements, inviteMember, removeMember } from "./services";
 import { HttpError, addDays, appUrl, newId, nowIso, oneOf, readJson, requireUser, text, todayIso } from "./util";
 
@@ -346,6 +347,7 @@ projectRoutes.post("/:id/access-requests", async (c) => {
     );
   }
   await c.env.DB.prepare("UPDATE projects SET rev = rev + 1 WHERE id = ?").bind(id).run();
+  markProjectChanged(id);
   return c.json({ requested: true }, 201);
 });
 

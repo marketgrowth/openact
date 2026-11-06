@@ -10,7 +10,13 @@ import assert from "node:assert/strict";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const out = join(mkdtempSync(join(tmpdir(), "openact-search-")), "bundle.mjs");
-await build({ stdin: { contents: `export { processVectorOutbox, hybridSearch } from "${join(root, "src/worker/search/index.ts")}";`, resolveDir: root, loader: "ts" }, bundle: true, platform: "node", format: "esm", outfile: out, logLevel: "warning" });
+await build({ stdin: { contents: `export { processVectorOutbox, hybridSearch } from "${join(root, "src/worker/search/index.ts")}";`, resolveDir: root, loader: "ts" }, bundle: true, platform: "node", format: "esm", outfile: out, logLevel: "warning",
+  // Workers-only modules get small stand-ins. The search code does not use them.
+  plugins: [{ name: "workers-stubs", setup(b) {
+    b.onResolve({ filter: /^cloudflare:workers$/ }, () => ({ path: "cloudflare-workers", namespace: "stub" }));
+    b.onLoad({ filter: /.*/, namespace: "stub" }, () => ({ contents: "export class DurableObject { constructor(ctx, env) { this.ctx = ctx; this.env = env; } }", loader: "js" }));
+  } }]
+});
 const mod = await import(out);
 const results = [];
 console.warn = () => {}; // The test triggers failures on purpose.

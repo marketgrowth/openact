@@ -1,5 +1,6 @@
 import { Hono, type MiddlewareHandler } from "hono";
 import { companyAllowsSignup, joinCompaniesAtSignIn } from "./companies";
+import { markProjectChanged } from "./live";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import type { AppEnv, Env } from "./env";
 import type { User } from "../shared/types";
@@ -184,6 +185,7 @@ authRoutes.post("/verify", async (c) => {
   if (invites.results.length) {
     const stmts: D1PreparedStatement[] = [];
     for (const inv of invites.results) {
+      markProjectChanged(inv.project_id);
       stmts.push(
         c.env.DB.prepare("INSERT OR IGNORE INTO project_members (project_id, user_id, role, created_at) VALUES (?, ?, ?, ?)").bind(
           inv.project_id,

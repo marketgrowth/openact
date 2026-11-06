@@ -1,6 +1,7 @@
 import type { Env } from "./env";
+import { disconnectFromProject } from "./live";
 import { DEFAULT_COLUMNS, PRIORITY_IDS, ROLES, ROLE_LABELS, STATUS_IDS, type Role, type Status, type User } from "../shared/types";
-import { bumpRev, isMember, loadColumns, requireRole, revFrom, toColumn, toTask, type ColumnRow, type TaskRow } from "./data";
+import { bumpRev, isMember, loadColumns, projectAccess, requireRole, revFrom, toColumn, toTask, type ColumnRow, type TaskRow } from "./data";
 import { inviteEmail, sendEmail } from "./email";
 import { HttpError, dateOrNull, isEmail, newId, normalizeEmail, nowIso, num, oneOf, text } from "./util";
 
@@ -333,5 +334,8 @@ export async function removeMember(env: Env, actor: User, projectId: string, use
     env.DB.prepare("UPDATE tasks SET assignee_id = NULL WHERE project_id = ? AND assignee_id = ?").bind(projectId, userId),
     bumpRev(env, projectId)
   ]);
+  // Close their live connection if they can no longer see the project (company members still can).
+  const access = await projectAccess(env, projectId, userId);
+  if (!access?.role) await disconnectFromProject(env, projectId, userId);
   return { rev: revFrom(res) };
 }

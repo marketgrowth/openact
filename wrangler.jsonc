@@ -32,6 +32,12 @@
     }
   ],
 
+  // Live updates: one Durable Object per project holds its open WebSockets.
+  "durable_objects": {
+    "bindings": [{ "name": "PROJECT_ROOMS", "class_name": "ProjectRoom" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ProjectRoom"] }],
+
   // Search by meaning. Create the index once with: npm run search:setup
   // 768 dimensions, cosine, for @cf/baai/bge-base-en-v1.5.
   "vectorize": [

@@ -9,6 +9,7 @@ import { runModel } from "./agent/model";
 import { isFollowUp, messageToCheck, scopeAction, scopeReply, scopeRule, scopeSummary } from "./agent/scope";
 import { checkScope } from "./agent/scope-run";
 import { hybridSearch } from "./search";
+import { flushProjectChanges } from "./live";
 import { PROMPT_TASK_LIMIT, pickTasksForPrompt } from "./search/rank";
 import { describeCall, executeCall, loadSnapshot, type Snapshot } from "./agent/tools";
 import { HttpError, appUrl, newId, nowIso, readJson, requireUser, todayIso } from "./util";
@@ -119,6 +120,8 @@ aguiRoutes.post("/:id/agent", async (c) => {
     let changed = false;
     const finishChanged = async () => {
       if (!changed) return;
+      // The agent's changes happen after the response started, so tell other open pages now.
+      await flushProjectChanges(env);
       const row = await env.DB.prepare("SELECT rev FROM projects WHERE id = ?").bind(projectId).first<{ rev: number }>();
       await send({ type: EventType.CUSTOM, name: CUSTOM_EVENTS.DATA_CHANGED, value: { rev: row?.rev ?? 0 } });
     };

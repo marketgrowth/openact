@@ -27,7 +27,7 @@ OpenAct is a light project management tool with a Kanban board, a Gantt timeline
 - **AI tools.** Draft tasks from a goal, or write a status summary. All AI requests go through [Cloudflare AI Gateway](https://developers.cloudflare.com/ai-gateway/). Workers AI is the default, so you need no extra API key. Anthropic and OpenAI are optional.
 - **Built on AG-UI.** The agent speaks [AG-UI](https://docs.ag-ui.com). Approvals use AG-UI interrupts, so any AG-UI client can connect.
 - **Themes.** Light, dark, or follow the system setting.
-- **Stays in sync.** Each open page checks for changes every 5 seconds and reloads the project when someone else edits it.
+- **Live updates.** When someone changes a project, every open page updates at once, including changes made by the AI agent. The header shows who else is viewing. Each project has a Durable Object that holds its WebSockets, and idle connections hibernate, so they cost almost nothing. If live updates are not available, pages check for changes every 5 seconds.
 
 ## Screenshots
 
@@ -218,6 +218,7 @@ src/
     tasks.ts           Tasks and file attachments
     ai.ts, plan.ts     AI assist through AI Gateway
     search/            Search by words (D1) and by meaning (Vectorize), and the index outbox
+    live.ts            Live updates: a Durable Object per project with hibernating WebSockets
     agui.ts            AG-UI endpoint for the project assistant
     email.ts           Resend emails
   shared/agui.ts       AG-UI types, shared agent state and frontend tools
@@ -227,7 +228,12 @@ migrations/            D1 schema
 test/                  Unit tests
 ```
 
-Every request that changes a project raises the project's revision number (`rev`). Open pages ask for `rev` every 5 seconds and reload the project when it changes. This keeps the Worker simple and cheap. A Durable Object with WebSockets can replace polling later.
+Every request that changes a project raises the project's revision number (`rev`). After the response, the Worker tells the project's Durable Object (`ProjectRoom` in `src/worker/live.ts`), which sends the new `rev` to every open page over a WebSocket. Pages then reload the project through the normal API, with the normal access checks. WebSocket messages carry only revision numbers and who is viewing, never project data.
+
+- The Worker checks the session, the `Origin` header and the project role before it opens a WebSocket.
+- Rooms use the WebSocket Hibernation API, so idle connections do not add duration charges. Keep-alive pings get an automatic answer that does not wake the room.
+- A person who is removed from a project is disconnected at once.
+- Pages close their socket after a minute in a background tab and reconnect when the tab is visible again. While a socket is down, pages poll `rev` every 5 seconds.
 
 ## AI agent access by role
 
@@ -273,7 +279,6 @@ The check controls focus and cost. It is not a security control. Roles, the AI p
 
 ## Plans for later
 
-- Live updates with Durable Objects and WebSockets
 - Comments on tasks
 - Task dependencies on the timeline
 - Email notices for assignments and due dates

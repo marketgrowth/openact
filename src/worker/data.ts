@@ -1,6 +1,7 @@
 import type { Env } from "./env";
 import type { Attachment, Column, CompanyRole, Priority, Role, Status, Task, Visibility } from "../shared/types";
 import { effectiveProjectRole } from "../shared/access";
+import { markProjectChanged } from "./live";
 import { HttpError, nowIso } from "./util";
 
 const RANK: Record<Role, number> = { viewer: 1, editor: 2, owner: 3 };
@@ -81,6 +82,7 @@ export async function visibleProjectIds(env: Env, companyId: string, userId: str
 
 /** A statement that marks the project as changed. Clients poll `rev` to know when to reload. */
 export function bumpRev(env: Env, projectId: string): D1PreparedStatement {
+  markProjectChanged(projectId);
   return env.DB.prepare("UPDATE projects SET rev = rev + 1, updated_at = ? WHERE id = ? RETURNING rev").bind(nowIso(), projectId);
 }
 

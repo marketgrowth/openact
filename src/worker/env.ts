@@ -15,6 +15,8 @@ export interface Env {
   AI_MODEL?: string;
   /** A small, fast model for the scope check. Empty uses the default for the provider. */
   AI_SCOPE_MODEL?: string;
+  /** One Durable Object per project for live updates over WebSockets. Optional: without it, pages poll. */
+  PROJECT_ROOMS?: DurableObjectNamespace<import("./live").ProjectRoom>;
   /** Vectorize index for search by meaning. Optional: without it, search uses words only. */
   VECTORS?: VectorizeIndex;
   /** Workers AI embedding model. It must give vectors with the index's dimensions (768). */

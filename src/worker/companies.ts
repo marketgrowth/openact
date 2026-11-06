@@ -17,6 +17,7 @@ import { ROLE_CEILING, levelRank, parsePolicy } from "../shared/agent-policy";
 import { emailDomainProblem } from "../shared/access";
 import { companyRole, deletePrefix, requireCompanyRole } from "./data";
 import { companyInviteEmail, sendEmail } from "./email";
+import { disconnectFromProject, markProjectChanged } from "./live";
 import { HttpError, appUrl, isEmail, newId, normalizeEmail, nowIso, oneOf, readJson, requireUser, text } from "./util";
 
 export const companyRoutes = new Hono<AppEnv>();
@@ -297,6 +298,7 @@ companyRoutes.delete("/:id/members/:userId", async (c) => {
 
 export async function removeFromCompany(env: Env, companyId: string, userId: string): Promise<void> {
   const iso = nowIso();
+  const projects = await env.DB.prepare("SELECT id FROM projects WHERE company_id = ?").bind(companyId).all<{ id: string }>();
   await env.DB.batch([
     env.DB.prepare("UPDATE tasks SET assignee_id = NULL WHERE assignee_id = ? AND project_id IN (SELECT id FROM projects WHERE company_id = ?)").bind(userId, companyId),
     env.DB.prepare("DELETE FROM project_members WHERE user_id = ? AND project_id IN (SELECT id FROM projects WHERE company_id = ?)").bind(userId, companyId),
@@ -305,6 +307,8 @@ export async function removeFromCompany(env: Env, companyId: string, userId: str
     env.DB.prepare("DELETE FROM company_members WHERE company_id = ? AND user_id = ?").bind(companyId, userId),
     env.DB.prepare("UPDATE users SET current_company_id = NULL WHERE id = ? AND current_company_id = ?").bind(userId, companyId)
   ]);
+  for (const p of projects.results) markProjectChanged(p.id);
+  await Promise.all(projects.results.map((p) => disconnectFromProject(env, p.id, userId)));
 }
 
 companyRoutes.delete("/:id/invitations/:invId", async (c) => {
