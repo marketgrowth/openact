@@ -12,6 +12,7 @@ Rules for AI coding agents (Claude Code, Cursor, Codex and others) that work in 
 | Unit tests | `npm test` |
 | Build | `npm run build` |
 | Deploy | `npm run deploy` (applies migrations, then deploys) |
+| Docs site | `npm run docs:dev` to preview, `npm run docs:build` to check links |
 | Add an app | `npm run openact -- add github:owner/repo` |
 | Write `.openact/` | `npm run sync` (the other scripts run it) |
 
@@ -19,7 +20,7 @@ Run `npm run typecheck`, `npm test` and `npm run build` before you say a task is
 
 ## Where code goes
 
-OpenAct is a core plus apps. Read `docs/APPS.md` before you add or move code.
+OpenAct is a core plus apps. Read `docs/apps.md` before you add or move code.
 
 - Core server (`@openact/core`): `packages/core/src/server/`. Sign-in, sessions, companies, roles, live rooms, email, the app system (`apps.ts`) and the Worker factory (`worker.ts`). Apps import only from `@openact/core/server` and `@openact/core/shared`.
 - Core types and rules: `packages/core/src/shared/`. People, companies and config.
@@ -41,7 +42,7 @@ The core must never import from an app. If the core needs something from apps, a
 5. **Limit AI data.** Do not send task notes, files or email addresses to an AI provider without a setting that turns it on. Note search (`readNotes` in the AI policy) is that setting for notes: it sends only short, redacted parts of matching notes.
 6. **No new runtime dependencies** without a reason in the pull request.
 7. **Theme tokens only.** No literal colors in components, and no fixed Tailwind palette colors (`bg-red-500`, `text-white`). Use token classes (`bg-muted`, `text-muted-foreground`, `text-priority-high`). Add tokens in `packages/ui/src/theme.css` with both light and dark values.
-8. **Follow AG-UI.** Agent features use the AG-UI events and types in `apps/projects/src/shared/agui.ts`. Read `docs/AGUI.md` first. Frontend tools only change what the person sees. Tools that change data run in the Worker with `requireRole` and `bumpRev`.
+8. **Follow AG-UI.** Agent features use the AG-UI events and types in `apps/projects/src/shared/agui.ts`. Read `docs/reference/ag-ui.md` first. Frontend tools only change what the person sees. Tools that change data run in the Worker with `requireRole` and `bumpRev`.
 9. **The agent never exceeds the person.** Agent tools live in `BACKEND_TOOLS` (`apps/projects/src/shared/agent-policy.ts`) with a level and a risk. Their logic goes in `apps/projects/src/server/services.ts`, shared with the API. Deletes and people changes always need approval. Never add a way for the agent to skip `requireRole`, the AI policy or approvals.
 10. **Keep the topic check a helper.** The scope check in `apps/projects/src/server/agent/scope.ts` controls focus and cost only. Never use it as an access check, and never let a failed check block a request. Log a short topic, never the person's message. With Jev, keep judgments in the questions and the decision in the truth table in `scope-jev.ts`. Never read a failed call as an answer.
 
@@ -54,6 +55,10 @@ The core must never import from an app. If the core needs something from apps, a
 14. **Use shadcn/ui.** Build UI from the components in `packages/ui/src/components` (import `@openact/ui/components/<name>`) and Tailwind classes. Add a component by running `npx shadcn@latest add <name>` in `packages/ui`. Do not add another UI kit, CSS framework or icon set. Use Lucide icons through `Icon` from `@openact/ui`. Keep the dashboard-01 layout: every signed-in page starts with `SiteHeader` and puts its content in `PageBody`.
 
 15. **Apps stay in their lane.** Prefix an app's tables, routes, file keys, room kinds and command ids with its id. An app reads people and companies through the core. It cleans up its data in the `companyMemberRemoved` and `companyDeleting` hooks. It declares its permissions in `defineServerApp({ permissions })` and never hard-codes company roles in a route.
+
+## Docs
+
+The docs site at https://docs.openact.app is built from the Markdown files in `docs/`. The sidebar is in `docs/.vitepress/config.mts`. When you change how something works, change its docs page in the same pull request. `npm run docs:build` fails on a broken link.
 
 ## Writing style for text in the app and docs
 

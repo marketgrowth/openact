@@ -1,0 +1,14 @@
+{
+  // The docs site at https://docs.openact.app. It serves the static files that `npm run docs:build` makes.
+  // Deploy with `npm run docs:deploy`, or let .github/workflows/docs.yml deploy it on each push to main.
+  // The custom domain needs the openact.app zone in the same Cloudflare account.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "openact-docs",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./docs/.vitepress/dist",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  },
+  "routes": [{ "pattern": "docs.openact.app", "custom_domain": true }]
+}

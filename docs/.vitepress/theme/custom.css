@@ -1,0 +1,24 @@
+/* OpenAct brand on the VitePress theme: the app's indigo and the Geist fonts. */
+:root {
+  --vp-c-brand-1: #3347cf;
+  --vp-c-brand-2: #4558d8;
+  --vp-c-brand-3: #3347cf;
+  --vp-c-brand-soft: rgba(51, 71, 207, 0.12);
+  --vp-font-family-base: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --vp-font-family-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(120deg, #3347cf 30%, #7a4fc4);
+}
+
+.dark {
+  --vp-c-brand-1: #8b9bff;
+  --vp-c-brand-2: #a4b0ff;
+  --vp-c-brand-3: #5b6ef0;
+  --vp-c-brand-soft: rgba(139, 155, 255, 0.16);
+  --vp-home-hero-name-background: linear-gradient(120deg, #8b9bff 30%, #b89cf0);
+}
+
+.vp-doc img {
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 10px;
+}

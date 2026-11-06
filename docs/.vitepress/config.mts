@@ -1,0 +1,61 @@
+import { defineConfig } from "vitepress";
+
+/*
+ * The OpenAct docs site, published at https://docs.openact.app.
+ * The pages are the Markdown files in this folder, so they also read well on GitHub.
+ */
+export default defineConfig({
+  title: "OpenAct",
+  description: "Open source project management on Cloudflare, with installable apps.",
+  lang: "en-US",
+  cleanUrls: true,
+  lastUpdated: true,
+  srcExclude: ["README.md"],
+  ignoreDeadLinks: "localhostLinks",
+  sitemap: { hostname: "https://docs.openact.app" },
+  head: [
+    ["link", { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" }],
+    ["link", { rel: "preconnect", href: "https://fonts.googleapis.com" }],
+    ["link", { rel: "preconnect", href: "https://fonts.gstatic.com", crossorigin: "" }],
+    ["link", { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" }],
+    ["meta", { property: "og:site_name", content: "OpenAct docs" }]
+  ],
+  themeConfig: {
+    logo: "/logo.svg",
+    siteTitle: "OpenAct",
+    nav: [
+      { text: "Guide", link: "/getting-started", activeMatch: "^/(getting-started|companies|apps|permissions)" },
+      { text: "Reference", link: "/reference/sdk", activeMatch: "^/reference/" },
+      { text: "Colophon", link: "/colophon" }
+    ],
+    sidebar: [
+      {
+        text: "Guide",
+        items: [
+          { text: "Get started", link: "/getting-started" },
+          { text: "Companies and access", link: "/companies" }
+        ]
+      },
+      {
+        text: "Apps",
+        items: [
+          { text: "Build an app", link: "/apps" },
+          { text: "Permissions", link: "/permissions" }
+        ]
+      },
+      {
+        text: "Reference",
+        items: [
+          { text: "SDK", link: "/reference/sdk" },
+          { text: "AG-UI agent protocol", link: "/reference/ag-ui" }
+        ]
+      },
+      { text: "About", items: [{ text: "Colophon", link: "/colophon" }] }
+    ],
+    socialLinks: [{ icon: "github", link: "https://github.com/marketgrowth/openact" }],
+    editLink: { pattern: "https://github.com/marketgrowth/openact/edit/main/docs/:path", text: "Edit this page on GitHub" },
+    search: { provider: "local" },
+    outline: { level: [2, 3], label: "On this page" },
+    footer: { message: "MIT license. Made by MarketGrowth.", copyright: "Copyright 2026 MarketGrowth" }
+  }
+});

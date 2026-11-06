@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 
 /*
  * Colophon: how OpenAct is made. Public page at /colophon.
- * Keep it in step with docs/COLOPHON.md and package.json.
+ * Keep it in step with docs/colophon.md and package.json.
  */
 
 interface Row {
@@ -83,7 +83,7 @@ const LOG: Array<{ title: string; detail: string; commit?: string }> = [
     detail: "A month calendar with an agenda list on phones. The assistant starts to speak the AG-UI protocol.",
     commit: "dd620a6"
   },
-  { title: "Colophon", detail: "This page, and docs/COLOPHON.md.", commit: "7e91cc8" },
+  { title: "Colophon", detail: "This page, and docs/colophon.md.", commit: "7e91cc8" },
   {
     title: "Agent access and custom columns",
     detail:
@@ -246,6 +246,7 @@ const SECTIONS: Array<{ title: string; intro: string; rows: Row[] }> = [
       { name: "Radix UI", detail: "Accessible parts under the components: dialogs, menus, tooltips, tabs and switches.", href: "https://www.radix-ui.com" },
       { name: "Tailwind CSS 4.3", detail: "Styles, with the theme as CSS variables in packages/ui/src/theme.css.", href: "https://tailwindcss.com" },
       { name: "Vite 8.3", detail: "Builds the web app.", href: "https://vite.dev" },
+      { name: "VitePress 1.6", detail: "Builds the docs site at docs.openact.app from the Markdown files in docs/.", href: "https://vitepress.dev" },
       { name: "Wrangler 4.158", detail: "Local development, migrations and deploys.", href: "https://developers.cloudflare.com/workers/wrangler/" },
       {
         name: "Node test runner",

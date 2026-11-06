@@ -94,7 +94,7 @@ export default defineServerApp({
 
 | Part | What it is for |
 | --- | --- |
-| `permissions` | What people can do in your app, by company role. See [Permissions](#permissions). |
+| `permissions` | What people can do in your app, by company role. See [Permissions](permissions.md). |
 | `routes` | Your API. Use `/api/apps/<id>/...`. The projects app keeps its older paths. |
 | `middleware` | Runs on every API request after the session is read |
 | `scheduled` | Runs on each cron trigger |
@@ -107,32 +107,7 @@ export default defineServerApp({
 
 ### Permissions
 
-You declare what people can do in your app. The core stores each company's choices and checks them. You do not write a settings screen.
-
-1. **Declare.** List each permission in `defineServerApp({ permissions })`. Give it an id that starts with your app id, a label, and the company roles that have it by default.
-2. **Check on the server.** Call `requirePermission(env, companyId, userId, "directory.edit")` in every route that reads or changes company data. It checks four things in order:
-   - The person is in the company. If not, it sends 404.
-   - The app is on in the company. If not, it sends 403 with the code `app_off`.
-   - The person's company role has the permission. If not, it sends 403 with the code `no_permission`.
-   - It returns the person's company role.
-3. **Check in the web app.** `useCan("directory.edit")` from `@openact/ui` is true when the person has the permission. Use it to hide or turn off buttons. The server check is still the real check.
-4. **Owners and admins choose.** Company settings has an **Apps** tab, where they turn apps on or off, and a **Permissions** tab, with a row for each of your permissions and a box for each role.
-
-Some rules never change:
-
-- The company owner always has every permission.
-- Roles in `locked` always have the permission. Use it for roles that manage everything, as the projects app does for "See all company projects".
-- Guests get a permission only when you set `guests: true`. Guests see only what someone shares with them, so use it only for safe actions.
-
-Access to one item, such as one secret project, stays in your app. Combine your item check with the company permission, as `requireRole` in the projects app does with `projects.browse`. `companyAppState(env, companyId)` reads every switch and permission for a company in one query.
-
-| Helper | What it does |
-| --- | --- |
-| `requirePermission(env, companyId, userId, id)` | Throws 404 or 403 when the person cannot do it. Returns their company role. |
-| `hasPermission(env, companyId, userId, id)` | The same check as true or false |
-| `requireAppOn(env, companyId, appId)` | Throws 403 `app_off` when the app is off |
-| `companyAppState(env, companyId)` | `enabled(appId)` and `roles(permissionId)` for one company |
-| `useCan(id)`, `useAppOn(appId)` | The same answers in the web app, for the current company |
+Declare what people can do in your app in `permissions`, and check it with `requirePermission()` in every route. The core stores each company's choices, and Company settings shows them. Read [Permissions](permissions.md) for the full guide.
 
 Live updates: call `registerRoomKind("directory-group", readRevisions)` once, `markChanged("directory-group", id)` when data changes, and `acceptLive()` in a route that checks access first. Pages use `useLive()` from `@openact/ui`.
 

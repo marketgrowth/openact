@@ -15,4 +15,4 @@ npm install
 npm run dev
 ```
 
-To start your own app, copy this folder into its own repository, change the id, and add it with `npm run openact -- add github:owner/repo`. Read [docs/APPS.md](../../docs/APPS.md).
+To start your own app, copy this folder into its own repository, change the id, and add it with `npm run openact -- add github:owner/repo`. Read [docs/apps.md](../../docs/apps.md).

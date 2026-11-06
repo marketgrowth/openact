@@ -7,3 +7,7 @@ dist/
 .DS_Store
 worker-configuration.d.ts
 .openact/
+
+# Docs site build
+docs/.vitepress/dist/
+docs/.vitepress/cache/

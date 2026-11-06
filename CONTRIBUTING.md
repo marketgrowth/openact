@@ -29,7 +29,7 @@ npm run build
 ## Rules
 
 - **Database changes.** Core tables: add a new file in `packages/core/migrations/`. Projects tables: add one in `apps/projects/migrations/`. Other apps: in the app's own `migrations/`. Do not edit a migration that is already released.
-- **Core or app?** Sign-in, people, companies, roles and the shell belong to the core. Features belong to an app. The core never imports from an app. Read [docs/APPS.md](docs/APPS.md).
+- **Core or app?** Sign-in, people, companies, roles and the shell belong to the core. Features belong to an app. The core never imports from an app. Read [docs/apps.md](docs/apps.md).
 - **Access checks.** Every route that reads or changes a project must call `requireRole` with the lowest role that can do the action. It checks the project role, the company role and the project's visibility together.
 - **Sync.** Every change to a project must include `bumpRev` in the same D1 batch, so other open pages reload.
 - **One place for business rules.** Put task, column and member logic in `apps/projects/src/server/services.ts`. API routes and the AI agent both call it, so they share the same checks.

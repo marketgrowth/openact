@@ -73,7 +73,7 @@ AI features are optional helpers. Every request goes through one gateway.
 | [Cloudflare AI Gateway](https://developers.cloudflare.com/ai-gateway/) | Logs, caching, rate limits and spend control for every AI request. |
 | [Workers AI](https://developers.cloudflare.com/workers-ai/) | The default provider. No extra API key. Default model: Llama 3.3 70B Instruct (`@cf/meta/llama-3.3-70b-instruct-fp8-fast`). |
 | Anthropic or OpenAI | Optional providers through AI Gateway, with your own API key. |
-| [AG-UI 1.0](https://docs.ag-ui.com) | The Agent-User Interaction protocol. The agent streams AG-UI events over Server-Sent Events, and approvals use AG-UI interrupts. Types come from `@ag-ui/core` 1.0.4. See [AGUI.md](AGUI.md). |
+| [AG-UI 1.0](https://docs.ag-ui.com) | The Agent-User Interaction protocol. The agent streams AG-UI events over Server-Sent Events, and approvals use AG-UI interrupts. Types come from `@ag-ui/core` 1.0.4. See [AG-UI](reference/ag-ui.md). |
 | Role-based agent access | The agent acts for the person and never exceeds their role. Owners set a per-role AI policy. Risky changes wait for approval, and every action is logged. |
 | [Jev](https://typesafe.ai/) by TypeSafe | Optional decision model for the topic check. It answers typed yes-or-no and choice questions about each request, and a truth table in code decides the route. Pinned to `jev-1.14.0`. |
 | Topic scope | A small, fast model checks each new request. It sends requests for other projects or new work to the right place and declines anything else. Default model: Llama 3.1 8B Instruct (`@cf/meta/llama-3.1-8b-instruct-fast`). |
@@ -101,6 +101,7 @@ A small set of dependencies. The Worker has one runtime dependency, Hono.
 | [Radix UI](https://www.radix-ui.com) | 1.8.1 | Accessible parts under the components: dialogs, menus, tooltips, tabs and switches |
 | [Tailwind CSS](https://tailwindcss.com) | 4.3.4 | Styles, with the theme as CSS variables in `packages/ui/src/theme.css` |
 | [Vite](https://vite.dev) | 8.3.6 | Builds the web app |
+| [VitePress](https://vitepress.dev) | 1.6.4 | Builds the docs site at [docs.openact.app](https://docs.openact.app) from the Markdown files in `docs/` |
 | [Wrangler](https://developers.cloudflare.com/workers/wrangler/) | 4.158.0 | Local development, migrations and deploys |
 | [@ag-ui/core](https://www.npmjs.com/package/@ag-ui/core) | 1.0.4 | AG-UI types, imported as types only |
 | Node test runner | Built in | 74 unit tests for app paths, permissions, dates, the AI planner, the AG-UI client, agent access, company access, links, search ranking and the topic check |

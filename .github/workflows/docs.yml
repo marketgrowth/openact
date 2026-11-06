@@ -1,0 +1,32 @@
+name: Docs
+
+# Builds the docs site on every push and pull request.
+# Deploys it to https://docs.openact.app on pushes to main, when the repository has the Cloudflare secrets.
+on:
+  push:
+    branches: [main]
+    paths: ["docs/**", "wrangler.docs.jsonc", ".github/workflows/docs.yml", "package.json"]
+  pull_request:
+    paths: ["docs/**", "wrangler.docs.jsonc"]
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    env:
+      HAS_CLOUDFLARE: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # "Last updated" dates come from git history.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run docs:build
+      - name: Deploy to docs.openact.app
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && env.HAS_CLOUDFLARE == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler deploy --config wrangler.docs.jsonc

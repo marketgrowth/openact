@@ -2,6 +2,8 @@
 
 OpenAct is a light project management tool with a Kanban board, a Gantt timeline and a calendar. It runs on Cloudflare Workers, D1 and R2. MarketGrowth makes it and shares it as open source under the MIT license.
 
+Read the documentation at [docs.openact.app](https://docs.openact.app).
+
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/marketgrowth/openact)
 
 ![The OpenAct board with the company side panel](docs/images/board.png)
@@ -20,7 +22,7 @@ OpenAct is a light project management tool with a Kanban board, a Gantt timeline
 - **Roles.** In a project, owners manage people and settings, editors change tasks, and viewers only look. In a company, owners and admins manage the company, members see company projects, and guests see only the projects they are invited to.
 - **Sign-in without passwords.** People type their email and get a 6-digit code. [Resend](https://resend.com) sends the email.
 - **File attachments.** Attach files up to 25 MB to a task. Files go to R2.
-- **AI agent with role-based access.** Tell the agent what to do in plain words: "Move the late tasks to next week" or "Rename Review to QA". The agent acts for you and never has more power than your role. Owners choose how much each role may hand to the agent. Deletes, people changes and large batches wait for your approval, and every agent action is logged. Read [docs/AGUI.md](docs/AGUI.md).
+- **AI agent with role-based access.** Tell the agent what to do in plain words: "Move the late tasks to next week" or "Rename Review to QA". The agent acts for you and never has more power than your role. Owners choose how much each role may hand to the agent. Deletes, people changes and large batches wait for your approval, and every agent action is logged. Read [docs/reference/ag-ui.md](docs/reference/ag-ui.md).
 - **Search by words and by meaning.** Press Ctrl+K or Cmd+K to search every project you can see in the company. Search finds "Book the gala hall" when you type "venue". It uses [Vectorize](https://developers.cloudflare.com/vectorize/) and Workers AI embeddings, and falls back to words only when Vectorize is not set up. The task panel shows related tasks, and the agent can search big projects.
 - **Clickable links.** Web addresses in a project description or in task notes show as links that open in a new tab. OpenAct never fetches them. Only `http` and `https` links work.
 - **Note search, when owners allow it.** Owners can let the agent search task notes, for example for a contact or a location. The agent gets only a short part of each matching note, with email addresses and phone numbers hidden. The filter box on the board also searches notes.
@@ -28,7 +30,7 @@ OpenAct is a light project management tool with a Kanban board, a Gantt timeline
 - **AI tools.** Draft tasks from a goal, or write a status summary. All AI requests go through [Cloudflare AI Gateway](https://developers.cloudflare.com/ai-gateway/). Workers AI is the default, so you need no extra API key. Anthropic and OpenAI are optional.
 - **Built on AG-UI.** The agent speaks [AG-UI](https://docs.ag-ui.com). Approvals use AG-UI interrupts, so any AG-UI client can connect.
 - **Themes.** Light, dark, or follow the system setting.
-- **Apps.** OpenAct is a core plus apps. The core gives every app sign-in, people, companies, roles, live updates and the web shell. Project management is the first app. Add more from GitHub with one command: `npm run openact -- add github:owner/repo`. See [docs/APPS.md](docs/APPS.md).
+- **Apps.** OpenAct is a core plus apps. The core gives every app sign-in, people, companies, roles, live updates and the web shell. Project management is the first app. Add more from GitHub with one command: `npm run openact -- add github:owner/repo`. See [docs/apps.md](docs/apps.md).
 - **Built with shadcn/ui.** The web app uses [shadcn/ui](https://ui.shadcn.com) components, [Tailwind CSS](https://tailwindcss.com) and [Lucide](https://lucide.dev) icons, with the layout of shadcn's dashboard-01 block. Most React developers and coding agents already know these parts.
 - **Live updates.** When someone changes a project, every open page updates at once, including changes made by the AI agent. The header shows who else is viewing. Each project has a Durable Object that holds its WebSockets, and idle connections hibernate, so they cost almost nothing. If live updates are not available, pages check for changes every 5 seconds.
 
@@ -56,13 +58,13 @@ The screenshots use example data: a sample team and projects.
 
 ## Companies and access
 
-Every project belongs to one company. A person can be in many companies and switch between them at the top of the side panel.
+Every project belongs to one company. A person can be in many companies and switch between them with the company mark at the top of the app rail.
 
 | Company role | What they can do |
 | --- | --- |
 | Owner | Manage the company, its people, its owners and every company project. Delete the company. |
 | Admin | Manage the company, its people and every company project. |
-| Member | See every company project as a viewer. Create projects. |
+| Member | See every company project as a viewer. Create projects. A company can change both in **Company settings > Permissions**. |
 | Guest | See only the projects they are invited to. |
 
 | Project visibility | Who can see it |
@@ -197,7 +199,7 @@ OpenAct stores only SHA-256 hashes of codes and session tokens. It limits code r
 
 ## How it is built
 
-For the full list of tools, services, fonts and versions, read the [Colophon](docs/COLOPHON.md). The app shows it at `/colophon`.
+For the full list of tools, services, fonts and versions, read the [Colophon](docs/colophon.md). The app shows it at `/colophon`.
 
 | Part | Choice |
 | --- | --- |
@@ -209,7 +211,7 @@ For the full list of tools, services, fonts and versions, read the [Colophon](do
 | Email | Resend REST API |
 | AI | Workers AI, Anthropic or OpenAI, through Cloudflare AI Gateway |
 
-OpenAct is a core plus apps. Project management is the first app, and it is installed by default. To add another app, run `npm run openact -- add github:owner/repo`. Read [docs/APPS.md](docs/APPS.md) to build one.
+OpenAct is a core plus apps. Project management is the first app, and it is installed by default. To add another app, run `npm run openact -- add github:owner/repo`. Read [docs/apps.md](docs/apps.md) to build one.
 
 ```
 packages/core/         @openact/core: the core
@@ -246,7 +248,7 @@ Every request that changes a project raises the project's revision number (`rev`
 | Editor | Ask and edit | Also add and change tasks and columns |
 | Owner | Full | Also delete tasks and columns, and invite, remove and change people. Each needs approval. |
 
-Owners can lower any role, down to Off, in **Project settings > AI agent access**. Read [docs/AGUI.md](docs/AGUI.md) for the full design.
+Owners can lower any role, down to Off, in **Project settings > AI agent access**. Read [docs/reference/ag-ui.md](docs/reference/ag-ui.md) for the full design.
 
 ## Topic scope
 
