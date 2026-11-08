@@ -329,10 +329,13 @@ function PeopleTab({ detail, me, onChanged }: { detail: CompanyDetail; me: User;
             onChange={(e) => setEmail(e.target.value)}
             className="sm:flex-1"
           />
-          <NativeSelect aria-label="Company role" value={role} onChange={(e) => setRole(e.target.value as "member" | "admin")}>
-            <NativeSelectOption value="member">Member</NativeSelectOption>
-            <NativeSelectOption value="admin">Admin</NativeSelectOption>
-          </NativeSelect>
+          {/* Every native select fills its parent (see theme.css), so this div sets the role width. */}
+          <div className="sm:w-36 sm:shrink-0">
+            <NativeSelect aria-label="Company role" value={role} onChange={(e) => setRole(e.target.value as "member" | "admin")}>
+              <NativeSelectOption value="member">Member</NativeSelectOption>
+              <NativeSelectOption value="admin">Admin</NativeSelectOption>
+            </NativeSelect>
+          </div>
           <Button type="submit" disabled={busy}>
             Invite
           </Button>

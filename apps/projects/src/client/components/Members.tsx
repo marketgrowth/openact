@@ -98,9 +98,12 @@ export function Members({ data, me, isOwner, onChanged }: { data: ProjectDetail;
                   onChange={(e) => setEmail(e.target.value)}
                   className="sm:flex-1"
                 />
-                <NativeSelect aria-label="Role" value={role} onChange={(e) => setRole(e.target.value as Role)}>
-                  {roleOptions}
-                </NativeSelect>
+                {/* Every native select fills its parent (see theme.css), so this div sets the role width. */}
+                <div className="sm:w-36 sm:shrink-0">
+                  <NativeSelect aria-label="Role" value={role} onChange={(e) => setRole(e.target.value as Role)}>
+                    {roleOptions}
+                  </NativeSelect>
+                </div>
                 <Button type="submit" disabled={busy || !email.trim()}>
                   Send invitation
                 </Button>

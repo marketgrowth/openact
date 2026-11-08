@@ -229,8 +229,10 @@
   }
 }
 
-/* A native select with w-full fills its row. The shadcn wrapper is w-fit, so this rule sits outside
-   the layers to win over that utility. */
+/* Every native select fills its parent. The select always has w-full, so this rule matches every
+   wrapper. The shadcn wrapper is w-fit, so this rule sits outside the layers to win over that utility.
+   In a flex row, put the select in a div with a width, such as sm:w-36 sm:shrink-0. Without one, the
+   select takes the whole row. */
 [data-slot="native-select-wrapper"]:has(> select.w-full) {
   width: 100%;
 }
