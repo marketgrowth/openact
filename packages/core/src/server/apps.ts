@@ -38,6 +38,8 @@ export interface AppHooks {
   signedIn?: (env: Env, user: User) => Promise<void>;
   /** Runs when a person leaves or is removed from a company. Remove their access to the app's data in it. */
   companyMemberRemoved?: (env: Env, companyId: string, userId: string) => Promise<void>;
+  /** Runs when a person deletes their account, after they leave each company. Delete the app's personal data for them, such as settings or a profile. */
+  userDeleting?: (env: Env, userId: string) => Promise<void>;
   /** Runs before a company is deleted. Delete the app's data and files for it. */
   companyDeleting?: (env: Env, companyId: string) => Promise<void>;
   /** Extra fields for GET /api/companies/:id, such as the app's company settings. */

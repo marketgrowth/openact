@@ -10,12 +10,14 @@ import { setApps, type ServerApp } from "./apps";
 import { companyAppRoutes } from "./company-apps";
 import { getCatalog, setCatalog, type AppInfo } from "./permissions";
 import { loadSite, siteLogo, siteMiddleware, siteRoutes } from "./site";
+import { accountRoutes } from "./account";
 
 const securityHeaders: MiddlewareHandler<AppEnv> = async (c, next) => {
   await next();
   if (c.res.status === 101) return; // A WebSocket upgrade. Its headers cannot change.
   c.header("X-Content-Type-Options", "nosniff");
   c.header("Referrer-Policy", "same-origin");
+  c.header("X-Frame-Options", "DENY");
   if (!c.res.headers.has("Cache-Control")) c.header("Cache-Control", "no-store");
 };
 
@@ -70,6 +72,7 @@ export function createWorker({ apps, catalog }: { apps: ServerApp[]; catalog?: A
 
   app.route("/api/auth", authRoutes);
   app.route("/api/me", meRoutes);
+  app.route("/api/me", accountRoutes);
   app.route("/api/site", siteRoutes);
   app.route("/api/companies", companyRoutes);
   app.route("/api/companies", companyAppRoutes);

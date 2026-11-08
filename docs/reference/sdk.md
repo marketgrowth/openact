@@ -48,6 +48,7 @@ Every app has a `package.json` with an `openact` field. The `openact` script rea
 | `companyUpdate(env, companyId, body)` | `PATCH /api/companies/:id` | Save your fields. Return `true` when you changed something. |
 | `companyMemberRemoved(env, companyId, userId)` | A person leaves or is removed | Remove their access to your data in that company |
 | `companyDeleting(env, companyId)` | Before a company is deleted | Delete your data and files for that company |
+| `userDeleting(env, userId)` | A person deletes their account, after they leave each company | Delete personal data that is not in a company, such as a profile or settings |
 
 ### Access
 

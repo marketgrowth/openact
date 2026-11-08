@@ -127,6 +127,24 @@ A super admin is not a company role. Super admins change only the site settings.
 
 Each Worker keeps the settings for up to 30 seconds. After a change, other open pages show it when they load again.
 
+## Security headers
+
+The file `public/_headers` sets the security headers for the web app. Cloudflare sends them with `index.html` and every static file.
+
+- `Content-Security-Policy` lets the page load scripts, styles, images and data only from your own site. Fonts can also come from Google Fonts. Other sites cannot show the app in a frame.
+- `Strict-Transport-Security` tells browsers to use only HTTPS for one year.
+- The public build has no source maps. The Worker's source maps go only to Cloudflare, for error stack traces.
+
+If an app loads files from another site, add that site to the matching directive in `public/_headers`. For example, add `https://images.example.com` to `img-src`.
+
+## Delete an account
+
+A person can delete their own account. They open **Account** from their menu, choose **Delete account**, then type their email to confirm.
+
+- They leave every company, and their sessions end.
+- Projects, tasks and files that they made stay with the company. Their name leaves them: assignments and "created by" fields become empty.
+- The only owner of a company cannot delete their account. They must make another person an owner, or delete the company, first.
+
 ## How sign-in works
 
 1. A person types their email. OpenAct makes a random 6-digit code and sends it with Resend.
