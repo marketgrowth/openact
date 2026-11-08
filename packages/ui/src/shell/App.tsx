@@ -291,6 +291,66 @@ function NotFound() {
   );
 }
 
+/** Deletes the person's own account. They type their email to confirm. */
+function DeleteAccount({ me, onDeleted }: { me: User; onDeleted: () => void }) {
+  const toast = useToast();
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+  const matches = email.trim().toLowerCase() === me.email.toLowerCase();
+
+  const remove = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!matches) return;
+    setBusy(true);
+    setProblem(null);
+    try {
+      await api("/api/me", { method: "DELETE", body: { email } });
+      toast("Your account is deleted.");
+      onDeleted();
+      navigate("/", true);
+    } catch (err) {
+      setProblem(errorText(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!open)
+    return (
+      <div className="flex justify-start">
+        <Button type="button" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => setOpen(true)} data-delete-account="">
+          Delete account
+        </Button>
+      </div>
+    );
+  return (
+    <form className="grid gap-3 rounded-lg border border-destructive/40 p-4" onSubmit={remove} data-delete-account-form="">
+      <p className="text-sm font-medium">Delete your account</p>
+      <p className="text-sm text-muted-foreground">
+        You leave every company, and you are signed out on all devices. Projects, tasks and files that you made stay with their company. You cannot undo this.
+      </p>
+      <Field label="Type your email to confirm" htmlFor="acc-delete-email">
+        <Input id="acc-delete-email" type="email" autoComplete="off" value={email} placeholder={me.email} onChange={(e) => setEmail(e.target.value)} />
+      </Field>
+      {problem && (
+        <p className="text-sm text-destructive" role="alert">
+          {problem}
+        </p>
+      )}
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+          Cancel
+        </Button>
+        <Button type="submit" variant="destructive" disabled={!matches || busy}>
+          Delete my account
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 function AccountDialog({
   me,
   onChange,
@@ -344,6 +404,8 @@ function AccountDialog({
           Sign out on all devices
         </Button>
       </div>
+      <Separator />
+      <DeleteAccount me={me} onDeleted={() => onChange(null)} />
       <p className="text-xs text-muted-foreground">
         <Link to="/colophon" onClick={onClose} className="underline underline-offset-4 hover:text-foreground">
           How OpenAct is made

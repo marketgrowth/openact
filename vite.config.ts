@@ -9,7 +9,8 @@ export default defineConfig({
   build: {
     outDir: "dist/client",
     emptyOutDir: true,
-    sourcemap: true
+    // No source maps in the public build. The Worker's source maps go to Cloudflare only (upload_source_maps).
+    sourcemap: false
   },
   server: {
     port: 5173,
