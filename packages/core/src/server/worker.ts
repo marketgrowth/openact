@@ -9,6 +9,7 @@ import { HttpError, appName } from "./util";
 import { setApps, type ServerApp } from "./apps";
 import { companyAppRoutes } from "./company-apps";
 import { getCatalog, setCatalog, type AppInfo } from "./permissions";
+import { loadSite, siteLogo, siteMiddleware, siteRoutes } from "./site";
 
 const securityHeaders: MiddlewareHandler<AppEnv> = async (c, next) => {
   await next();
@@ -52,12 +53,13 @@ export function createWorker({ apps, catalog }: { apps: ServerApp[]; catalog?: A
   setCatalog(catalog ?? apps.map((a) => ({ id: a.id, name: a.name, enabledByDefault: true })));
   const app = new Hono<AppEnv>();
 
-  app.use("/api/*", securityHeaders, sameOrigin, sessionMiddleware, liveChanges);
+  app.use("/api/*", securityHeaders, sameOrigin, sessionMiddleware, siteMiddleware, liveChanges);
   for (const a of apps) for (const m of a.middleware ?? []) app.use("/api/*", m);
 
   app.get("/api/config", (c) => {
     const config: AppConfig = {
       appName: appName(c.env),
+      logoUrl: siteLogo(),
       emailEnabled: !!c.env.RESEND_API_KEY,
       signupMode: (c.env.SIGNUP_MODE || "open").trim() === "invite" ? "invite" : "open",
       aiProvider: (c.env.AI_PROVIDER || "workers-ai").trim(),
@@ -68,6 +70,7 @@ export function createWorker({ apps, catalog }: { apps: ServerApp[]; catalog?: A
 
   app.route("/api/auth", authRoutes);
   app.route("/api/me", meRoutes);
+  app.route("/api/site", siteRoutes);
   app.route("/api/companies", companyRoutes);
   app.route("/api/companies", companyAppRoutes);
   for (const a of apps) a.routes?.(app);
@@ -88,6 +91,8 @@ export function createWorker({ apps, catalog }: { apps: ServerApp[]; catalog?: A
   return {
     fetch: app.fetch,
     scheduled: async (event, env, ctx) => {
+      // Scheduled jobs can send email, so they need the current app name.
+      await loadSite(env);
       if (event.cron === DAILY_CRON) ctx.waitUntil(cleanup(env));
       for (const a of apps) {
         if (a.scheduled) ctx.waitUntil(a.scheduled(env, event.cron).catch((e) => console.warn(`[openact] ${a.id} scheduled job failed`, e)));

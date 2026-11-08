@@ -7,6 +7,8 @@ export interface Env {
   ASSETS: Fetcher;
 
   APP_NAME: string;
+  /** Emails of the super admins, separated by commas. They set the app name and logo for this deploy. */
+  SUPER_ADMIN_EMAILS?: string;
   APP_URL?: string;
   EMAIL_FROM: string;
   SIGNUP_MODE?: string;

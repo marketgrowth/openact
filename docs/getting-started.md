@@ -84,7 +84,8 @@ Set these under `vars` in `wrangler.jsonc`, or in the Cloudflare dashboard.
 
 | Name | Default | What it does |
 | --- | --- | --- |
-| `APP_NAME` | `OpenAct` | The name in the app and in emails |
+| `APP_NAME` | `OpenAct` | The default name in the app and in emails. A super admin can change it in Site settings. |
+| `SUPER_ADMIN_EMAILS` | empty | A comma-separated list of the emails that can change the app name and logo. Empty means nobody can. |
 | `APP_URL` | empty | The public URL used in email links. Empty means the URL of the request. |
 | `EMAIL_FROM` | `OpenAct <no-reply@example.com>` | The sender address. The domain must be verified in Resend. |
 | `SIGNUP_MODE` | `open` | `open`: anyone can sign up. `invite`: only invited people can sign up. |
@@ -110,6 +111,21 @@ Set these secrets with `npx wrangler secret put NAME`:
 | `TYPESAFE_API_KEY` | No | Turns on Jev for the topic check. Get a key from TypeSafe. |
 
 The first person to sign in can always make an account, even in `invite` mode. An invitation always lets that email sign up, even when `ALLOWED_EMAIL_DOMAINS` does not include its domain.
+
+## Site name and logo
+
+A super admin sets the name and logo that everyone on the site sees.
+
+1. Add your email to `SUPER_ADMIN_EMAILS` in `wrangler.jsonc`, then deploy.
+2. Sign in. Open your menu at the bottom of the app rail, then choose **Site settings**.
+3. Type the app name, then choose **Save name**. Leave it empty to use `APP_NAME` again.
+4. Choose **Upload logo**. Use a PNG, JPEG or WebP image, up to 1 MB. A square image looks best.
+
+The name shows on the sign-in page, in the browser tab, in the company menu and in emails. The logo shows on the sign-in page and as the browser tab icon. Without a logo, the OpenAct mark shows.
+
+A super admin is not a company role. Super admins change only the site settings. They get no access to company data.
+
+Each Worker keeps the settings for up to 30 seconds. After a change, other open pages show it when they load again.
 
 ## How sign-in works
 

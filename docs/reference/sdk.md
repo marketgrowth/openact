@@ -64,6 +64,8 @@ Every app has a `package.json` with an `openact` field. The `openact` script rea
 | `currentCompanyId(env, userId)` | The company the person works in now |
 | `listCompanies(env, userId)` | The companies the person is in |
 | `getCatalog()` | Every installed app, with `id`, `name` and `enabledByDefault` |
+| `isSuperAdmin(env, user)` | `true` when the person's email is in `SUPER_ADMIN_EMAILS` |
+| `requireSuperAdmin(c)` | The signed-in super admin. Throws 403 `not_super_admin` for anyone else. |
 
 ### Input and errors
 

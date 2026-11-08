@@ -1,6 +1,7 @@
 import type { Context } from "hono";
 import type { AppEnv, Env } from "./env";
 import type { User } from "../shared/types";
+import { siteState } from "./site-state";
 
 export class HttpError extends Error {
   /** code: a stable name the web app can act on, such as "no_access". */
@@ -45,8 +46,9 @@ export function appUrl(c: Context<AppEnv>): string {
   return configured || new URL(c.req.url).origin;
 }
 
+/** The app name: the one a super admin set, or APP_NAME. */
 export function appName(env: Env): string {
-  return (env.APP_NAME || "OpenAct").trim();
+  return (siteState()?.name || env.APP_NAME || "OpenAct").trim();
 }
 
 /* Input checks. Each one throws a 400 with a plain message the web app can show. */

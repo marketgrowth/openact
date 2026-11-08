@@ -43,7 +43,6 @@ export function emailLayout(env: Env, heading: string, bodyHtml: string): string
 <tr><td style="padding:0 28px 8px;font-size:22px;font-weight:700;line-height:1.3">${escapeHtml(heading)}</td></tr>
 <tr><td style="padding:8px 28px 28px;font-size:15px;line-height:1.55">${bodyHtml}</td></tr>
 </table>
-<p style="font-size:12px;color:#5a6577;margin:16px 0 0">${name} is open source software by MarketGrowth.</p>
 </td></tr></table></body></html>`;
 }
 

@@ -105,7 +105,9 @@ export function Icon({ name, size = 16, className }: { name: keyof typeof ICONS 
   return <C size={size} className={className} aria-hidden="true" />;
 }
 
-export function Logo({ size = 24 }: { size?: number }) {
+/** The site logo. Without `src`, it draws the OpenAct mark. */
+export function Logo({ size = 24, src }: { size?: number; src?: string | null }) {
+  if (src) return <img src={src} width={size} height={size} alt="" className="shrink-0 rounded-[22%] object-contain" data-site-logo="" />;
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true" className="shrink-0">
       <rect width="32" height="32" rx="7" fill="var(--brand)" />

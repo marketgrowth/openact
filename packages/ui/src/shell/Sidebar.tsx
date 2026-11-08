@@ -75,6 +75,8 @@ export interface AppSidebarProps {
   onNewCompany: () => void;
   onCompanySettings: () => void;
   onAccount: () => void;
+  /** Only for super admins. Opens the site settings. */
+  onSiteSettings?: () => void;
   onSignOut: (everywhere: boolean) => void;
 }
 
@@ -170,7 +172,7 @@ export function AppSidebar(p: AppSidebarProps) {
                 </SidebarMenuItem>
               )}
             </SidebarMenu>
-            <NavUser me={p.me} onAccount={p.onAccount} onSignOut={p.onSignOut} />
+            <NavUser me={p.me} onAccount={p.onAccount} onSiteSettings={p.onSiteSettings} onSignOut={p.onSignOut} />
           </SidebarFooter>
         </Sidebar>
 
@@ -367,7 +369,17 @@ function PanelSwitcher({ title, ...p }: SwitcherProps & { title: string }) {
   );
 }
 
-function NavUser({ me, onAccount, onSignOut }: { me: User; onAccount: () => void; onSignOut: (everywhere: boolean) => void }) {
+function NavUser({
+  me,
+  onAccount,
+  onSiteSettings,
+  onSignOut
+}: {
+  me: User;
+  onAccount: () => void;
+  onSiteSettings?: () => void;
+  onSignOut: (everywhere: boolean) => void;
+}) {
   const { isMobile } = useSidebar();
   const [theme, setPref] = useState<ThemePref>(getTheme);
   const name = me.name || me.email;
@@ -398,6 +410,11 @@ function NavUser({ me, onAccount, onSignOut }: { me: User; onAccount: () => void
             <DropdownMenuItem onSelect={onAccount}>
               <Icon name="users" /> Account
             </DropdownMenuItem>
+            {onSiteSettings && (
+              <DropdownMenuItem onSelect={onSiteSettings} data-site-settings="">
+                <Icon name="gear" /> Site settings
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuLabel className="text-xs text-muted-foreground">Theme</DropdownMenuLabel>
             <DropdownMenuRadioGroup
