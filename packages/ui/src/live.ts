@@ -7,8 +7,8 @@ export interface Viewer {
 
 type LiveMessage = { type: "rev"; rev: number } | { type: "presence"; viewers: Viewer[] };
 
-const PING_MS = 45_000;
-const MAX_BACKOFF_MS = 30_000;
+const PING_MS = 55_000;
+const MAX_BACKOFF_MS = 20_000;
 
 /**
  * Live updates for one room over a WebSocket. `path` is the app's live route, such as /api/projects/ID/live.
@@ -83,7 +83,7 @@ export function useLive(path: string, enabled: boolean, onRev: (rev: number) => 
         }
       } else {
         // A tab in the background does not need live updates. Close after a minute to save connections.
-        hiddenTimer = window.setTimeout(() => ws?.close(1000, "Hidden"), 60_000);
+        hiddenTimer = window.setTimeout(() => ws?.close(1000, "Hidden"), 120_000);
       }
     };
 

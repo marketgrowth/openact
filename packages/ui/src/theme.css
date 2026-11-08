@@ -42,40 +42,40 @@
   --brand-gold: #8a6420;
 
   /* Status of a task or a column */
-  --s-backlog: #8d97a9;
-  --s-todo: #4a78c8;
-  --s-doing: #d4861a;
-  --s-review: #8758c4;
-  --s-done: #2c9661;
+  --s-backlog: #8d99a9;
+  --s-todo: #4a78c7;
+  --s-doing: #d48618;
+  --s-review: #8658c4;
+  --s-done: #2c9662;
   /* Priority */
-  --p-high: #c0402c;
-  --p-med: #a8701a;
+  --p-high: #c0402b;
+  --p-med: #a8711a;
   --p-low: #737373;
   /* Timeline */
   --bar-ink: #ffffff;
-  --today: #d53f2a;
+  --today: #d53f2c;
   --weekend: oklch(0.145 0 0 / 4%);
   /* Notices */
   --warn: oklch(0.97 0.04 85);
   --warn-foreground: oklch(0.42 0.09 70);
   --warn-border: oklch(0.86 0.09 85);
-  --live: #2c9661;
+  --live: #2c9662;
   /* Project colors */
-  --pc-indigo: #3347cf;
-  --pc-teal: #11847a;
-  --pc-amber: #c27a0e;
-  --pc-rose: #c23a5f;
-  --pc-violet: #7a4fc4;
-  --pc-slate: #4f5d75;
+  --pc-indigo: #3247cf;
+  --pc-teal: #12847a;
+  --pc-amber: #c27a0d;
+  --pc-rose: #c2385f;
+  --pc-violet: #7a4dc4;
+  --pc-slate: #515d75;
   /* Avatar colors */
-  --av-0: #3347cf;
-  --av-1: #11847a;
-  --av-2: #c27a0e;
-  --av-3: #c23a5f;
-  --av-4: #7a4fc4;
-  --av-5: #2c7fb8;
-  --av-6: #5f7a1f;
-  --av-7: #a3478c;
+  --av-0: #3247cf;
+  --av-1: #12847a;
+  --av-2: #c27a0d;
+  --av-3: #c2385f;
+  --av-4: #7a4dc4;
+  --av-5: #2c7fb6;
+  --av-6: #5f7a1e;
+  --av-7: #a4478c;
   --av-ink: #ffffff;
 }
 
@@ -110,35 +110,35 @@
   --brand: #ece7f2;
   --brand-foreground: #1c1824;
   --brand-gold: #e3b85c;
-  --s-backlog: #7e899d;
-  --s-todo: #6c9ae8;
-  --s-doing: #e8a13a;
-  --s-review: #a884e6;
-  --s-done: #4abd82;
-  --p-high: #f27b63;
-  --p-med: #e2aa4c;
+  --s-backlog: #7c899d;
+  --s-todo: #6c9ae9;
+  --s-doing: #e8a138;
+  --s-review: #a886e6;
+  --s-done: #4abc82;
+  --p-high: #f37b63;
+  --p-med: #e1aa4c;
   --p-low: #a3a3a3;
-  --bar-ink: #0d1120;
-  --today: #ff6a54;
+  --bar-ink: #0d111e;
+  --today: #fe6a54;
   --weekend: oklch(1 0 0 / 3%);
   --warn: oklch(0.27 0.04 75);
   --warn-foreground: oklch(0.86 0.1 85);
   --warn-border: oklch(0.42 0.07 75);
-  --live: #4abd82;
-  --pc-indigo: #8090ff;
-  --pc-teal: #3cc2b3;
-  --pc-amber: #e8a13a;
-  --pc-rose: #f07a9a;
-  --pc-violet: #a884e6;
-  --pc-slate: #9aa7bd;
-  --av-0: #5a6ee6;
-  --av-1: #1f9a8e;
-  --av-2: #b9770f;
-  --av-3: #c94d70;
-  --av-4: #8a62d1;
-  --av-5: #3a8ccc;
-  --av-6: #6f8c27;
-  --av-7: #b3579c;
+  --live: #4abc82;
+  --pc-indigo: #7e90ff;
+  --pc-teal: #3cc0b3;
+  --pc-amber: #e8a138;
+  --pc-rose: #f0799a;
+  --pc-violet: #a886e6;
+  --pc-slate: #98a7bd;
+  --av-0: #5a6ee5;
+  --av-1: #1f9b8e;
+  --av-2: #b9770d;
+  --av-3: #c84d70;
+  --av-4: #8a60d1;
+  --av-5: #3a8ccd;
+  --av-6: #6d8c27;
+  --av-7: #b3579e;
 }
 
 @theme inline {

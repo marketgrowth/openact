@@ -18,8 +18,8 @@ export function inviteEmail(
       env,
       `Join ${opts.projectName}`,
       `<p style="margin:0 0 20px">${escapeHtml(lead)}</p>
-<p style="margin:0 0 20px"><a href="${escapeHtml(opts.url)}" style="display:inline-block;background:#3347cf;color:#ffffff;text-decoration:none;font-weight:600;padding:11px 18px;border-radius:8px">${escapeHtml(action)}</a></p>
-<p style="margin:0;color:#5a6579">Sign in with this email address. You get a one-time code. You do not need a password. ${escapeHtml(name)} does not use passwords.</p>`
+<p style="margin:0 0 20px"><a href="${escapeHtml(opts.url)}" style="display:inline-block;background:#3247cf;color:#ffffff;text-decoration:none;font-weight:600;padding:11px 18px;border-radius:8px">${escapeHtml(action)}</a></p>
+<p style="margin:0;color:#5a6577">Sign in with this email address. You get a one-time code. You do not need a password. ${escapeHtml(name)} does not use passwords.</p>`
     )
   };
 }
@@ -36,7 +36,7 @@ export function accessRequestEmail(
     html: emailLayout(
       env,
       "Access request",
-      `<p style="margin:0 0 16px">${escapeHtml(lead)}</p>${opts.note ? `<p style="margin:0 0 20px;padding:10px 12px;background:#f2f4f8;border-radius:8px">${escapeHtml(opts.note)}</p>` : ""}${emailButton(opts.url, "Review the request")}`
+      `<p style="margin:0 0 16px">${escapeHtml(lead)}</p>${opts.note ? `<p style="margin:0 0 20px;padding:10px 12px;background:#f2f5f8;border-radius:8px">${escapeHtml(opts.note)}</p>` : ""}${emailButton(opts.url, "Review the request")}`
     )
   };
 }
