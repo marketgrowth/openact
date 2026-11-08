@@ -161,6 +161,8 @@ export interface ProjectDetail {
   aiPolicy: AiPolicy;
   /** What the AI agent may do for the person viewing, after their role and the policy. */
   agentLevel: AgentLevel;
+  /** The AI that runs for this project's company, as a label, such as "Claude Sonnet 5.5 (company key)". */
+  aiLabel: string;
   members: Member[];
   invitations: Invitation[];
   /** Pending access requests. Only project owners get them. */

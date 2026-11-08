@@ -7,6 +7,7 @@ import { Avatar, ConfirmButton, Field, Modal, Notice, useToast } from "../ui";
 import { useWorkspace } from "../workspace";
 import { CompanyMark } from "./Sidebar";
 import { AppsTab, PermissionsTab } from "./AppSettings";
+import { CompanyAiTab } from "./CompanyAi";
 import { Button } from "@openact/ui/components/button";
 import { Input } from "@openact/ui/components/input";
 import { Label } from "@openact/ui/components/label";
@@ -66,7 +67,7 @@ export function NewCompanyDialog({ onClose }: { onClose: () => void }) {
 
 type Tab = string;
 
-/** Company settings for owners and admins: name, logo, email domain, people and AI defaults. */
+/** Company settings for owners and admins: name, logo, email domain, people, apps and the AI agent. */
 export function CompanySettings({ companyId, me, apps, onClose }: { companyId: string; me: User; apps: readonly ClientApp[]; onClose: () => void }) {
   const appTabs = apps.flatMap((a) => a.companySettingsTabs ?? []);
   const ws = useWorkspace();
@@ -104,11 +105,12 @@ export function CompanySettings({ companyId, me, apps, onClose }: { companyId: s
             </div>
           </div>
           <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
-            <TabsList aria-label="Company settings">
+            <TabsList aria-label="Company settings" className="max-w-full justify-start overflow-x-auto">
               <TabsTrigger value="general">General</TabsTrigger>
               <TabsTrigger value="people">People ({detail.members.length})</TabsTrigger>
               <TabsTrigger value="apps">Apps</TabsTrigger>
               <TabsTrigger value="permissions">Permissions</TabsTrigger>
+              <TabsTrigger value="ai">AI provider</TabsTrigger>
               {appTabs.map((t) => (
                 <TabsTrigger key={t.id} value={t.id}>
                   {t.label}
@@ -126,6 +128,9 @@ export function CompanySettings({ companyId, me, apps, onClose }: { companyId: s
             </TabsContent>
             <TabsContent value="permissions" className="pt-2">
               <PermissionsTab companyId={companyId} />
+            </TabsContent>
+            <TabsContent value="ai" className="pt-2">
+              <CompanyAiTab companyId={companyId} />
             </TabsContent>
             {appTabs.map((t) => (
               <TabsContent key={t.id} value={t.id} className="pt-2">

@@ -24,6 +24,15 @@ export { defineServerApp, getApps, runHook, type ServerApp, type AppHooks } from
 export { createWorker, DAILY_CRON } from "./worker.ts";
 export { isSuperAdmin, requireSuperAdmin, loadSite } from "./site.ts";
 export {
+  companyAi,
+  companyAiChoice,
+  deployAiDefault,
+  aiGatewayUrl,
+  aiGatewayHeaders,
+  type CompanyAiOverride,
+  type CompanyAiChoice
+} from "./company-ai.ts";
+export {
   requirePermission,
   hasPermission,
   requireAppOn,

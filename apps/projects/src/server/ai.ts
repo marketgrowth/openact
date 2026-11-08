@@ -5,38 +5,23 @@ import { extractJson, toPlannedTasks } from "./plan";
 import { requireRole, toTask, type TaskRow } from "./data";
 import { effectiveLevel, parsePolicy } from "../shared/agent-policy";
 import { HttpError, dateOrNull, readJson, requireUser, text, todayIso } from "./util";
+import { aiSetup, deployAi, type AiSetup } from "./agent/model";
 
 /*
  * AI features. Every request goes through Cloudflare AI Gateway when AI_GATEWAY_ID is set,
  * so you get logs, caching, rate limits and spend controls in one place.
  *
- * AI_PROVIDER:
- *   workers-ai (default) uses the Workers AI binding. No API key needed.
- *   anthropic            uses the Anthropic API through AI Gateway. Needs ANTHROPIC_API_KEY and CF_ACCOUNT_ID.
- *   openai               uses the OpenAI API through AI Gateway. Needs OPENAI_API_KEY and CF_ACCOUNT_ID.
+ * The provider, model and key come from aiSetup (agent/model.ts):
+ *   the company's own AI, when a company owner set one in Company settings, on the AI provider tab, or
+ *   the deploy default from AI_PROVIDER:
+ *     workers-ai (default) uses the Workers AI binding. No API key needed.
+ *     anthropic            uses the Anthropic API through AI Gateway. Needs ANTHROPIC_API_KEY and CF_ACCOUNT_ID.
+ *     openai               uses the OpenAI API through AI Gateway. Needs OPENAI_API_KEY and CF_ACCOUNT_ID.
  */
 
 interface ChatMessage {
   role: "system" | "user";
   content: string;
-}
-
-const DEFAULT_MODELS: Record<string, string> = {
-  "workers-ai": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
-  anthropic: "claude-haiku-5-5",
-  openai: "gpt-4.1-mini"
-};
-
-function provider(env: Env): string {
-  const p = (env.AI_PROVIDER || "workers-ai").trim().toLowerCase();
-  return p in DEFAULT_MODELS ? p : "workers-ai";
-}
-
-function model(env: Env, p: string): string {
-  const m = (env.AI_MODEL || "").trim();
-  // A Workers AI model id ("@cf/...") makes no sense for other providers.
-  if (!m || (p !== "workers-ai" && m.startsWith("@cf/"))) return DEFAULT_MODELS[p];
-  return m;
 }
 
 function gatewayUrl(env: Env, path: string): string {
@@ -50,15 +35,16 @@ function gatewayHeaders(env: Env): Record<string, string> {
   return env.AI_GATEWAY_TOKEN ? { "cf-aig-authorization": `Bearer ${env.AI_GATEWAY_TOKEN}` } : {};
 }
 
-export async function runChat(env: Env, messages: ChatMessage[], maxTokens = 1500): Promise<string> {
-  const p = provider(env);
-  const m = model(env, p);
+export async function runChat(env: Env, setup: AiSetup, messages: ChatMessage[], maxTokens = 1500): Promise<string> {
+  // dev-scripted has no chat model, so plan and summary use Workers AI, as before.
+  const p = setup.provider === "dev-scripted" ? "workers-ai" : setup.provider;
+  const m = setup.provider === "dev-scripted" ? deployAi({ ...env, AI_PROVIDER: "workers-ai" }).model : setup.model;
 
   if (p === "anthropic") {
-    if (!env.ANTHROPIC_API_KEY) throw new HttpError(500, "Set the ANTHROPIC_API_KEY secret to use Anthropic models.");
+    if (!setup.apiKey) throw new HttpError(500, setup.source === "company" ? "Your company's AI key is missing. A company owner can add it in Company settings, on the AI provider tab." : "Set the ANTHROPIC_API_KEY secret to use Anthropic models.");
     const res = await fetch(gatewayUrl(env, "anthropic/v1/messages"), {
       method: "POST",
-      headers: { "content-type": "application/json", "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", ...gatewayHeaders(env) },
+      headers: { "content-type": "application/json", "x-api-key": setup.apiKey, "anthropic-version": "2023-06-01", ...gatewayHeaders(env) },
       body: JSON.stringify({
         model: m,
         max_tokens: maxTokens,
@@ -66,19 +52,19 @@ export async function runChat(env: Env, messages: ChatMessage[], maxTokens = 150
         messages: messages.filter((x) => x.role !== "system")
       })
     });
-    if (!res.ok) throw await providerError(res);
+    if (!res.ok) throw await providerError(res, setup);
     const data = (await res.json()) as { content?: Array<{ type: string; text?: string }> };
     return (data.content || []).map((b) => b.text || "").join("");
   }
 
   if (p === "openai") {
-    if (!env.OPENAI_API_KEY) throw new HttpError(500, "Set the OPENAI_API_KEY secret to use OpenAI models.");
+    if (!setup.apiKey) throw new HttpError(500, "Set the OPENAI_API_KEY secret to use OpenAI models.");
     const res = await fetch(gatewayUrl(env, "openai/chat/completions"), {
       method: "POST",
-      headers: { "content-type": "application/json", authorization: `Bearer ${env.OPENAI_API_KEY}`, ...gatewayHeaders(env) },
+      headers: { "content-type": "application/json", authorization: `Bearer ${setup.apiKey}`, ...gatewayHeaders(env) },
       body: JSON.stringify({ model: m, messages, max_tokens: maxTokens })
     });
-    if (!res.ok) throw await providerError(res);
+    if (!res.ok) throw await providerError(res, setup);
     const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
     return data.choices?.[0]?.message?.content || "";
   }
@@ -117,20 +103,23 @@ function readWorkersAiText(out: unknown): string {
   return "";
 }
 
-async function providerError(res: Response): Promise<HttpError> {
+async function providerError(res: Response, setup: AiSetup): Promise<HttpError> {
   const body = await res.text().catch(() => "");
   console.error(`[openact] AI provider returned ${res.status}: ${body.slice(0, 500)}`);
+  if (setup.source === "company" && (res.status === 401 || res.status === 403)) {
+    return new HttpError(502, "The AI provider did not accept your company's API key. A company owner can check it in Company settings, on the AI provider tab.");
+  }
   return new HttpError(502, "The AI service did not answer. Try again in a minute.");
 }
 
 /** Checks the role, and that the project's AI policy has not turned AI off for that role. */
-async function requireAiRole(env: Env, projectId: string, userId: string, min: "viewer" | "editor") {
+async function requireAiRole(env: Env, projectId: string, userId: string, min: "viewer" | "editor"): Promise<AiSetup> {
   const role = await requireRole(env, projectId, userId, min);
-  const row = await env.DB.prepare("SELECT ai_policy FROM projects WHERE id = ?").bind(projectId).first<{ ai_policy: string }>();
+  const row = await env.DB.prepare("SELECT ai_policy, company_id FROM projects WHERE id = ?").bind(projectId).first<{ ai_policy: string; company_id: string | null }>();
   if (effectiveLevel(role, parsePolicy(row?.ai_policy)) === "off") {
     throw new HttpError(403, "AI is turned off for your role in this project. A project owner can change this in Project settings.");
   }
-  return role;
+  return aiSetup(env, row?.company_id);
 }
 
 export const aiRoutes = new Hono<AppEnv>();
@@ -139,13 +128,13 @@ export const aiRoutes = new Hono<AppEnv>();
 aiRoutes.post("/:id/ai/plan", async (c) => {
   const user = requireUser(c);
   const projectId = c.req.param("id");
-  await requireAiRole(c.env, projectId, user.id, "editor");
+  const ai = await requireAiRole(c.env, projectId, user.id, "editor");
   const body = await readJson(c);
   const goal = text(body.goal, "Goal", { max: 2000, required: true });
   const start = dateOrNull(body.start, "Start date") ?? todayIso();
   const phases = await c.env.DB.prepare("SELECT DISTINCT phase FROM tasks WHERE project_id = ? AND phase != ''").bind(projectId).all<{ phase: string }>();
 
-  const reply = await runChat(c.env, [
+  const reply = await runChat(c.env, ai, [
     {
       role: "system",
       content:
@@ -169,7 +158,7 @@ aiRoutes.post("/:id/ai/plan", async (c) => {
 aiRoutes.post("/:id/ai/summary", async (c) => {
   const user = requireUser(c);
   const projectId = c.req.param("id");
-  await requireAiRole(c.env, projectId, user.id, "viewer");
+  const ai = await requireAiRole(c.env, projectId, user.id, "viewer");
   const project = await c.env.DB.prepare("SELECT name FROM projects WHERE id = ?").bind(projectId).first<{ name: string }>();
   const rows = await c.env.DB.prepare(
     "SELECT t.*, u.name AS assignee_name FROM tasks t LEFT JOIN users u ON u.id = t.assignee_id WHERE t.project_id = ? ORDER BY t.start_date"
@@ -185,6 +174,7 @@ aiRoutes.post("/:id/ai/summary", async (c) => {
   });
   const reply = await runChat(
     c.env,
+    ai,
     [
       {
         role: "system",
