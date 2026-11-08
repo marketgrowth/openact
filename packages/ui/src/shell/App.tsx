@@ -1,6 +1,6 @@
 import { lazy, StrictMode, Suspense, useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
-import type { AppConfig, User } from "@openact/core/shared";
+import type { AppConfig, SiteSettings, User } from "@openact/core/shared";
 import { api, errorText } from "../api";
 import { Link, navigate, usePath } from "../router";
 import { Field, Modal, ToastProvider, useToast } from "../ui";
@@ -17,6 +17,7 @@ import { Separator } from "@openact/ui/components/separator";
 
 // Loaded on first use, so the first page loads less code.
 const CompanySettings = lazy(() => import("./CompanyDialogs").then((m) => ({ default: m.CompanySettings })));
+const SiteSettingsDialog = lazy(() => import("./SiteSettings").then((m) => ({ default: m.SiteSettingsDialog })));
 const NewCompanyDialog = lazy(() => import("./CompanyDialogs").then((m) => ({ default: m.NewCompanyDialog })));
 const AppsPage = lazy(() => import("./AppsPage").then((m) => ({ default: m.AppsPage })));
 
@@ -60,7 +61,7 @@ function readPanelOpen(): boolean {
   }
 }
 
-const DEFAULT_CONFIG: AppConfig = { appName: "OpenAct", emailEnabled: true, signupMode: "open", aiProvider: "workers-ai", apps: [] };
+const DEFAULT_CONFIG: AppConfig = { appName: "OpenAct", logoUrl: null, emailEnabled: true, signupMode: "open", aiProvider: "workers-ai", apps: [] };
 
 function Root({ apps, directory }: { apps: ClientApp[]; directory: readonly DirectoryApp[] }) {
   const path = usePath();
@@ -72,12 +73,17 @@ function Root({ apps, directory }: { apps: ClientApp[]; directory: readonly Dire
       .then((r) => setMe(r.user))
       .catch(() => setMe(null));
     api<AppConfig>("/api/config")
-      .then((c) => {
-        setConfig(c);
-        document.title = c.appName;
-      })
+      .then(setConfig)
       .catch(() => {});
   }, []);
+
+  // The browser tab follows the site settings.
+  useEffect(() => {
+    document.title = config.appName;
+    setFavicon(config.logoUrl);
+  }, [config.appName, config.logoUrl]);
+
+  const onSite = useCallback((s: SiteSettings) => setConfig((c) => ({ ...c, appName: s.appName, logoUrl: s.logoUrl })), []);
 
   const noop = useCallback(() => {}, []);
   const publicShell = useMemo<Shell>(() => ({ me: me ?? null, config, apps, directory, open: noop, runCommand: noop }), [me, config, apps, directory, noop]);
@@ -98,31 +104,53 @@ function Root({ apps, directory }: { apps: ClientApp[]; directory: readonly Dire
   if (!me) return <SignIn config={config} onSignedIn={setMe} />;
   return (
     <WorkspaceProvider key={me.id}>
-      <SignedIn me={me} config={config} apps={apps} directory={directory} onMe={setMe} />
+      <SignedIn me={me} config={config} apps={apps} directory={directory} onMe={setMe} onSite={onSite} />
     </WorkspaceProvider>
   );
 }
 
-type Dialog = null | "account" | "newCompany" | "companySettings" | { command: string };
+type Dialog = null | "account" | "site" | "newCompany" | "companySettings" | { command: string };
+
+/** Shows the site logo as the tab icon, or the default icon from index.html. */
+function setFavicon(url: string | null) {
+  const link = document.querySelector<HTMLLinkElement>('link[rel~="icon"]');
+  if (!link) return;
+  if (link.dataset.defaultHref === undefined) {
+    link.dataset.defaultHref = link.getAttribute("href") ?? "";
+    link.dataset.defaultType = link.getAttribute("type") ?? "";
+  }
+  link.href = url ?? link.dataset.defaultHref;
+  if (url) link.removeAttribute("type");
+  else if (link.dataset.defaultType) link.type = link.dataset.defaultType;
+}
 
 function SignedIn({
   me,
   config,
   apps,
   directory,
-  onMe
+  onMe,
+  onSite
 }: {
   me: User;
   config: AppConfig;
   apps: ClientApp[];
   directory: readonly DirectoryApp[];
   onMe: (u: User | null) => void;
+  onSite: (s: SiteSettings) => void;
 }) {
   const path = usePath();
   const ws = useWorkspace();
   const [open, setOpen] = useState(readPanelOpen);
   const [dialog, setDialog] = useState<Dialog>(null);
   const close = useCallback(() => setDialog(null), []);
+  // Super admins see Site settings in their menu. The server checks again on every change.
+  const [superAdmin, setSuperAdmin] = useState(false);
+  useEffect(() => {
+    api<SiteSettings>("/api/site")
+      .then((s) => setSuperAdmin(s.canEdit))
+      .catch(() => setSuperAdmin(false));
+  }, [me.id]);
   // Apps that are off in this company leave the rail, the commands and the routes.
   const disabled = ws.access?.disabledApps ?? [];
   const disabledKey = disabled.join(",");
@@ -199,6 +227,7 @@ function SignedIn({
         onNewCompany={() => setDialog("newCompany")}
         onCompanySettings={() => setDialog("companySettings")}
         onAccount={() => setDialog("account")}
+        onSiteSettings={superAdmin ? () => setDialog("site") : undefined}
         onSignOut={signOut}
       />
       <SidebarInset className="min-w-0">
@@ -214,6 +243,7 @@ function SignedIn({
       </SidebarInset>
       <Suspense fallback={null}>
         {dialog === "account" && <AccountDialog me={me} onChange={onMe} onSignOut={signOut} onClose={close} />}
+        {dialog === "site" && <SiteSettingsDialog onSaved={onSite} onClose={close} />}
         {dialog === "newCompany" && <NewCompanyDialog onClose={close} />}
         {dialog === "companySettings" && ws.current && <CompanySettings companyId={ws.current.id} me={me} apps={onApps} onClose={close} />}
         {activeCommand && <activeCommand.Dialog onClose={close} />}
@@ -317,8 +347,7 @@ function AccountDialog({
       <p className="text-xs text-muted-foreground">
         <Link to="/colophon" onClick={onClose} className="underline underline-offset-4 hover:text-foreground">
           How OpenAct is made
-        </Link>{" "}
-        · Open source by MarketGrowth
+        </Link>
       </p>
     </Modal>
   );

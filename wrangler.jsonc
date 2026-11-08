@@ -56,6 +56,7 @@
 
   "vars": {
     "APP_NAME": "OpenAct",
+    "SUPER_ADMIN_EMAILS": "",
     "APP_URL": "",
     "EMAIL_FROM": "OpenAct <no-reply@example.com>",
     "SIGNUP_MODE": "open",

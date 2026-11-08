@@ -2,7 +2,6 @@ import { useState } from "react";
 import type { AppConfig, User } from "@openact/core/shared";
 import { api, errorText } from "../api";
 import { Logo, Notice, ThemeSwitch } from "../ui";
-import { Link } from "../router";
 import { Button } from "@openact/ui/components/button";
 import { Input } from "@openact/ui/components/input";
 import { Label } from "@openact/ui/components/label";
@@ -58,7 +57,7 @@ export function SignIn({ config, onSignedIn }: { config: AppConfig; onSignedIn: 
       </div>
       <main className="flex w-full max-w-sm flex-col gap-6">
         <div className="flex items-center gap-2 self-center font-semibold">
-          <Logo />
+          <Logo src={config.logoUrl} />
           <span>{config.appName}</span>
         </div>
         <Card>
@@ -146,16 +145,6 @@ export function SignIn({ config, onSignedIn }: { config: AppConfig; onSignedIn: 
             </>
           )}
         </Card>
-        <p className="text-center text-xs text-balance text-muted-foreground" data-signin-foot="">
-          Open source by MarketGrowth.{" "}
-          <a href="https://github.com/marketgrowth/openact" target="_blank" rel="noreferrer" className="underline underline-offset-4 hover:text-foreground">
-            View on GitHub
-          </a>{" "}
-          ·{" "}
-          <Link to="/colophon" className="underline underline-offset-4 hover:text-foreground">
-            Colophon
-          </Link>
-        </p>
       </main>
     </div>
   );

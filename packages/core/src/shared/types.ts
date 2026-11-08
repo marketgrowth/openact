@@ -37,6 +37,8 @@ export interface User {
 
 export interface AppConfig {
   appName: string;
+  /** The site logo that a super admin uploaded, or null for the OpenAct mark. */
+  logoUrl: string | null;
   emailEnabled: boolean;
   signupMode: "open" | "invite";
   aiProvider: string;
