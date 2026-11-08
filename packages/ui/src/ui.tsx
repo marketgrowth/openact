@@ -156,7 +156,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const show = useCallback((m: string) => {
     setMsg(m);
     window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => setMsg(null), 3400);
+    timer.current = window.setTimeout(() => setMsg(null), 3200);
   }, []);
   return (
     <ToastCtx.Provider value={show}>
@@ -252,7 +252,7 @@ export function ConfirmButton({
   const [armed, setArmed] = useState(false);
   useEffect(() => {
     if (!armed) return;
-    const t = window.setTimeout(() => setArmed(false), 4000);
+    const t = window.setTimeout(() => setArmed(false), 3500);
     return () => window.clearTimeout(t);
   }, [armed]);
   return (
