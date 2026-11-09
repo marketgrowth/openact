@@ -68,6 +68,10 @@ const FEATURES: Row[] = [
   { name: "Note search", detail: "Owners can let the agent search task notes. It gets only short parts, with email addresses and phone numbers hidden." },
   { name: "Sign-in", detail: "No passwords. People sign in with a 6-digit email code." },
   { name: "Themes and phones", detail: "Light, dark, or follow the system. On a phone, the rail and the panel open as one sheet." },
+  {
+    name: "Contribute",
+    detail: "A public page at /contribute. People help pay for OpenAct by card (Stripe) or in USDC (x402). Most of each contribution is donated to the Lyra Music Foundation."
+  },
   { name: "Keyboard", detail: "Ctrl+K or Cmd+K opens search. Ctrl+B or Cmd+B opens and closes the app panel." }
 ];
 
