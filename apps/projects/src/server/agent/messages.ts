@@ -27,6 +27,8 @@ export interface ModelOutput {
   toolCalls: ToolCall[];
 }
 
+const NOT_RUN = "This action did not run.";
+
 let counter = 0;
 const genId = () => `call_${Date.now().toString(36)}_${(counter++).toString(36)}`;
 
@@ -91,18 +93,44 @@ export function pairToolResults(msgs: AgentMsg[]): AgentMsg[] {
     out.push(m);
     if (m.role === "assistant" && m.toolCalls?.length) {
       const results = new Map<string, AgentMsg>();
+      const orphans: AgentMsg[] = [];
       let j = i + 1;
       while (j < msgs.length && msgs[j].role === "tool") {
         const t = msgs[j] as Extract<AgentMsg, { role: "tool" }>;
+        // One result per call. A later result for the same call replaces an earlier one.
         if (m.toolCalls.some((c) => c.id === t.toolCallId)) results.set(t.toolCallId, t);
-        else out.push({ role: "user", content: `(Result of an earlier action) ${t.content}` });
+        else orphans.push({ role: "user", content: `(Result of an earlier action) ${t.content}` });
         j++;
       }
-      for (const c of m.toolCalls) out.push(results.get(c.id) ?? { role: "tool", toolCallId: c.id, name: c.name, content: "This action did not run." });
+      for (const c of m.toolCalls) out.push(results.get(c.id) ?? { role: "tool", toolCallId: c.id, name: c.name, content: NOT_RUN });
+      // Anthropic needs tool results before any text in the same turn, so orphan text goes last.
+      out.push(...orphans);
       i = j - 1;
     }
   }
   return out;
+}
+
+/**
+ * Puts the results of approved or rejected actions into the history.
+ * The history from the web app has the tool call but not its result, so pairToolResults gave it a placeholder.
+ * Each result replaces that placeholder, so every call keeps exactly one result.
+ * Strict providers (Anthropic, OpenAI) reject a call with two results.
+ */
+export function withToolResults(msgs: AgentMsg[], results: Array<Extract<AgentMsg, { role: "tool" }>>): AgentMsg[] {
+  if (!results.length) return msgs;
+  const byId = new Map(results.map((r) => [r.toolCallId, r]));
+  const used = new Set<string>();
+  const out = msgs.map((m) => {
+    if (m.role !== "tool") return m;
+    const r = byId.get(m.toolCallId);
+    if (!r) return m;
+    used.add(m.toolCallId);
+    return r;
+  });
+  // A call that is not in the history (it fell out of the window) becomes plain text in pairToolResults.
+  for (const r of results) if (!used.has(r.toolCallId)) out.push(r);
+  return pairToolResults(out);
 }
 
 /* Anthropic Messages API */
