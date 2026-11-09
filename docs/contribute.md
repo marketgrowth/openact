@@ -34,14 +34,59 @@ npx wrangler secret put STRIPE_SECRET_KEY
 | `X402_FACILITATOR_URL` | The x402 facilitator that checks and settles each payment. Default: `https://x402.org/facilitator`, which works only on test networks. |
 | `X402_FACILITATOR_TOKEN` | Optional. A bearer token, for a facilitator that needs one. |
 
-### Go live with USDC
-
-1. Test on Base Sepolia first. Get test USDC from the [Circle faucet](https://faucet.circle.com).
-2. Set `X402_NETWORK` to `eip155:8453`.
-3. Set `X402_FACILITATOR_URL` to a facilitator that settles on Base mainnet. Check that it accepts a bearer token or no token.
-4. Make a test payment of $1 and check it on [Basescan](https://basescan.org).
-
 The facilitator pays the network fee. The person pays only the amount.
+
+## Set up checklist
+
+Do these steps in order. Test each payment method before you switch it to live.
+
+### 1. Deploy
+
+1. Pull the latest code: `git pull origin main`.
+2. Install: `npm install`.
+3. Deploy: `npm run deploy`. No new migration is needed.
+4. Open `/contribute`. The page says that contributions are not set up yet. The heart icon shows on top of the Colophon icon in the app rail.
+
+If your Worker has another name than the one in `wrangler.jsonc`, add `--name <worker>` to each `wrangler secret put` command below.
+
+### 2. Stripe
+
+1. Use the Stripe account of the business that receives the money. Finish its activation: business details and a bank account.
+2. In test mode, open Developers, then API keys. Make a restricted key with **Checkout Sessions: Write** only.
+3. Set it: `npx wrangler secret put STRIPE_SECRET_KEY`.
+4. On `/contribute`, pay once and pay monthly with the test card `4242 4242 4242 4242`. If Stripe refuses a checkout, its error names the missing permission. Add only that permission.
+5. Make the same restricted key in live mode. Set it as `STRIPE_SECRET_KEY` again.
+6. In Settings, then Customer emails, turn on receipts for successful payments.
+7. In Settings, then Public details, set the statement descriptor, such as `OPENACT`.
+8. In Billing settings, turn on the customer portal, so monthly supporters can stop their payments. The page does not link to the portal yet.
+
+### 3. USDC on Base (x402)
+
+1. Get a wallet that you control on Base, such as Coinbase Wallet or another EVM wallet. A payment to a wrong address usually cannot be recovered.
+2. Set it: `npx wrangler secret put X402_PAY_TO`. The address is public. The page shows it.
+3. Test on Base Sepolia. This is the default, so set no other value. Get test USDC from the [Circle faucet](https://faucet.circle.com). Give $1 from `/contribute` with a browser wallet. Find the transaction on [Base Sepolia Basescan](https://sepolia.basescan.org).
+4. Set `X402_NETWORK` to `eip155:8453` (Base).
+5. Set `X402_FACILITATOR_URL` to a facilitator that settles on Base mainnet. The default facilitator works only on test networks.
+6. Give $1 again and find the transaction on [Basescan](https://basescan.org).
+7. To change USDC to US dollars, send it to an exchange account, such as Coinbase, and withdraw to your bank.
+
+#### Choose a mainnet facilitator
+
+| Facilitator | Works with OpenAct today |
+| --- | --- |
+| `https://x402.org/facilitator` | Test networks only. |
+| Coinbase CDP | Not yet. It needs CDP API keys that sign each request. OpenAct sends only a fixed bearer token. |
+| A facilitator with no key, or with a fixed bearer token | Yes. Check its list of supported networks for `eip155:8453` first. |
+
+A facilitator cannot send the money to another wallet, because each signed payment names your wallet. A facilitator can see the payments. If it is down, USDC payments fail, and card payments still work.
+
+### 4. Docs site
+
+To publish docs.openact.app on each merge, add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` as secrets in the GitHub repository settings. Without them, the Docs workflow builds the site but skips the deploy.
+
+### 5. Records
+
+Card and USDC payments are income to the business that owns the keys. They are not donations. Ask your accountant how to record them.
 
 ## Limits
 
