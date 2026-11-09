@@ -27,6 +27,8 @@ import { PageBreak } from "./page-break";
 import { DeleteDialog, LinkDialog, ShareDialog } from "./dialogs";
 import { CategorySelect, FolderSelect, TagInput } from "./library-dialogs";
 import { AiDialog, AiMenu, type AiChoice } from "./ai";
+import { CommentMark } from "./comment-mark";
+import { CommentsPanel, NewThreadDialog, commentCss, useComments } from "./comments";
 import { DOCS_HOME, useDocs } from "./state";
 import { contentCss, MARGIN_LABELS, PAGE_SIZE_LABELS, pageBox, paginate } from "../shared/page";
 import {
@@ -178,6 +180,11 @@ function LoadedDoc({ initial }: { initial: DocDetail }) {
   const [gone, setGone] = useState(false);
   const [dialog, setDialog] = useState<null | "share" | "link" | "delete">(null);
   const [aiChoice, setAiChoice] = useState<AiChoice | null>(null);
+  const comments = useComments(initial.id, initial.canComment);
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [activeThread, setActiveThread] = useState<string | null>(null);
+  const [newThread, setNewThread] = useState(false);
+  const openThreads = (comments.list?.threads ?? []).filter((t) => t.status === "open").length;
   const [layout, setLayout] = useState<{ pages: number; words: number; markers: Array<{ top: number; page: number }> }>({ pages: 1, words: 0, markers: [] });
   const canEdit = initial.canEdit && !gone;
   const box = useMemo(() => pageBox(settings), [settings]);
@@ -299,10 +306,23 @@ function LoadedDoc({ initial }: { initial: DocDetail }) {
       Image.configure({ allowBase64: false }),
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       Placeholder.configure({ placeholder: initial.canEdit ? "Start writing…" : "" }),
-      PageBreak
+      PageBreak,
+      CommentMark
     ],
     content: initial.content,
-    onUpdate: () => queue(null)
+    onUpdate: () => queue(null),
+    editorProps: {
+      // A click on commented text opens its thread.
+      handleClick: (_view, _pos, event) => {
+        const el = (event.target as HTMLElement | null)?.closest?.("[data-comment-thread]");
+        const id = el?.getAttribute("data-comment-thread");
+        if (id) {
+          setActiveThread(id);
+          setCommentsOpen(true);
+        }
+        return false;
+      }
+    }
   });
   editorRef.current = editor;
 
@@ -509,6 +529,18 @@ ${contentCss(".doc-paper .ProseMirror")}
         <Button variant="outline" size="sm" onClick={print} data-doc-print="">
           <Icon name="print" /> <span className="hidden sm:inline">Print or PDF</span>
         </Button>
+        {initial.canComment && (
+          <Button
+            variant={commentsOpen ? "secondary" : "outline"}
+            size="sm"
+            onClick={() => setCommentsOpen((v) => !v)}
+            aria-pressed={commentsOpen}
+            data-comments-toggle=""
+          >
+            <Icon name="chat" /> <span className="hidden sm:inline">Comments</span>
+            {openThreads > 0 && <span className="tabular rounded-full bg-muted px-1.5 text-xs">{openThreads}</span>}
+          </Button>
+        )}
         {initial.canShare ? (
           <Button size="sm" onClick={() => setDialog("share")} data-doc-share="">
             <Icon name="share" /> <span className="hidden sm:inline">{shared ? "Shared" : "Share"}</span>
@@ -534,6 +566,7 @@ ${contentCss(".doc-paper .ProseMirror")}
       <PageBody>
         <div className="grid min-w-0 gap-3" data-doc-editor={id}>
           <style>{css}</style>
+          <style>{commentCss(comments.list, activeThread)}</style>
 
           <div className="flex flex-wrap items-center gap-2">
             <input
@@ -576,6 +609,7 @@ ${contentCss(".doc-paper .ProseMirror")}
               onLink={() => setDialog("link")}
               onImage={() => fileInput.current?.click()}
               ai={initial.ai === "no_permission" ? null : { status: initial.ai, onChoose: setAiChoice }}
+              onComment={comments.list?.can.commentOnText ? () => setNewThread(true) : null}
             />
           )}
           <input
@@ -587,29 +621,53 @@ ${contentCss(".doc-paper .ProseMirror")}
             onChange={(e) => uploadImage(e.target.files?.[0])}
           />
 
-          <div className="-mx-4 overflow-x-auto bg-desk px-4 py-6 md:rounded-xl lg:-mx-0 lg:px-6" data-doc-desk="">
-            <div
-              className="doc-paper mx-auto rounded-sm bg-paper text-paper-foreground shadow-md"
-              style={{ width: box.width, minHeight: box.height, padding: box.margin }}
-              data-page-size={settings.pageSize}
-            >
-              <div className="relative">
-                <EditorContent editor={editor} />
-                {layout.markers.map((m) => (
-                  <div
-                    key={m.page}
-                    className="pointer-events-none absolute border-t border-dashed border-paper-border"
-                    style={{ top: m.top - 8, left: -box.margin, right: -box.margin }}
-                    aria-hidden="true"
-                    data-page-marker={m.page}
-                  >
-                    <span className="absolute -top-2.5 right-2 bg-paper px-1.5 text-[10px] font-medium tracking-wide text-paper-muted uppercase">
-                      Page {m.page}
-                    </span>
-                  </div>
-                ))}
+          <div className={commentsOpen ? "grid items-start gap-3 xl:grid-cols-[minmax(0,1fr)_340px]" : "grid"}>
+            <div className="-mx-4 min-w-0 overflow-x-auto bg-desk px-4 py-6 md:rounded-xl lg:-mx-0 lg:px-6" data-doc-desk="">
+              <div
+                className="doc-paper mx-auto rounded-sm bg-paper text-paper-foreground shadow-md"
+                style={{ width: box.width, minHeight: box.height, padding: box.margin }}
+                data-page-size={settings.pageSize}
+              >
+                <div className="relative">
+                  <EditorContent editor={editor} />
+                  {layout.markers.map((m) => (
+                    <div
+                      key={m.page}
+                      className="pointer-events-none absolute border-t border-dashed border-paper-border"
+                      style={{ top: m.top - 8, left: -box.margin, right: -box.margin }}
+                      aria-hidden="true"
+                      data-page-marker={m.page}
+                    >
+                      <span className="absolute -top-2.5 right-2 bg-paper px-1.5 text-[10px] font-medium tracking-wide text-paper-muted uppercase">
+                        Page {m.page}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
+            {commentsOpen && (
+              <div
+                className="order-first max-h-[60vh] overflow-y-auto xl:sticky xl:top-[calc(var(--header-height)+4rem)] xl:order-none xl:max-h-[calc(100dvh-var(--header-height)-5rem)]"
+                data-comments-scroll=""
+              >
+                <CommentsPanel
+                  docId={id}
+                  state={comments}
+                  editor={editor}
+                  canEditDoc={canEdit}
+                  active={activeThread}
+                  onActive={(tid) => {
+                    setActiveThread(tid);
+                    if (tid) document.querySelector(`.doc-paper [data-comment-thread="${tid}"]`)?.scrollIntoView({ block: "center", behavior: "smooth" });
+                  }}
+                  onClose={() => {
+                    setCommentsOpen(false);
+                    setActiveThread(null);
+                  }}
+                />
+              </div>
+            )}
           </div>
 
           <p className="text-xs text-muted-foreground" data-doc-footer="">
@@ -627,6 +685,19 @@ ${contentCss(".doc-paper .ProseMirror")}
                 setShared(!!u);
               }}
               onClose={() => setDialog(null)}
+            />
+          )}
+          {newThread && editor && comments.list && (
+            <NewThreadDialog
+              editor={editor}
+              docId={id}
+              people={comments.list.people}
+              onCreated={(tid) => {
+                void comments.reload();
+                setActiveThread(tid);
+                setCommentsOpen(true);
+              }}
+              onClose={() => setNewThread(false)}
             />
           )}
           {aiChoice && editor && <AiDialog editor={editor} docId={id} choice={aiChoice} onClose={() => setAiChoice(null)} />}
@@ -762,12 +833,14 @@ function Toolbar({
   editor,
   onLink,
   onImage,
-  ai
+  ai,
+  onComment
 }: {
   editor: Editor;
   onLink: () => void;
   onImage: () => void;
   ai: { status: "on" | "off"; onChoose: (c: AiChoice) => void } | null;
+  onComment: (() => void) | null;
 }) {
   const s = useEditorState({
     editor,
@@ -789,7 +862,8 @@ function Toolbar({
       table: e.isActive("table"),
       align: (["center", "right", "justify"] as const).find((a) => e.isActive({ textAlign: a })) ?? "left",
       canUndo: e.can().undo(),
-      canRedo: e.can().redo()
+      canRedo: e.can().redo(),
+      hasSelection: !e.state.selection.empty
     })
   });
   const c = () => editor.chain().focus();
@@ -819,6 +893,7 @@ function Toolbar({
         <Tool label="Underline" icon="underline" active={s.underline} onClick={() => c().toggleUnderline().run()} shortcut={`${mod}U`} />
         <Tool label="Strikethrough" icon="strike" active={s.strike} onClick={() => c().toggleStrike().run()} />
         <Tool label="Link" icon="link" active={s.link} onClick={onLink} />
+        {onComment && <Tool label="Comment on the selected text" icon="chat" disabled={!s.hasSelection} onClick={onComment} />}
       </Group>
       <Divider />
       <Group>

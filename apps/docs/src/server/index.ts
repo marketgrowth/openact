@@ -1,6 +1,7 @@
 import { DAILY_CRON, HttpError, defineServerApp, deletePrefix, nowIso, registerRoomKind, type Env } from "@openact/core/server";
 import { DOC_ROOM, LIBRARY_ROOM, aiEnabled, docsRoutes } from "./routes";
 import { shareImage, sharePage } from "./share";
+import { COMMENTS_ROOM, commentRoutes } from "./comments";
 
 /*
  * The Docs app: a company library of paper-size documents, in folders, with categories and tags.
@@ -19,6 +20,7 @@ async function revisions(env: Env, sql: string, ids: string[]): Promise<Map<stri
 }
 
 registerRoomKind(DOC_ROOM, (env, ids) => revisions(env, "SELECT id, rev FROM docs_docs WHERE id IN (?)", ids));
+registerRoomKind(COMMENTS_ROOM, (env, ids) => revisions(env, "SELECT id, comments_rev AS rev FROM docs_docs WHERE id IN (?)", ids));
 registerRoomKind(LIBRARY_ROOM, (env, ids) => revisions(env, "SELECT company_id AS id, rev FROM docs_library WHERE company_id IN (?)", ids));
 
 /** Deletes images whose doc no longer exists, in case a delete stopped half way. */
@@ -61,6 +63,11 @@ export default defineServerApp({
       description: "Make a link that anyone can open without signing in, or turn it off.",
       roles: ["owner", "admin", "member"]
     },
+    "docs.comment": {
+      label: "Comment on docs",
+      description: "Read comments, start threads, reply, and resolve threads. Starting a thread on text also needs Write docs.",
+      roles: ["owner", "admin", "member"]
+    },
     "docs.ai": {
       label: "Use AI writing help",
       description: "Send selected doc text to the company's AI to improve, shorten, translate or continue it. A company owner or admin must turn AI on first.",
@@ -69,6 +76,7 @@ export default defineServerApp({
   },
   routes: (app) => {
     app.route("/api/apps/docs", docsRoutes);
+    app.route("/api/apps/docs", commentRoutes);
     // Public. wrangler.jsonc sends /docs/s/* to the Worker first (run_worker_first).
     app.get("/docs/s/:token", sharePage);
     app.get("/docs/s/:token/files/:fileId", shareImage);
