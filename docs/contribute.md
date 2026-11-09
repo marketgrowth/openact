@@ -1,8 +1,8 @@
 # Contributions
 
-Every OpenAct deploy has a public page at `/contribute`. People use it to help pay for OpenAct. Most of each contribution is donated to the Lyra Music Foundation. The foundation uses OpenAct to build agentic software that teaches music and theater to young adults around the world.
+Every OpenAct deploy has a public page at `/contribute`. People use it to help build OpenAct.
 
-The Lyra Music Foundation is fiscally sponsored by [The Hack Foundation](https://hackclub.com/). The Hack Foundation is a 501(c)(3) public charity with the EIN 81-2908499.
+The page also lists the nonprofits, and the projects that support nonprofits, that OpenAct helps build software for. Edit the list in `SUPPORTED_PROJECTS` in `src/shared/contribute.ts`.
 
 The Contribute icon (a heart) sits at the bottom of the app rail, on top of the Colophon icon.
 
@@ -15,9 +15,7 @@ Each way shows on the page only when it is set up. With no settings, the page sa
 
 ## Where the money goes
 
-Payments go to the account that owns `STRIPE_SECRET_KEY` and to the wallet in `X402_PAY_TO`. The page says that most of each contribution is donated to the Lyra Music Foundation. Keep that promise: donate most of what comes in.
-
-On a fork, change the page text in `src/client/Contribute.tsx` and `src/shared/contribute.ts` if your money goes somewhere else.
+Payments go to the account that owns `STRIPE_SECRET_KEY` and to the wallet in `X402_PAY_TO`.
 
 ## Settings
 

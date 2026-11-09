@@ -11,9 +11,9 @@ import {
   MAX_USD,
   MIN_USD,
   PRESETS_USD,
+  SUPPORTED_PROJECTS,
   X402_NETWORKS,
   encodeHeader,
-  FISCAL_SPONSOR,
   formatUsd,
   parseUsd,
   transferTypedData,
@@ -25,7 +25,7 @@ import {
 
 /*
  * Contribute: a public page at /contribute. People pay by card (Stripe Checkout)
- * or in USDC (x402 v2). Most of each contribution is donated to the Lyra Music Foundation.
+ * or in USDC (x402 v2). Contributions help build OpenAct.
  * The server side is in src/server/site.ts.
  */
 
@@ -176,33 +176,40 @@ export function Contribute() {
           <p className="text-xs font-medium tracking-wide text-brand-gold uppercase">Contribute</p>
           <h1 className="text-3xl font-semibold tracking-tight text-balance">Help build OpenAct</h1>
           <p className="max-w-2xl text-muted-foreground">
-            OpenAct is free and open source. Your contribution helps us keep building it. Most of your contribution is donated to the Lyra Music Foundation.
+            OpenAct is free and open source. Your contribution helps us keep building it.
           </p>
         </div>
 
-        <section className="grid gap-3 border-t pt-6 md:grid-cols-[13rem_1fr] md:gap-8" aria-labelledby="contribute-why">
-          <h2 id="contribute-why" className="text-lg font-semibold tracking-tight">
-            Where it goes
-          </h2>
-          <div className="grid max-w-2xl gap-2 text-sm text-muted-foreground">
-            <p>The Lyra Music Foundation uses OpenAct to build agentic software.</p>
-            <p>The software teaches music and theater to young adults around the world.</p>
-            <p>When you help build OpenAct, you also help the foundation reach more students.</p>
-            <p data-contribute-sponsor="">
-              The Lyra Music Foundation is fiscally sponsored by{" "}
-              <a href={FISCAL_SPONSOR.url} target="_blank" rel="noreferrer" className="underline decoration-border underline-offset-4 hover:text-foreground">
-                {FISCAL_SPONSOR.name}
-              </a>
-              . {FISCAL_SPONSOR.name} is a 501(c)(3) public charity with the EIN {FISCAL_SPONSOR.ein}.
-            </p>
+        <section className="grid gap-3 border-t pt-6 md:grid-cols-[13rem_1fr] md:gap-8" aria-labelledby="contribute-projects">
+          <div className="grid content-start gap-1">
+            <h2 id="contribute-projects" className="text-lg font-semibold tracking-tight">
+              Who we build for
+            </h2>
+            <p className="text-sm text-muted-foreground">OpenAct helps build software for these nonprofits and for projects that support nonprofits.</p>
           </div>
+          <dl className="grid min-w-0" data-contribute-projects="">
+            {SUPPORTED_PROJECTS.map((p) => (
+              <div key={p.name} className="grid gap-1 border-b py-2.5 last:border-b-0 sm:grid-cols-[12rem_1fr] sm:gap-5">
+                <dt className="text-sm font-medium">
+                  {p.url ? (
+                    <a href={p.url} target="_blank" rel="noreferrer" className="underline decoration-border underline-offset-4 hover:decoration-foreground">
+                      {p.name}
+                    </a>
+                  ) : (
+                    p.name
+                  )}
+                </dt>
+                <dd className="text-sm text-muted-foreground">{p.description}</dd>
+              </div>
+            ))}
+          </dl>
         </section>
 
         {thanksCard && (
           <Alert data-contribute-thanks="">
             <Icon name="heart" />
             <AlertTitle>Thank you for your contribution</AlertTitle>
-            <AlertDescription>Your card payment went through Stripe. Most of your contribution is donated to the Lyra Music Foundation.</AlertDescription>
+            <AlertDescription>Your card payment went through Stripe. It helps us keep building OpenAct.</AlertDescription>
           </Alert>
         )}
 
