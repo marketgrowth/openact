@@ -5,7 +5,7 @@ import { CUSTOM_EVENTS, EventType, UI_TOOLS, type AguiEvent, type Interrupt, typ
 import { APPROVAL_TTL_MINUTES, BACKEND_TOOLS, BACKEND_TOOL_NAMES, atLeast, effectiveLevel, needsApproval, parsePolicy, toolAllowedByPolicy, toolsForLevel } from "../shared/agent-policy";
 import { requireRole, visibleProjectIds } from "./data";
 import { fromAguiMessages, type AgentMsg, type ToolCall, type ToolDef } from "./agent/messages";
-import { runModel } from "./agent/model";
+import { aiSetup, runModel } from "./agent/model";
 import { isFollowUp, messageToCheck, scopeAction, scopeReply, scopeRule, scopeSummary } from "./agent/scope";
 import { checkScope } from "./agent/scope-run";
 import { hybridSearch } from "./search";
@@ -129,6 +129,9 @@ aguiRoutes.post("/:id/agent", async (c) => {
       await send({ type: EventType.RUN_STARTED, threadId, runId });
       await send({ type: EventType.CUSTOM, name: CUSTOM_EVENTS.AGENT_LEVEL, value: { level } });
       const snap = await loadSnapshot(env, projectId);
+      const companyId = (await env.DB.prepare("SELECT company_id FROM projects WHERE id = ?").bind(projectId).first<{ company_id: string | null }>())?.company_id ?? null;
+      // The company's own AI when an owner set one, or the deploy default.
+      const ai = await aiSetup(env, companyId);
       const msgs: AgentMsg[] = [...history];
       const tasks = await env.DB.prepare(
         "SELECT t.id, t.title, t.column_id, t.status, t.priority, t.phase, t.start_date, t.end_date, u.name AS assignee_name FROM tasks t LEFT JOIN users u ON u.id = t.assignee_id WHERE t.project_id = ? ORDER BY t.start_date"
@@ -142,10 +145,9 @@ aguiRoutes.post("/:id/agent", async (c) => {
       if (toCheck && !isFollowUp(toCheck, !!lastReply)) {
         await send({ type: EventType.STEP_STARTED, stepName: "check_scope" });
         // Only projects this person can see in the same company.
-        const companyRow = await env.DB.prepare("SELECT company_id FROM projects WHERE id = ?").bind(projectId).first<{ company_id: string | null }>();
-        const visible = companyRow?.company_id ? await visibleProjectIds(env, companyRow.company_id, user.id) : [];
+        const visible = companyId ? await visibleProjectIds(env, companyId, user.id) : [];
         const others = { results: visible.filter((p) => p.id !== projectId).slice(0, 30).map((p) => ({ id: p.id, name: p.name })) };
-        const { decision, decider } = await checkScope(env, {
+        const { decision, decider } = await checkScope(env, ai, {
           projectName: snap.projectName,
           projectDescription: policyRow?.description ?? "",
           columns: [...snap.columns.values()].sort((a, b) => a.position - b.position).map((col) => col.name),
@@ -232,7 +234,6 @@ aguiRoutes.post("/:id/agent", async (c) => {
       let hidden = 0;
       if (tasks.results.length > PROMPT_TASK_LIMIT) {
         const lastUser = [...history].reverse().find((m) => m.role === "user")?.content ?? "";
-        const companyId = (await env.DB.prepare("SELECT company_id FROM projects WHERE id = ?").bind(projectId).first<{ company_id: string | null }>())?.company_id;
         const relevant =
           companyId && lastUser.trim().length >= 2
             ? (await hybridSearch(env, { companyId, visible: new Set([projectId]), projectId, query: lastUser.slice(0, 200), includeNotes: policy.readNotes, limit: 40 })).results.map((r) => r.taskId)
@@ -250,7 +251,7 @@ aguiRoutes.post("/:id/agent", async (c) => {
 
       for (let step = 0; step < MAX_STEPS; step++) {
         await send({ type: EventType.STEP_STARTED, stepName: "think" });
-        const out = await runModel(env, msgs, tools);
+        const out = await runModel(env, ai, msgs, tools);
         await send({ type: EventType.STEP_FINISHED, stepName: "think" });
 
         const messageId = newId();

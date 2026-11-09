@@ -23,7 +23,8 @@ import { accessGrantedEmail, accessRequestEmail, sendEmail } from "./email";
 import { reindexProjectStatement } from "./search";
 import { markProjectChanged } from "./live";
 import { changeMemberRole, defaultColumnStatements, inviteMember, removeMember } from "./services";
-import { HttpError, addDays, appUrl, newId, nowIso, oneOf, readJson, requireAppOn, requirePermission, requireUser, text, todayIso } from "./util";
+import { HttpError, addDays, appUrl, companyAiChoice, newId, nowIso, oneOf, readJson, requireAppOn, requirePermission, requireUser, text, todayIso } from "./util";
+import { aiModelLabel } from "@openact/core/shared";
 
 export const projectRoutes = new Hono<AppEnv>();
 
@@ -201,12 +202,14 @@ export async function loadProject(env: Env, projectId: string, role: Role): Prom
     | undefined;
   if (!pr) throw new HttpError(404, "This project does not exist.");
   const aiPolicy = parsePolicy(pr.ai_policy);
+  const ai = await companyAiChoice(env, pr.company_id);
   return {
     project: { id: pr.id, name: pr.name, description: pr.description, color: pr.color, companyId: pr.company_id, visibility: pr.visibility, rev: pr.rev, createdAt: pr.created_at, updatedAt: pr.updated_at },
     role,
     columns: (columns.results as unknown as Parameters<typeof toColumn>[0][]).map(toColumn),
     aiPolicy,
     agentLevel: effectiveLevel(role, aiPolicy),
+    aiLabel: ai.source === "company" ? `${aiModelLabel(ai.model)} (company key)` : ai.provider,
     members: (members.results as Array<{ user_id: string; email: string; name: string; role: Role }>).map(
       (m): Member => ({ userId: m.user_id, email: m.email, name: m.name, role: m.role })
     ),

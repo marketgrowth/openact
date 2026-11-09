@@ -8,6 +8,7 @@ import { liveChanges } from "./live";
 import { HttpError, appName } from "./util";
 import { setApps, type ServerApp } from "./apps";
 import { companyAppRoutes } from "./company-apps";
+import { companyAiRoutes } from "./company-ai";
 import { getCatalog, setCatalog, type AppInfo } from "./permissions";
 import { loadSite, siteLogo, siteMiddleware, siteRoutes } from "./site";
 import { accountRoutes } from "./account";
@@ -76,6 +77,7 @@ export function createWorker({ apps, catalog }: { apps: ServerApp[]; catalog?: A
   app.route("/api/site", siteRoutes);
   app.route("/api/companies", companyRoutes);
   app.route("/api/companies", companyAppRoutes);
+  app.route("/api/companies", companyAiRoutes);
   for (const a of apps) a.routes?.(app);
 
   app.get("/api/health", (c) => c.json({ ok: true }));

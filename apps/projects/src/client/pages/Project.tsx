@@ -570,7 +570,7 @@ export function ProjectPage({ projectId, view, me, config }: { projectId: string
           <AiDialog
             projectId={projectId}
             canEdit={canEdit}
-            provider={config.aiProvider}
+            provider={data.aiLabel || config.aiProvider}
             agent={agent}
             level={data.agentLevel}
             initialQuestion={aiDraft}

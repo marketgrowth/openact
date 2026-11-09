@@ -1,5 +1,5 @@
 import type { Env } from "../env";
-import { agentProvider, runModel } from "./model";
+import { runModel, type AiSetup } from "./model";
 import { devScriptedScope, parseScopeDecision, scopePrompt, type ScopeDecision, type ScopeInput } from "./scope";
 import { DEFAULT_JEV_MODEL, buildJevRequest, decideScope, type JevAnswers } from "./scope-jev";
 
@@ -20,9 +20,9 @@ export interface ScopeResult {
 const PASS: ScopeDecision = { route: "project", topic: "" };
 const JEV_TIMEOUT_MS = 3000;
 
-export function scopeDecider(env: Env): "jev" | "dev-scripted" | "llm" {
+export function scopeDecider(env: Env, setup: AiSetup): "jev" | "dev-scripted" | "llm" {
   if ((env.TYPESAFE_API_KEY || "").trim()) return "jev";
-  return agentProvider(env) === "dev-scripted" ? "dev-scripted" : "llm";
+  return setup.provider === "dev-scripted" ? "dev-scripted" : "llm";
 }
 
 async function runJev(env: Env, input: ScopeInput): Promise<ScopeResult> {
@@ -44,16 +44,16 @@ async function runJev(env: Env, input: ScopeInput): Promise<ScopeResult> {
   return { decision: decideScope(body.answers, options), decider: body.model || request.model };
 }
 
-async function runLlm(env: Env, input: ScopeInput): Promise<ScopeResult> {
-  const out = await runModel(env, scopePrompt(input), [], 120, "scope");
+async function runLlm(env: Env, setup: AiSetup, input: ScopeInput): Promise<ScopeResult> {
+  const out = await runModel(env, setup, scopePrompt(input), [], 120, "scope");
   return { decision: parseScopeDecision(out.text, input.otherProjects), decider: "llm" };
 }
 
-export async function checkScope(env: Env, input: ScopeInput): Promise<ScopeResult> {
-  const kind = scopeDecider(env);
+export async function checkScope(env: Env, setup: AiSetup, input: ScopeInput): Promise<ScopeResult> {
+  const kind = scopeDecider(env, setup);
   if (kind === "dev-scripted") return { decision: devScriptedScope(input.message, input.otherProjects), decider: "dev-scripted" };
   try {
-    return kind === "jev" ? await runJev(env, input) : await runLlm(env, input);
+    return kind === "jev" ? await runJev(env, input) : await runLlm(env, setup, input);
   } catch (err) {
     console.warn("[openact] The scope check failed, so the request went to the agent:", err);
     return { decision: PASS, decider: "failed" };

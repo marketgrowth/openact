@@ -90,7 +90,7 @@ Set these under `vars` in `wrangler.jsonc`, or in the Cloudflare dashboard.
 | `EMAIL_FROM` | `OpenAct <no-reply@example.com>` | The sender address. The domain must be verified in Resend. |
 | `SIGNUP_MODE` | `open` | `open`: anyone can sign up. `invite`: only invited people can sign up. |
 | `ALLOWED_EMAIL_DOMAINS` | empty | A comma-separated list of domains that can sign up, for example `example.com,example.org` |
-| `AI_PROVIDER` | `workers-ai` | `workers-ai`, `anthropic` or `openai` |
+| `AI_PROVIDER` | `workers-ai` | `workers-ai`, `anthropic` or `openai`. This is the deploy default. A company owner can choose Claude with their own key. Read [The AI provider of a company](companies.md#the-ai-provider-of-a-company). |
 | `AI_MODEL` | `@cf/meta/llama-3.3-70b-instruct-fp8-fast` | The model ID for the provider |
 | `AI_EMBED_MODEL` | `@cf/baai/bge-base-en-v1.5` | The Workers AI model for search embeddings. It must make 768-dimension vectors. |
 | `AI_SCOPE_MODEL` | (empty) | A small, fast model for the topic check. Empty uses `@cf/meta/llama-3.1-8b-instruct-fast`, `claude-haiku-5-5` or `gpt-4.1-mini`, by provider. |
@@ -104,7 +104,7 @@ Set these secrets with `npx wrangler secret put NAME`:
 | Secret | Needed | What it does |
 | --- | --- | --- |
 | `RESEND_API_KEY` | Yes | Sends sign-in codes and invitations |
-| `AUTH_SECRET` | Yes | Protects stored sign-in codes. Use 32 or more random characters. |
+| `AUTH_SECRET` | Yes | Protects stored sign-in codes and the encrypted AI keys of companies. Use 32 or more random characters. If you change it, company owners must paste their AI keys again. |
 | `ANTHROPIC_API_KEY` | For `anthropic` | Anthropic API key, sent through AI Gateway |
 | `OPENAI_API_KEY` | For `openai` | OpenAI API key, sent through AI Gateway |
 | `AI_GATEWAY_TOKEN` | No | Needed only if your AI Gateway uses authentication |
