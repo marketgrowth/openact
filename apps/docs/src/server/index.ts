@@ -1,5 +1,5 @@
-import { DAILY_CRON, defineServerApp, deletePrefix, registerRoomKind, type Env } from "@openact/core/server";
-import { DOC_ROOM, LIBRARY_ROOM, docsRoutes } from "./routes";
+import { DAILY_CRON, HttpError, defineServerApp, deletePrefix, nowIso, registerRoomKind, type Env } from "@openact/core/server";
+import { DOC_ROOM, LIBRARY_ROOM, aiEnabled, docsRoutes } from "./routes";
 import { shareImage, sharePage } from "./share";
 
 /*
@@ -60,6 +60,11 @@ export default defineServerApp({
       label: "Share docs with a link",
       description: "Make a link that anyone can open without signing in, or turn it off.",
       roles: ["owner", "admin", "member"]
+    },
+    "docs.ai": {
+      label: "Use AI writing help",
+      description: "Send selected doc text to the company's AI to improve, shorten, translate or continue it. A company owner or admin must turn AI on first.",
+      roles: ["owner", "admin", "member"]
     }
   },
   routes: (app) => {
@@ -72,6 +77,18 @@ export default defineServerApp({
     if (cron === DAILY_CRON) await cleanOrphanFiles(env);
   },
   hooks: {
+    // Company settings, on the Docs tab.
+    companyDetail: async (env, companyId) => ({ docsAi: await aiEnabled(env, companyId) }),
+    companyUpdate: async (env, companyId, body) => {
+      if (body.docsAi === undefined) return false;
+      if (typeof body.docsAi !== "boolean") throw new HttpError(400, "AI writing help must be on or off.");
+      await env.DB.prepare(
+        "INSERT INTO docs_settings (company_id, ai_enabled, updated_at) VALUES (?, ?, ?) ON CONFLICT (company_id) DO UPDATE SET ai_enabled = excluded.ai_enabled, updated_at = excluded.updated_at"
+      )
+        .bind(companyId, body.docsAi ? 1 : 0, nowIso())
+        .run();
+      return true;
+    },
     companyDeleting: async (env, companyId) => {
       await deletePrefix(env.FILES, `docs/${companyId}/`);
       await env.DB.batch([
@@ -80,7 +97,8 @@ export default defineServerApp({
         env.DB.prepare("DELETE FROM docs_folders WHERE company_id = ?").bind(companyId),
         env.DB.prepare("DELETE FROM docs_categories WHERE company_id = ?").bind(companyId),
         env.DB.prepare("DELETE FROM docs_tags WHERE company_id = ?").bind(companyId),
-        env.DB.prepare("DELETE FROM docs_library WHERE company_id = ?").bind(companyId)
+        env.DB.prepare("DELETE FROM docs_library WHERE company_id = ?").bind(companyId),
+        env.DB.prepare("DELETE FROM docs_settings WHERE company_id = ?").bind(companyId)
       ]);
     }
   }

@@ -21,6 +21,23 @@ Choose **Page** to set the paper size (Letter, A4 or Legal), the orientation and
 
 Images must be PNG, JPEG, WebP or GIF files, up to 5 MB.
 
+## AI writing help
+
+Select text in a doc, then choose **AI** on the toolbar. Choose what the AI should do:
+
+- Improve writing, Fix spelling and grammar, Make shorter, Make longer, Summarize
+- Simplify: rewrites the text in Simplified Technical English (ASD-STE100) with American spelling
+- Change tone: professional, friendly, confident, casual or direct
+- Translate into one of 13 languages
+- Ask AI: type your own instruction
+- Continue writing: writes one or two paragraphs after the cursor. It needs no selection.
+
+The answer streams into a preview. Your doc does not change until you choose **Replace selection**, **Insert below** or **Insert**. Choose **Try again** for another answer.
+
+AI writing help is off until a company owner or admin turns it on, because it sends doc text to the AI. To turn it on, open **Company settings**, then the **Docs** tab. It sends only the selected text and up to 1,500 characters before and after it. For Continue writing, it sends the text before the cursor.
+
+Docs uses the company's AI provider: the company's own key when an owner set one on the AI provider tab, or the deploy default. Requests go through Cloudflare AI Gateway. For local tests without AI, set `AI_PROVIDER` to `dev-scripted`.
+
 ## Organize the library
 
 Docs gives you three ways to sort docs. Use them together.
@@ -41,7 +58,7 @@ To file a doc, open it and choose its folder, category and tags in the bar above
 
 ## Who can do what
 
-Docs belong to the company. Docs has four permissions. A company owner or admin can change who has them in Company settings, under Permissions.
+Docs belong to the company. Docs has five permissions. A company owner or admin can change who has them in Company settings, under Permissions.
 
 | Permission | What it allows | Default roles |
 | --- | --- | --- |
@@ -49,6 +66,7 @@ Docs belong to the company. Docs has four permissions. A company owner or admin 
 | Write docs | Make, change and delete docs, add images, file docs in folders and categories, and tag them | Owner, admin, member |
 | Organize the library | Make, rename, move and delete folders and categories, and rename or delete tags | Owner, admin |
 | Share docs with a link | Make a share link, or turn it off | Owner, admin, member |
+| Use AI writing help | Send selected text to the company's AI, when the company turned AI on | Owner, admin, member |
 
 Guests do not see Docs. Every member who can see docs sees every doc in the company.
 

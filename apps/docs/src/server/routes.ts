@@ -49,6 +49,8 @@ import {
   type Tag
 } from "../shared/types";
 import { paperHeaders, paperPageHtml } from "./page-html";
+import { AiRequestError, buildPrompt, readAiRequest } from "../shared/ai";
+import { aiSetup, startAiStream } from "./ai";
 
 /*
  * The Docs API, under /api/apps/docs.
@@ -58,6 +60,7 @@ import { paperHeaders, paperPageHtml } from "./page-html";
  *   docs.edit      make, change and delete docs, and tag them
  *   docs.organize  make, rename, move and delete folders, categories and tags
  *   docs.share     make and turn off share links
+ *   docs.ai        use AI writing help, when the company turned it on
  */
 
 export const DOC_ROOM = "docs-doc";
@@ -167,6 +170,18 @@ async function docTagIds(env: Env, docId: string): Promise<string[]> {
 
 export const docsRoutes = new Hono<AppEnv>();
 
+/** True when a company owner or admin turned on AI writing help in Docs. Off by default. */
+export async function aiEnabled(env: Env, companyId: string): Promise<boolean> {
+  try {
+    const row = await env.DB.prepare("SELECT ai_enabled FROM docs_settings WHERE company_id = ?").bind(companyId).first<{ ai_enabled: number }>();
+    return row?.ai_enabled === 1;
+  } catch (e) {
+    // Before migration docs_0002 runs, AI stays off.
+    if (/no such table/i.test(String(e))) return false;
+    throw e;
+  }
+}
+
 /* The library: folders, categories, tags and doc summaries of one company */
 
 docsRoutes.get("/companies/:companyId/library", async (c) => {
@@ -262,12 +277,14 @@ docsRoutes.get("/docs/:id", async (c) => {
   const user = requireUser(c);
   const doc = await loadDoc(c.env, c.req.param("id"));
   await requirePermission(c.env, doc.company_id, user.id, "docs.view");
-  const [who, canEdit, canShare, shared, tagIds] = await Promise.all([
+  const [who, canEdit, canShare, shared, tagIds, canAi, aiOn] = await Promise.all([
     doc.updated_by ? c.env.DB.prepare("SELECT name, email FROM users WHERE id = ?").bind(doc.updated_by).first<{ name: string; email: string }>() : null,
     hasPermission(c.env, doc.company_id, user.id, "docs.edit"),
     hasPermission(c.env, doc.company_id, user.id, "docs.share"),
     c.env.DB.prepare("SELECT 1 AS x FROM docs_shares WHERE doc_id = ?").bind(doc.id).first(),
-    docTagIds(c.env, doc.id)
+    docTagIds(c.env, doc.id),
+    hasPermission(c.env, doc.company_id, user.id, "docs.ai"),
+    aiEnabled(c.env, doc.company_id)
   ]);
   const detail: DocDetail = {
     id: doc.id,
@@ -286,7 +303,8 @@ docsRoutes.get("/docs/:id", async (c) => {
     canEdit,
     canShare,
     shareUrl: canShare && shared ? await shareUrl(c, doc.id) : null,
-    shared: !!shared
+    shared: !!shared,
+    ai: !aiOn ? "off" : canEdit && canAi ? "on" : "no_permission"
   };
   return c.json(detail);
 });
@@ -695,4 +713,50 @@ docsRoutes.get("/docs/:id/live", async (c) => {
   const doc = await loadDoc(c.env, c.req.param("id"));
   await requirePermission(c.env, doc.company_id, user.id, "docs.view");
   return acceptLive(c, DOC_ROOM, doc.id, { userId: user.id, name: user.name || user.email.split("@")[0]! }, doc.rev);
+});
+
+/* AI writing help */
+
+/**
+ * Streams AI text for a selection. Body: { action, text, before?, after?, tone?, language?, prompt? }
+ * The answer is server-sent events: "data: {"t": "..."}" for each part, then "event: done", or "event: error".
+ * The web app shows the text as a preview. Nothing changes in the doc until the person accepts it.
+ */
+docsRoutes.post("/docs/:id/ai", async (c) => {
+  const user = requireUser(c);
+  const doc = await loadDoc(c.env, c.req.param("id"));
+  await requirePermission(c.env, doc.company_id, user.id, "docs.edit");
+  await requirePermission(c.env, doc.company_id, user.id, "docs.ai");
+  if (!(await aiEnabled(c.env, doc.company_id)))
+    throw new HttpError(
+      403,
+      "AI writing help is off for this company. A company owner or admin can turn it on in Company settings, on the Docs tab.",
+      "ai_off"
+    );
+  let req;
+  try {
+    req = readAiRequest(await readJson(c));
+  } catch (e) {
+    if (e instanceof AiRequestError) throw new HttpError(400, e.message);
+    throw e;
+  }
+  const setup = await aiSetup(c.env, doc.company_id);
+  const label = req.action === "translate" ? req.language : req.action === "tone" ? req.tone : req.action;
+  const parts = await startAiStream(c.env, setup, buildPrompt(req), `[${label}] ${req.text}`);
+  const enc = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    async start(ctrl) {
+      try {
+        for await (const t of parts) ctrl.enqueue(enc.encode(`data: ${JSON.stringify({ t })}\n\n`));
+        ctrl.enqueue(enc.encode("event: done\ndata: {}\n\n"));
+      } catch (e) {
+        console.error("[openact] docs AI stream failed:", e);
+        ctrl.enqueue(enc.encode(`event: error\ndata: ${JSON.stringify({ message: "The AI stopped before it finished. Try again." })}\n\n`));
+      }
+      ctrl.close();
+    }
+  });
+  return new Response(stream, {
+    headers: { "Content-Type": "text/event-stream; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" }
+  });
 });
