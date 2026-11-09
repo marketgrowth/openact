@@ -112,6 +112,15 @@ Set these secrets with `npx wrangler secret put NAME`:
 
 The first person to sign in can always make an account, even in `invite` mode. An invitation always lets that email sign up, even when `ALLOWED_EMAIL_DOMAINS` does not include its domain.
 
+## Durable Objects
+
+`wrangler.jsonc` binds two Durable Object classes. Wrangler makes them on the first deploy.
+
+| Binding | Class | What it does |
+| --- | --- | --- |
+| `PROJECT_ROOMS` | `ProjectRoom` | Live updates for projects and docs lists. Without it, pages check for changes every few seconds. |
+| `DOCS_ROOMS` | `DocsRoom` | Live editing in Docs. Without it, Docs saves the usual way. |
+
 ## Site name, logo and apps
 
 A super admin sets the name and logo that everyone on the site sees, and can turn an app off for the whole site.

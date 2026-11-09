@@ -51,6 +51,7 @@ import {
 import { paperHeaders, paperPageHtml } from "./page-html";
 import { AiRequestError, buildPrompt, readAiRequest } from "../shared/ai";
 import { aiSetup, startAiStream } from "./ai";
+import type { DocsEnv } from "./room";
 
 /*
  * The Docs API, under /api/apps/docs.
@@ -306,6 +307,7 @@ docsRoutes.get("/docs/:id", async (c) => {
     shareUrl: canShare && shared ? await shareUrl(c, doc.id) : null,
     shared: !!shared,
     canComment,
+    collab: !!(c.env as DocsEnv).DOCS_ROOMS,
     ai: !aiOn ? "off" : canEdit && canAi ? "on" : "no_permission"
   };
   return c.json(detail);
@@ -328,8 +330,10 @@ docsRoutes.patch("/docs/:id", async (c) => {
   const doc = await loadDoc(c.env, c.req.param("id"));
   await requirePermission(c.env, doc.company_id, user.id, "docs.edit");
   const body = await readJson(c);
-  if (typeof body.baseRev !== "number") throw new HttpError(400, "baseRev is required. Load the doc again, then save.");
-  if (body.baseRev !== doc.rev)
+  // Only content needs the rev check. The title and page settings can change while someone writes, for example in live editing.
+  const checkRev = body.content !== undefined;
+  if (checkRev && typeof body.baseRev !== "number") throw new HttpError(400, "baseRev is required. Load the doc again, then save.");
+  if (checkRev && body.baseRev !== doc.rev)
     throw new HttpError(409, "Someone else saved this doc after you opened it. Load their version, then make your change again.", "conflict");
 
   const sets: string[] = [];
@@ -359,19 +363,22 @@ docsRoutes.patch("/docs/:id", async (c) => {
 
   const iso = nowIso();
   const stmts = [
-    c.env.DB.prepare(`UPDATE docs_docs SET ${sets.join(", ")}, rev = rev + 1, updated_by = ?, updated_at = ? WHERE id = ? AND rev = ?`).bind(
-      ...binds,
-      user.id,
-      iso,
-      doc.id,
-      doc.rev
-    ),
+    checkRev
+      ? c.env.DB.prepare(`UPDATE docs_docs SET ${sets.join(", ")}, rev = rev + 1, updated_by = ?, updated_at = ? WHERE id = ? AND rev = ?`).bind(
+          ...binds,
+          user.id,
+          iso,
+          doc.id,
+          doc.rev
+        )
+      : c.env.DB.prepare(`UPDATE docs_docs SET ${sets.join(", ")}, updated_by = ?, updated_at = ? WHERE id = ?`).bind(...binds, user.id, iso, doc.id),
     // The library lists titles and edit times, so every save refreshes open lists.
     bumpLibrary(c.env, doc.company_id)
   ];
   const res = await c.env.DB.batch(stmts);
   if (!res[0]!.meta.changes)
     throw new HttpError(409, "Someone else saved this doc at the same moment. Load their version, then make your change again.", "conflict");
+  if (!checkRev) return c.json({ rev: doc.rev, updatedAt: iso });
   markChanged(DOC_ROOM, doc.id);
   return c.json({ rev: doc.rev + 1, updatedAt: iso });
 });
@@ -761,4 +768,30 @@ docsRoutes.post("/docs/:id/ai", async (c) => {
   return new Response(stream, {
     headers: { "Content-Type": "text/event-stream; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" }
   });
+});
+
+/* Live editing */
+
+/**
+ * Opens the live editing connection of a doc: /api/apps/docs/collab/<doc id> with Upgrade: websocket.
+ * The y-websocket client in the browser connects here. Viewers get a read-only connection.
+ */
+docsRoutes.get("/collab/:id", async (c) => {
+  const user = requireUser(c);
+  if (c.req.header("upgrade")?.toLowerCase() !== "websocket") throw new HttpError(426, "Open this address with a WebSocket.");
+  // Browsers send cookies with WebSocket requests from any site, so check the Origin before anything else.
+  const origin = c.req.header("origin");
+  if (!origin || origin !== new URL(c.req.url).origin) throw new HttpError(403, "Cross-site WebSocket requests are not allowed.");
+  const rooms = (c.env as DocsEnv).DOCS_ROOMS;
+  if (!rooms) throw new HttpError(501, "Live editing is not set up on this deploy. Docs saves changes the usual way.");
+  const doc = await loadDoc(c.env, c.req.param("id"));
+  await requirePermission(c.env, doc.company_id, user.id, "docs.view");
+  const canEdit = await hasPermission(c.env, doc.company_id, user.id, "docs.edit");
+  const headers = new Headers(c.req.raw.headers);
+  headers.set("x-openact-user", user.id);
+  headers.set("x-openact-name", encodeURIComponent(user.name || user.email.split("@")[0]!));
+  headers.set("x-openact-can-edit", canEdit ? "1" : "0");
+  headers.set("x-openact-doc", doc.id);
+  headers.set("x-openact-company", doc.company_id);
+  return rooms.get(rooms.idFromName(doc.id)).fetch(new Request(c.req.raw.url, { method: "GET", headers }));
 });
