@@ -19,6 +19,8 @@
   },
   "include": [
     "src/worker.ts",
+    "src/server",
+    "src/shared",
     ".openact/server.ts",
     "packages/core/src",
     "apps/*/src/server",

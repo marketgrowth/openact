@@ -52,7 +52,7 @@ export default defineConfig({
           { text: "AG-UI agent protocol", link: "/reference/ag-ui" }
         ]
       },
-      { text: "About", items: [{ text: "Colophon", link: "/colophon" }] }
+      { text: "About", items: [{ text: "Contributions", link: "/contribute" }, { text: "Colophon", link: "/colophon" }] }
     ],
     socialLinks: [{ icon: "github", link: "https://github.com/marketgrowth/openact" }],
     editLink: { pattern: "https://github.com/marketgrowth/openact/edit/main/docs/:path", text: "Edit this page on GitHub" },

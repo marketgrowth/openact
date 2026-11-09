@@ -44,6 +44,7 @@ Read the documentation at [docs.openact.app](https://docs.openact.app).
 - **Apps.** OpenAct is a core plus apps. The core gives every app sign-in, people, companies, roles, live updates and the web shell. Project management is the first app. Add more from GitHub with one command: `npm run openact -- add github:owner/repo`. See [docs/apps.md](docs/apps.md).
 - **Built with shadcn/ui.** The web app uses [shadcn/ui](https://ui.shadcn.com) components, [Tailwind CSS](https://tailwindcss.com) and [Lucide](https://lucide.dev) icons, with the layout of shadcn's dashboard-01 block. Most React developers and coding agents already know these parts.
 - **Live updates.** When someone changes a project, every open page updates at once, including changes made by the AI agent. The header shows who else is viewing. Each project has a Durable Object that holds its WebSockets, and idle connections hibernate, so they cost almost nothing. If live updates are not available, pages check for changes every 5 seconds.
+- **Contributions.** A public page at `/contribute` lets people help pay for OpenAct, by card through Stripe Checkout or in USDC through [x402](https://www.x402.org). AI agents can pay the same x402 endpoint. Most of each contribution is donated to the Lyra Music Foundation, which uses OpenAct to teach music and theater to young adults. The heart icon sits on top of the Colophon icon in the app rail. See [docs/contribute.md](docs/contribute.md).
 
 ## Screenshots
 
@@ -253,7 +254,7 @@ apps/projects/         The projects app
   src/client/            Projects page, board, timeline, calendar, task panel, AI agent, search
   src/shared/            Project types, access rules, agent policy, AG-UI types
   migrations/            New database changes for this app
-src/                   The host: the Worker entry, the web app entry, and the colophon
+src/                   The host: the Worker entry, the web app entry, the contribute page and the colophon
 openact.apps.json      The installed apps, in order
 scripts/openact.mjs    Adds, updates and removes apps, and writes .openact/ (npm run sync)
 test/                  Unit tests and the search pipeline test
@@ -318,6 +319,8 @@ The check controls focus and cost. It is not a security control. Roles, the AI p
 ## Contribute
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md). To report a security problem, read [SECURITY.md](SECURITY.md).
+
+To help pay for OpenAct, open `/contribute` on any OpenAct deploy. Most of each contribution is donated to the Lyra Music Foundation. See [docs/contribute.md](docs/contribute.md).
 
 ## License
 

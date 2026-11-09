@@ -10,12 +10,14 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronsUpDown,
+  CreditCard,
   Clock,
   Download,
   Ellipsis,
   ExternalLink,
   FileText,
   Flag,
+  Heart,
   FolderKanban,
   Lock,
   LogOut,
@@ -39,6 +41,7 @@ import {
   UserRoundSearch,
   Users,
   Video,
+  Wallet,
   X,
   LayoutGrid,
   Send,
@@ -97,7 +100,10 @@ const ICONS: Record<string, LucideIcon> = {
   box: Package,
   apps: LayoutGrid,
   send: Send,
-  history: History
+  history: History,
+  heart: Heart,
+  card: CreditCard,
+  wallet: Wallet
 };
 
 export function Icon({ name, size = 16, className }: { name: keyof typeof ICONS | string; size?: number; className?: string }) {

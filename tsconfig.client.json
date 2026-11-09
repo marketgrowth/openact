@@ -20,6 +20,7 @@
   },
   "include": [
     "src/client",
+    "src/shared",
     ".openact/client.tsx",
     "packages/ui/src",
     "packages/core/src/shared",
