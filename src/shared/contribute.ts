@@ -2,14 +2,28 @@
  * Contributions: rules shared by the Worker and the web app.
  *
  * People pay by card through Stripe Checkout, or in USDC through x402 v2.
- * Most of each contribution is donated to the Lyra Music Foundation. The foundation uses OpenAct
- * to build agentic software that teaches music and theater to young adults.
+ * Contributions help build OpenAct.
  */
 
-export const BENEFICIARY = "Lyra Music Foundation";
+export interface SupportedProject {
+  name: string;
+  url?: string;
+  description: string;
+}
 
-/** The foundation's fiscal sponsor. */
-export const FISCAL_SPONSOR = { name: "The Hack Foundation", url: "https://hackclub.com/", ein: "81-2908499" } as const;
+/** Nonprofits, and projects that support nonprofits, that OpenAct helps build software for. */
+export const SUPPORTED_PROJECTS: SupportedProject[] = [
+  {
+    name: "Lyra Music Foundation",
+    description:
+      "A nonprofit. It uses OpenAct to build agentic software that teaches music and theater to young adults around the world. The Hack Foundation is its fiscal sponsor."
+  },
+  {
+    name: "Mission:Told",
+    url: "https://missiontold.com",
+    description: "A digital media publication. It tells the stories of mission-focused leaders, volunteers and impact builders."
+  }
+];
 
 /** The smallest and the largest contribution, in US dollars. */
 export const MIN_USD = 1;
@@ -22,7 +36,6 @@ export type Frequency = "once" | "monthly";
 
 /** What the page needs to know. The Worker sends it from GET /api/apps/site/contribute. */
 export interface ContributeOptions {
-  beneficiary: string;
   /** True when Stripe Checkout is set up. */
   card: boolean;
   /** Set when x402 payments are set up. */

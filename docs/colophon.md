@@ -25,7 +25,7 @@ The app shows the same page at `/colophon`. Keep the two in step with `package.j
 | Note search | Owners can let the agent search task notes. It gets only short parts, with email addresses and phone numbers hidden. |
 | Sign-in | No passwords. People sign in with a 6-digit email code. |
 | Themes and phones | Light, dark, or follow the system. On a phone, the rail and the panel open as one sheet. |
-| Contribute | A public page at /contribute. People help pay for OpenAct by card (Stripe) or in USDC (x402). Most of each contribution is donated to the Lyra Music Foundation. |
+| Contribute | A public page at /contribute. People help pay for OpenAct by card (Stripe) or in USDC (x402). |
 | Keyboard | Ctrl+K or Cmd+K opens search. Ctrl+B or Cmd+B opens and closes the app panel. |
 
 ## Build log

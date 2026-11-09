@@ -1,7 +1,6 @@
 import { HttpError, appUrl, defineServerApp, oneOf, readJson, type AppEnv, type Env } from "@openact/core/server";
 import type { Context } from "hono";
 import {
-  BENEFICIARY,
   X402_NETWORKS,
   decodeHeader,
   encodeHeader,
@@ -77,7 +76,7 @@ async function startCheckout(c: Context<AppEnv>, cents: number, frequency: "once
     "line_items[0][price_data][currency]": "usd",
     "line_items[0][price_data][unit_amount]": String(cents),
     "line_items[0][price_data][product_data][name]": `${monthly ? "Monthly contribution" : "Contribution"} to OpenAct`,
-    "line_items[0][price_data][product_data][description]": `Helps build OpenAct. Most of it is donated to the ${BENEFICIARY}.`,
+    "line_items[0][price_data][product_data][description]": "Helps build OpenAct, the open source framework for agentic business apps.",
     success_url: `${base}/contribute?thanks=card`,
     cancel_url: `${base}/contribute`,
     "metadata[source]": "openact-contribute",
@@ -87,7 +86,7 @@ async function startCheckout(c: Context<AppEnv>, cents: number, frequency: "once
     form.set("line_items[0][price_data][recurring][interval]", "month");
     form.set("subscription_data[metadata][source]", "openact-contribute");
   } else {
-    form.set("submit_type", "donate");
+    form.set("submit_type", "pay");
     form.set("payment_intent_data[metadata][source]", "openact-contribute");
   }
   const headers: Record<string, string> = { Authorization: `Bearer ${key}`, "Content-Type": "application/x-www-form-urlencoded" };
@@ -139,7 +138,7 @@ async function x402(c: Context<AppEnv>) {
     const body: PaymentRequired = {
       x402Version: 2,
       error,
-      resource: { url: resourceUrl, description: `A ${formatUsd(cents)} contribution to OpenAct. Most of it is donated to the ${BENEFICIARY}.`, mimeType: "application/json" },
+      resource: { url: resourceUrl, description: `A ${formatUsd(cents)} contribution to help build OpenAct.`, mimeType: "application/json" },
       accepts: [req]
     };
     c.header("PAYMENT-REQUIRED", encodeHeader(body));
@@ -165,7 +164,7 @@ async function x402(c: Context<AppEnv>) {
   c.header("PAYMENT-RESPONSE", encodeHeader(settled));
   return c.json({
     ok: true,
-    message: `Thank you for your ${formatUsd(cents)} contribution. Most of it is donated to the ${BENEFICIARY}.`,
+    message: `Thank you for your ${formatUsd(cents)} contribution. It helps build OpenAct.`,
     amount: formatUsd(cents),
     network: settled.network || req.network,
     payer: settled.payer,
@@ -182,7 +181,6 @@ export const siteServer = defineServerApp({
       const env = envOf(c);
       const setup = cryptoSetup(env);
       const options: ContributeOptions = {
-        beneficiary: BENEFICIARY,
         card: !!(env.STRIPE_SECRET_KEY || "").trim(),
         crypto: setup
           ? {
