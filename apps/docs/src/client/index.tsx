@@ -17,6 +17,7 @@ import { NewDocDialog } from "./library-dialogs";
  */
 
 const DocPage = lazy(() => import("./DocEditor").then((m) => ({ default: m.DocPage })));
+const DocsSettingsTab = lazy(() => import("./SettingsTab").then((m) => ({ default: m.DocsSettingsTab })));
 
 const library = (view: View) => <LibraryPage key={JSON.stringify(view)} view={view} />;
 
@@ -45,5 +46,6 @@ export default defineClientApp({
     { label: "Not in a folder", icon: "inbox", path: `${DOCS_HOME}/unfiled` }
   ],
   SidebarSection: DocsSection,
-  commands: [{ id: "docs.new", label: "New doc", icon: "plus", inSidebar: true, Dialog: NewDoc }]
+  commands: [{ id: "docs.new", label: "New doc", icon: "plus", inSidebar: true, Dialog: NewDoc }],
+  companySettingsTabs: [{ id: "docs", label: "Docs", Tab: ({ detail, onChanged }) => <DocsSettingsTab detail={detail} onChanged={onChanged} /> }]
 });

@@ -26,6 +26,7 @@ import {
 import { PageBreak } from "./page-break";
 import { DeleteDialog, LinkDialog, ShareDialog } from "./dialogs";
 import { CategorySelect, FolderSelect, TagInput } from "./library-dialogs";
+import { AiDialog, AiMenu, type AiChoice } from "./ai";
 import { DOCS_HOME, useDocs } from "./state";
 import { contentCss, MARGIN_LABELS, PAGE_SIZE_LABELS, pageBox, paginate } from "../shared/page";
 import {
@@ -176,6 +177,7 @@ function LoadedDoc({ initial }: { initial: DocDetail }) {
   const [remoteChanged, setRemoteChanged] = useState(false);
   const [gone, setGone] = useState(false);
   const [dialog, setDialog] = useState<null | "share" | "link" | "delete">(null);
+  const [aiChoice, setAiChoice] = useState<AiChoice | null>(null);
   const [layout, setLayout] = useState<{ pages: number; words: number; markers: Array<{ top: number; page: number }> }>({ pages: 1, words: 0, markers: [] });
   const canEdit = initial.canEdit && !gone;
   const box = useMemo(() => pageBox(settings), [settings]);
@@ -568,7 +570,14 @@ ${contentCss(".doc-paper .ProseMirror")}
             </Notice>
           )}
 
-          {canEdit && editor && <Toolbar editor={editor} onLink={() => setDialog("link")} onImage={() => fileInput.current?.click()} />}
+          {canEdit && editor && (
+            <Toolbar
+              editor={editor}
+              onLink={() => setDialog("link")}
+              onImage={() => fileInput.current?.click()}
+              ai={initial.ai === "no_permission" ? null : { status: initial.ai, onChoose: setAiChoice }}
+            />
+          )}
           <input
             ref={fileInput}
             type="file"
@@ -620,6 +629,7 @@ ${contentCss(".doc-paper .ProseMirror")}
               onClose={() => setDialog(null)}
             />
           )}
+          {aiChoice && editor && <AiDialog editor={editor} docId={id} choice={aiChoice} onClose={() => setAiChoice(null)} />}
           {dialog === "link" && editor && (
             <LinkDialog
               current={(editor.getAttributes("link").href as string | undefined) ?? ""}
@@ -748,7 +758,17 @@ function Tool({
 const Group = ({ children }: { children: ReactNode }) => <div className="flex items-center gap-0.5">{children}</div>;
 const Divider = () => <Separator orientation="vertical" className="mx-1 data-[orientation=vertical]:h-5" />;
 
-function Toolbar({ editor, onLink, onImage }: { editor: Editor; onLink: () => void; onImage: () => void }) {
+function Toolbar({
+  editor,
+  onLink,
+  onImage,
+  ai
+}: {
+  editor: Editor;
+  onLink: () => void;
+  onImage: () => void;
+  ai: { status: "on" | "off"; onChoose: (c: AiChoice) => void } | null;
+}) {
   const s = useEditorState({
     editor,
     selector: ({ editor: e }) => ({
@@ -823,6 +843,12 @@ function Toolbar({ editor, onLink, onImage }: { editor: Editor; onLink: () => vo
         <Tool label="Line" icon="rule" onClick={() => c().setHorizontalRule().run()} />
         <Tool label="Page break" icon="pagebreak" onClick={() => c().setPageBreak().run()} shortcut={`${mod}Enter`} />
       </Group>
+      {ai && (
+        <>
+          <Divider />
+          <AiMenu editor={editor} status={ai.status} onChoose={ai.onChoose} />
+        </>
+      )}
     </div>
   );
 }
