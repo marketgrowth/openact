@@ -3,6 +3,9 @@ import { DOC_ROOM, LIBRARY_ROOM, aiEnabled, docsRoutes } from "./routes";
 import { shareImage, sharePage } from "./share";
 import { COMMENTS_ROOM, commentRoutes } from "./comments";
 
+// Durable Object classes must be exported from the app's server file. npm run sync exports them from the Worker.
+export { DocsRoom } from "./room";
+
 /*
  * The Docs app: a company library of paper-size documents, in folders, with categories and tags.
  * A doc can have a share link that needs no account, and anyone can print it or save it as a PDF.

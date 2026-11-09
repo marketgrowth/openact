@@ -33,10 +33,17 @@
   ],
 
   // Live updates: one Durable Object per project holds its open WebSockets.
+  // Docs live editing: one Durable Object per doc holds the shared doc and its editors. Without DOCS_ROOMS, Docs saves the usual way.
   "durable_objects": {
-    "bindings": [{ "name": "PROJECT_ROOMS", "class_name": "ProjectRoom" }]
+    "bindings": [
+      { "name": "PROJECT_ROOMS", "class_name": "ProjectRoom" },
+      { "name": "DOCS_ROOMS", "class_name": "DocsRoom" }
+    ]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ProjectRoom"] }],
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["ProjectRoom"] },
+    { "tag": "v2", "new_sqlite_classes": ["DocsRoom"] }
+  ],
 
   // Search by meaning. Create the index once with: npm run search:setup
   // 768 dimensions, cosine, for @cf/baai/bge-base-en-v1.5.

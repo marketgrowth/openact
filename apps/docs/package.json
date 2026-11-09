@@ -13,12 +13,17 @@
     "name": "Docs",
     "server": "./src/server/index.ts",
     "client": "./src/client/index.tsx",
-    "migrations": "./migrations"
+    "migrations": "./migrations",
+    "durableObjects": [
+      "DocsRoom"
+    ]
   },
   "dependencies": {
     "@openact/core": "0.2.0",
     "@openact/ui": "0.2.0",
     "@tiptap/core": "^3.33.0",
+    "@tiptap/extension-collaboration": "^3.33.0",
+    "@tiptap/extension-collaboration-caret": "^3.33.0",
     "@tiptap/extension-details": "^3.33.0",
     "@tiptap/extension-image": "^3.33.0",
     "@tiptap/extension-list": "^3.33.0",
@@ -28,7 +33,13 @@
     "@tiptap/pm": "^3.33.0",
     "@tiptap/react": "^3.33.0",
     "@tiptap/starter-kit": "^3.33.0",
+    "@tiptap/y-tiptap": "^3.2.0",
     "hono": "^4.13.16",
-    "react": "^19.3.1"
+    "lib0": "^0.2.119",
+    "react": "^19.3.1",
+    "y-indexeddb": "^9.0.12",
+    "y-protocols": "^1.0.7",
+    "y-websocket": "^3.1.0",
+    "yjs": "^13.6.33"
   }
 }

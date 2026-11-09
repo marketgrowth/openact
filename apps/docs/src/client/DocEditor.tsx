@@ -1,12 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { EditorContent, useEditor, useEditorState, type Editor } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import { TaskItem, TaskList } from "@tiptap/extension-list";
-import { TableKit } from "@tiptap/extension-table";
-import { Details, DetailsContent, DetailsSummary } from "@tiptap/extension-details";
-import Image from "@tiptap/extension-image";
-import TextAlign from "@tiptap/extension-text-align";
 import { Placeholder } from "@tiptap/extensions";
+import { docExtensions } from "../shared/schema";
+import { forgetLocalCopy, useCollab, type Collab } from "./collab";
 import { ApiError, api, errorText, fmtDateTime, Icon, Link, navigate, Notice, PageBody, SiteHeader, useLive, useShell, useToast } from "@openact/ui";
 import { Button } from "@openact/ui/components/button";
 import { Badge } from "@openact/ui/components/badge";
@@ -23,11 +19,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@openact/ui/components/dropdown-menu";
-import { PageBreak } from "./page-break";
 import { DeleteDialog, LinkDialog, ShareDialog } from "./dialogs";
 import { CategorySelect, FolderSelect, TagInput } from "./library-dialogs";
 import { AiDialog, AiMenu, type AiChoice } from "./ai";
-import { CommentMark } from "./comment-mark";
 import { CommentsPanel, NewThreadDialog, commentCss, useComments } from "./comments";
 import { DOCS_HOME, useDocs } from "./state";
 import { contentCss, MARGIN_LABELS, PAGE_SIZE_LABELS, pageBox, paginate } from "../shared/page";
@@ -288,29 +282,22 @@ function LoadedDoc({ initial }: { initial: DocDetail }) {
 
   /* The editor */
 
+  // Live editing, when the deploy has it. The shared doc then holds the content, and the room saves it.
+  const collab = useCollab(initial.id, initial.collab, { id: me?.id ?? "", name: me?.name || me?.email?.split("@")[0] || "Someone" });
+
   const editor = useEditor({
     editable: initial.canEdit,
     shouldRerenderOnTransaction: false,
     immediatelyRender: true,
     extensions: [
-      StarterKit.configure({
-        heading: { levels: [1, 2, 3, 4] },
-        link: { openOnClick: false, autolink: true, defaultProtocol: "https", HTMLAttributes: { rel: "noopener noreferrer nofollow", target: "_blank" } }
-      }),
-      TaskList,
-      TaskItem.configure({ nested: true }),
-      TableKit.configure({ table: { resizable: true } }),
-      Details.configure({ persist: true }),
-      DetailsSummary,
-      DetailsContent,
-      Image.configure({ allowBase64: false }),
-      TextAlign.configure({ types: ["heading", "paragraph"] }),
-      Placeholder.configure({ placeholder: initial.canEdit ? "Start writing…" : "" }),
-      PageBreak,
-      CommentMark
+      ...docExtensions({ collab: !!collab }),
+      ...(collab ? collab.extensions : []),
+      Placeholder.configure({ placeholder: initial.canEdit ? "Start writing…" : "" })
     ],
-    content: initial.content,
-    onUpdate: () => queue(null),
+    content: collab ? undefined : initial.content,
+    onUpdate: () => {
+      if (!collab) queue(null);
+    },
     editorProps: {
       // A click on commented text opens its thread.
       handleClick: (_view, _pos, event) => {
@@ -414,7 +401,14 @@ function LoadedDoc({ initial }: { initial: DocDetail }) {
     },
     [reload]
   );
-  const live = useLive(`/api/apps/docs/docs/${encodeURIComponent(id)}/live`, !gone, onRev);
+  const live = useLive(`/api/apps/docs/docs/${encodeURIComponent(id)}/live`, !gone && !collab, onRev);
+
+  // Live editing closed for good: the doc was deleted, or access was removed.
+  useEffect(() => {
+    if (!collab?.closed) return;
+    setGone(true);
+    setSaveError(collab.closed);
+  }, [collab?.closed]);
 
   // After our own save, a newer rev from the room means someone else saved too.
   useEffect(() => {
@@ -423,7 +417,7 @@ function LoadedDoc({ initial }: { initial: DocDetail }) {
 
   // Without live updates, check the rev now and then.
   useEffect(() => {
-    if (live.connected || gone) return;
+    if (live.connected || gone || collab) return;
     const t = window.setInterval(async () => {
       if (document.visibilityState !== "visible") return;
       try {
@@ -482,6 +476,7 @@ function LoadedDoc({ initial }: { initial: DocDetail }) {
       pending.current = {};
       contentDirty.current = false;
       await api(`/api/apps/docs/docs/${id}`, { method: "DELETE" });
+      void forgetLocalCopy(id);
       toast("The doc is deleted.");
       navigate(initial.folderId ? `${DOCS_HOME}/f/${initial.folderId}` : DOCS_HOME);
     } catch (e) {
@@ -489,7 +484,7 @@ function LoadedDoc({ initial }: { initial: DocDetail }) {
     }
   };
 
-  const others = live.viewers.filter((v) => v.userId !== me?.id);
+  const others = collab ? collab.peers : live.viewers.filter((v) => v.userId !== me?.id);
 
   /* Styles for the sheet. Colors come from theme tokens. */
   const css = useMemo(
@@ -512,6 +507,9 @@ ${contentCss(".doc-paper .ProseMirror")}
 .doc-paper [data-type="details"] > div{flex:1;min-width:0}
 .doc-paper [data-type="details"] summary{display:block;font-weight:600;list-style:none}
 .doc-paper [data-type="detailsContent"]{margin-top:.4em}
+.doc-paper .collaboration-carets__caret{position:relative;margin:0 -1px;border-left:1px solid;border-right:1px solid;pointer-events:none;word-break:normal}
+.doc-paper .collaboration-carets__label{position:absolute;top:-1.45em;left:-1px;padding:1px 5px;border-radius:3px 3px 3px 0;color:var(--paper);font-family:var(--font-sans);font-size:11px;font-weight:600;line-height:normal;white-space:nowrap;user-select:none}
+.doc-paper .ProseMirror-yjs-selection{opacity:.35}
 `,
     [box.contentHeight, box.margin]
   );
@@ -519,7 +517,7 @@ ${contentCss(".doc-paper .ProseMirror")}
   return (
     <>
       <SiteHeader title={<Trail folderId={initial.folderId} />}>
-        <SaveStatus status={status} savedAt={savedAt} error={saveError} canEdit={canEdit} onRetry={() => void flush()} />
+        <SaveStatus status={status} savedAt={savedAt} error={saveError} canEdit={canEdit} onRetry={() => void flush()} collab={collab} />
         {others.length > 0 && (
           <Badge variant="outline" className="hidden md:inline-flex" title={others.map((v) => v.name).join(", ")}>
             {others.length === 1 ? `${others[0]!.name} is here` : `${others.length} others are here`}
@@ -727,14 +725,35 @@ function SaveStatus({
   savedAt,
   error,
   canEdit,
-  onRetry
+  onRetry,
+  collab
 }: {
   status: Status;
   savedAt: string;
   error: string | null;
   canEdit: boolean;
   onRetry: () => void;
+  collab: Collab | null;
 }) {
+  // With live editing, the room saves the content. Show the connection, unless a title or page setting is still saving.
+  if (collab && !collab.closed && (status === "saved" || !canEdit)) {
+    const label =
+      collab.status === "live"
+        ? canEdit
+          ? "Live. Changes save on their own."
+          : "Live"
+        : collab.status === "connecting"
+          ? "Connecting…"
+          : canEdit
+            ? "Offline. Changes stay on this device and sync when you are back."
+            : "Offline";
+    return (
+      <span className="flex items-center gap-1.5 text-xs text-muted-foreground" role="status" aria-live="polite" data-collab-status={collab.status}>
+        <span className={`size-2 rounded-full ${collab.status === "live" ? "bg-[color:var(--pc-teal)]" : "bg-muted-foreground/50"}`} aria-hidden="true" />
+        <span className="hidden max-w-64 truncate md:inline">{label}</span>
+      </span>
+    );
+  }
   if (!canEdit) return <span className="text-xs text-muted-foreground">Edited {fmtDateTime(savedAt)}</span>;
   if (status === "error")
     return (

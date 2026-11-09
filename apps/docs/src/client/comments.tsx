@@ -4,7 +4,7 @@ import { api, ApiError, Avatar, ConfirmButton, errorText, fmtDateTime, Icon, Lin
 import { Button } from "@openact/ui/components/button";
 import { Textarea } from "@openact/ui/components/textarea";
 import { COMMENT_MAX, cleanQuote, type DocThread, type ThreadList } from "../shared/comments";
-import { removeThreadMark, threadHasText } from "./comment-mark";
+import { removeThreadMark, threadHasText } from "../shared/comment-mark";
 
 /*
  * Comments: the state of a doc's threads, the side panel, and the dialog that starts a thread on selected text.
