@@ -109,7 +109,7 @@ function RailApp({ app, apps, active, onPick }: { app: ClientApp; apps: readonly
 }
 
 /** A divider between groups of rail icons. */
-const RailDivider = () => <SidebarSeparator className="mx-1.5 my-2 w-auto" data-rail-divider="" />;
+const RailDivider = () => <SidebarSeparator className="mx-auto my-2 data-[orientation=horizontal]:w-5" data-rail-divider="" />;
 
 /*
  * The left side panel has two columns.
