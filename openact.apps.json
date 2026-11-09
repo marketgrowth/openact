@@ -5,6 +5,11 @@
       "id": "projects",
       "path": "apps/projects",
       "source": "local"
+    },
+    {
+      "id": "docs",
+      "path": "apps/docs",
+      "source": "local"
     }
   ]
 }

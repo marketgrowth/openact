@@ -2,9 +2,9 @@
 
 **All The World's A Stage**
 
-OpenAct is an open source framework for agentic business apps on Cloudflare. It comes with a Projects app. Add more apps from the app directory, or build your own.
+OpenAct is an open source framework for agentic business apps on Cloudflare. It comes with a Projects app and a Docs app. Add more apps from the app directory, or build your own.
 
-- **A suite of apps.** Projects is ready now, with Kanban, Gantt and calendar views, an AI agent and search. Official apps for time tracking, contacts, events, support and more are under review in the [app directory](https://docs.openact.app/directory).
+- **A suite of apps.** Projects is ready now, with Kanban, Gantt and calendar views, an AI agent and search. Docs is a company library of paper-size documents. Official apps for time tracking, contacts, events, support and more are under review in the [app directory](https://docs.openact.app/directory).
 - **A framework for your own apps.** Sign-in, companies, roles, permissions, live updates, email, files and the app shell are ready. Your app adds only its own features.
 - **Agents that know their limits.** The Projects agent acts for a person and never does more than their role allows. Risky changes wait for approval.
 - **Cloudflare from end to end.** Workers, D1, R2, Durable Objects, Vectorize and Workers AI, on your own account.
@@ -33,6 +33,7 @@ Read the documentation at [docs.openact.app](https://docs.openact.app).
 - **Roles.** In a project, owners manage people and settings, editors change tasks, and viewers only look. In a company, owners and admins manage the company, members see company projects, and guests see only the projects they are invited to.
 - **Sign-in without passwords.** People type their email and get a 6-digit code. [Resend](https://resend.com) sends the email.
 - **File attachments.** Attach files up to 25 MB to a task. Files go to R2.
+- **Docs.** A company library of rich text docs on pages the size of Letter, A4 or Legal paper. Sort docs into folders up to 5 levels deep, give each a category, and add tags. Share a doc with a link that needs no account, or print it to PDF. The pages on screen match the printed pages. A super admin can turn Docs off for the whole site. Read [docs/docs-app.md](docs/docs-app.md).
 - **AI agent with role-based access.** Tell the agent what to do in plain words: "Move the late tasks to next week" or "Rename Review to QA". The agent acts for you and never has more power than your role. Owners choose how much each role may hand to the agent. Deletes, people changes and large batches wait for your approval, and every agent action is logged. Read [docs/reference/ag-ui.md](docs/reference/ag-ui.md).
 - **Search by words and by meaning.** Press Ctrl+K or Cmd+K to search every project you can see in the company. Search finds "Book the gala hall" when you type "venue". It uses [Vectorize](https://developers.cloudflare.com/vectorize/) and Workers AI embeddings, and falls back to words only when Vectorize is not set up. The task panel shows related tasks, and the agent can search big projects.
 - **Clickable links.** Web addresses in a project description or in task notes show as links that open in a new tab. OpenAct never fetches them. Only `http` and `https` links work.
@@ -254,6 +255,7 @@ apps/projects/         The projects app
   src/client/            Projects page, board, timeline, calendar, task panel, AI agent, search
   src/shared/            Project types, access rules, agent policy, AG-UI types
   migrations/            New database changes for this app
+apps/docs/             The docs app: a library of paper-size docs with folders, categories and tags, share links, print to PDF
 src/                   The host: the Worker entry, the web app entry, the contribute page and the colophon
 openact.apps.json      The installed apps, in order
 scripts/openact.mjs    Adds, updates and removes apps, and writes .openact/ (npm run sync)

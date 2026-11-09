@@ -2,6 +2,7 @@ import type { Env } from "./env";
 import { HttpError } from "./util";
 import { companyRole } from "./data";
 import { getApps } from "./apps";
+import { siteState } from "./site-state";
 import { COMPANY_ROLES, type CompanyRole } from "../shared/types";
 import { permissionApp, rolesWithPermission, type CompanyAccess, type PermissionDef } from "../shared/permissions";
 
@@ -9,7 +10,8 @@ import { permissionApp, rolesWithPermission, type CompanyAccess, type Permission
  * Apps per company, and app permissions.
  *
  * The catalog lists every installed app, also apps that have only web code.
- * A company can turn an app off. Permissions come from each server app's `permissions`.
+ * A super admin can turn an app off for the whole site. A company can turn an app off for itself.
+ * Permissions come from each server app's `permissions`.
  */
 
 export interface AppInfo {
@@ -49,6 +51,7 @@ export async function companyAppState(env: Env, companyId: string): Promise<Comp
   const byApp = new Map(rows.results.map((r) => [r.app_id, r]));
   return {
     enabled: (appId) => {
+      if (siteAppOff(appId)) return false;
       const row = byApp.get(appId);
       if (row) return row.enabled === 1;
       return catalog.find((a) => a.id === appId)?.enabledByDefault ?? true;
@@ -67,10 +70,21 @@ export async function companyAppState(env: Env, companyId: string): Promise<Comp
   };
 }
 
+/**
+ * True when a super admin turned the app off for the whole site.
+ * It reads the site settings that this isolate loaded last. siteMiddleware and the cron load them.
+ * Routes outside /api/ must call loadSite() first.
+ */
+export function siteAppOff(appId: string): boolean {
+  return !!siteState()?.appsOff.includes(appId);
+}
+
 const appName = (appId: string) => catalog.find((a) => a.id === appId)?.name ?? appId;
 
 /** The error for an app that is off in a company. Apps can throw it from their own access checks. */
 export function appOffError(appId: string): HttpError {
+  if (siteAppOff(appId))
+    return new HttpError(403, `The ${appName(appId)} app is off for this site. A super admin can turn it on in Site settings.`, "app_off");
   return new HttpError(403, `The ${appName(appId)} app is off for this company. A company owner or admin can turn it on in Company settings.`, "app_off");
 }
 

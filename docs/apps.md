@@ -111,6 +111,8 @@ export default defineServerApp({
 
 Declare what people can do in your app in `permissions`, and check it with `requirePermission()` in every route. The core stores each company's choices, and Company settings shows them. Read [Permissions](permissions.md) for the full guide.
 
+Apps that a super admin turns off in Site settings are off in every company. `requirePermission`, `requireAppOn` and `companyAppState` already count that switch. Routes outside `/api/`, such as a public link, must call `loadSite(env)` first, because only `/api/` routes load the site settings for you.
+
 Live updates: call `registerRoomKind("inventory-item", readRevisions)` once, `markChanged("inventory-item", id)` when data changes, and `acceptLive()` in a route that checks access first. Pages use `useLive()` from `@openact/ui`.
 
 ### Client side

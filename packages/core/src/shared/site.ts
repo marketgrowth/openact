@@ -1,5 +1,5 @@
 /*
- * Site settings: the name and logo of this deploy.
+ * Site settings: the name, the logo and the apps of this deploy.
  * A super admin sets them. Super admins are the emails in SUPER_ADMIN_EMAILS.
  */
 
@@ -22,6 +22,19 @@ export interface SiteSettings {
   logoUrl: string | null;
   /** True when this person is a super admin. */
   canEdit: boolean;
+  /** Super admins only: every installed app, and whether it is on for the site. An app that is off is off in every company. */
+  apps?: Array<{ id: string; name: string; enabled: boolean }>;
+}
+
+/** Reads the saved list of apps that are off for the site. Bad data counts as an empty list. */
+export function parseAppsOff(raw: string | undefined | null): string[] {
+  if (!raw) return [];
+  try {
+    const v: unknown = JSON.parse(raw);
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && /^[a-z][a-z0-9-]{1,30}$/.test(x)) : [];
+  } catch {
+    return [];
+  }
 }
 
 /** Reads a comma- or space-separated list of emails. Returns lowercase emails without blanks. */

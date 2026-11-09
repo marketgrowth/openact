@@ -85,6 +85,7 @@
     }
   },
   "dependencies": {
+    "@openact/app-docs": "0.1.0",
     "@openact/app-projects": "0.2.0",
     "@openact/core": "0.2.0",
     "@openact/ui": "0.2.0",

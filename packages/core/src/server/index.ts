@@ -5,7 +5,7 @@
 export type { AppEnv, Env } from "./env.ts";
 export * from "./util.ts";
 export { sendEmail, emailLayout, emailButton, type EmailMessage } from "./email.ts";
-export { SESSION_COOKIE, sessionMiddleware } from "./auth.ts";
+export { SESSION_COOKIE, sessionMiddleware, authSecret } from "./auth.ts";
 export { listCompanies, currentCompanyId, removeFromCompany } from "./companies.ts";
 export { companyRole, requireCompanyRole, deletePrefix } from "./data.ts";
 export {
@@ -23,6 +23,7 @@ export {
 export { defineServerApp, getApps, runHook, type ServerApp, type AppHooks } from "./apps.ts";
 export { createWorker, DAILY_CRON } from "./worker.ts";
 export { isSuperAdmin, requireSuperAdmin, loadSite } from "./site.ts";
+export { sealSecret, openSecret } from "./secret-box.ts";
 export {
   companyAi,
   companyAiChoice,
@@ -37,6 +38,7 @@ export {
   hasPermission,
   requireAppOn,
   appOffError,
+  siteAppOff,
   companyAppState,
   getCatalog,
   type AppInfo,

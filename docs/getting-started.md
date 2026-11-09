@@ -85,7 +85,7 @@ Set these under `vars` in `wrangler.jsonc`, or in the Cloudflare dashboard.
 | Name | Default | What it does |
 | --- | --- | --- |
 | `APP_NAME` | `OpenAct` | The default name in the app and in emails. A super admin can change it in Site settings. |
-| `SUPER_ADMIN_EMAILS` | empty | A comma-separated list of the emails that can change the app name and logo. Empty means nobody can. |
+| `SUPER_ADMIN_EMAILS` | empty | A comma-separated list of the emails that can change the app name, the logo and which apps are on for the site. Empty means nobody can. |
 | `APP_URL` | empty | The public URL used in email links. Empty means the URL of the request. |
 | `EMAIL_FROM` | `OpenAct <no-reply@example.com>` | The sender address. The domain must be verified in Resend. |
 | `SIGNUP_MODE` | `open` | `open`: anyone can sign up. `invite`: only invited people can sign up. |
@@ -104,7 +104,7 @@ Set these secrets with `npx wrangler secret put NAME`:
 | Secret | Needed | What it does |
 | --- | --- | --- |
 | `RESEND_API_KEY` | Yes | Sends sign-in codes and invitations |
-| `AUTH_SECRET` | Yes | Protects stored sign-in codes and the encrypted AI keys of companies. Use 32 or more random characters. If you change it, company owners must paste their AI keys again. |
+| `AUTH_SECRET` | Yes | Protects stored sign-in codes, the encrypted AI keys of companies and the saved Docs share links. Use 32 or more random characters. If you change it, company owners must paste their AI keys again. Old share links still open, but editors must make a new link to copy one again. |
 | `ANTHROPIC_API_KEY` | For `anthropic` | Anthropic API key, sent through AI Gateway |
 | `OPENAI_API_KEY` | For `openai` | OpenAI API key, sent through AI Gateway |
 | `AI_GATEWAY_TOKEN` | No | Needed only if your AI Gateway uses authentication |
@@ -112,18 +112,22 @@ Set these secrets with `npx wrangler secret put NAME`:
 
 The first person to sign in can always make an account, even in `invite` mode. An invitation always lets that email sign up, even when `ALLOWED_EMAIL_DOMAINS` does not include its domain.
 
-## Site name and logo
+## Site name, logo and apps
 
-A super admin sets the name and logo that everyone on the site sees.
+A super admin sets the name and logo that everyone on the site sees, and can turn an app off for the whole site.
 
 1. Add your email to `SUPER_ADMIN_EMAILS` in `wrangler.jsonc`, then deploy.
 2. Sign in. Open your menu at the bottom of the app rail, then choose **Site settings**.
 3. Type the app name, then choose **Save name**. Leave it empty to use `APP_NAME` again.
 4. Choose **Upload logo**. Use a PNG, JPEG or WebP image, up to 1 MB. A square image looks best.
 
+5. Under **Apps**, turn an app off to hide it in every company. Its data stays. Companies cannot turn it on again until a super admin does.
+
 The name shows on the sign-in page, in the browser tab, in the company menu and in emails. The logo shows on the sign-in page and as the browser tab icon. Without a logo, the OpenAct mark shows.
 
 A super admin is not a company role. Super admins change only the site settings. They get no access to company data.
+
+An app that is off for the site is off in every company: its pages, its API and its public links stop working. You cannot turn every app off. Keep at least one on.
 
 Each Worker keeps the settings for up to 30 seconds. After a change, other open pages show it when they load again.
 

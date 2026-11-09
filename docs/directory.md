@@ -9,7 +9,7 @@ import AppDirectory from "./.vitepress/theme/components/AppDirectory.vue";
 
 # App directory
 
-OpenAct starts with one app, Projects. Add more apps from this directory, or [build your own](apps.md). Each app gets sign-in, companies, roles, [permissions](permissions.md) and the app shell from the core.
+OpenAct starts with two apps: Projects and [Docs](docs-app.md). Add more apps from this directory, or [build your own](apps.md). Each app gets sign-in, companies, roles, [permissions](permissions.md) and the app shell from the core.
 
 Install an app by its id:
 
@@ -32,7 +32,7 @@ createClient({ apps: [...apps, site], directory: directory.apps as DirectoryApp[
 
 ## Reserved names
 
-These ids are reserved for official apps from MarketGrowth: `projects`, `timetrack`, `directory`, `profiles`, `groups`, `tasks`, `contacts`, `events`, `learn`, `workflow` and `support`. The app tool installs an app with one of these ids only from its official source.
+These ids are reserved for official apps from MarketGrowth: `projects`, `docs`, `timetrack`, `directory`, `profiles`, `groups`, `tasks`, `contacts`, `events`, `learn`, `workflow` and `support`. The app tool installs an app with one of these ids only from its official source.
 
 Some ids are reserved for OpenAct itself, because app ids become table, route and file prefixes. Examples are `core`, `api`, `admin`, `company` and `users`.
 

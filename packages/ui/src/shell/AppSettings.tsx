@@ -56,12 +56,14 @@ export function AppsTab({ companyId }: { companyId: string }) {
             <div className="grid min-w-0 flex-1 gap-0.5">
               <span className="font-medium">{a.name}</span>
               <span className="text-xs text-muted-foreground">
-                {a.permissions.length} {a.permissions.length === 1 ? "permission" : "permissions"} · {a.enabledByDefault ? "On" : "Off"} for new companies
+                {a.siteOff
+                  ? "Off for this site. A super admin can turn it on in Site settings."
+                  : `${a.permissions.length} ${a.permissions.length === 1 ? "permission" : "permissions"} · ${a.enabledByDefault ? "On" : "Off"} for new companies`}
               </span>
             </div>
             <Switch
               checked={a.enabled}
-              disabled={busy}
+              disabled={busy || a.siteOff}
               onCheckedChange={(on) => save(a.id, { enabled: on }, `${a.name} is ${on ? "on" : "off"}.`)}
               aria-label={`${a.name} app`}
             />

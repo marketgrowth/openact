@@ -1,12 +1,13 @@
 import { Hono, type Context, type MiddlewareHandler } from "hono";
 import type { AppEnv, Env } from "./env";
 import type { User } from "../shared/types";
-import { SITE_LOGO_MAX_BYTES, SITE_LOGO_TYPES, cleanSiteName, isSuperAdminEmail, siteLogoUrl, type SiteSettings } from "../shared/site";
+import { SITE_LOGO_MAX_BYTES, SITE_LOGO_TYPES, cleanSiteName, isSuperAdminEmail, parseAppsOff, siteLogoUrl, type SiteSettings } from "../shared/site";
 import { HttpError, appName, nowIso, readJson, requireUser } from "./util";
 import { setSiteState, siteState, type SiteState } from "./site-state";
+import { getCatalog } from "./permissions";
 
 /*
- * Site settings: the app name and logo of this deploy.
+ * Site settings: the app name, the logo and the apps of this deploy.
  * Super admins are the emails in SUPER_ADMIN_EMAILS. They are not a company role.
  * Each Worker isolate keeps the settings for a short time, so a change can take up to 30 seconds to show everywhere.
  */
@@ -19,11 +20,17 @@ export async function loadSite(env: Env, force = false): Promise<SiteState> {
   const now = Date.now();
   const cached = siteState();
   if (cached && !force && now - cached.at < TTL_MS) return cached;
-  let next: SiteState = { name: "", logoType: null, logoUpdatedAt: null, at: now };
+  let next: SiteState = { name: "", logoType: null, logoUpdatedAt: null, appsOff: [], at: now };
   try {
     const rows = await env.DB.prepare("SELECT key, value FROM site_settings").all<{ key: string; value: string }>();
     const m = new Map(rows.results.map((r) => [r.key, r.value]));
-    next = { name: m.get("app_name") ?? "", logoType: m.get("logo_type") ?? null, logoUpdatedAt: m.get("logo_updated_at") ?? null, at: now };
+    next = {
+      name: m.get("app_name") ?? "",
+      logoType: m.get("logo_type") ?? null,
+      logoUpdatedAt: m.get("logo_updated_at") ?? null,
+      appsOff: parseAppsOff(m.get("apps_off")),
+      at: now
+    };
   } catch (e) {
     if (!/no such table/i.test(String(e))) console.warn("[openact] Could not read the site settings", e);
   }
@@ -55,14 +62,18 @@ export function requireSuperAdmin(c: Context<AppEnv>): User {
 }
 
 function settings(c: Context<AppEnv>, s: SiteState): SiteSettings {
+  const canEdit = isSuperAdmin(c.env, c.get("user"));
   return {
     appName: appName(c.env),
     defaultName: (c.env.APP_NAME || "OpenAct").trim(),
     customName: !!s.name,
     logoUrl: siteLogo(s),
-    canEdit: isSuperAdmin(c.env, c.get("user"))
+    canEdit,
+    // Only super admins need the app switches.
+    ...(canEdit ? { apps: getCatalog().map((a) => ({ id: a.id, name: a.name, enabled: !s.appsOff.includes(a.id) })) } : {})
   };
 }
+
 
 const upsert = (env: Env, key: string, value: string, userId: string, iso: string) =>
   env.DB.prepare(
@@ -93,6 +104,26 @@ siteRoutes.patch("/", async (c) => {
   await write(c.env, [
     r.name ? upsert(c.env, "app_name", r.name, user.id, nowIso()) : c.env.DB.prepare("DELETE FROM site_settings WHERE key = 'app_name'")
   ]);
+  return c.json(settings(c, await loadSite(c.env, true)));
+});
+
+/**
+ * Turns an app on or off for the whole site. Body: { enabled: boolean }
+ * An app that is off is off in every company. Its data stays, so a super admin can turn it on again.
+ */
+siteRoutes.patch("/apps/:appId", async (c) => {
+  const user = requireSuperAdmin(c);
+  const appId = c.req.param("appId");
+  const info = getCatalog().find((a) => a.id === appId);
+  if (!info) throw new HttpError(404, "This app is not installed.");
+  const body = await readJson(c);
+  if (typeof body.enabled !== "boolean") throw new HttpError(400, "Enabled must be true or false.");
+  const s = await loadSite(c.env, true);
+  const off = new Set(s.appsOff.filter((id) => getCatalog().some((a) => a.id === id)));
+  if (body.enabled) off.delete(appId);
+  else off.add(appId);
+  if (getCatalog().every((a) => off.has(a.id))) throw new HttpError(400, "Keep at least one app on for the site. Turn on another app first.");
+  await write(c.env, [upsert(c.env, "apps_off", JSON.stringify([...off]), user.id, nowIso())]);
   return c.json(settings(c, await loadSite(c.env, true)));
 });
 

@@ -3,7 +3,7 @@ import type { AppEnv } from "./env";
 import { requireCompanyRole } from "./data";
 import { HttpError, nowIso, readJson, requireUser } from "./util";
 import { getApps } from "./apps";
-import { companyAccess, companyAppState, getCatalog } from "./permissions";
+import { companyAccess, companyAppState, getCatalog, siteAppOff } from "./permissions";
 import { COMPANY_ROLES } from "../shared/types";
 import { allowedRoles, lockedRoles, permissionRolesProblem, type CompanyAppSettings } from "../shared/permissions";
 
@@ -32,6 +32,7 @@ companyAppRoutes.get("/:id/apps", async (c) => {
       name: info.name,
       enabled: state.enabled(info.id),
       enabledByDefault: info.enabledByDefault,
+      siteOff: siteAppOff(info.id),
       permissions: Object.entries(server?.permissions ?? {}).map(([pid, def]) => ({
         id: pid,
         ...def,
@@ -57,7 +58,8 @@ companyAppRoutes.patch("/:id/apps/:appId", async (c) => {
     .bind(id, appId)
     .first<{ enabled: number; permissions: string }>();
   const state = await companyAppState(c.env, id);
-  let enabled = state.enabled(appId);
+  // The company's own choice. A super admin's site switch is separate, so it never overwrites this row.
+  let enabled = row ? row.enabled === 1 : info.enabledByDefault;
   let chosen: Record<string, string[]> = {};
   try {
     chosen = JSON.parse(row?.permissions ?? "{}");
@@ -67,6 +69,8 @@ companyAppRoutes.patch("/:id/apps/:appId", async (c) => {
 
   if (body.enabled !== undefined) {
     if (typeof body.enabled !== "boolean") throw new HttpError(400, "Enabled must be true or false.");
+    if (body.enabled && siteAppOff(appId))
+      throw new HttpError(400, `A super admin turned ${info.name} off for this site. Ask them to turn it on in Site settings first.`, "app_off");
     if (!body.enabled && enabled && getCatalog().filter((a) => a.id !== appId && state.enabled(a.id)).length === 0)
       throw new HttpError(400, "Keep at least one app on. Turn on another app first.");
     enabled = body.enabled;
