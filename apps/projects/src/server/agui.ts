@@ -4,7 +4,7 @@ import { AGENT_LEVEL_LABELS, ROLE_LABELS, STATUSES, type AgentLevel, type AiPoli
 import { CUSTOM_EVENTS, EventType, UI_TOOLS, type AguiEvent, type Interrupt, type Message, type ResumeEntry, type ScopeNotice } from "../shared/agui";
 import { APPROVAL_TTL_MINUTES, BACKEND_TOOLS, BACKEND_TOOL_NAMES, atLeast, effectiveLevel, needsApproval, parsePolicy, toolAllowedByPolicy, toolsForLevel } from "../shared/agent-policy";
 import { requireRole, visibleProjectIds } from "./data";
-import { fromAguiMessages, type AgentMsg, type ToolCall, type ToolDef } from "./agent/messages";
+import { fromAguiMessages, withToolResults, type AgentMsg, type ToolCall, type ToolDef } from "./agent/messages";
 import { aiSetup, runModel } from "./agent/model";
 import { isFollowUp, messageToCheck, scopeAction, scopeReply, scopeRule, scopeSummary } from "./agent/scope";
 import { checkScope } from "./agent/scope-run";
@@ -132,7 +132,7 @@ aguiRoutes.post("/:id/agent", async (c) => {
       const companyId = (await env.DB.prepare("SELECT company_id FROM projects WHERE id = ?").bind(projectId).first<{ company_id: string | null }>())?.company_id ?? null;
       // The company's own AI when an owner set one, or the deploy default.
       const ai = await aiSetup(env, companyId);
-      const msgs: AgentMsg[] = [...history];
+      let msgs: AgentMsg[] = [...history];
       const tasks = await env.DB.prepare(
         "SELECT t.id, t.title, t.column_id, t.status, t.priority, t.phase, t.start_date, t.end_date, u.name AS assignee_name FROM tasks t LEFT JOIN users u ON u.id = t.assignee_id WHERE t.project_id = ? ORDER BY t.start_date"
       )
@@ -189,6 +189,7 @@ aguiRoutes.post("/:id/agent", async (c) => {
       /* 1. Answer approvals from an earlier run. */
       if (resume.length) {
         await send({ type: EventType.STEP_STARTED, stepName: "apply_approvals" });
+        const decided: Array<Extract<AgentMsg, { role: "tool" }>> = [];
         for (const entry of resume) {
           const row = await env.DB.prepare("SELECT * FROM agent_actions WHERE id = ? AND project_id = ? AND user_id = ?")
             .bind(entry.interruptId, projectId, user.id)
@@ -216,10 +217,12 @@ aguiRoutes.post("/:id/agent", async (c) => {
               }
             }
             await env.DB.prepare("UPDATE agent_actions SET status = ?, result = ?, decided_at = ? WHERE id = ?").bind(status, result.slice(0, 1000), nowIso(), row.id).run();
-            msgs.push({ role: "tool", toolCallId: row.tool_call_id, name: row.tool, content: result });
+            decided.push({ role: "tool", toolCallId: row.tool_call_id, name: row.tool, content: result });
           }
           await send({ type: EventType.TOOL_CALL_RESULT, messageId: newId(), toolCallId: row?.tool_call_id ?? entry.interruptId, content: result, role: "tool" });
         }
+        // Replace the placeholder results, so each tool call has exactly one result.
+        msgs = withToolResults(msgs, decided);
         await send({ type: EventType.STEP_FINISHED, stepName: "apply_approvals" });
       }
 

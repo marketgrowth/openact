@@ -10,6 +10,7 @@ import {
   runDevScripted,
   toAnthropic,
   toOpenAi,
+  withToolResults,
   type AgentMsg
 } from "../apps/projects/src/server/agent/messages.ts";
 
@@ -83,6 +84,36 @@ test("Anthropic format pairs tool_use with tool_result", () => {
   assert.deepEqual(a.tools[0], { name: "delete_task", description: "d", input_schema: { type: "object" } });
   const out = parseAnthropic({ content: [{ type: "text", text: "OK" }, { type: "tool_use", id: "t9", name: "create_task", input: { title: "A" } }] });
   assert.deepEqual(out, { text: "OK", toolCalls: [{ id: "t9", name: "create_task", args: { title: "A" } }] });
+});
+
+test("an approved action replaces the placeholder, so each tool call has one result", () => {
+  // The web app resumes with the call in its history but no result yet.
+  const history = fromAguiMessages([
+    { id: "1", role: "user", content: "Invite ana@example.com as a viewer" },
+    { id: "2", role: "assistant", content: "", toolCalls: [{ id: "c1", type: "function", function: { name: "invite_member", arguments: '{"email":"ana@example.com","role":"viewer"}' } }] }
+  ]);
+  const msgs = withToolResults(history, [{ role: "tool", toolCallId: "c1", name: "invite_member", content: "Invited ana@example.com as Viewer." }]);
+  const results = msgs.filter((m) => m.role === "tool");
+  assert.equal(results.length, 1);
+  assert.equal((results[0] as { content: string }).content, "Invited ana@example.com as Viewer.");
+  const a = toAnthropic(msgs, []);
+  assert.deepEqual(a.messages.map((m) => m.role), ["user", "assistant", "user"]);
+  assert.deepEqual(a.messages[2].content, [{ type: "tool_result", tool_use_id: "c1", content: "Invited ana@example.com as Viewer." }]);
+  // A result for a call that is not in the history becomes plain text.
+  const late = withToolResults(history, [{ role: "tool", toolCallId: "gone", content: "Done." }]);
+  assert.deepEqual(late[late.length - 1], { role: "user", content: "(Result of an earlier action) Done." });
+});
+
+test("tool results come before orphan text in the same Anthropic turn", () => {
+  const msgs = pairToolResults([
+    { role: "user", content: "Go" },
+    { role: "assistant", content: "", toolCalls: [{ id: "c1", name: "create_task", args: {} }] },
+    { role: "tool", toolCallId: "zz", content: "Old." },
+    { role: "tool", toolCallId: "c1", content: "Created." }
+  ]);
+  const a = toAnthropic(msgs, []);
+  assert.equal(a.messages[2].content[0].type, "tool_result");
+  assert.equal(a.messages[2].content[1].type, "text");
 });
 
 test("OpenAI format uses tool_calls and tool messages", () => {
