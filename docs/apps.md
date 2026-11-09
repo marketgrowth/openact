@@ -10,7 +10,7 @@ packages/ui        @openact/ui     The web shell, the side panel, sign-in, compa
 apps/projects      @openact/app-projects   Projects, tasks, board, timeline, calendar, AI agent, task search
 apps/<your-app>    Your app
 src/               The host: the Worker entry, the web app entry, and this deploy's own pages
-openact.apps.json  The installed apps, in order
+openact.apps.json  The installed apps, in order, and the primary app
 .openact/          Files that `npm run sync` writes from openact.apps.json. Do not edit them.
 ```
 
@@ -136,12 +136,32 @@ export default defineClientApp({
 
 The side panel has two columns, like a desktop chat app:
 
-- **The app rail** on the left. It shows the company, one icon for each app, the footer items, Company settings and the person's menu. Projects is first, because it is installed first.
+- **The app rail** on the left. It shows the company, one icon for each app, the App directory, the footer items, Company settings and the person's menu. Projects is first, because it is installed first.
 - **The app panel** beside it. It shows the active app's name, its commands, its `nav` items and its `SidebarSection`. The projects app shows Pinned, Projects and Recent here.
 
 Ctrl+B or Cmd+B collapses the panel and leaves only the rail. On a phone, both columns open as one sheet.
 
 ![The app rail with Projects and an Orbytt mockup, and the Projects panel with Pinned, Projects and Recent](images/app-rail.png)
+
+### The primary app
+
+A deploy can have one primary app. Use it for the app that the deploy is for, such as a company's own app. The primary app goes at the top of the rail, above a divider. The other apps go below it, in install order. Another divider separates them from the App directory.
+
+| Primary app | The rail, from the top |
+| --- | --- |
+| None | Projects, Docs, divider, App directory |
+| `gtmmatters` | GTM Matters, divider, Projects, Docs, divider, App directory |
+
+Set it with the app tool. The command writes `"primary"` in `openact.apps.json`:
+
+```bash
+npm run openact -- primary gtmmatters
+npm run deploy
+```
+
+Run `npm run openact -- primary none` to remove it. `npm run sync` fails when `"primary"` names an app that is not installed or that has no web code. The rail shows the primary app only when it has an `icon` or a `Mark` and the company has it on. If not, the rail shows the other apps as if there is no primary app. On the Apps page, the primary app is first and has a **Primary** badge.
+
+The primary app does not change which app owns `/`. The first app with a home page still owns it.
 
 An app shows in the rail when it has an `icon` or a `Mark`. Its pages live under `/a/<id>/` by default, and the rail lights the app that owns the current page. See `examples/orbytt` for a second app with its own icon, panel and pages.
 

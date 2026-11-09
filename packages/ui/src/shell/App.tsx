@@ -5,7 +5,7 @@ import { api, errorText } from "../api";
 import { Link, navigate, usePath } from "../router";
 import { Field, Modal, ToastProvider, useToast } from "../ui";
 import { WorkspaceProvider, useWorkspace } from "../workspace";
-import { APPS_PATH, ShellContext, appHome, railApps, type ClientApp, type DirectoryApp, type Shell } from "../apps";
+import { APPS_PATH, ShellContext, appHome, railOrder, type ClientApp, type DirectoryApp, type Shell } from "../apps";
 import { SignIn } from "./SignIn";
 import { AppSidebar } from "./Sidebar";
 import { PageBody, SiteHeader } from "./SiteHeader";
@@ -24,28 +24,31 @@ const AppsPage = lazy(() => import("./AppsPage").then((m) => ({ default: m.AppsP
 /**
  * Starts the web app with the installed apps. The host's main.tsx calls it.
  * Pass `directory` (the apps from directory/apps.json) to list apps that a company can add on the Apps page.
+ * Pass `primary` (the id from "primary" in openact.apps.json) to put that app at the top of the app rail, above a divider.
  */
 export function createClient({
   apps,
   directory = [],
+  primary = null,
   root = document.getElementById("root")!
 }: {
   apps: ClientApp[];
   directory?: readonly DirectoryApp[];
+  primary?: string | null;
   root?: HTMLElement;
 }) {
   createRoot(root).render(
     <StrictMode>
-      <App apps={apps} directory={directory} />
+      <App apps={apps} directory={directory} primary={primary} />
     </StrictMode>
   );
 }
 
-export function App({ apps, directory = [] }: { apps: ClientApp[]; directory?: readonly DirectoryApp[] }) {
+export function App({ apps, directory = [], primary = null }: { apps: ClientApp[]; directory?: readonly DirectoryApp[]; primary?: string | null }) {
   return (
     <TooltipProvider delayDuration={200}>
       <ToastProvider>
-        <Root apps={apps} directory={directory} />
+        <Root apps={apps} directory={directory} primary={primary} />
       </ToastProvider>
     </TooltipProvider>
   );
@@ -63,7 +66,7 @@ function readPanelOpen(): boolean {
 
 const DEFAULT_CONFIG: AppConfig = { appName: "OpenAct", logoUrl: null, emailEnabled: true, signupMode: "open", aiProvider: "workers-ai", apps: [] };
 
-function Root({ apps, directory }: { apps: ClientApp[]; directory: readonly DirectoryApp[] }) {
+function Root({ apps, directory, primary }: { apps: ClientApp[]; directory: readonly DirectoryApp[]; primary: string | null }) {
   const path = usePath();
   const [me, setMe] = useState<User | null | undefined>(undefined);
   const [config, setConfig] = useState<AppConfig>(DEFAULT_CONFIG);
@@ -86,7 +89,10 @@ function Root({ apps, directory }: { apps: ClientApp[]; directory: readonly Dire
   const onSite = useCallback((s: SiteSettings) => setConfig((c) => ({ ...c, appName: s.appName, logoUrl: s.logoUrl })), []);
 
   const noop = useCallback(() => {}, []);
-  const publicShell = useMemo<Shell>(() => ({ me: me ?? null, config, apps, directory, open: noop, runCommand: noop }), [me, config, apps, directory, noop]);
+  const publicShell = useMemo<Shell>(
+    () => ({ me: me ?? null, config, apps, primary, directory, open: noop, runCommand: noop }),
+    [me, config, apps, primary, directory, noop]
+  );
 
   // Pages that work without sign-in, such as the colophon.
   for (const app of apps) {
@@ -104,7 +110,7 @@ function Root({ apps, directory }: { apps: ClientApp[]; directory: readonly Dire
   if (!me) return <SignIn config={config} onSignedIn={setMe} />;
   return (
     <WorkspaceProvider key={me.id}>
-      <SignedIn me={me} config={config} apps={apps} directory={directory} onMe={setMe} onSite={onSite} />
+      <SignedIn me={me} config={config} apps={apps} primary={primary} directory={directory} onMe={setMe} onSite={onSite} />
     </WorkspaceProvider>
   );
 }
@@ -128,6 +134,7 @@ function SignedIn({
   me,
   config,
   apps,
+  primary,
   directory,
   onMe,
   onSite
@@ -135,6 +142,7 @@ function SignedIn({
   me: User;
   config: AppConfig;
   apps: ClientApp[];
+  primary: string | null;
   directory: readonly DirectoryApp[];
   onMe: (u: User | null) => void;
   onSite: (s: SiteSettings) => void;
@@ -189,8 +197,8 @@ function SignedIn({
   );
 
   const shell = useMemo<Shell>(
-    () => ({ me, config, apps, directory, open: (d) => setDialog(d), runCommand: (id) => setDialog({ command: id }) }),
-    [me, config, apps, directory]
+    () => ({ me, config, apps, primary, directory, open: (d) => setDialog(d), runCommand: (id) => setDialog({ command: id }) }),
+    [me, config, apps, primary, directory]
   );
 
   // The page: the first app route that matches, or the first app's home page at "/".
@@ -207,7 +215,7 @@ function SignedIn({
   }
   if (!page && path === "/") {
     const Home = onApps.find((a) => a.Home)?.Home;
-    const first = railApps(onApps)[0];
+    const first = railOrder(onApps, primary)[0];
     if (Home) page = <Home />;
     else if (first && ws.access) page = <Redirect to={appHome(first, onApps)} />;
     else if (ws.access) page = <AppOff name="" />;
@@ -223,6 +231,7 @@ function SignedIn({
         me={me}
         appName={config.appName}
         apps={onApps}
+        primary={primary}
         onRunCommand={(id) => setDialog({ command: id })}
         onNewCompany={() => setDialog("newCompany")}
         onCompanySettings={() => setDialog("companySettings")}

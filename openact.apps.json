@@ -1,5 +1,5 @@
 {
-  "$comment": "The apps in this OpenAct, in order. The first app with a home page owns '/'. Use `npm run openact -- add|update|remove` to change this list.",
+  "$comment": "The apps in this OpenAct, in order. The first app with a home page owns '/'. Use `npm run openact -- add|update|remove` to change this list. Use `npm run openact -- primary <id>` to put one app at the top of the app rail.",
   "apps": [
     {
       "id": "projects",

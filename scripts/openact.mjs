@@ -9,6 +9,8 @@
  *   npm run openact -- add ./path/to/app            Copies an app from a folder on this computer, for example while you build it.
  *   npm run openact -- update <id>                   Copies the app again from where it came from.
  *   npm run openact -- remove <id>                   Removes the app from this OpenAct. Its tables stay in the database.
+ *   npm run openact -- primary <id>                  Makes the app the primary app. It goes at the top of the app rail, above a divider.
+ *   npm run openact -- primary none                  Removes the primary app. The rail shows the apps in install order.
  *   npm run openact -- sync                          Writes the files in .openact/ from openact.apps.json.
  *
  * An app is a folder with a package.json that has an "openact" field:
@@ -108,8 +110,20 @@ const fromOut = (p) => {
   return r.startsWith(".") ? r : `./${r}`;
 };
 
+/** Checks the "primary" field of openact.apps.json against the installed apps. Returns the id, or null. */
+function checkPrimary(reg, loaded) {
+  const id = reg.primary ?? null;
+  if (id === null) return null;
+  if (typeof id !== "string") fail('"primary" in openact.apps.json must be an app id or null.');
+  const app = loaded.find((a) => a.id === id);
+  if (!app) fail(`"primary" in openact.apps.json is "${id}", but no installed app has that id. Run \`npm run openact -- primary none\` or install the app.`);
+  if (!app.client) fail(`"primary" in openact.apps.json is "${id}", but that app has no web code, so it cannot show in the app rail.`);
+  return id;
+}
+
 function sync() {
-  const { apps } = readRegistry();
+  const reg = readRegistry();
+  const { apps } = reg;
   const seen = new Set();
   const loaded = apps.map((entry) => {
     const dir = join(ROOT, entry.path);
@@ -121,6 +135,8 @@ function sync() {
     seen.add(m.id);
     return { ...m, dir };
   });
+
+  const primary = checkPrimary(reg, loaded);
 
   rmSync(OUT, { recursive: true, force: true });
   mkdirSync(join(OUT, "migrations"), { recursive: true });
@@ -153,7 +169,8 @@ function sync() {
     header +
       `import type { ClientApp } from "@openact/ui";\n` +
       client.map((a, i) => `import app${i} from "${fromOut(join(a.dir, a.client))}";\n`).join("") +
-      `\nexport const apps: ClientApp[] = [${client.map((_, i) => `app${i}`).join(", ")}];\n`
+      `\nexport const apps: ClientApp[] = [${client.map((_, i) => `app${i}`).join(", ")}];\n` +
+      `\n/** The primary app: it goes at the top of the app rail, above a divider. Null when there is none. */\nexport const primary: string | null = ${JSON.stringify(primary)};\n`
   );
   writeFileSync(
     join(OUT, "sources.css"),
@@ -180,7 +197,10 @@ function sync() {
       count++;
     }
   }
-  console.log(`openact: ${loaded.length} ${loaded.length === 1 ? "app" : "apps"} (${loaded.map((a) => a.id).join(", ") || "none"}), ${count} migrations.`);
+  console.log(
+    `openact: ${loaded.length} ${loaded.length === 1 ? "app" : "apps"} (${loaded.map((a) => a.id).join(", ") || "none"}), ${count} migrations` +
+      (primary ? `, primary app "${primary}".` : ".")
+  );
 }
 
 /** Copies an app from GitHub into a new temporary folder. Returns the folder. */
@@ -244,9 +264,10 @@ switch (cmd) {
     sync();
     break;
   case "list": {
-    const { apps } = readRegistry();
+    const { apps, primary } = readRegistry();
     if (!apps.length) console.log("No apps are installed.");
-    for (const a of apps) console.log(`${a.id.padEnd(16)} ${a.path.padEnd(22)} ${a.source}${a.ref ? `#${a.ref}` : ""}`);
+    for (const a of apps)
+      console.log(`${a.id.padEnd(16)} ${a.path.padEnd(22)} ${a.source}${a.ref ? `#${a.ref}` : ""}${a.id === primary ? "  (primary)" : ""}`);
     break;
   }
   case "directory": {
@@ -286,13 +307,32 @@ switch (cmd) {
     const entry = reg.apps.find((a) => a.id === arg);
     if (!entry) fail(`No installed app has the id "${arg}".`);
     reg.apps = reg.apps.filter((a) => a.id !== arg);
+    if (reg.primary === arg) delete reg.primary;
     writeRegistry(reg);
     if (entry.source !== "local") rmSync(join(ROOT, entry.path), { recursive: true, force: true });
     sync();
     console.log(`openact: removed "${arg}". Its tables stay in the database, so you can add it again later without data loss.`);
     break;
   }
+  case "primary": {
+    if (!arg) fail("Say which app is the primary app, for example: npm run openact -- primary gtmmatters. Use primary none to remove it.");
+    const reg = readRegistry();
+    if (arg === "none") {
+      delete reg.primary;
+      writeRegistry(reg);
+      sync();
+      console.log("openact: no primary app. The app rail shows the apps in install order.");
+      break;
+    }
+    if (!reg.apps.some((a) => a.id === arg)) fail(`No installed app has the id "${arg}". Run npm run openact -- list.`);
+    // Keep "primary" after "$comment" and before "apps", so the file reads in order.
+    const { $comment, apps, ...rest } = reg;
+    writeRegistry({ ...($comment ? { $comment } : {}), ...rest, primary: arg, apps });
+    sync();
+    console.log(`openact: "${arg}" is the primary app. Next: npm run deploy (or npm run dev).`);
+    break;
+  }
   default:
-    console.log("Usage: npm run openact -- list | directory | add <id> | add github:owner/repo[#ref] | add ./folder | update <id> | remove <id> | sync");
+    console.log("Usage: npm run openact -- list | directory | add <id> | add github:owner/repo[#ref] | add ./folder | update <id> | remove <id> | primary <id|none> | sync");
     if (cmd) process.exit(1);
 }
