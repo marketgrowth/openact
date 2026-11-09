@@ -9,7 +9,7 @@ import type { AppConfig, CompanyDetail, User } from "@openact/core/shared";
  * installed apps, and createClient() builds the shell from them.
  */
 
-export { APPS_PATH, activeApp, appHome, appOwnsPath, railApps } from "./app-paths.ts";
+export { APPS_PATH, activeApp, appHome, appOwnsPath, railApps, railGroups, railOrder, type RailGroups } from "./app-paths.ts";
 
 export interface NavItem {
   label: string;
@@ -82,7 +82,6 @@ export function defineClientApp(app: ClientApp): ClientApp {
   return app;
 }
 
-/** What the shell shares with apps. */
 /** One entry of the app directory, from directory/apps.json. */
 export interface DirectoryApp {
   id: string;
@@ -94,10 +93,13 @@ export interface DirectoryApp {
   repo: string;
 }
 
+/** What the shell shares with apps. */
 export interface Shell {
   me: User | null;
   config: AppConfig;
   apps: readonly ClientApp[];
+  /** The id of the deploy's primary app, from "primary" in openact.apps.json. Null when there is none. */
+  primary: string | null;
   /** The app directory, for the Apps page. Empty when the host does not pass it. */
   directory: readonly DirectoryApp[];
   /** Opens a shell dialog. */

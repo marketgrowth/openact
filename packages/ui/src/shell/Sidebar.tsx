@@ -1,5 +1,5 @@
 import { COMPANY_ROLE_LABELS, type Company, type User } from "@openact/core/shared";
-import { APPS_PATH, activeApp, appHome, railApps, type ClientApp } from "../apps";
+import { APPS_PATH, activeApp, appHome, railGroups, railOrder, type ClientApp } from "../apps";
 import { canManageCompany } from "@openact/core/shared";
 import { Link, usePath } from "../router";
 import { Avatar, Icon } from "../ui";
@@ -71,6 +71,8 @@ export interface AppSidebarProps {
   me: User;
   appName: string;
   apps: readonly ClientApp[];
+  /** The id of the deploy's primary app. It sits at the top of the rail, above a divider. */
+  primary?: string | null;
   onRunCommand: (id: string) => void;
   onNewCompany: () => void;
   onCompanySettings: () => void;
@@ -93,9 +95,26 @@ export function useCloseOnPhone(): () => void {
 /** A rail tooltip shows in both states, because the rail always shows only icons. */
 const railTip = (children: string) => ({ children, hidden: false });
 
+/** One app icon in the rail. */
+function RailApp({ app, apps, active, onPick }: { app: ClientApp; apps: readonly ClientApp[]; active: boolean; onPick: () => void }) {
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton asChild tooltip={railTip(app.name)} isActive={active} className="justify-center p-0" data-app={app.id}>
+        <Link to={appHome(app, apps)} onClick={onPick} aria-label={app.name} aria-current={active ? "true" : undefined}>
+          {app.Mark ? <app.Mark className="size-4" /> : <Icon name={app.icon!} />}
+        </Link>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+}
+
+/** A divider between groups of rail icons. */
+const RailDivider = () => <SidebarSeparator className="mx-auto my-2 data-[orientation=horizontal]:w-5" data-rail-divider="" />;
+
 /*
  * The left side panel has two columns.
- * The app rail: the company, one icon per app, company settings, and the person's menu.
+ * The app rail: the company, the primary app (if the deploy has one), a divider, the other apps,
+ * a divider, the App directory, then company settings and the person's menu.
  * The app panel: the active app's name, commands, items and groups.
  * Collapsing the panel (Ctrl+B or Cmd+B) leaves only the rail.
  */
@@ -105,7 +124,8 @@ export function AppSidebar(p: AppSidebarProps) {
   const done = useCloseOnPhone();
   const current = ws.current;
   const canManage = canManageCompany(current?.role ?? null);
-  const rail = railApps(p.apps);
+  const groups = railGroups(p.apps, p.primary);
+  const rail = railOrder(p.apps, p.primary);
   // The Apps page belongs to the shell, not to an app, so no app is active there.
   const onDirectory = path === APPS_PATH;
   const active = onDirectory ? undefined : activeApp(p.apps, path);
@@ -129,18 +149,22 @@ export function AppSidebar(p: AppSidebarProps) {
           <SidebarContent>
             <SidebarGroup>
               <SidebarGroupContent>
-                <SidebarMenu aria-label="Apps">
-                  {rail.map((app) => (
-                    <SidebarMenuItem key={app.id}>
-                      <SidebarMenuButton asChild tooltip={railTip(app.name)} isActive={app === active} className="justify-center p-0" data-app={app.id}>
-                        <Link to={appHome(app, p.apps)} onClick={done} aria-label={app.name} aria-current={app === active ? "true" : undefined}>
-                          {app.Mark ? <app.Mark className="size-4" /> : <Icon name={app.icon!} />}
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-                <SidebarSeparator className="mx-1.5 my-2 w-auto" data-rail-divider="" />
+                {groups.primary && (
+                  <>
+                    <SidebarMenu aria-label="Primary app" data-rail-primary="">
+                      <RailApp app={groups.primary} apps={p.apps} active={groups.primary === active} onPick={done} />
+                    </SidebarMenu>
+                    {groups.others.length > 0 && <RailDivider />}
+                  </>
+                )}
+                {groups.others.length > 0 && (
+                  <SidebarMenu aria-label={groups.primary ? "Other apps" : "Apps"}>
+                    {groups.others.map((app) => (
+                      <RailApp key={app.id} app={app} apps={p.apps} active={app === active} onPick={done} />
+                    ))}
+                  </SidebarMenu>
+                )}
+                {rail.length > 0 && <RailDivider />}
                 <SidebarMenu>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild tooltip={railTip("App directory")} isActive={onDirectory} className="justify-center p-0" data-app-directory="">

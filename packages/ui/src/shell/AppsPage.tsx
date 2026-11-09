@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { canManageCompany } from "@openact/core/shared";
-import { railApps, useShell, type ClientApp, type DirectoryApp } from "../apps";
+import { railOrder, useShell, type ClientApp, type DirectoryApp } from "../apps";
 import { Link } from "../router";
 import { Icon, Notice, useToast } from "../ui";
 import { useWorkspace } from "../workspace";
@@ -28,11 +28,11 @@ const STATUS: Record<DirectoryApp["status"], string> = {
 };
 
 export function AppsPage() {
-  const { apps, directory } = useShell();
+  const { apps, primary, directory } = useShell();
   const ws = useWorkspace();
   const current = ws.current;
   const manager = canManageCompany(current?.role ?? null);
-  const installed = railApps(apps);
+  const installed = railOrder(apps, primary);
   const installedIds = new Set(apps.map((a) => a.id));
   const more = directory.filter((d) => !installedIds.has(d.id) && d.status !== "built-in");
   const info = (id: string) => directory.find((d) => d.id === id);
@@ -74,7 +74,7 @@ export function AppsPage() {
 /** Owners and admins see every installed app, with its switch. */
 function ManagedApps({ companyId, installed, info }: { companyId: string; installed: ClientApp[]; info: (id: string) => DirectoryApp | undefined }) {
   const { apps: settings, error, busy, save } = useCompanyApps(companyId);
-  const { apps } = useShell();
+  const { apps, primary } = useShell();
   if (error) return <Notice tone="error">{error}</Notice>;
   if (!settings) return <p className="text-sm text-muted-foreground">Loading…</p>;
   return (
@@ -88,6 +88,7 @@ function ManagedApps({ companyId, installed, info }: { companyId: string; instal
             app={app}
             summary={info(app.id)?.summary}
             on={on}
+            primary={app.id === primary}
             action={
               <>
                 {s?.siteOff && <span className="mr-auto text-xs text-muted-foreground">Off for this site</span>}
@@ -114,7 +115,7 @@ function ManagedApps({ companyId, installed, info }: { companyId: string; instal
 /** Members see the apps that are on. */
 function MemberApps({ installed, info }: { installed: ClientApp[]; info: (id: string) => DirectoryApp | undefined }) {
   const ws = useWorkspace();
-  const { apps } = useShell();
+  const { apps, primary } = useShell();
   const off = ws.access?.disabledApps ?? [];
   const shown = installed.filter((a) => !off.includes(a.id));
   if (!shown.length) return <p className="text-sm text-muted-foreground">No apps are on for this company. Ask an owner or admin.</p>;
@@ -126,6 +127,7 @@ function MemberApps({ installed, info }: { installed: ClientApp[]; info: (id: st
           app={app}
           summary={info(app.id)?.summary}
           on
+          primary={app.id === primary}
           action={
             <Button asChild size="sm" variant="outline">
               <Link to={appHome(app, apps)}>Open</Link>
@@ -137,7 +139,7 @@ function MemberApps({ installed, info }: { installed: ClientApp[]; info: (id: st
   );
 }
 
-function AppCard({ app, summary, on, action }: { app: ClientApp; summary?: string; on: boolean; action: ReactNode }) {
+function AppCard({ app, summary, on, primary, action }: { app: ClientApp; summary?: string; on: boolean; primary: boolean; action: ReactNode }) {
   return (
     <li className="flex flex-col gap-3 rounded-xl border bg-card p-4" data-installed-app={app.id}>
       <div className="flex items-center gap-3">
@@ -145,6 +147,11 @@ function AppCard({ app, summary, on, action }: { app: ClientApp; summary?: strin
           {app.Mark ? <app.Mark className="size-4" /> : <Icon name={app.icon!} />}
         </span>
         <span className="min-w-0 flex-1 truncate font-medium">{app.name}</span>
+        {primary && (
+          <Badge variant="outline" data-primary-app="">
+            Primary
+          </Badge>
+        )}
         <Badge variant={on ? "secondary" : "outline"}>{on ? "On" : "Off"}</Badge>
       </div>
       {summary && <p className="flex-1 text-sm text-muted-foreground">{summary}</p>}
