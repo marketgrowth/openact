@@ -68,6 +68,8 @@ export interface DocDetail extends PageSettings {
   shareUrl: string | null;
   /** True when the doc has a share link. Everyone who can open the doc sees this. */
   shared: boolean;
+  /** True when the person can read and write comments. */
+  canComment: boolean;
   /** AI writing help: "on", "off" for the company, or "no_permission" for this person. */
   ai: "on" | "off" | "no_permission";
 }

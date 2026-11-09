@@ -21,6 +21,18 @@ Choose **Page** to set the paper size (Letter, A4 or Legal), the orientation and
 
 Images must be PNG, JPEG, WebP or GIF files, up to 5 MB.
 
+## Comments
+
+Choose **Comments** at the top of a doc to open the comments panel.
+
+- **Comment on text:** select the text, then choose the comment button on the toolbar. The text gets a highlight. Click the highlight to open its thread.
+- **Comment on the whole doc:** type in the box at the top of the panel.
+- **Reply, resolve and reopen:** each thread has a reply box and a **Resolve** button. A resolved thread loses its highlight and moves to the resolved list. A reply reopens it.
+- **Mention someone:** type @ and choose a person. They get an email with a link to the doc. People who already wrote in a thread get an email when someone replies.
+- **Change or delete:** you can change and delete your own comments. The person who started a thread can delete it. People who can organize the library can delete any comment or thread.
+
+Comments save at once, apart from the doc's content, so they never clash with someone who is writing. Other people see new comments as they arrive. Share pages and printed pages never show comments.
+
 ## AI writing help
 
 Select text in a doc, then choose **AI** on the toolbar. Choose what the AI should do:
@@ -58,7 +70,7 @@ To file a doc, open it and choose its folder, category and tags in the bar above
 
 ## Who can do what
 
-Docs belong to the company. Docs has five permissions. A company owner or admin can change who has them in Company settings, under Permissions.
+Docs belong to the company. Docs has six permissions. A company owner or admin can change who has them in Company settings, under Permissions.
 
 | Permission | What it allows | Default roles |
 | --- | --- | --- |
@@ -66,6 +78,7 @@ Docs belong to the company. Docs has five permissions. A company owner or admin 
 | Write docs | Make, change and delete docs, add images, file docs in folders and categories, and tag them | Owner, admin, member |
 | Organize the library | Make, rename, move and delete folders and categories, and rename or delete tags | Owner, admin |
 | Share docs with a link | Make a share link, or turn it off | Owner, admin, member |
+| Comment on docs | Read comments, start threads, reply, and resolve. Starting a thread on text also needs Write docs. | Owner, admin, member |
 | Use AI writing help | Send selected text to the company's AI, when the company turned AI on | Owner, admin, member |
 
 Guests do not see Docs. Every member who can see docs sees every doc in the company.

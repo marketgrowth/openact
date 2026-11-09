@@ -277,14 +277,15 @@ docsRoutes.get("/docs/:id", async (c) => {
   const user = requireUser(c);
   const doc = await loadDoc(c.env, c.req.param("id"));
   await requirePermission(c.env, doc.company_id, user.id, "docs.view");
-  const [who, canEdit, canShare, shared, tagIds, canAi, aiOn] = await Promise.all([
+  const [who, canEdit, canShare, shared, tagIds, canAi, aiOn, canComment] = await Promise.all([
     doc.updated_by ? c.env.DB.prepare("SELECT name, email FROM users WHERE id = ?").bind(doc.updated_by).first<{ name: string; email: string }>() : null,
     hasPermission(c.env, doc.company_id, user.id, "docs.edit"),
     hasPermission(c.env, doc.company_id, user.id, "docs.share"),
     c.env.DB.prepare("SELECT 1 AS x FROM docs_shares WHERE doc_id = ?").bind(doc.id).first(),
     docTagIds(c.env, doc.id),
     hasPermission(c.env, doc.company_id, user.id, "docs.ai"),
-    aiEnabled(c.env, doc.company_id)
+    aiEnabled(c.env, doc.company_id),
+    hasPermission(c.env, doc.company_id, user.id, "docs.comment")
   ]);
   const detail: DocDetail = {
     id: doc.id,
@@ -304,6 +305,7 @@ docsRoutes.get("/docs/:id", async (c) => {
     canShare,
     shareUrl: canShare && shared ? await shareUrl(c, doc.id) : null,
     shared: !!shared,
+    canComment,
     ai: !aiOn ? "off" : canEdit && canAi ? "on" : "no_permission"
   };
   return c.json(detail);

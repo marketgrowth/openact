@@ -79,7 +79,9 @@ const MARKS: Record<string, Record<string, AttrRule>> = {
   underline: {},
   strike: {},
   code: {},
-  link: { href: safeHref }
+  link: { href: safeHref },
+  // A comment thread on this text. Several threads can cover the same text. Share and print pages never show it.
+  comment: { threadId: (v) => (typeof v === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(v) ? v : undefined) }
 };
 
 export class ContentError extends Error {}
@@ -118,9 +120,12 @@ export function sanitizeDoc(input: unknown): DocNode {
       if (Array.isArray(n.marks)) {
         const marks: NonNullable<DocNode["marks"]> = [];
         for (const m of n.marks) {
-          if (!m || typeof m !== "object" || !(m.type in MARKS) || marks.some((x) => x.type === m.type)) continue;
+          if (!m || typeof m !== "object" || !(m.type in MARKS)) continue;
           const attrs = cleanAttrs(m.attrs, MARKS[m.type]);
           if (m.type === "link" && !attrs?.href) continue;
+          if (m.type === "comment" && !attrs?.threadId) continue;
+          // One mark of each kind, but one comment mark for each thread.
+          if (marks.some((x) => x.type === m.type && (m.type !== "comment" || x.attrs?.threadId === attrs?.threadId))) continue;
           marks.push(attrs ? { type: m.type, attrs } : { type: m.type });
         }
         if (marks.length) node.marks = marks;
