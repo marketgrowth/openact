@@ -2,14 +2,18 @@ import { useEffect, useRef, useState } from "react";
 import { SITE_LOGO_MAX_BYTES, SITE_LOGO_TYPES, SITE_NAME_MAX, type SiteSettings } from "@openact/core/shared";
 import { api, errorText } from "../api";
 import { Field, Logo, Modal, useToast } from "../ui";
+import { useWorkspace } from "../workspace";
+import { Switch } from "@openact/ui/components/switch";
 import { Button } from "@openact/ui/components/button";
 import { Input } from "@openact/ui/components/input";
 import { Separator } from "@openact/ui/components/separator";
 
-/** Site settings for super admins: the app name and logo of this deploy. */
+/** Site settings for super admins: the app name, the logo and the apps of this deploy. */
 export function SiteSettingsDialog({ onSaved, onClose }: { onSaved: (s: SiteSettings) => void; onClose: () => void }) {
   const toast = useToast();
+  const ws = useWorkspace();
   const [site, setSite] = useState<SiteSettings | null>(null);
+  const [appBusy, setAppBusy] = useState(false);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const file = useRef<HTMLInputElement>(null);
@@ -59,6 +63,19 @@ export function SiteSettingsDialog({ onSaved, onClose }: { onSaved: (s: SiteSett
     }
   };
 
+  const setAppOn = async (id: string, name: string, enabled: boolean) => {
+    setAppBusy(true);
+    try {
+      apply(await api<SiteSettings>(`/api/site/apps/${encodeURIComponent(id)}`, { method: "PATCH", body: { enabled } }));
+      await ws.reloadAccess();
+      toast(enabled ? `${name} is on for the site.` : `${name} is off for the site. Other people see the change within a minute.`);
+    } catch (err) {
+      toast(errorText(err));
+    } finally {
+      setAppBusy(false);
+    }
+  };
+
   const removeLogo = async () => {
     try {
       apply(await api<SiteSettings>("/api/site/logo", { method: "DELETE" }));
@@ -69,7 +86,7 @@ export function SiteSettingsDialog({ onSaved, onClose }: { onSaved: (s: SiteSett
   };
 
   return (
-    <Modal title="Site settings" description="The name and logo that everyone on this site sees. Only super admins can change them." onClose={onClose}>
+    <Modal title="Site settings" description="The name, logo and apps that everyone on this site sees. Only super admins can change them." onClose={onClose}>
       {!site ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : (
@@ -112,6 +129,27 @@ export function SiteSettingsDialog({ onSaved, onClose }: { onSaved: (s: SiteSett
               )}
             </div>
           </Field>
+          {site.apps && site.apps.length > 0 && (
+            <>
+              <Separator />
+              <Field label="Apps" help="Turn an app off for every company on this site. An app that is off keeps its data. Companies cannot turn it on again until you do.">
+                <ul className="grid gap-2" data-site-apps="">
+                  {site.apps.map((a) => (
+                    <li key={a.id} className="flex items-center gap-3 rounded-lg border p-3" data-site-app={a.id}>
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium">{a.name}</span>
+                      <span className="text-xs text-muted-foreground">{a.enabled ? "On" : "Off"}</span>
+                      <Switch
+                        checked={a.enabled}
+                        disabled={appBusy}
+                        onCheckedChange={(on) => setAppOn(a.id, a.name, on)}
+                        aria-label={`${a.name} app for the whole site`}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </Field>
+            </>
+          )}
         </>
       )}
     </Modal>

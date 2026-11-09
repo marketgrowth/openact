@@ -39,6 +39,17 @@
       "repo": "https://github.com/marketgrowth/openact/tree/main/apps/projects"
     },
     {
+      "id": "docs",
+      "name": "Docs",
+      "summary": "A company library of paper-size docs, with folders, categories and tags. Share a doc with a link, or print it to PDF.",
+      "category": "Work",
+      "status": "built-in",
+      "publisher": "MarketGrowth",
+      "reserved": true,
+      "source": "local",
+      "repo": "https://github.com/marketgrowth/openact/tree/main/apps/docs"
+    },
+    {
       "id": "timetrack",
       "name": "TimeTrack",
       "summary": "Track time on projects and tasks. Timesheets, approvals and reports.",

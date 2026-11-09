@@ -90,6 +90,7 @@ function ManagedApps({ companyId, installed, info }: { companyId: string; instal
             on={on}
             action={
               <>
+                {s?.siteOff && <span className="mr-auto text-xs text-muted-foreground">Off for this site</span>}
                 {on && (
                   <Button asChild size="sm" variant="outline">
                     <Link to={appHome(app, apps)}>Open</Link>
@@ -97,7 +98,7 @@ function ManagedApps({ companyId, installed, info }: { companyId: string; instal
                 )}
                 <Switch
                   checked={on}
-                  disabled={busy || !s}
+                  disabled={busy || !s || s.siteOff}
                   onCheckedChange={(next) => save(app.id, { enabled: next }, `${app.name} is ${next ? "on" : "off"}.`)}
                   aria-label={`${app.name} app`}
                 />

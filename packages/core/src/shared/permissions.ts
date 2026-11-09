@@ -70,5 +70,7 @@ export interface CompanyAppSettings {
   name: string;
   enabled: boolean;
   enabledByDefault: boolean;
+  /** True when a super admin turned the app off for the whole site. A company cannot turn it on. */
+  siteOff: boolean;
   permissions: Array<PermissionDef & { id: string; current: CompanyRole[]; locked: CompanyRole[]; allowed: CompanyRole[] }>;
 }

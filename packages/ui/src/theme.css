@@ -41,6 +41,15 @@
   --brand-foreground: #ffffff;
   --brand-gold: #8a6420;
 
+  /* Docs paper. The sheet stays light in both themes, like printed paper. The desk around it follows the theme. */
+  --paper: #ffffff;
+  --paper-foreground: #1c1824;
+  --paper-muted: #6b6576;
+  --paper-border: #d9d5de;
+  --paper-soft: #f3f1f5;
+  --paper-link: #1f4fd1;
+  --desk: #ebe9ee;
+
   /* Status of a task or a column */
   --s-backlog: #8d99a9;
   --s-todo: #4a78c7;
@@ -110,6 +119,14 @@
   --brand: #ece7f2;
   --brand-foreground: #1c1824;
   --brand-gold: #e3b85c;
+
+  --paper: #fbfafc;
+  --paper-foreground: #1c1824;
+  --paper-muted: #6b6576;
+  --paper-border: #d9d5de;
+  --paper-soft: #f1eff4;
+  --paper-link: #1f4fd1;
+  --desk: #1b191f;
   --s-backlog: #7c899d;
   --s-todo: #6c9ae9;
   --s-doing: #e8a138;
@@ -178,6 +195,11 @@
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
   --color-brand-gold: var(--brand-gold);
+  --color-paper: var(--paper);
+  --color-paper-foreground: var(--paper-foreground);
+  --color-paper-muted: var(--paper-muted);
+  --color-paper-border: var(--paper-border);
+  --color-desk: var(--desk);
   --color-warn: var(--warn);
   --color-warn-foreground: var(--warn-foreground);
   --color-warn-border: var(--warn-border);

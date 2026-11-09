@@ -1,0 +1,34 @@
+{
+  "name": "@openact/app-docs",
+  "version": "0.1.0",
+  "description": "The OpenAct docs app: paper-size documents in folders, with categories, tags, a share link and print to PDF.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    "./server": "./src/server/index.ts",
+    "./client": "./src/client/index.tsx"
+  },
+  "openact": {
+    "id": "docs",
+    "name": "Docs",
+    "server": "./src/server/index.ts",
+    "client": "./src/client/index.tsx",
+    "migrations": "./migrations"
+  },
+  "dependencies": {
+    "@openact/core": "0.2.0",
+    "@openact/ui": "0.2.0",
+    "@tiptap/core": "^3.33.0",
+    "@tiptap/extension-details": "^3.33.0",
+    "@tiptap/extension-image": "^3.33.0",
+    "@tiptap/extension-list": "^3.33.0",
+    "@tiptap/extension-table": "^3.33.0",
+    "@tiptap/extension-text-align": "^3.33.0",
+    "@tiptap/extensions": "^3.33.0",
+    "@tiptap/pm": "^3.33.0",
+    "@tiptap/react": "^3.33.0",
+    "@tiptap/starter-kit": "^3.33.0",
+    "hono": "^4.13.16",
+    "react": "^19.3.1"
+  }
+}

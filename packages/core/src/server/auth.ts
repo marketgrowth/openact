@@ -40,6 +40,9 @@ function secretFor(env: Env, url: string): string {
   throw new HttpError(500, "The server is missing AUTH_SECRET. Set it with `wrangler secret put AUTH_SECRET`.");
 }
 
+/** The server secret (AUTH_SECRET) for apps that seal or sign values. Localhost runs without it. Throws 500 when it is missing. */
+export const authSecret = (env: Env, url: string): string => secretFor(env, url);
+
 const hashCode = (secret: string, email: string, code: string) => sha256Hex(`${secret}|${email}|${code}`);
 
 async function checkSignupAllowed(env: Env, email: string): Promise<void> {

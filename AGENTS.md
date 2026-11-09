@@ -27,6 +27,7 @@ OpenAct is a core plus apps. Read `docs/apps.md` before you add or move code.
 - Core migrations: `packages/core/migrations/`. Never edit a released migration.
 - Web shell and UI kit (`@openact/ui`): `packages/ui/src/`. The shell, side panel, sign-in and company settings are in `shell/`. shadcn/ui components are in `components/`. The theme is `theme.css`.
 - The projects app: `apps/projects/`. Server code in `src/server/`, web code in `src/client/`, types and rules in `src/shared/`, new migrations in `migrations/`.
+- The docs app: `apps/docs/`. A company library with folders, categories and tags. Routes check `docs.view`, `docs.edit`, `docs.organize` or `docs.share` with `requirePermission`. Doc content is cleaned by `src/shared/content.ts` on every save. Never send saved doc HTML to a browser: render from the cleaned JSON.
 - Other apps: `apps/<id>/`, listed in `openact.apps.json`.
 - The host (this deploy): `src/worker.ts`, `src/client/main.tsx` and `src/client/site.tsx` (the colophon).
 - `.openact/` is written by `npm run sync`. Never edit it.

@@ -57,7 +57,9 @@ Every app has a `package.json` with an `openact` field. The `openact` script rea
 | `requireUser(c)` | The signed-in person. Throws 401 when nobody is signed in. |
 | `requirePermission(env, companyId, userId, permission)` | Checks the company, the app switch and the role. Returns the company role. |
 | `hasPermission(env, companyId, userId, permission)` | The same check, as `true` or `false` |
-| `requireAppOn(env, companyId, appId)` | Throws 403 `app_off` when the app is off in the company |
+| `requireAppOn(env, companyId, appId)` | Throws 403 `app_off` when the app is off in the company or for the whole site |
+| `siteAppOff(appId)` | `true` when a super admin turned the app off for the whole site. Call `loadSite(env)` first in routes outside `/api/`. |
+| `loadSite(env)` | Loads the site settings, such as the site app switches. `/api/` routes and the cron load them for you. |
 | `companyAppState(env, companyId)` | `enabled(appId)` and `roles(permission)` for one company, from one query |
 | `appOffError(appId)` | The `app_off` error, for your own access checks |
 | `companyRole(env, companyId, userId)` | The person's company role, or `null` |
@@ -80,6 +82,8 @@ Every app has a `package.json` with an `openact` field. The `openact` script rea
 | `HttpError(status, message, code?)` | Throw it to send `{ "error": message, "code": code }`. Write a message that the person can act on. |
 | `newId()`, `nowIso()`, `todayIso()`, `addDays(iso, days)` | Ids and dates |
 | `sha256Hex(text)`, `randomToken()` | Hashes and tokens. Store only hashes of secrets. |
+| `authSecret(env, url)` | The server secret (`AUTH_SECRET`). Localhost runs without it. |
+| `sealSecret(secret, purpose, ownerId, value)`, `openSecret(...)` | Encrypts a short secret, such as a share token, so your app can show it again. Each `purpose` gets its own key, and `ownerId` is bound to the result. Store a hash next to it for lookups. |
 
 ### Live updates
 
