@@ -24,7 +24,7 @@ export default defineConfig({
     logo: { light: "/logo.svg", dark: "/logo-dark.svg", alt: "OpenAct" },
     siteTitle: "OpenAct",
     nav: [
-      { text: "Guide", link: "/getting-started", activeMatch: "^/(getting-started|companies|apps|permissions|docs-app)" },
+      { text: "Guide", link: "/getting-started", activeMatch: "^/(getting-started|companies|apps|permissions|docs-app|plans)" },
       { text: "App directory", link: "/directory" },
       { text: "Reference", link: "/reference/sdk", activeMatch: "^/reference/" },
       { text: "Colophon", link: "/colophon" }
@@ -34,14 +34,15 @@ export default defineConfig({
         text: "Guide",
         items: [
           { text: "Get started", link: "/getting-started" },
-          { text: "Companies and access", link: "/companies" }
+          { text: "Companies and access", link: "/companies" },
+          { text: "Plans", link: "/plans" }
         ]
       },
       {
         text: "Apps",
         items: [
           { text: "App directory", link: "/directory" },
-          { text: "Docs", link: "/docs-app" },
+          { text: "Docs (Director)", link: "/docs-app" },
           { text: "Build an app", link: "/apps" },
           { text: "Permissions", link: "/permissions" }
         ]

@@ -1,7 +1,8 @@
 import { COMPANY_ROLE_LABELS, type Company, type User } from "@openact/core/shared";
 import { APPS_PATH, activeApp, appHome, railApps, type ClientApp } from "../apps";
 import { canManageCompany } from "@openact/core/shared";
-import { Link, usePath } from "../router";
+import { Link, navigate, usePath } from "../router";
+import { PLAN_PATH } from "./Plan";
 import { Avatar, Icon } from "../ui";
 import { useWorkspace } from "../workspace";
 import { getTheme, setTheme, type ThemePref } from "../theme";
@@ -295,6 +296,11 @@ function CompanyMenu({ appName, onNewCompany, onCompanySettings, onPick, side, a
       {current && canManageCompany(current.role) && (
         <DropdownMenuItem onSelect={onCompanySettings}>
           <Icon name="gear" /> Company settings
+        </DropdownMenuItem>
+      )}
+      {current && current.role !== "guest" && (
+        <DropdownMenuItem onSelect={() => navigate(PLAN_PATH)}>
+          <Icon name="star" /> Plan
         </DropdownMenuItem>
       )}
       <DropdownMenuItem onSelect={onNewCompany}>

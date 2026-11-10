@@ -8,6 +8,7 @@
  *   - Guests never get a permission unless the app sets `guests: true`. Guests see only what someone shares with them.
  */
 import { COMPANY_ROLES, type CompanyRole } from "./types.ts";
+import type { PaidPlan, PlanId } from "./plans.ts";
 
 export interface PermissionDef {
   /** A short label for Company settings, such as "Create projects". */
@@ -58,8 +59,12 @@ export function permissionRolesProblem(def: PermissionDef, roles: unknown): stri
 /** What one person can do in their current company. GET /api/companies/:id/access */
 export interface CompanyAccess {
   role: CompanyRole;
-  /** Apps that are off in this company. Apps that are not listed are on. */
+  /** The company's plan. */
+  plan: PlanId;
+  /** Apps that are off in this company. Apps that are not listed are on. Locked apps are also off. */
   disabledApps: string[];
+  /** Apps that need a plan the company does not have. */
+  lockedApps: string[];
   /** The permissions this person has in this company. */
   permissions: string[];
 }
@@ -72,5 +77,9 @@ export interface CompanyAppSettings {
   enabledByDefault: boolean;
   /** True when a super admin turned the app off for the whole site. A company cannot turn it on. */
   siteOff: boolean;
+  /** The plan the app needs, or null when it is free. */
+  plan: PaidPlan | null;
+  /** True when the company does not have that plan. A locked app is off, and a company cannot turn it on. */
+  locked: boolean;
   permissions: Array<PermissionDef & { id: string; current: CompanyRole[]; locked: CompanyRole[]; allowed: CompanyRole[] }>;
 }

@@ -1,5 +1,5 @@
 import { createContext, useContext, type ComponentType, type ReactNode } from "react";
-import type { AppConfig, CompanyDetail, User } from "@openact/core/shared";
+import type { AppConfig, CompanyDetail, PaidPlan, User } from "@openact/core/shared";
 
 /*
  * Client side of an OpenAct app.
@@ -92,6 +92,8 @@ export interface DirectoryApp {
   status: "built-in" | "available" | "planned" | "example";
   publisher: string;
   repo: string;
+  /** The plan the app needs, such as "director". Missing: the app is free. */
+  plan?: PaidPlan;
 }
 
 export interface Shell {

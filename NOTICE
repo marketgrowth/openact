@@ -2,7 +2,19 @@ OpenAct
 Copyright 2026 MarketGrowth
 
 This product includes software developed by MarketGrowth (https://marketgrowth.io).
+
 OpenAct is licensed under the Apache License, Version 2.0. See the LICENSE file.
+This covers the core (packages/core), the UI kit (packages/ui), the Projects app
+(apps/projects), the examples and every other file, except the folders below.
+
+Paid apps have their own license:
+
+  apps/docs    OpenAct Director License 1.0. See apps/docs/LICENSE.
+               Versions released before November 10, 2026 stay under the
+               Apache License 2.0.
+
+The Docs app uses Tiptap (https://tiptap.dev), Yjs, y-protocols, y-websocket,
+y-indexeddb and lib0 (https://github.com/yjs) under the MIT License.
 
 ---
 

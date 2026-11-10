@@ -61,7 +61,9 @@ An app is a folder with a `package.json` that has an `openact` field:
 
 The `id` is 2 to 31 lowercase letters, numbers or dashes. It must be unique in a deploy. Some ids are [reserved](directory.md#reserved-names) for official apps and for OpenAct itself. For a common name, use a longer id, such as `acme-tasks`.
 
-`enabledByDefault` is optional. Set it to `false` when each company must turn the app on first, for example a paid add-on.
+`enabledByDefault` is optional. Set it to `false` when each company must turn the app on first.
+
+`plan` is optional, and only official MarketGrowth apps use it. Set it to `"director"` or `"producer"` to make a paid app. The core locks the app in companies without that plan. See [Plans](plans.md).
 
 ### Server side
 

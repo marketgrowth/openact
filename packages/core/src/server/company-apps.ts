@@ -3,7 +3,7 @@ import type { AppEnv } from "./env";
 import { requireCompanyRole } from "./data";
 import { HttpError, nowIso, readJson, requireUser } from "./util";
 import { getApps } from "./apps";
-import { companyAccess, companyAppState, getCatalog, siteAppOff } from "./permissions";
+import { companyAccess, companyAppState, getCatalog, planRequiredError, siteAppOff } from "./permissions";
 import { COMPANY_ROLES } from "../shared/types";
 import { allowedRoles, lockedRoles, permissionRolesProblem, type CompanyAppSettings } from "../shared/permissions";
 
@@ -33,6 +33,8 @@ companyAppRoutes.get("/:id/apps", async (c) => {
       enabled: state.enabled(info.id),
       enabledByDefault: info.enabledByDefault,
       siteOff: siteAppOff(info.id),
+      plan: info.plan ?? null,
+      locked: state.locked(info.id),
       permissions: Object.entries(server?.permissions ?? {}).map(([pid, def]) => ({
         id: pid,
         ...def,
@@ -69,6 +71,7 @@ companyAppRoutes.patch("/:id/apps/:appId", async (c) => {
 
   if (body.enabled !== undefined) {
     if (typeof body.enabled !== "boolean") throw new HttpError(400, "Enabled must be true or false.");
+    if (body.enabled && state.locked(appId)) throw planRequiredError(appId);
     if (body.enabled && siteAppOff(appId))
       throw new HttpError(400, `A super admin turned ${info.name} off for this site. Ask them to turn it on in Site settings first.`, "app_off");
     if (!body.enabled && enabled && getCatalog().filter((a) => a.id !== appId && state.enabled(a.id)).length === 0)

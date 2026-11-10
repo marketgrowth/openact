@@ -12,6 +12,7 @@ import { companyAiRoutes } from "./company-ai";
 import { getCatalog, setCatalog, type AppInfo } from "./permissions";
 import { loadSite, siteLogo, siteMiddleware, siteRoutes } from "./site";
 import { accountRoutes } from "./account";
+import { billingRoutes, companyPlanRoutes } from "./billing";
 
 const securityHeaders: MiddlewareHandler<AppEnv> = async (c, next) => {
   await next();
@@ -78,6 +79,8 @@ export function createWorker({ apps, catalog }: { apps: ServerApp[]; catalog?: A
   app.route("/api/companies", companyRoutes);
   app.route("/api/companies", companyAppRoutes);
   app.route("/api/companies", companyAiRoutes);
+  app.route("/api/companies", companyPlanRoutes);
+  app.route("/api/billing", billingRoutes);
   for (const a of apps) a.routes?.(app);
 
   app.get("/api/health", (c) => c.json({ ok: true }));

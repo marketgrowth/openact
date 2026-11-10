@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { COMPANY_ROLES, COMPANY_ROLE_LABELS, type CompanyAppSettings, type CompanyRole } from "@openact/core/shared";
+import { COMPANY_ROLES, COMPANY_ROLE_LABELS, PLANS, type CompanyAppSettings, type CompanyRole } from "@openact/core/shared";
+import { PlanBadge } from "./Plan";
 import { api, errorText } from "../api";
 import { Notice, useToast } from "../ui";
 import { useWorkspace } from "../workspace";
@@ -54,16 +55,21 @@ export function AppsTab({ companyId }: { companyId: string }) {
         {apps.map((a) => (
           <li key={a.id} className="flex items-center gap-3 rounded-lg border p-3" data-app-setting={a.id}>
             <div className="grid min-w-0 flex-1 gap-0.5">
-              <span className="font-medium">{a.name}</span>
+              <span className="flex items-center gap-2 font-medium">
+                {a.name}
+                {a.plan && <PlanBadge plan={a.plan} />}
+              </span>
               <span className="text-xs text-muted-foreground">
-                {a.siteOff
+                {a.locked && a.plan
+                  ? `Part of ${PLANS[a.plan].name}. A company owner can upgrade on the Plan tab.`
+                  : a.siteOff
                   ? "Off for this site. A super admin can turn it on in Site settings."
                   : `${a.permissions.length} ${a.permissions.length === 1 ? "permission" : "permissions"} · ${a.enabledByDefault ? "On" : "Off"} for new companies`}
               </span>
             </div>
             <Switch
               checked={a.enabled}
-              disabled={busy || a.siteOff}
+              disabled={busy || a.siteOff || a.locked}
               onCheckedChange={(on) => save(a.id, { enabled: on }, `${a.name} is ${on ? "on" : "off"}.`)}
               aria-label={`${a.name} app`}
             />

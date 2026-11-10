@@ -7,6 +7,7 @@ import { Field, Modal, ToastProvider, useToast } from "../ui";
 import { WorkspaceProvider, useWorkspace } from "../workspace";
 import { APPS_PATH, ShellContext, appHome, railApps, type ClientApp, type DirectoryApp, type Shell } from "../apps";
 import { SignIn } from "./SignIn";
+import { PLAN_PATH, PlanPage } from "./Plan";
 import { AppSidebar } from "./Sidebar";
 import { PageBody, SiteHeader } from "./SiteHeader";
 import { SidebarInset, SidebarProvider } from "@openact/ui/components/sidebar";
@@ -194,12 +195,12 @@ function SignedIn({
   );
 
   // The page: the first app route that matches, or the first app's home page at "/".
-  let page: ReactNode = path === APPS_PATH ? <AppsPage /> : null;
+  let page: ReactNode = path === APPS_PATH ? <AppsPage /> : path === PLAN_PATH ? <PlanPage /> : null;
   for (const app of page ? [] : apps) {
     for (const r of app.routes ?? []) {
       const m = path.match(r.pattern);
       if (m) {
-        page = onApps.includes(app) ? r.render(m) : <AppOff name={app.name} />;
+        page = onApps.includes(app) ? r.render(m) : <AppOff name={app.name} locked={!!ws.access?.lockedApps.includes(app.id)} />;
         break;
       }
     }
@@ -260,7 +261,22 @@ function Redirect({ to }: { to: string }) {
 }
 
 /** An app that is off in this company. An empty name means that every app is off. */
-function AppOff({ name }: { name: string }) {
+function AppOff({ name, locked = false }: { name: string; locked?: boolean }) {
+  if (locked)
+    return (
+      <>
+        <SiteHeader title={name} />
+        <PageBody>
+          <div className="mx-auto flex w-full max-w-lg flex-col items-center gap-3 rounded-xl border border-dashed p-8 text-center" data-app-locked="">
+            <h2 className="text-lg font-semibold">{name} is part of OpenAct Director</h2>
+            <p className="text-sm text-muted-foreground">A company owner can upgrade on the Plan page. Your data in {name} stays while it is locked.</p>
+            <Button asChild>
+              <Link to={PLAN_PATH}>See plans</Link>
+            </Button>
+          </div>
+        </PageBody>
+      </>
+    );
   return (
     <>
       <SiteHeader title={name || "No apps"} />

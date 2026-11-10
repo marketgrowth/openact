@@ -27,7 +27,8 @@ OpenAct is a core plus apps. Read `docs/apps.md` before you add or move code.
 - Core migrations: `packages/core/migrations/`. Never edit a released migration.
 - Web shell and UI kit (`@openact/ui`): `packages/ui/src/`. The shell, side panel, sign-in and company settings are in `shell/`. shadcn/ui components are in `components/`. The theme is `theme.css`.
 - The projects app: `apps/projects/`. Server code in `src/server/`, web code in `src/client/`, types and rules in `src/shared/`, new migrations in `migrations/`.
-- The docs app: `apps/docs/`. A company library with folders, categories and tags. Routes check `docs.view`, `docs.edit`, `docs.organize` or `docs.share` with `requirePermission`. Doc content is cleaned by `src/shared/content.ts` on every save. Never send saved doc HTML to a browser: render from the cleaned JSON.
+- The docs app: `apps/docs/`. A paid app in OpenAct Director (`"plan": "director"`), under the OpenAct Director License in `apps/docs/LICENSE`, not Apache 2.0. A company library with folders, categories and tags. Routes check `docs.view`, `docs.edit`, `docs.organize` or `docs.share` with `requirePermission`. Doc content is cleaned by `src/shared/content.ts` on every save. Never send saved doc HTML to a browser: render from the cleaned JSON.
+- Plans and billing: `packages/core/src/shared/plans.ts` (rules), `packages/core/src/server/plans.ts` (a company's plan), `license.ts` (license keys), `billing.ts` and `stripe.ts` (Stripe). The Plan page is `packages/ui/src/shell/Plan.tsx`. Read `docs/plans.md`.
 - Other apps: `apps/<id>/`, listed in `openact.apps.json`.
 - The host (this deploy): `src/worker.ts`, `src/client/main.tsx` and `src/client/site.tsx` (the colophon).
 - `.openact/` is written by `npm run sync`. Never edit it.
@@ -56,6 +57,8 @@ The core must never import from an app. If the core needs something from apps, a
 14. **Use shadcn/ui.** Build UI from the components in `packages/ui/src/components` (import `@openact/ui/components/<name>`) and Tailwind classes. Add a component by running `npx shadcn@latest add <name>` in `packages/ui`. Do not add another UI kit, CSS framework or icon set. Use Lucide icons through `Icon` from `@openact/ui`. Keep the dashboard-01 layout: every signed-in page starts with `SiteHeader` and puts its content in `PageBody`.
 
 15. **Apps stay in their lane.** Prefix an app's tables, routes, file keys, room kinds and command ids with its id. An app reads people and companies through the core. It cleans up its data in the `companyMemberRemoved` and `companyDeleting` hooks. It declares its permissions in `defineServerApp({ permissions })` and never hard-codes company roles in a route. App ids in `directory/apps.json` with `"reserved": true`, and the ids in `systemIds`, belong to official apps and to OpenAct. Never give a new app one of them.
+
+16. **Never weaken the plan gate.** A paid app is locked through `companyAppState`. Do not add a way around it, do not add keys to `license-keys.ts` and do not change an app's `plan` field unless MarketGrowth asks for it. Never add an Apache 2.0 notice to a file in a paid app folder.
 
 ## Docs
 
