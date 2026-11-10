@@ -8,6 +8,7 @@ import { useWorkspace } from "../workspace";
 import { CompanyMark } from "./Sidebar";
 import { AppsTab, PermissionsTab } from "./AppSettings";
 import { CompanyAiTab } from "./CompanyAi";
+import { PlanPanel } from "./Plan";
 import { Button } from "@openact/ui/components/button";
 import { Input } from "@openact/ui/components/input";
 import { Label } from "@openact/ui/components/label";
@@ -111,6 +112,7 @@ export function CompanySettings({ companyId, me, apps, onClose }: { companyId: s
               <TabsTrigger value="apps">Apps</TabsTrigger>
               <TabsTrigger value="permissions">Permissions</TabsTrigger>
               <TabsTrigger value="ai">AI provider</TabsTrigger>
+              <TabsTrigger value="plan">Plan</TabsTrigger>
               {appTabs.map((t) => (
                 <TabsTrigger key={t.id} value={t.id}>
                   {t.label}
@@ -131,6 +133,9 @@ export function CompanySettings({ companyId, me, apps, onClose }: { companyId: s
             </TabsContent>
             <TabsContent value="ai" className="pt-2">
               <CompanyAiTab companyId={companyId} />
+            </TabsContent>
+            <TabsContent value="plan" className="pt-2">
+              <PlanPanel companyId={companyId} />
             </TabsContent>
             {appTabs.map((t) => (
               <TabsContent key={t.id} value={t.id} className="pt-2">

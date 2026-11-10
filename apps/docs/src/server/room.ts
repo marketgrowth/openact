@@ -5,7 +5,7 @@ import * as awarenessProtocol from "y-protocols/awareness";
 import * as encoding from "lib0/encoding";
 import * as decoding from "lib0/decoding";
 import { prosemirrorJSONToYXmlFragment, yXmlFragmentToProsemirrorJSON } from "@tiptap/y-tiptap";
-import type { Env } from "@openact/core/server";
+import { companyAppState, loadSite, type Env } from "@openact/core/server";
 import { EMPTY_DOC, sanitizeDoc } from "../shared/content";
 import { CONTENT_MAX_BYTES } from "../shared/types";
 import { MSG_AWARENESS, MSG_SYNC, fromChunks, messageKind, toChunks } from "../shared/collab";
@@ -89,12 +89,15 @@ export class DocsRoom extends DurableObject<DocsEnv> {
     if (typeof message === "string") return; // Pings get an automatic answer. Other text is not part of the protocol.
     const conn = ws.deserializeAttachment() as Conn | null;
     if (!conn) return ws.close(1008, "Unknown connection");
-    // Once a minute, check that the person is still in the company. Someone who was removed loses the connection.
+    // Once a minute, check that the person is still in the company, and that Docs is still on there.
+    // Someone who was removed loses the connection. So does everyone when Docs is turned off or its plan ends.
     if (Date.now() - conn.checkedAt > 60_000) {
       const still = await this.env.DB.prepare("SELECT 1 AS x FROM company_members WHERE company_id = ? AND user_id = ?")
         .bind(conn.companyId, conn.userId)
         .first();
       if (!still) return ws.close(4403, "Access removed");
+      await loadSite(this.env);
+      if (!(await companyAppState(this.env, conn.companyId)).enabled("docs")) return ws.close(4403, "Docs is off");
       conn.checkedAt = Date.now();
       ws.serializeAttachment(conn);
     }
