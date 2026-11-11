@@ -5,12 +5,12 @@ description: OpenAct is free and open source. OpenAct Director and OpenAct Produ
 
 # Plans
 
-The OpenAct core, the UI and the Projects app are free and open source. Paid apps come with a paid plan. Docs is the first paid app.
+The OpenAct core, the UI and the Projects app are free and open source. Paid apps come with a paid plan. Docs and Advisory are the paid apps today.
 
 | Plan | For | What you get |
 | --- | --- | --- |
 | **Free** | Everyone | The core, the UI and the [Projects](getting-started.md) app, under the Apache License 2.0 |
-| **Director** | Startups to midmarket companies | Everything in Free, plus [Docs](docs-app.md). More paid apps will join Director. |
+| **Director** | Startups to midmarket companies | Everything in Free, plus [Docs](docs-app.md) and [Advisory](advisory-app.md). More paid apps will join Director. |
 | **Producer** | Enterprise companies | Everything in Director |
 
 Each paid plan has one annual price per company. The price does not change with the number of people. Choose the plan that fits the size of your company.
@@ -116,6 +116,7 @@ npm run license -- inspect oa1....
 | --- | --- |
 | Core (`packages/core`), UI kit (`packages/ui`), Projects (`apps/projects`), examples | [Apache License 2.0](https://github.com/marketgrowth/openact/blob/main/LICENSE) |
 | Docs (`apps/docs`) | [OpenAct Director License 1.0](https://github.com/marketgrowth/openact/blob/main/apps/docs/LICENSE) |
+| Advisory (`apps/advisory`) | [OpenAct Director License 1.0](https://github.com/marketgrowth/openact/blob/main/apps/advisory/LICENSE) |
 
 The OpenAct Director License lets you read and change the code of paid apps, and run them for development and testing. Production use needs a Director or Producer plan. Versions of Docs released before November 10, 2026 stay under the Apache License 2.0.
 

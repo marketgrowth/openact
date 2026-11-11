@@ -16,6 +16,7 @@
  *     "migrations": "./migrations", "durableObjects": ["GroupRoom"], "enabledByDefault": true }
  *
  * "enabledByDefault": false makes each company turn the app on in Company settings before it shows.
+ * "requiresApps": ["projects"] lists apps that must be installed too. "optionalApps" lists apps the app uses when they are there.
  * "plan": "director" or "producer" makes the app a paid app. It is locked in companies without that plan.
  * Only official MarketGrowth apps use "plan". See https://docs.openact.app/plans.
  *
@@ -104,7 +105,18 @@ function manifest(dir, label = relative(ROOT, dir)) {
   }
   if (m.enabledByDefault !== undefined && typeof m.enabledByDefault !== "boolean") fail(`The app "${m.id}" has "enabledByDefault": it must be true or false.`);
   if (m.plan !== undefined && !PAID_PLANS.includes(m.plan)) fail(`The app "${m.id}" has "plan": "${m.plan}". Use ${PAID_PLANS.join(" or ")}, or leave it out for a free app.`);
-  return { ...m, name: m.name ?? m.id, durableObjects: m.durableObjects ?? [], enabledByDefault: m.enabledByDefault ?? true };
+  for (const key of ["requiresApps", "optionalApps"]) {
+    if (m[key] !== undefined && (!Array.isArray(m[key]) || m[key].some((x) => typeof x !== "string" || !ID.test(x))))
+      fail(`The app "${m.id}" has "${key}": it must be a list of app ids, such as ["projects"].`);
+  }
+  return {
+    ...m,
+    name: m.name ?? m.id,
+    durableObjects: m.durableObjects ?? [],
+    enabledByDefault: m.enabledByDefault ?? true,
+    requiresApps: m.requiresApps ?? [],
+    optionalApps: m.optionalApps ?? []
+  };
 }
 
 /** A path for an import in a file inside .openact/. */
@@ -126,6 +138,12 @@ function sync() {
     seen.add(m.id);
     return { ...m, dir };
   });
+  for (const a of loaded) {
+    for (const need of a.requiresApps) {
+      if (!seen.has(need))
+        fail(`The app "${a.id}" needs the "${need}" app, which is not installed. Run \`npm run openact -- add ${need}\`, or remove "${a.id}".`);
+    }
+  }
 
   rmSync(OUT, { recursive: true, force: true });
   mkdirSync(join(OUT, "migrations"), { recursive: true });

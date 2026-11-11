@@ -55,6 +55,18 @@
       "repo": "https://github.com/marketgrowth/openact/tree/main/apps/docs"
     },
     {
+      "id": "advisory",
+      "name": "Advisory",
+      "summary": "Run a marketplace of approved advisors. Members book consults or pay in advance through Stripe Connect, and the company keeps a fee. Each paid engagement opens a project.",
+      "category": "Sales",
+      "status": "built-in",
+      "plan": "director",
+      "publisher": "MarketGrowth",
+      "reserved": true,
+      "source": "local",
+      "repo": "https://github.com/marketgrowth/openact/tree/main/apps/advisory"
+    },
+    {
       "id": "timetrack",
       "name": "TimeTrack",
       "summary": "Track time on projects and tasks. Timesheets, approvals and reports.",
@@ -130,6 +142,17 @@
       "reserved": true,
       "source": "github:marketgrowth/openact-events",
       "repo": "https://github.com/marketgrowth/openact-events"
+    },
+    {
+      "id": "booking",
+      "name": "Booking",
+      "summary": "Weekly availability, Google and Microsoft calendar busy times, and booking links. Other apps, such as Advisory, add a Pick a time step.",
+      "category": "Work",
+      "status": "planned",
+      "publisher": "MarketGrowth",
+      "reserved": true,
+      "source": "github:marketgrowth/openact-booking",
+      "repo": "https://github.com/marketgrowth/openact-booking"
     },
     {
       "id": "learn",
