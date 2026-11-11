@@ -65,6 +65,26 @@ The `id` is 2 to 31 lowercase letters, numbers or dashes. It must be unique in a
 
 `plan` is optional, and only official MarketGrowth apps use it. Set it to `"director"` or `"producer"` to make a paid app. The core locks the app in companies without that plan. See [Plans](plans.md).
 
+`requiresApps` is optional. List the apps that must be installed too, such as `["projects"]`. `npm run sync` stops with a clear message when one is missing. `optionalApps` lists apps that your app uses when they are there.
+
+### Use another app
+
+An app can call another app's server code only through that app's public entry. The Projects app has one: `@openact/app-projects/api`. It makes a project for your app, for example an engagement project. List `"projects"` in `requiresApps` and in your `dependencies`.
+
+```ts
+import { createProject } from "@openact/app-projects/api";
+
+const { id, path } = await createProject(env, {
+  companyId,
+  name: "Acme Inc: Growth retainer",
+  visibility: "secret",
+  ownerId: advisorUserId,
+  members: [{ userId: clientUserId, role: "editor" }]
+});
+```
+
+`createProject` does not check the caller's access. Check your own permission first. A member who is not in the company joins it as a guest. [Advisory](advisory-app.md) uses it.
+
 ### Server side
 
 ```ts

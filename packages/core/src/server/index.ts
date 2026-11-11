@@ -48,3 +48,4 @@ export {
 } from "./permissions.ts";
 export { companyPlan, type CompanyPlanState } from "./plans.ts";
 export { checkLicense, deployLicense, type LicenseCheck } from "./license.ts";
+export { verifyStripeSignature } from "./stripe.ts";

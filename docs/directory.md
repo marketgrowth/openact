@@ -9,7 +9,7 @@ import AppDirectory from "./.vitepress/theme/components/AppDirectory.vue";
 
 # App directory
 
-OpenAct starts with two apps: Projects, which is free, and [Docs](docs-app.md), which is part of [OpenAct Director](plans.md). Apps with a **★ Director** badge need a Director or Producer plan. Add more apps from this directory, or [build your own](apps.md). Each app gets sign-in, companies, roles, [permissions](permissions.md) and the app shell from the core.
+OpenAct starts with three apps: Projects, which is free, and [Docs](docs-app.md) and [Advisory](advisory-app.md), which are part of [OpenAct Director](plans.md). Apps with a **★ Director** badge need a Director or Producer plan. Add more apps from this directory, or [build your own](apps.md). Each app gets sign-in, companies, roles, [permissions](permissions.md) and the app shell from the core.
 
 Install an app by its id:
 
