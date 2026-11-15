@@ -15,6 +15,9 @@ Rules for AI coding agents (Claude Code, Cursor, Codex and others) that work in 
 | Docs site | `npm run docs:dev` to preview, `npm run docs:build` to check links |
 | Add an app | `npm run openact -- add <id>` from the directory, or `npm run openact -- add github:owner/repo` |
 | Write `.openact/` | `npm run sync` (the other scripts run it) |
+| Check the design cues | `npm run design -- check` (`npm test` runs it too) |
+| Make an app accent | `npm run design -- seed <app-id> <hue>` |
+| Publish the Promptbook | `npm run design -- build` |
 
 Run `npm run typecheck`, `npm test` and `npm run build` before you say a task is done.
 
@@ -56,6 +59,8 @@ The core must never import from an app. If the core needs something from apps, a
 14. **Use shadcn/ui.** Build UI from the components in `packages/ui/src/components` (import `@openact/ui/components/<name>`) and Tailwind classes. Add a component by running `npx shadcn@latest add <name>` in `packages/ui`. Do not add another UI kit, CSS framework or icon set. Use Lucide icons through `Icon` from `@openact/ui`. Keep the dashboard-01 layout: every signed-in page starts with `SiteHeader` and puts its content in `PageBody`.
 
 15. **Apps stay in their lane.** Prefix an app's tables, routes, file keys, room kinds and command ids with its id. An app reads people and companies through the core. It cleans up its data in the `companyMemberRemoved` and `companyDeleting` hooks. It declares its permissions in `defineServerApp({ permissions })` and never hard-codes company roles in a route. App ids in `directory/apps.json` with `"reserved": true`, and the ids in `systemIds`, belong to official apps and to OpenAct. Never give a new app one of them.
+
+17. **Follow the Promptbook.** Read `docs/design-system.md` before you change UI. Pick tokens by intent. Show agent work with `AgentState` and its five states (think, act, wait, done, fail). When you change `theme.css` or `packages/ui/promptbook.json`, run `npm run design -- build` and commit the files in `landing/public/design`.
 
 ## Docs
 
