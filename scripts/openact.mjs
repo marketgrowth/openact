@@ -315,7 +315,7 @@ switch (cmd) {
     break;
   }
   case "primary": {
-    if (!arg) fail("Say which app is the primary app, for example: npm run openact -- primary gtmmatters. Use primary none to remove it.");
+    if (!arg) fail("Say which app is the primary app, for example: npm run openact -- primary orbytt. Use primary none to remove it.");
     const reg = readRegistry();
     if (arg === "none") {
       delete reg.primary;
