@@ -10,7 +10,7 @@ import { cn } from "../lib/utils";
 
 /** Passwordless sign-in: email first, then the 6-digit code from the inbox.
  *  Layout after the shadcn/ui login-04 block: one card with the form on the left and the stage on the right,
- *  on a page with soft glows. On small screens the stage becomes a short band at the top of the card.
+ *  on a page with soft glows. On small screens the stage is hidden and only the form shows.
  *  A super admin sets the heading, credit, background and legal links in Site settings. */
 export function SignIn({ config, onSignedIn }: { config: AppConfig; onSignedIn: (u: User) => void }) {
   const [step, setStep] = useState<"email" | "code">("email");
@@ -145,7 +145,7 @@ export function SignIn({ config, onSignedIn }: { config: AppConfig; onSignedIn: 
                 </form>
               )}
             </div>
-            <Stage page={config.signIn} className="order-first min-h-40 md:order-none md:min-h-[520px]" />
+            <Stage page={config.signIn} className="hidden md:block md:min-h-[520px]" />
           </CardContent>
         </Card>
         <LegalNotice page={config.signIn} />
