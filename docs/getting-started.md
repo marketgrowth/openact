@@ -156,7 +156,7 @@ If an app loads files from another site, add that site to the matching directive
 
 ## Delete an account
 
-A person can delete their own account. They open **Account** from their menu, choose **Delete account**, then type their email to confirm.
+A person can delete their own account. They open **Settings**, then **Sign-in and security** under Personal account. They choose **Delete account**, then type their email to confirm.
 
 - They leave every company, and their sessions end.
 - Projects, tasks and files that they made stay with the company. Their name leaves them: assignments and "created by" fields become empty.

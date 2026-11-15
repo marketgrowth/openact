@@ -105,7 +105,7 @@ export interface Shell {
   primary: string | null;
   /** The app directory, for the Apps page. Empty when the host does not pass it. */
   directory: readonly DirectoryApp[];
-  /** Opens a shell dialog. "companySettings" goes to the Settings page. */
+  /** Opens a shell dialog. "companySettings" and "account" go to their sections of the Settings page. */
   open: (dialog: "account" | "newCompany" | "companySettings") => void;
   /** Opens an app command, such as search. */
   runCommand: (id: string) => void;

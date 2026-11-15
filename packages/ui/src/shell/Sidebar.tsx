@@ -1,6 +1,6 @@
 import { COMPANY_ROLE_LABELS, type Company, type User } from "@openact/core/shared";
 import { APPS_PATH, SETTINGS_PATH, activeApp, appHome, isSettingsPath, railGroups, railOrder, type ClientApp } from "../apps";
-import { SITE_SECTIONS, companySections, parseSettingsPath, settingsPath, type SettingsSection } from "../settings-paths";
+import { ACCOUNT_SECTIONS, SITE_SECTIONS, companySections, parseSettingsPath, settingsPath, type SettingsSection } from "../settings-paths";
 import { canManageCompany } from "@openact/core/shared";
 import { Link, navigate, usePath } from "../router";
 import { PLAN_PATH } from "./Plan";
@@ -77,7 +77,6 @@ export interface AppSidebarProps {
   primary?: string | null;
   onRunCommand: (id: string) => void;
   onNewCompany: () => void;
-  onAccount: () => void;
   /** True for super admins. They see Site settings on the Settings page. */
   superAdmin: boolean;
   onSignOut: (everywhere: boolean) => void;
@@ -131,7 +130,6 @@ export function AppSidebar(p: AppSidebarProps) {
   const onDirectory = path === APPS_PATH;
   const onSettings = isSettingsPath(path);
   const active = onDirectory || onSettings ? undefined : activeApp(p.apps, path);
-  const canSettings = canManage || p.superAdmin;
   const shellPage = onDirectory ? "apps" : onSettings ? "settings" : undefined;
   const panelTitle = onDirectory ? "Apps" : onSettings ? "Settings" : (active?.name ?? p.appName);
   const commands = current && active ? (active.commands ?? []).filter((c) => c.inSidebar) : [];
@@ -193,17 +191,15 @@ export function AppSidebar(p: AppSidebarProps) {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
-              {canSettings && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip={railTip("Settings")} isActive={onSettings} className="justify-center p-0" data-settings-link="">
-                    <Link to={SETTINGS_PATH} onClick={done} aria-label="Settings" aria-current={onSettings ? "true" : undefined}>
-                      <Icon name="gear" />
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip={railTip("Settings")} isActive={onSettings} className="justify-center p-0" data-settings-link="">
+                  <Link to={SETTINGS_PATH} onClick={done} aria-label="Settings" aria-current={onSettings ? "true" : undefined}>
+                    <Icon name="gear" />
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
-            <NavUser me={p.me} onAccount={p.onAccount} superAdmin={p.superAdmin} onPick={done} onSignOut={p.onSignOut} />
+            <NavUser me={p.me} superAdmin={p.superAdmin} onPick={done} onSignOut={p.onSignOut} />
           </SidebarFooter>
         </Sidebar>
 
@@ -276,7 +272,7 @@ export function AppSidebar(p: AppSidebarProps) {
   );
 }
 
-/** The settings sections in the app panel: Company settings for owners and admins, then Site settings for super admins. */
+/** The settings sections in the app panel: Company settings for owners and admins, Personal account for everyone, then Site settings for super admins. */
 function SettingsNav({ apps, path, company, site, onPick }: { apps: readonly ClientApp[]; path: string; company: boolean; site: boolean; onPick: () => void }) {
   const here = parseSettingsPath(path);
   const group = (label: string, sections: readonly SettingsSection[]) => (
@@ -304,6 +300,7 @@ function SettingsNav({ apps, path, company, site, onPick }: { apps: readonly Cli
   return (
     <>
       {company && group("Company settings", companySections(apps))}
+      {group("Personal account", ACCOUNT_SECTIONS)}
       {site && group("Site settings", SITE_SECTIONS)}
     </>
   );
@@ -439,13 +436,11 @@ function PanelSwitcher({ title, ...p }: SwitcherProps & { title: string }) {
 
 function NavUser({
   me,
-  onAccount,
   superAdmin,
   onPick,
   onSignOut
 }: {
   me: User;
-  onAccount: () => void;
   superAdmin: boolean;
   onPick: () => void;
   onSignOut: (everywhere: boolean) => void;
@@ -477,8 +472,14 @@ function NavUser({
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={onAccount}>
-              <Icon name="users" /> Account
+            <DropdownMenuItem
+              onSelect={() => {
+                onPick();
+                navigate(settingsPath("account", "profile"));
+              }}
+              data-account-settings=""
+            >
+              <Icon name="user" /> Account settings
             </DropdownMenuItem>
             {superAdmin && (
               <DropdownMenuItem

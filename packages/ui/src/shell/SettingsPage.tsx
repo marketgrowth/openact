@@ -5,7 +5,7 @@ import { api, errorText } from "../api";
 import { navigate, usePath } from "../router";
 import { Notice } from "../ui";
 import { useWorkspace } from "../workspace";
-import { SITE_SECTIONS, companySections, parseSettingsPath, settingsPath, type SettingsSection } from "../settings-paths";
+import { ACCOUNT_SECTIONS, SITE_SECTIONS, companySections, parseSettingsPath, settingsPath, type SettingsSection } from "../settings-paths";
 import { PageBody, SiteHeader } from "./SiteHeader";
 import { CompanyMark } from "./Sidebar";
 import { GeneralTab, PeopleTab } from "./CompanyDialogs";
@@ -13,10 +13,12 @@ import { AppsTab, PermissionsTab } from "./AppSettings";
 import { CompanyAiTab } from "./CompanyAi";
 import { PlanPanel } from "./Plan";
 import { SiteSettingsSection, type SiteSection } from "./SiteSettings";
+import { ProfileSection, SecuritySection } from "./AccountSettings";
 
 /*
  * The Settings page. It fills the main content area, and the side panel lists its sections.
- * Company settings are for company owners and admins. Site settings are for super admins.
+ * Company settings are for company owners and admins. Personal account settings are for everyone.
+ * Site settings are for super admins. The side panel lists them in that order.
  * Each section has its own address, so the back button and links work, and the page keeps its place.
  */
 
@@ -25,14 +27,15 @@ type Detail = CompanyDetail & Record<string, unknown>;
 export function SettingsPage({
   me,
   apps,
-  superAdmin,
-  onSite
+  onSite,
+  onMe,
+  onSignOut
 }: {
   me: User;
   apps: readonly ClientApp[];
-  /** undefined while the shell checks. */
-  superAdmin: boolean | undefined;
   onSite: (s: SiteSettings) => void;
+  onMe: (u: User | null) => void;
+  onSignOut: (everywhere: boolean) => void;
 }) {
   const path = usePath();
   const ws = useWorkspace();
@@ -41,9 +44,9 @@ export function SettingsPage({
   const where = parseSettingsPath(path);
   const sections = companySections(apps);
 
-  // "/settings" alone opens the first section the person can use.
-  const start = manager ? settingsPath("company", "general") : superAdmin ? settingsPath("site", "general") : null;
-  const waiting = ws.companies === null || superAdmin === undefined;
+  // "/settings" alone opens the company settings for owners and admins, and the profile for everyone else.
+  const start = manager ? settingsPath("company", "general") : settingsPath("account", "profile");
+  const waiting = ws.companies === null;
   const scope = where?.scope;
   const id = where?.id;
   useEffect(() => {
@@ -53,11 +56,14 @@ export function SettingsPage({
   }, [where === null, scope, id, start, waiting]);
 
   if (!where) return <Missing />;
-  if (!scope || !id) {
-    if (waiting || start) return <Loading title="Settings" />;
+  if (!scope || !id) return <Loading title="Settings" />;
+
+  if (scope === "account") {
+    const section = ACCOUNT_SECTIONS.find((s) => s.id === id);
+    if (!section) return <Missing />;
     return (
-      <Shell title="Settings">
-        <Notice tone="info">Only company owners and admins can change company settings. Ask one of them for help.</Notice>
+      <Shell title="Personal account" section={section}>
+        {section.id === "profile" ? <ProfileSection key={me.id} me={me} onMe={onMe} /> : <SecuritySection me={me} onMe={onMe} onSignOut={onSignOut} />}
       </Shell>
     );
   }
