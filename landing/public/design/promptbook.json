@@ -528,7 +528,7 @@
   ],
   "type": {
     "sans": "IBM Plex Sans",
-    "mono": "Geist Mono",
+    "mono": "IBM Plex Mono",
     "roles": [
       {
         "id": "label",

@@ -1,4 +1,4 @@
-/* OpenAct brand on the VitePress theme: the app's indigo, IBM Plex Sans and Geist Mono. */
+/* OpenAct brand on the VitePress theme: the app's indigo, IBM Plex Sans and IBM Plex Mono. */
 :root {
   --oa-display-font: "Playfair Display", "Didot", "Bodoni 72", Georgia, "Times New Roman", serif;
   /* Playbill ink: near-black ink, with stage gold for links and highlights */
@@ -13,7 +13,7 @@
   --vp-button-brand-active-bg: #0f0d14;
   --vp-button-brand-text: #ffffff;
   --vp-font-family-base: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --vp-font-family-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --vp-font-family-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --vp-home-hero-name-color: var(--vp-c-text-1);
 }
 

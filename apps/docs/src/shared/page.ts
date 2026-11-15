@@ -75,7 +75,7 @@ export function paginate(blocks: Block[], pageHeight: number): number[] {
 
 /** The font stack for doc text. The web app loads IBM Plex Sans, and the share page loads it too. */
 export const DOC_FONT = `"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif`;
-export const DOC_MONO = `"Geist Mono", ui-monospace, Menlo, Consolas, monospace`;
+export const DOC_MONO = `"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace`;
 
 /**
  * CSS for doc content inside `scope`, such as ".doc-content". Colors come from variables, so each page sets its own:
