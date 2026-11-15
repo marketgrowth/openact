@@ -8,6 +8,14 @@ export interface SiteState {
   name: string;
   logoType: string | null;
   logoUpdatedAt: string | null;
+  /** The sign-in heading a super admin set, or "" for the default. */
+  signInHeading: string;
+  /** The credit for a custom heading. It is ignored while the default heading shows. */
+  signInCredit: string;
+  termsUrl: string;
+  privacyUrl: string;
+  backgroundType: string | null;
+  backgroundUpdatedAt: string | null;
   /** Apps that a super admin turned off for the whole site. They are off in every company. */
   appsOff: string[];
   /** When this isolate read the settings, in milliseconds. */

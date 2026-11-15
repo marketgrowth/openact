@@ -1,26 +1,56 @@
 import { Hono, type Context, type MiddlewareHandler } from "hono";
 import type { AppEnv, Env } from "./env";
-import type { User } from "../shared/types";
-import { SITE_LOGO_MAX_BYTES, SITE_LOGO_TYPES, cleanSiteName, isSuperAdminEmail, parseAppsOff, siteLogoUrl, type SiteSettings } from "../shared/site";
+import type { SignInPage, User } from "../shared/types";
+import {
+  DEFAULT_SIGN_IN_CREDIT,
+  DEFAULT_SIGN_IN_HEADING,
+  SIGN_IN_BACKGROUND_MAX_BYTES,
+  SIGN_IN_CREDIT_MAX,
+  SIGN_IN_HEADING_MAX,
+  SITE_LOGO_MAX_BYTES,
+  SITE_LOGO_TYPES,
+  cleanLegalUrl,
+  cleanSignInText,
+  cleanSiteName,
+  isSuperAdminEmail,
+  parseAppsOff,
+  signInBackgroundUrl,
+  siteLogoUrl,
+  type SiteSettings
+} from "../shared/site";
 import { HttpError, appName, nowIso, readJson, requireUser } from "./util";
 import { setSiteState, siteState, type SiteState } from "./site-state";
 import { getCatalog } from "./permissions";
 
 /*
- * Site settings: the app name, the logo and the apps of this deploy.
+ * Site settings: the app name, the logo, the sign-in page and the apps of this deploy.
  * Super admins are the emails in SUPER_ADMIN_EMAILS. They are not a company role.
  * Each Worker isolate keeps the settings for a short time, so a change can take up to 30 seconds to show everywhere.
  */
 
 const TTL_MS = 30_000;
 const LOGO_KEY = "site/logo";
+const BACKGROUND_KEY = "site/sign-in-background";
+const SIGN_IN_KEYS = ["signin_heading", "signin_credit", "terms_url", "privacy_url"] as const;
 
 /** Reads the site settings into this isolate. Before migration 0006 runs, the defaults apply. */
 export async function loadSite(env: Env, force = false): Promise<SiteState> {
   const now = Date.now();
   const cached = siteState();
   if (cached && !force && now - cached.at < TTL_MS) return cached;
-  let next: SiteState = { name: "", logoType: null, logoUpdatedAt: null, appsOff: [], at: now };
+  let next: SiteState = {
+    name: "",
+    logoType: null,
+    logoUpdatedAt: null,
+    signInHeading: "",
+    signInCredit: "",
+    termsUrl: "",
+    privacyUrl: "",
+    backgroundType: null,
+    backgroundUpdatedAt: null,
+    appsOff: [],
+    at: now
+  };
   try {
     const rows = await env.DB.prepare("SELECT key, value FROM site_settings").all<{ key: string; value: string }>();
     const m = new Map(rows.results.map((r) => [r.key, r.value]));
@@ -28,6 +58,12 @@ export async function loadSite(env: Env, force = false): Promise<SiteState> {
       name: m.get("app_name") ?? "",
       logoType: m.get("logo_type") ?? null,
       logoUpdatedAt: m.get("logo_updated_at") ?? null,
+      signInHeading: m.get("signin_heading") ?? "",
+      signInCredit: m.get("signin_credit") ?? "",
+      termsUrl: m.get("terms_url") ?? "",
+      privacyUrl: m.get("privacy_url") ?? "",
+      backgroundType: m.get("background_type") ?? null,
+      backgroundUpdatedAt: m.get("background_updated_at") ?? null,
       appsOff: parseAppsOff(m.get("apps_off")),
       at: now
     };
@@ -47,6 +83,18 @@ export const siteMiddleware: MiddlewareHandler<AppEnv> = async (c, next) => {
 /** The logo URL for the current settings, or null. */
 export function siteLogo(s: SiteState | null = siteState()): string | null {
   return s?.logoType && s.logoUpdatedAt ? siteLogoUrl(s.logoUpdatedAt) : null;
+}
+
+/** What the sign-in page shows for the current settings. Without a custom heading, the default heading and credit show. */
+export function signInPage(s: SiteState | null = siteState()): SignInPage {
+  const custom = !!s?.signInHeading;
+  return {
+    heading: custom ? s!.signInHeading : DEFAULT_SIGN_IN_HEADING,
+    credit: custom ? s!.signInCredit : DEFAULT_SIGN_IN_CREDIT,
+    termsUrl: s?.termsUrl || null,
+    privacyUrl: s?.privacyUrl || null,
+    backgroundUrl: s?.backgroundType && s.backgroundUpdatedAt ? signInBackgroundUrl(s.backgroundUpdatedAt) : null
+  };
 }
 
 /** True when this person is a super admin of the deploy. */
@@ -69,6 +117,7 @@ function settings(c: Context<AppEnv>, s: SiteState): SiteSettings {
     customName: !!s.name,
     logoUrl: siteLogo(s),
     canEdit,
+    signIn: { ...signInPage(s), customHeading: !!s.signInHeading },
     // Only super admins need the app switches.
     ...(canEdit ? { apps: getCatalog().map((a) => ({ id: a.id, name: a.name, enabled: !s.appsOff.includes(a.id) })) } : {})
   };
@@ -124,6 +173,73 @@ siteRoutes.patch("/apps/:appId", async (c) => {
   else off.add(appId);
   if (getCatalog().every((a) => off.has(a.id))) throw new HttpError(400, "Keep at least one app on for the site. Turn on another app first.");
   await write(c.env, [upsert(c.env, "apps_off", JSON.stringify([...off]), user.id, nowIso())]);
+  return c.json(settings(c, await loadSite(c.env, true)));
+});
+
+/**
+ * Saves the sign-in page text and links. Body: { heading, credit, termsUrl, privacyUrl }
+ * An empty heading brings back the default heading and credit. An empty link hides that link.
+ */
+siteRoutes.patch("/sign-in", async (c) => {
+  const user = requireSuperAdmin(c);
+  const body = await readJson(c);
+  const heading = cleanSignInText(body.heading, "Heading", SIGN_IN_HEADING_MAX);
+  if ("problem" in heading) throw new HttpError(400, heading.problem);
+  const credit = cleanSignInText(body.credit, "Credit", SIGN_IN_CREDIT_MAX);
+  if ("problem" in credit) throw new HttpError(400, credit.problem);
+  const terms = cleanLegalUrl(body.termsUrl, "Terms of Use");
+  if ("problem" in terms) throw new HttpError(400, terms.problem);
+  const privacy = cleanLegalUrl(body.privacyUrl, "Privacy Policy");
+  if ("problem" in privacy) throw new HttpError(400, privacy.problem);
+  const values: Record<(typeof SIGN_IN_KEYS)[number], string> = {
+    signin_heading: heading.text,
+    // A credit without a heading would show under the default heading, so it is not kept.
+    signin_credit: heading.text ? credit.text : "",
+    terms_url: terms.url,
+    privacy_url: privacy.url
+  };
+  const iso = nowIso();
+  await write(
+    c.env,
+    SIGN_IN_KEYS.map((k) => (values[k] ? upsert(c.env, k, values[k], user.id, iso) : c.env.DB.prepare("DELETE FROM site_settings WHERE key = ?").bind(k)))
+  );
+  return c.json(settings(c, await loadSite(c.env, true)));
+});
+
+/* The sign-in background is public, because the sign-in page shows it. */
+siteRoutes.get("/sign-in-background", async (c) => {
+  const s = await loadSite(c.env);
+  if (!s.backgroundType) throw new HttpError(404, "This site has no sign-in background.");
+  const obj = await c.env.FILES.get(BACKGROUND_KEY);
+  if (!obj) throw new HttpError(404, "The background file is missing. Upload it again.");
+  return new Response(obj.body, {
+    headers: {
+      "Content-Type": s.backgroundType,
+      "Cache-Control": "public, max-age=86400",
+      "Content-Security-Policy": "default-src 'none'",
+      "X-Content-Type-Options": "nosniff"
+    }
+  });
+});
+
+siteRoutes.put("/sign-in-background", async (c) => {
+  const user = requireSuperAdmin(c);
+  const form = await c.req.formData().catch(() => null);
+  const file = form?.get("file");
+  if (!file || typeof file === "string") throw new HttpError(400, "Choose an image file.");
+  if (!(SITE_LOGO_TYPES as readonly string[]).includes(file.type)) throw new HttpError(400, "Use a PNG, JPEG or WebP image.");
+  if (file.size > SIGN_IN_BACKGROUND_MAX_BYTES) throw new HttpError(400, "The background must be 3 MB or smaller.");
+  await c.env.FILES.put(BACKGROUND_KEY, await file.arrayBuffer(), { httpMetadata: { contentType: file.type } });
+  const iso = nowIso();
+  await write(c.env, [upsert(c.env, "background_type", file.type, user.id, iso), upsert(c.env, "background_updated_at", iso, user.id, iso)]);
+  return c.json(settings(c, await loadSite(c.env, true)));
+});
+
+/* Removing the background brings back the default stage. */
+siteRoutes.delete("/sign-in-background", async (c) => {
+  requireSuperAdmin(c);
+  await write(c.env, [c.env.DB.prepare("DELETE FROM site_settings WHERE key IN ('background_type', 'background_updated_at')")]);
+  await c.env.FILES.delete(BACKGROUND_KEY);
   return c.json(settings(c, await loadSite(c.env, true)));
 });
 
