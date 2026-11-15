@@ -302,6 +302,7 @@ export function Contribute() {
                       <CardTitle className="flex items-center gap-2">
                         <Icon name="card" />
                         Pay by card
+                        {options.cardTestMode && <Badge variant="outline">Test mode</Badge>}
                       </CardTitle>
                       <CardDescription>Stripe takes your card details. OpenAct never sees them.</CardDescription>
                     </CardHeader>
@@ -318,11 +319,27 @@ export function Contribute() {
                         <ToggleGroupItem value="monthly">Monthly</ToggleGroupItem>
                       </ToggleGroup>
                       {frequency === "monthly" && <p className="text-sm text-muted-foreground">Stripe charges your card on the same day each month.</p>}
+                      {options.cardTestMode && (
+                        <p className="text-sm text-muted-foreground" data-contribute-test-card="">
+                          No real money moves. Use the test card 4242 4242 4242 4242 with any future date and any CVC.
+                        </p>
+                      )}
                     </CardContent>
-                    <CardFooter>
+                    <CardFooter className="grid gap-2">
                       <Button onClick={payByCard} disabled={!cents || !!busy} className="w-full" data-contribute-pay="card">
                         {busy === "card" ? "Opening Stripe…" : cents ? `Give ${formatUsd(cents)}${frequency === "monthly" ? " each month" : ""}` : "Enter an amount"}
                       </Button>
+                      {options.manageUrl && (
+                        <a
+                          href={options.manageUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-center text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                          data-contribute-manage=""
+                        >
+                          Manage your monthly contribution
+                        </a>
+                      )}
                     </CardFooter>
                   </Card>
                 )}
