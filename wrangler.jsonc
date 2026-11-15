@@ -24,6 +24,7 @@
     {
       "binding": "DB",
       "database_name": "openact-on",
+      "database_id": "d40200b7-ba4f-49f3-a37c-a89ba04f6c6f",
       "migrations_dir": ".openact/migrations"
     }
   ],
