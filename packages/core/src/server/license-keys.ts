@@ -6,4 +6,8 @@
  * then add the public key here with a new key id. Keep old ids while their licenses are still in use.
  * Changing or removing these keys to get paid apps without a license breaks the OpenAct Director License.
  */
-export const LICENSE_PUBLIC_KEYS: Record<string, string> = {};
+export const LICENSE_PUBLIC_KEYS: Record<string, string> = {
+  // Demo branch only. Signs the one license for the public demo at openact.ing (host-locked, ends 2027-11-14).
+  // Its private key was destroyed after that license was issued, so no other key can use this id.
+  "demo-openact-ing": "T8iIsHHWDAHDkBxsMruzQOAJx_WcI5r8_BPP9nKlb8s"
+};

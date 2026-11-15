@@ -1,5 +1,6 @@
 import { lazy } from "react";
 import { defineClientApp } from "@openact/ui";
+import { DemoNotice } from "./DemoNotice";
 
 /* This deploy's own pages, outside any app: contributions and the colophon. */
 
@@ -9,6 +10,8 @@ const Colophon = lazy(() => import("./Colophon").then((m) => ({ default: m.Colop
 export const site = defineClientApp({
   id: "site",
   name: "OpenAct",
+  // The demo notice shows on every signed-in page (demo branch only).
+  Provider: DemoNotice,
   publicRoutes: { "/contribute": Contribute, "/colophon": Colophon },
   // Footer items show at the bottom of the app rail, in this order. Contribute sits on top of the colophon.
   nav: [

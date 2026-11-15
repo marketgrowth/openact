@@ -1,11 +1,14 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "openact",
+  "name": "openact-demo",
   "main": "src/worker.ts",
   "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat"],
   "upload_source_maps": true,
   "observability": { "enabled": true },
+
+  // The public demo. Workers Builds deploys the demo branch here on each push.
+  "routes": [{ "pattern": "openact.ing", "custom_domain": true }],
 
   // The web app is built by Vite into dist/client. The Worker answers /api/* and Docs share links (/docs/s/*) first.
   "assets": {
@@ -58,14 +61,15 @@
   // Workers AI. Requests go through AI Gateway when AI_GATEWAY_ID is set.
   "ai": { "binding": "AI", "remote": true },
 
+  // The demo reset runs at 17 10 * * * (src/server/demo.ts).
   // Daily clean-up of expired sign-in codes and sessions, and search indexing every 10 minutes.
-  "triggers": { "crons": ["17 3 * * *", "*/10 * * * *"] },
+  "triggers": { "crons": ["17 3 * * *", "*/10 * * * *", "17 10 * * *"] },
 
   "vars": {
-    "APP_NAME": "OpenAct",
-    "SUPER_ADMIN_EMAILS": "",
-    "APP_URL": "",
-    "EMAIL_FROM": "OpenAct <no-reply@example.com>",
+    "APP_NAME": "OpenAct Demo",
+    "SUPER_ADMIN_EMAILS": "victor@marketgrowth.io",
+    "APP_URL": "https://openact.ing",
+    "EMAIL_FROM": "OpenAct Demo <no-reply@openact.ing>",
     "SIGNUP_MODE": "open",
     "ALLOWED_EMAIL_DOMAINS": "",
     "AI_PROVIDER": "workers-ai",
@@ -74,6 +78,8 @@
     "TYPESAFE_MODEL": "jev-1.14.0",
     "TYPESAFE_BASE_URL": "",
     "AI_GATEWAY_ID": "openact",
-    "CF_ACCOUNT_ID": ""
+    "CF_ACCOUNT_ID": "",
+    // Deletes all demo data each night. See src/server/demo.ts.
+    "DEMO_RESET": "true"
   }
 }
