@@ -6,7 +6,9 @@ import { HttpError, appName, nowIso, readJson, requireUser } from "./util";
 import { setSiteState, siteState, type SiteState } from "./site-state";
 import { getCatalog } from "./permissions";
 import { cleanGrantEnd, grantActive, type GrantUser, type SiteGrants } from "../shared/grants";
-import type { PaidPlan } from "../shared/plans";
+import { planIncludes, type PaidPlan } from "../shared/plans";
+import { deployLicense } from "./license";
+import { grantCeiling } from "./plans";
 
 /*
  * Site settings: the app name, the logo and the apps of this deploy.
@@ -172,6 +174,12 @@ siteRoutes.delete("/logo", async (c) => {
 
 const paidApps = () => getCatalog().filter((a): a is typeof a & { plan: PaidPlan } => !!a.plan);
 
+/** The paid apps that the deploy's license key lets a super admin grant. */
+async function grantableApps(c: Context<AppEnv>) {
+  const ceiling = grantCeiling(await deployLicense(c.env, c.req.url));
+  return paidApps().filter((a) => planIncludes(ceiling, a.plan));
+}
+
 interface GrantRow {
   id: string;
   name: string;
@@ -232,12 +240,9 @@ async function grantUser(env: Env, userId: string): Promise<GrantUser | null> {
 siteRoutes.get("/grants", async (c) => {
   requireSuperAdmin(c);
   const q = (c.req.query("q") ?? "").trim().slice(0, 100);
-  const apps = paidApps().map((a) => ({
-    id: a.id,
-    name: a.name,
-    plan: a.plan
-  }));
-  if (!apps.length) return c.json({ apps, users: [] } satisfies SiteGrants);
+  const apps = (await grantableApps(c)).map((a) => ({ id: a.id, name: a.name, plan: a.plan }));
+  const needsLicense = paidApps().length > apps.length;
+  if (!apps.length) return c.json({ apps, needsLicense, users: [] } satisfies SiteGrants);
   const rows = await readGrants(() =>
     q.length >= 2
       ? c.env.DB.prepare(
@@ -249,15 +254,20 @@ siteRoutes.get("/grants", async (c) => {
           .all<GrantRow>()
       : c.env.DB.prepare(`${GRANT_SELECT} WHERE u.id IN (SELECT user_id FROM app_grants) ORDER BY u.email, g.app_id LIMIT 1000`).all<GrantRow>()
   );
-  return c.json({ apps, users: grantUsers(rows.results) } satisfies SiteGrants);
+  return c.json({ apps, needsLicense, users: grantUsers(rows.results) } satisfies SiteGrants);
 });
 
 /** Gives a person a paid app, or changes the end day. Body: { endsOn: "YYYY-MM-DD" | null } */
 siteRoutes.put("/grants/:userId/:appId", async (c) => {
   const admin = requireSuperAdmin(c);
   const { userId, appId } = c.req.param();
-  const app = paidApps().find((a) => a.id === appId);
-  if (!app) throw new HttpError(400, "Only paid apps can be given to a person. This app is free or not installed.");
+  if (!paidApps().some((a) => a.id === appId)) throw new HttpError(400, "Only paid apps can be given to a person. This app is free or not installed.");
+  if (!(await grantableApps(c)).some((a) => a.id === appId))
+    throw new HttpError(
+      403,
+      "This deploy's license key does not allow grants for this app. Ask MarketGrowth for a key that allows them, then put it in OPENACT_LICENSE.",
+      "grants_need_license"
+    );
   const r = cleanGrantEnd((await readJson(c)).endsOn);
   if ("problem" in r) throw new HttpError(400, r.problem);
   const exists = await c.env.DB.prepare("SELECT id FROM users WHERE id = ?").bind(userId).first();

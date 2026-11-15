@@ -31,7 +31,20 @@ export function SiteGrants() {
     return () => clearTimeout(timer);
   }, [query, toast]);
 
-  if (!data || !data.apps.length) return null;
+  if (!data) return null;
+  if (!data.apps.length) {
+    if (!data.needsLicense) return null;
+    return (
+      <>
+        <Separator />
+        <Field label="Paid app access">
+          <p className="text-sm text-muted-foreground" data-site-grants-license="">
+            To give one person a paid app, this site needs a license key from MarketGrowth that allows grants. Put the key in the OPENACT_LICENSE secret.
+          </p>
+        </Field>
+      </>
+    );
+  }
 
   const replace = (u: GrantUser) => setData((d) => d && { ...d, users: d.users.map((x) => (x.id === u.id ? u : x)) });
 

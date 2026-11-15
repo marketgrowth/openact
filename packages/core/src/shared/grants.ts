@@ -1,5 +1,7 @@
 /*
  * App grants: a super admin gives one person a paid app, such as Docs, without a paid plan.
+ * Grants work only on a deploy with a MarketGrowth license key, up to the key's plan. A key made with
+ * `--use grants` allows grants without giving every company the plan.
  * The grant unlocks the app in every company where that person is an owner, so the people in that company can use it too.
  * The app's company switch and the role permissions still apply.
  */
@@ -27,8 +29,10 @@ export interface GrantUser {
 
 /** GET /api/site/grants. Super admins only. */
 export interface SiteGrants {
-  /** The installed apps that need a plan. Only these can be granted. */
+  /** The paid apps that the deploy's license key lets a super admin grant. */
   apps: Array<{ id: string; name: string; plan: PaidPlan }>;
+  /** True when some installed paid apps cannot be granted, because the deploy has no license key that covers them. */
+  needsLicense: boolean;
   /** With a search: the people who match. Without one: the people who have a grant. */
   users: GrantUser[];
 }

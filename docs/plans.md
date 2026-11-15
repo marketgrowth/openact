@@ -53,6 +53,8 @@ If a payment fails, the plan keeps working while Stripe tries the card again. Af
 
 A super admin can give a paid app to one person without a paid plan. Use it for a partner, a beta tester or a nonprofit.
 
+Grants need a license key from MarketGrowth in `OPENACT_LICENSE`. A super admin can grant only the apps in the key's plan. Without a key, **Paid app access** says that the site needs one. To allow grants without giving every company the plan, use a key made with `--use grants`. Read [License keys](#license-keys).
+
 1. Open the account menu at the bottom of the app rail, then choose **Site settings**.
 2. In **Paid app access**, find the person by name or email.
 3. Turn on the app, such as **Docs**.
@@ -102,7 +104,13 @@ The OpenAct Director License does not let you sell plans to yourself or to other
 
 ## License keys
 
-A license key is a signed text that starts with `oa1.`. It names the licensee, the plan, the last day and, if you want, the host names where it works. The core checks the signature with the public keys in `packages/core/src/server/license-keys.ts`. It needs no network.
+A license key is a signed text that starts with `oa1.`. It names the licensee, the plan, the last day and, if you want, the host names where it works and its use.
+
+| Use | What the key does |
+| --- | --- |
+| `plan` (the default) | Every company on the deploy gets the plan. Super admins can also give the plan's apps to one person. |
+| `grants` | No company gets the plan. Super admins can give the plan's apps to one person at a time. Use it on a site that sells plans with Stripe. |
+ The core checks the signature with the public keys in `packages/core/src/server/license-keys.ts`. It needs no network.
 
 To use a key:
 
@@ -123,6 +131,10 @@ npm run license -- keygen --kid mg-2026
 # For each customer:
 npm run license -- issue --key ~/.openact/license-mg-2026.pem --kid mg-2026 \
   --licensee "Acme Inc." --plan director --expires 2027-11-10 --hosts app.acme.com
+
+# For a site that sells plans, so super admins can give paid apps to one person:
+npm run license -- issue --key ~/.openact/license-mg-2026.pem --kid mg-2026 \
+  --licensee "GTM Matters" --plan director --expires 2027-11-10 --hosts app.gtmmatters.com --use grants
 
 # Read a key:
 npm run license -- inspect oa1....

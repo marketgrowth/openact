@@ -28,3 +28,32 @@ test("the end day must be empty, a real date, and not in the past", () => {
   assert.ok("problem" in cleanGrantEnd("next week", NOW));
   assert.ok("problem" in cleanGrantEnd(20270310, NOW));
 });
+
+import { grantCeiling, resolvePlan } from "../packages/core/src/server/plans.ts";
+import { licenseGivesPlan, parseLicense, toB64Url } from "../packages/core/src/shared/plans.ts";
+
+const lic = (extra: Record<string, unknown>) =>
+  `oa1.${toB64Url(new TextEncoder().encode(JSON.stringify({ id: "lic_1", kid: "k", licensee: "MG", plan: "director", issuedAt: "2026-11-15", expiresAt: "2027-11-15", ...extra })))}.AAAA`;
+
+test("a grants key gives no company a plan, but allows grants up to its plan", () => {
+  const grantsKey = { ok: true as const, inGrace: false, payload: { id: "l", kid: "k", licensee: "MG", plan: "director" as const, issuedAt: "2026-11-15", expiresAt: "2027-11-15", use: "grants" as const } };
+  const planKey = { ...grantsKey, payload: { ...grantsKey.payload, use: undefined } };
+  assert.equal(resolvePlan(null, grantsKey, NOW).plan, "free");
+  assert.equal(resolvePlan(null, planKey, NOW).plan, "director");
+  assert.equal(grantCeiling(grantsKey), "director");
+  assert.equal(grantCeiling(planKey), "director");
+  assert.equal(licenseGivesPlan(grantsKey.payload), false);
+  assert.equal(licenseGivesPlan(planKey.payload), true);
+});
+
+test("without a working license key, nothing can be granted", () => {
+  assert.equal(grantCeiling(null), "free");
+  assert.equal(grantCeiling({ ok: false, error: "expired" }), "free");
+});
+
+test("a license key reads its use, and refuses a use it does not know", () => {
+  const ok = parseLicense(lic({ use: "grants" }));
+  assert.ok("payload" in ok && ok.payload.use === "grants");
+  assert.ok("payload" in parseLicense(lic({})));
+  assert.ok("error" in parseLicense(lic({ use: "everything" })));
+});

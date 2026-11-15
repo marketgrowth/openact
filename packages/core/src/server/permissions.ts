@@ -3,7 +3,7 @@ import { HttpError } from "./util";
 import { companyRole } from "./data";
 import { getApps } from "./apps";
 import { siteState } from "./site-state";
-import { companyPlan, ownerGrants } from "./plans";
+import { companyPlan, grantCeiling, ownerGrants } from "./plans";
 import { COMPANY_ROLES, type CompanyRole } from "../shared/types";
 import { PLANS, planIncludes, type PaidPlan, type PlanId } from "../shared/plans";
 import { permissionApp, rolesWithPermission, type CompanyAccess, type PermissionDef } from "../shared/permissions";
@@ -62,17 +62,21 @@ export const appPlan = (appId: string): PaidPlan | undefined => catalog.find((a)
 
 export async function companyAppState(env: Env, companyId: string): Promise<CompanyAppState> {
   const paid = catalog.some((a) => a.plan);
-  const [rows, plan, grants] = await Promise.all([
+  const [rows, planState, ownerApps] = await Promise.all([
     env.DB.prepare("SELECT app_id, enabled, permissions FROM company_apps WHERE company_id = ?")
       .bind(companyId)
       .all<{ app_id: string; enabled: number; permissions: string }>(),
     // Read the plan and the grants only when an installed app needs a plan.
-    paid ? companyPlan(env, companyId).then((p) => p.plan) : Promise.resolve<PlanId>("free"),
+    paid ? companyPlan(env, companyId) : Promise.resolve(null),
     paid ? ownerGrants(env, companyId) : Promise.resolve(new Set<string>())
   ]);
+  const plan: PlanId = planState?.plan ?? "free";
+  // A grant counts only when the deploy's license key allows grants for the app's plan.
+  const ceiling = grantCeiling(planState?.license ?? null);
+  const hasGrant = (appId: string) => ownerApps.has(appId) && planIncludes(ceiling, appPlan(appId));
   const byApp = new Map(rows.results.map((r) => [r.app_id, r]));
-  const granted = (appId: string) => !planIncludes(plan, appPlan(appId)) && grants.has(appId);
-  const locked = (appId: string) => !planIncludes(plan, appPlan(appId)) && !grants.has(appId);
+  const granted = (appId: string) => !planIncludes(plan, appPlan(appId)) && hasGrant(appId);
+  const locked = (appId: string) => !planIncludes(plan, appPlan(appId)) && !hasGrant(appId);
   return {
     plan,
     locked,

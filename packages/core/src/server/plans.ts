@@ -1,6 +1,6 @@
 import type { Env } from "./env";
 import { deployLicense } from "./license.ts";
-import { higherPlan, subscriptionActive, type PaidPlan, type PlanId } from "../shared/plans.ts";
+import { higherPlan, licenseGivesPlan, subscriptionActive, type LicensePayload, type PaidPlan, type PlanId } from "../shared/plans.ts";
 import { utcDay } from "../shared/grants.ts";
 
 /*
@@ -40,15 +40,24 @@ export async function planRow(env: Env, companyId: string): Promise<PlanRow | nu
 /** Works out the plan from a subscription row and a license. Pure, for tests. */
 export function resolvePlan(
   row: Pick<PlanRow, "plan" | "status" | "period_end"> | null,
-  license: { ok: true; payload: { plan: PaidPlan } } | { ok: false } | null,
+  license: { ok: true; payload: Pick<LicensePayload, "plan" | "use"> } | { ok: false } | null,
   now = Date.now()
 ): { plan: PlanId; source: CompanyPlanState["source"]; subscriptionActive: boolean } {
   const subActive = !!row && (row.plan === "director" || row.plan === "producer") && subscriptionActive(row.status, row.period_end, now);
   const fromSub: PlanId = subActive ? (row!.plan as PaidPlan) : "free";
-  const fromLicense: PlanId = license?.ok ? license.payload.plan : "free";
+  // A grants key gives no company a plan. See grantCeiling().
+  const fromLicense: PlanId = license?.ok && licenseGivesPlan(license.payload) ? license.payload.plan : "free";
   const plan = higherPlan(fromSub, fromLicense);
   const source = plan === "free" ? "free" : fromSub === plan ? "subscription" : "license";
   return { plan, source, subscriptionActive: subActive };
+}
+
+/**
+ * The highest plan whose apps a super admin may grant to one person. It comes from the deploy's license key.
+ * Without a working key, grants are off, so the person who runs a deploy cannot unlock paid apps for free.
+ */
+export function grantCeiling(license: Awaited<ReturnType<typeof deployLicense>>): PlanId {
+  return license?.ok ? license.payload.plan : "free";
 }
 
 /**
