@@ -53,8 +53,8 @@ function missingKey(setup: AiSetup, secret: string): HttpError {
   return new HttpError(
     500,
     setup.source === "company"
-      ? "Your company's AI key is missing. A company owner can add it in Company settings, on the AI provider tab."
-      : `Set the ${secret} secret to use this AI provider. Or a company owner can add their own key in Company settings, on the AI provider tab.`
+      ? "Your company's AI key is missing. A company owner can add it in Company settings, under AI provider."
+      : `Set the ${secret} secret to use this AI provider. Or a company owner can add their own key in Company settings, under AI provider.`
   );
 }
 
@@ -64,7 +64,7 @@ async function failed(res: Response, setup: AiSetup): Promise<HttpError> {
   if (setup.source === "company" && (res.status === 401 || res.status === 403))
     return new HttpError(
       502,
-      "The AI provider did not accept your company's API key. A company owner can check it in Company settings, on the AI provider tab."
+      "The AI provider did not accept your company's API key. A company owner can check it in Company settings, under AI provider."
     );
   if (res.status === 429) return new HttpError(429, "The AI provider is busy. Try again in a minute.");
   return new HttpError(502, "The AI service did not answer. Try again in a minute.");

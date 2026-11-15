@@ -5,7 +5,6 @@ import { Field, useToast } from "../ui";
 import { useWorkspace } from "../workspace";
 import { Input } from "@openact/ui/components/input";
 import { Switch } from "@openact/ui/components/switch";
-import { Separator } from "@openact/ui/components/separator";
 
 /*
  * Site settings > Paid app access. A super admin gives one person a paid app, such as Docs, without a paid plan.
@@ -31,20 +30,15 @@ export function SiteGrants() {
     return () => clearTimeout(timer);
   }, [query, toast]);
 
-  if (!data) return null;
-  if (!data.apps.length) {
-    if (!data.needsLicense) return null;
+  if (!data) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  if (!data.apps.length)
     return (
-      <>
-        <Separator />
-        <Field label="Paid app access">
-          <p className="text-sm text-muted-foreground" data-site-grants-license="">
-            To give one person a paid app, this site needs a license key from MarketGrowth that allows grants. Put the key in the OPENACT_LICENSE secret.
-          </p>
-        </Field>
-      </>
+      <p className="text-sm text-muted-foreground" data-site-grants-license="">
+        {data.needsLicense
+          ? "To give one person a paid app, this site needs a license key from MarketGrowth that allows grants. Put the key in the OPENACT_LICENSE secret."
+          : "This site has no paid apps."}
+      </p>
     );
-  }
 
   const replace = (u: GrantUser) => setData((d) => d && { ...d, users: d.users.map((x) => (x.id === u.id ? u : x)) });
 
@@ -74,11 +68,10 @@ export function SiteGrants() {
 
   return (
     <>
-      <Separator />
       <Field
-        label="Paid app access"
+        label="Find a person"
         htmlFor="site-grant-search"
-        help="Give one person a paid app without a paid plan. The app unlocks in each company they own, for everyone in it. Leave the end day empty to keep it on."
+        help="Type 2 or more letters of a name or email. Without a search, the list shows everyone with a paid app from you."
       >
         <div className="grid gap-3" data-site-grants="">
           <Input

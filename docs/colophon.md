@@ -117,8 +117,8 @@ The shadcn/ui design system, with OpenAct's own colors for status, priority and 
 
 | Part | What it does |
 | --- | --- |
-| [Geist](https://fonts.google.com/specimen/Geist) | Text and headings |
-| [Geist Mono](https://fonts.google.com/specimen/Geist+Mono) | Dates and the sign-in code |
+| [IBM Plex Sans](https://fonts.google.com/specimen/IBM+Plex+Sans) | Text and headings |
+| [IBM Plex Mono](https://fonts.google.com/specimen/IBM+Plex+Mono) | Dates and the sign-in code |
 | [Lucide](https://lucide.dev) | Icons. Outline style with a 2 px stroke, at 16 px in most places. |
 | Layout | An app rail and an inset app panel, as in shadcn's sidebar-09 block, and a 48 px page header with the panel toggle, as in dashboard-01 |
 | Themes | Light, dark, or follow the system setting |

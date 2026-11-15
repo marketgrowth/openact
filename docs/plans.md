@@ -26,7 +26,7 @@ When a company has both, it gets the higher plan.
 
 ### The Plan page
 
-Open the company menu at the top of the app rail, then choose **Plan**. Company owners and admins also find it in **Company settings**, on the **Plan** tab.
+Open the company menu at the top of the app rail, then choose **Plan**. Company owners and admins also find it in **Company settings**, under **Plan**.
 
 The page shows:
 
@@ -55,8 +55,8 @@ A super admin can give a paid app to one person without a paid plan. Use it for 
 
 Grants need a license key from MarketGrowth in `OPENACT_LICENSE`. A super admin can grant only the apps in the key's plan. Without a key, **Paid app access** says that the site needs one. To allow grants without giving every company the plan, use a key made with `--use grants`. Read [License keys](#license-keys).
 
-1. Open the account menu at the bottom of the app rail, then choose **Site settings**.
-2. In **Paid app access**, find the person by name or email.
+1. Open **Settings** with the gear at the bottom of the app rail.
+2. Under **Site settings**, choose **Paid app access**. Find the person by name or email.
 3. Turn on the app, such as **Docs**.
 4. Optional: set an end day. The grant works through the whole of that day (UTC). Leave it empty to keep it on.
 
