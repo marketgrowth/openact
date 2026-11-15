@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { User } from "@openact/core/shared";
 import { api, errorText } from "../api";
-import { Link, navigate } from "../router";
+import { navigate } from "../router";
 import { Field, ThemeSwitch, useToast } from "../ui";
 import { Button } from "@openact/ui/components/button";
 import { Input } from "@openact/ui/components/input";
@@ -49,12 +49,6 @@ export function ProfileSection({ me, onMe }: { me: User; onMe: (u: User | null) 
       <Field label="Theme" help="System follows the setting on your device. The choice applies in this browser.">
         <ThemeSwitch />
       </Field>
-      <Separator />
-      <p className="text-xs text-muted-foreground">
-        <Link to="/colophon" className="underline underline-offset-4 hover:text-foreground">
-          How OpenAct is made
-        </Link>
-      </p>
     </div>
   );
 }
