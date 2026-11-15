@@ -172,12 +172,12 @@ A deploy can have one primary app. Use it for the app that the deploy is for, su
 | Primary app | The rail, from the top |
 | --- | --- |
 | None | Projects, Docs, divider, App directory |
-| `gtmmatters` | GTM Matters, divider, Projects, Docs, divider, App directory |
+| `orbytt` | Orbytt, divider, Projects, Docs, divider, App directory |
 
 Set it with the app tool. The command writes `"primary"` in `openact.apps.json`:
 
 ```bash
-npm run openact -- primary gtmmatters
+npm run openact -- primary orbytt
 npm run deploy
 ```
 
