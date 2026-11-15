@@ -118,13 +118,13 @@ function ProjectItem({ project }: { project: ProjectSummary }) {
   return (
     <SidebarMenuItem>
       <SidebarMenuButton asChild isActive={active}>
-        <Link to={`/p/${project.id}`} onClick={done}>
-          <span className="flex size-4 items-center justify-center" aria-hidden="true">
+        <Link to={`/p/${project.id}`} onClick={done} title={project.name}>
+          <span className="flex size-4 shrink-0 items-center justify-center" aria-hidden="true">
             <span className="size-2.5 rounded-full" style={{ background: `var(--pc-${project.color})` }} />
           </span>
-          <span>{project.name}</span>
+          <span className="min-w-0 flex-1 truncate">{project.name}</span>
           {project.visibility === "secret" && (
-            <span className="ml-auto text-muted-foreground" title="Secret project">
+            <span className="flex shrink-0 text-muted-foreground" title="Secret project">
               <Icon name="shield" size={13} />
             </span>
           )}
