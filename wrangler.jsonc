@@ -82,6 +82,8 @@
     "AI_GATEWAY_ID": "openact",
     "CF_ACCOUNT_ID": "7ba24483701aad5568d7f9db0d81c3f7",
     // Deletes all demo data each night. See src/server/demo.ts.
-    "DEMO_RESET": "true"
+    "DEMO_RESET": "true",
+    // The reset keeps these companies when a super admin owns them.
+    "DEMO_KEEP_COMPANIES": "MarketGrowth"
   }
 }

@@ -41,6 +41,14 @@ export const SITE_SECTIONS: readonly SettingsSection[] = [
     label: "Apps",
     icon: "apps",
     description: "Turn an app off for every company on this site. An app that is off keeps its data. Companies cannot turn it on again until you do."
+  },
+  {
+    scope: "site",
+    id: "grants",
+    label: "Paid app access",
+    icon: "card",
+    description:
+      "Give one person a paid app without a paid plan. The app unlocks in each company they own, for everyone in it. Leave the end day empty to keep it on."
   }
 ];
 

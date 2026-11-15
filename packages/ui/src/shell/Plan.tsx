@@ -55,7 +55,7 @@ export function PlanPage() {
   );
 }
 
-/** The plan of one company, with the offers. The Plan page and the Plan tab in Company settings show it. */
+/** The plan of one company, with the offers. The Plan page and the Plan section of Company settings show it. */
 export function PlanPanel({ companyId }: { companyId: string }) {
   const ws = useWorkspace();
   const toast = useToast();

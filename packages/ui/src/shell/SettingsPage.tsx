@@ -13,6 +13,7 @@ import { AppsTab, PermissionsTab } from "./AppSettings";
 import { CompanyAiTab } from "./CompanyAi";
 import { PlanPanel } from "./Plan";
 import { SiteSettingsSection, type SiteSection } from "./SiteSettings";
+import { SiteGrants } from "./SiteGrants";
 import { ProfileSection, SecuritySection } from "./AccountSettings";
 
 /*
@@ -74,7 +75,7 @@ export function SettingsPage({
     if (!section) return <Missing />;
     return (
       <Shell title="Site settings" section={section}>
-        <SiteSettingsSection key={section.id} section={section.id as SiteSection} onSaved={onSite} />
+        {section.id === "grants" ? <SiteGrants /> : <SiteSettingsSection key={section.id} section={section.id as SiteSection} onSaved={onSite} />}
       </Shell>
     );
   }
