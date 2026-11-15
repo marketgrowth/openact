@@ -1,0 +1,1010 @@
+{
+  "$comment": "Made by `npm run design -- build` from packages/ui/promptbook.json and packages/ui/src/theme.css in https://github.com/marketgrowth/openact. Do not edit this copy.",
+  "name": "OpenAct Promptbook",
+  "version": "1.0.0",
+  "url": "https://openact.ing/design",
+  "source": "packages/ui/src/theme.css",
+  "premise": "In a theater, the prompt book is the stage manager's master copy of the show. It holds the script, every cue and every move. The crew works from it. The Promptbook does the same job for OpenAct apps. It holds the tokens, the rules and the checks in one place. Agents read it first. People approve what the agents make.",
+  "principles": [
+    {
+      "id": "agents-first",
+      "title": "Written for agents first",
+      "text": "The source is a JSON file and a Markdown file, not a picture. An agent can read every rule. A person can read every rule too."
+    },
+    {
+      "id": "intent",
+      "title": "Intent, not values",
+      "text": "Pick a token by what it means. Use status-done for a done task. Never pick a green because it looks good. The values can change. The meaning stays."
+    },
+    {
+      "id": "seeds",
+      "title": "Seeds, not palettes",
+      "text": "A new app gives one seed: a hue. The design script makes the light and dark values and tests their contrast. Agents do not invent palettes."
+    },
+    {
+      "id": "agent-states",
+      "title": "Agents have their own states",
+      "text": "Agent work has five states: think, act, wait, done and fail. Each state has its own token and icon. A person can always see what the agent does."
+    },
+    {
+      "id": "checks",
+      "title": "Every rule has a check",
+      "text": "A rule is a cue. Each cue has a check: a script, a test or a review by a person. The script runs with the unit tests."
+    }
+  ],
+  "tokens": {
+    "surface": {
+      "intent": "The planes that content sits on.",
+      "items": {
+        "background": {
+          "intent": "The page.",
+          "css": "var(--background)",
+          "class": "background",
+          "light": "oklch(1 0 0)",
+          "dark": "oklch(0.145 0 0)"
+        },
+        "foreground": {
+          "intent": "Text on the page.",
+          "css": "var(--foreground)",
+          "class": "foreground",
+          "light": "oklch(0.145 0 0)",
+          "dark": "oklch(0.985 0 0)"
+        },
+        "card": {
+          "intent": "A raised panel, such as a task card or a dialog.",
+          "css": "var(--card)",
+          "class": "card",
+          "light": "oklch(1 0 0)",
+          "dark": "oklch(0.205 0 0)"
+        },
+        "card-foreground": {
+          "intent": "Text on a card.",
+          "css": "var(--card-foreground)",
+          "class": "card-foreground",
+          "light": "oklch(0.145 0 0)",
+          "dark": "oklch(0.985 0 0)"
+        },
+        "popover": {
+          "intent": "A menu or a popover.",
+          "css": "var(--popover)",
+          "class": "popover",
+          "light": "oklch(1 0 0)",
+          "dark": "oklch(0.205 0 0)"
+        },
+        "popover-foreground": {
+          "intent": "Text in a menu.",
+          "css": "var(--popover-foreground)",
+          "class": "popover-foreground",
+          "light": "oklch(0.145 0 0)",
+          "dark": "oklch(0.985 0 0)"
+        },
+        "muted": {
+          "intent": "A quiet fill, such as a hover row or a code chip.",
+          "css": "var(--muted)",
+          "class": "muted",
+          "light": "oklch(0.97 0 0)",
+          "dark": "oklch(0.269 0 0)"
+        },
+        "muted-foreground": {
+          "intent": "Secondary text: dates, help text, counts.",
+          "css": "var(--muted-foreground)",
+          "class": "muted-foreground",
+          "light": "oklch(0.535 0 0)",
+          "dark": "oklch(0.708 0 0)"
+        },
+        "border": {
+          "intent": "Lines between parts.",
+          "css": "var(--border)",
+          "class": "border",
+          "light": "oklch(0.922 0 0)",
+          "dark": "oklch(1 0 0 / 10%)"
+        },
+        "input": {
+          "intent": "The edge of a form field.",
+          "css": "var(--input)",
+          "class": "input",
+          "light": "oklch(0.922 0 0)",
+          "dark": "oklch(1 0 0 / 15%)"
+        },
+        "ring": {
+          "intent": "The focus ring.",
+          "css": "var(--ring)",
+          "class": "ring",
+          "light": "oklch(0.708 0 0)",
+          "dark": "oklch(0.556 0 0)"
+        },
+        "scrim": {
+          "intent": "The shade behind a dialog or a sheet.",
+          "css": "var(--scrim)",
+          "class": "scrim",
+          "light": "oklch(0 0 0 / 50%)",
+          "dark": "oklch(0 0 0 / 65%)"
+        }
+      }
+    },
+    "action": {
+      "intent": "Things a person can do.",
+      "items": {
+        "primary": {
+          "intent": "The main action on a screen. Use one per screen.",
+          "css": "var(--primary)",
+          "class": "primary",
+          "light": "oklch(0.205 0 0)",
+          "dark": "oklch(0.922 0 0)"
+        },
+        "primary-foreground": {
+          "intent": "Text on the main action.",
+          "css": "var(--primary-foreground)",
+          "class": "primary-foreground",
+          "light": "oklch(0.985 0 0)",
+          "dark": "oklch(0.205 0 0)"
+        },
+        "secondary": {
+          "intent": "Other actions.",
+          "css": "var(--secondary)",
+          "class": "secondary",
+          "light": "oklch(0.97 0 0)",
+          "dark": "oklch(0.269 0 0)"
+        },
+        "secondary-foreground": {
+          "intent": "Text on other actions.",
+          "css": "var(--secondary-foreground)",
+          "class": "secondary-foreground",
+          "light": "oklch(0.205 0 0)",
+          "dark": "oklch(0.985 0 0)"
+        },
+        "accent": {
+          "intent": "Hover and selected states.",
+          "css": "var(--accent)",
+          "class": "accent",
+          "light": "oklch(0.97 0 0)",
+          "dark": "oklch(0.269 0 0)"
+        },
+        "accent-foreground": {
+          "intent": "Text on a hover or selected state.",
+          "css": "var(--accent-foreground)",
+          "class": "accent-foreground",
+          "light": "oklch(0.205 0 0)",
+          "dark": "oklch(0.985 0 0)"
+        },
+        "destructive": {
+          "intent": "An action that deletes or cannot be undone.",
+          "css": "var(--destructive)",
+          "class": "destructive",
+          "light": "oklch(0.577 0.245 27.325)",
+          "dark": "oklch(0.704 0.191 22.216)"
+        },
+        "destructive-foreground": {
+          "intent": "Text on a destructive fill.",
+          "css": "var(--destructive-foreground)",
+          "class": "destructive-foreground",
+          "light": "#ffffff",
+          "dark": "#ffffff"
+        }
+      }
+    },
+    "brand": {
+      "intent": "The OpenAct identity: Playbill ink with a stage gold cue.",
+      "items": {
+        "brand": {
+          "intent": "The ink of the OpenAct mark.",
+          "css": "var(--brand)",
+          "class": "brand",
+          "light": "#1c1824",
+          "dark": "#ece7f2"
+        },
+        "brand-foreground": {
+          "intent": "Text on the brand ink.",
+          "css": "var(--brand-foreground)",
+          "class": "brand-foreground",
+          "light": "#ffffff",
+          "dark": "#1c1824"
+        },
+        "brand-gold": {
+          "intent": "The cue light. Use it for brand moments only, never for status.",
+          "css": "var(--brand-gold)",
+          "class": "brand-gold",
+          "light": "#8a6420",
+          "dark": "#e3b85c"
+        }
+      }
+    },
+    "meaning": {
+      "intent": "Colors that carry meaning. Never use them for decoration.",
+      "items": {
+        "s-backlog": {
+          "intent": "Status: not planned yet.",
+          "css": "var(--s-backlog)",
+          "class": "status-backlog",
+          "light": "#8d99a9",
+          "dark": "#7c899d"
+        },
+        "s-todo": {
+          "intent": "Status: planned.",
+          "css": "var(--s-todo)",
+          "class": "status-todo",
+          "light": "#4a78c7",
+          "dark": "#6c9ae9"
+        },
+        "s-doing": {
+          "intent": "Status: in progress.",
+          "css": "var(--s-doing)",
+          "class": "status-doing",
+          "light": "#c47b10",
+          "dark": "#e8a138"
+        },
+        "s-review": {
+          "intent": "Status: waiting for review.",
+          "css": "var(--s-review)",
+          "class": "status-review",
+          "light": "#8658c4",
+          "dark": "#a886e6"
+        },
+        "s-done": {
+          "intent": "Status: done.",
+          "css": "var(--s-done)",
+          "class": "status-done",
+          "light": "#2c9662",
+          "dark": "#4abc82"
+        },
+        "p-high": {
+          "intent": "Priority: high.",
+          "css": "var(--p-high)",
+          "class": "priority-high",
+          "light": "#c0402b",
+          "dark": "#f37b63"
+        },
+        "p-med": {
+          "intent": "Priority: medium.",
+          "css": "var(--p-med)",
+          "class": "priority-med",
+          "light": "#a8711a",
+          "dark": "#e1aa4c"
+        },
+        "p-low": {
+          "intent": "Priority: low.",
+          "css": "var(--p-low)",
+          "class": "priority-low",
+          "light": "#737373",
+          "dark": "#a3a3a3"
+        },
+        "live": {
+          "intent": "Something changes now, such as another viewer on the page.",
+          "css": "var(--live)",
+          "class": "live",
+          "light": "#2c9662",
+          "dark": "#4abc82"
+        },
+        "today": {
+          "intent": "The line for today on a timeline.",
+          "css": "var(--today)",
+          "class": "today",
+          "light": "#d53f2c",
+          "dark": "#fe6a54"
+        },
+        "warn": {
+          "intent": "The fill of a warning.",
+          "css": "var(--warn)",
+          "class": "warn",
+          "light": "oklch(0.97 0.04 85)",
+          "dark": "oklch(0.27 0.04 75)"
+        },
+        "warn-foreground": {
+          "intent": "The text of a warning.",
+          "css": "var(--warn-foreground)",
+          "class": "warn-foreground",
+          "light": "oklch(0.42 0.09 70)",
+          "dark": "oklch(0.86 0.1 85)"
+        },
+        "warn-border": {
+          "intent": "The edge of a warning.",
+          "css": "var(--warn-border)",
+          "class": "warn-border",
+          "light": "oklch(0.86 0.09 85)",
+          "dark": "oklch(0.42 0.07 75)"
+        }
+      }
+    },
+    "agent": {
+      "intent": "The five states of agent work. They never use the brand colors.",
+      "items": {
+        "agent-think": {
+          "intent": "The agent reads and plans.",
+          "css": "var(--agent-think)",
+          "class": "agent-think",
+          "light": "#5d6675",
+          "dark": "#a3adbb"
+        },
+        "agent-act": {
+          "intent": "The agent runs a tool.",
+          "css": "var(--agent-act)",
+          "class": "agent-act",
+          "light": "#2f5bd3",
+          "dark": "#8aabff"
+        },
+        "agent-wait": {
+          "intent": "The agent needs a person to approve or reject.",
+          "css": "var(--agent-wait)",
+          "class": "agent-wait",
+          "light": "#8a35c9",
+          "dark": "#cf9cff"
+        },
+        "agent-done": {
+          "intent": "The agent finished the step.",
+          "css": "var(--agent-done)",
+          "class": "agent-done",
+          "light": "#1b7a4b",
+          "dark": "#56c98f"
+        },
+        "agent-fail": {
+          "intent": "The step failed or a person rejected it.",
+          "css": "var(--agent-fail)",
+          "class": "agent-fail",
+          "light": "#c0392b",
+          "dark": "#f37b63"
+        }
+      }
+    },
+    "stage": {
+      "intent": "Fixed surfaces that look the same in both themes.",
+      "items": {
+        "stage": {
+          "intent": "The dark sign-in panel.",
+          "css": "var(--stage)",
+          "class": "stage",
+          "light": "#15121c",
+          "dark": "#0f0d14"
+        },
+        "stage-foreground": {
+          "intent": "Text on the sign-in panel.",
+          "css": "var(--stage-foreground)",
+          "class": "stage-foreground",
+          "light": "#ffffff",
+          "dark": "#ffffff"
+        },
+        "paper": {
+          "intent": "A Docs page. It stays light, like printed paper.",
+          "css": "var(--paper)",
+          "class": "paper",
+          "light": "#ffffff",
+          "dark": "#fbfafc"
+        },
+        "paper-foreground": {
+          "intent": "Text on a Docs page.",
+          "css": "var(--paper-foreground)",
+          "class": "paper-foreground",
+          "light": "#1c1824",
+          "dark": "#1c1824"
+        },
+        "desk": {
+          "intent": "The area around a Docs page.",
+          "css": "var(--desk)",
+          "class": "desk",
+          "light": "#ebe9ee",
+          "dark": "#1b191f"
+        }
+      }
+    },
+    "identity": {
+      "intent": "Colors that tell items apart. They have no meaning of their own.",
+      "items": {
+        "pc-indigo": {
+          "intent": "Project color.",
+          "css": "var(--pc-indigo)",
+          "class": null,
+          "light": "#3247cf",
+          "dark": "#7e90ff"
+        },
+        "pc-teal": {
+          "intent": "Project color.",
+          "css": "var(--pc-teal)",
+          "class": null,
+          "light": "#12847a",
+          "dark": "#3cc0b3"
+        },
+        "pc-amber": {
+          "intent": "Project color.",
+          "css": "var(--pc-amber)",
+          "class": null,
+          "light": "#c27a0d",
+          "dark": "#e8a138"
+        },
+        "pc-rose": {
+          "intent": "Project color.",
+          "css": "var(--pc-rose)",
+          "class": null,
+          "light": "#c2385f",
+          "dark": "#f0799a"
+        },
+        "pc-violet": {
+          "intent": "Project color.",
+          "css": "var(--pc-violet)",
+          "class": null,
+          "light": "#7a4dc4",
+          "dark": "#a886e6"
+        },
+        "pc-slate": {
+          "intent": "Project color.",
+          "css": "var(--pc-slate)",
+          "class": null,
+          "light": "#515d75",
+          "dark": "#98a7bd"
+        },
+        "av-0": {
+          "intent": "Avatar color, picked from the person's id.",
+          "css": "var(--av-0)",
+          "class": null,
+          "light": "#3247cf",
+          "dark": "#5a6ee5"
+        },
+        "av-1": {
+          "intent": "Avatar color.",
+          "css": "var(--av-1)",
+          "class": null,
+          "light": "#12847a",
+          "dark": "#1f9b8e"
+        },
+        "av-2": {
+          "intent": "Avatar color.",
+          "css": "var(--av-2)",
+          "class": null,
+          "light": "#c27a0d",
+          "dark": "#b9770d"
+        },
+        "av-3": {
+          "intent": "Avatar color.",
+          "css": "var(--av-3)",
+          "class": null,
+          "light": "#c2385f",
+          "dark": "#c84d70"
+        },
+        "av-4": {
+          "intent": "Avatar color.",
+          "css": "var(--av-4)",
+          "class": null,
+          "light": "#7a4dc4",
+          "dark": "#8a60d1"
+        },
+        "av-5": {
+          "intent": "Avatar color.",
+          "css": "var(--av-5)",
+          "class": null,
+          "light": "#2c7fb6",
+          "dark": "#3a8ccd"
+        },
+        "av-6": {
+          "intent": "Avatar color.",
+          "css": "var(--av-6)",
+          "class": null,
+          "light": "#5f7a1e",
+          "dark": "#6d8c27"
+        },
+        "av-7": {
+          "intent": "Avatar color.",
+          "css": "var(--av-7)",
+          "class": null,
+          "light": "#a4478c",
+          "dark": "#b3579e"
+        }
+      }
+    }
+  },
+  "agentStates": [
+    {
+      "id": "think",
+      "token": "agent-think",
+      "icon": "dots",
+      "label": "Reading",
+      "rule": "Show what the agent reads, such as \"Reading 12 tasks\". Pulse slowly. Stop the pulse for reduced motion."
+    },
+    {
+      "id": "act",
+      "token": "agent-act",
+      "icon": "bot",
+      "label": "Running",
+      "rule": "Name the tool in plain words, such as \"Moving 3 tasks\". Show one step at a time."
+    },
+    {
+      "id": "wait",
+      "token": "agent-wait",
+      "icon": "shield",
+      "label": "Waiting for you",
+      "rule": "Show the change in plain words with Approve and Reject buttons. Deletes and people changes always wait. The agent never goes past this state on its own."
+    },
+    {
+      "id": "done",
+      "token": "agent-done",
+      "icon": "check",
+      "label": "Done",
+      "rule": "Say what changed. Link to the changed item when you can."
+    },
+    {
+      "id": "fail",
+      "token": "agent-fail",
+      "icon": "x",
+      "label": "Stopped",
+      "rule": "Say what went wrong and what to do next."
+    }
+  ],
+  "type": {
+    "sans": "Geist",
+    "mono": "Geist Mono",
+    "roles": [
+      {
+        "id": "label",
+        "use": "Section labels and table heads.",
+        "classes": "font-mono text-[11px] uppercase tracking-wider text-muted-foreground"
+      },
+      {
+        "id": "body",
+        "use": "Most text.",
+        "classes": "text-sm"
+      },
+      {
+        "id": "title",
+        "use": "Card and dialog titles.",
+        "classes": "text-base font-semibold"
+      },
+      {
+        "id": "heading",
+        "use": "The page title in SiteHeader.",
+        "classes": "text-lg font-semibold tracking-tight"
+      },
+      {
+        "id": "number",
+        "use": "Dates, counts and money.",
+        "classes": "tabular"
+      }
+    ]
+  },
+  "shape": {
+    "radius": {
+      "sm": "6px",
+      "md": "8px",
+      "lg": "10px",
+      "xl": "14px"
+    },
+    "use": "Use rounded-md for controls, rounded-lg for cards and rounded-full for avatars and pills."
+  },
+  "motion": {
+    "tokens": {
+      "ease-enter": "cubic-bezier(0.22, 1, 0.36, 1)",
+      "ease-exit": "cubic-bezier(0.55, 0, 1, 0.45)",
+      "ease-move": "cubic-bezier(0.65, 0, 0.35, 1)",
+      "motion-fast": "120ms",
+      "motion-base": "200ms",
+      "motion-slow": "320ms"
+    },
+    "use": "Enter with ease-enter. Leave with ease-exit, faster than the enter. Reorder and drag with ease-move. Every animation stops for prefers-reduced-motion."
+  },
+  "blocking": [
+    {
+      "id": "board",
+      "use": "Items that move through stages.",
+      "parts": [
+        "SiteHeader",
+        "PageBody",
+        "columns"
+      ]
+    },
+    {
+      "id": "list-detail",
+      "use": "A list of items and the open item.",
+      "parts": [
+        "SiteHeader",
+        "PageBody",
+        "list",
+        "Sheet"
+      ]
+    },
+    {
+      "id": "document",
+      "use": "Long text on a page.",
+      "parts": [
+        "SiteHeader",
+        "desk",
+        "paper"
+      ]
+    },
+    {
+      "id": "form",
+      "use": "Settings and new items.",
+      "parts": [
+        "SiteHeader",
+        "PageBody",
+        "Field"
+      ]
+    },
+    {
+      "id": "agent-panel",
+      "use": "A chat with the agent beside the work.",
+      "parts": [
+        "SiteHeader",
+        "PageBody",
+        "agent states",
+        "approval group"
+      ]
+    }
+  ],
+  "cues": [
+    {
+      "id": "C01",
+      "rule": "Use theme tokens for every color. Do not write hex, rgb or oklch values or fixed Tailwind palette classes in components.",
+      "check": "script",
+      "test": "literal-colors"
+    },
+    {
+      "id": "C02",
+      "rule": "Give every token a light value and a dark value.",
+      "check": "script",
+      "test": "token-pairs"
+    },
+    {
+      "id": "C03",
+      "rule": "Text has a contrast of 4.5:1 or more on its surface, in both themes.",
+      "check": "script",
+      "test": "contrast"
+    },
+    {
+      "id": "C04",
+      "rule": "Status marks, icons and lines that carry meaning have a contrast of 3:1 or more.",
+      "check": "script",
+      "test": "contrast"
+    },
+    {
+      "id": "C05",
+      "rule": "Pick a token by its intent. Do not pick a token by its color.",
+      "check": "review"
+    },
+    {
+      "id": "C06",
+      "rule": "Use one primary action on a screen.",
+      "check": "review"
+    },
+    {
+      "id": "C07",
+      "rule": "Every signed-in page starts with SiteHeader and puts its content in PageBody.",
+      "check": "review"
+    },
+    {
+      "id": "C08",
+      "rule": "Build from the shadcn/ui components in @openact/ui. Use Lucide icons through Icon.",
+      "check": "review"
+    },
+    {
+      "id": "C09",
+      "rule": "Show agent work with the five agent states and the AgentState component. Never show agent work in the brand colors.",
+      "check": "script",
+      "test": "brand-distance"
+    },
+    {
+      "id": "C10",
+      "rule": "An agent change that deletes data or changes people waits for a person. Show Approve and Reject.",
+      "check": "test",
+      "test": "test/agent.test.ts"
+    },
+    {
+      "id": "C11",
+      "rule": "Use the motion tokens. Stop every animation when the person asks for reduced motion.",
+      "check": "review"
+    },
+    {
+      "id": "C12",
+      "rule": "Write text in ASD-STE100 style: short sentences, active voice, one idea per sentence, American spelling.",
+      "check": "review"
+    },
+    {
+      "id": "C13",
+      "rule": "Do not use em dashes in text.",
+      "check": "script",
+      "test": "em-dash"
+    },
+    {
+      "id": "C14",
+      "rule": "Start the name of an app token with the app id, such as --app-docs-accent.",
+      "check": "script",
+      "test": "app-prefix"
+    },
+    {
+      "id": "C15",
+      "rule": "Look at every new screen in light and dark, on a phone and on a desktop, before you open a pull request.",
+      "check": "review"
+    }
+  ],
+  "method": [
+    {
+      "step": "01",
+      "name": "Script",
+      "person": "Write one sentence about who uses the app and what they do.",
+      "agent": "Read the Promptbook. Pick the blocking pattern for each screen."
+    },
+    {
+      "step": "02",
+      "name": "Cast",
+      "person": "Pick one hue for the app accent, if the app needs one.",
+      "agent": "Run npm run design -- seed <app-id> <hue>. Paste the tokens into theme.css."
+    },
+    {
+      "step": "03",
+      "name": "Block",
+      "person": "Approve the list of screens.",
+      "agent": "Build each screen from the blocking pattern and @openact/ui components."
+    },
+    {
+      "step": "04",
+      "name": "Cue",
+      "person": "Say which agent actions need approval.",
+      "agent": "Show agent work with AgentState. Write all text in ASD-STE100 style."
+    },
+    {
+      "step": "05",
+      "name": "Rehearse",
+      "person": "Look at the screens in light and dark, on a phone and a desktop.",
+      "agent": "Run npm run design -- check and npm test. Fix every problem."
+    },
+    {
+      "step": "06",
+      "name": "Open",
+      "person": "Review the pull request and merge it.",
+      "agent": "Open a pull request. List the cues that need a review by a person."
+    }
+  ],
+  "contrast": [
+    {
+      "fg": "foreground",
+      "bg": "background",
+      "kind": "text",
+      "min": 4.5,
+      "light": 19.79,
+      "dark": 18.96
+    },
+    {
+      "fg": "muted-foreground",
+      "bg": "background",
+      "kind": "text",
+      "min": 4.5,
+      "light": 5.17,
+      "dark": 7.63
+    },
+    {
+      "fg": "muted-foreground",
+      "bg": "muted",
+      "kind": "text",
+      "min": 4.5,
+      "light": 4.74,
+      "dark": 5.83
+    },
+    {
+      "fg": "card-foreground",
+      "bg": "card",
+      "kind": "text",
+      "min": 4.5,
+      "light": 19.79,
+      "dark": 17.16
+    },
+    {
+      "fg": "popover-foreground",
+      "bg": "popover",
+      "kind": "text",
+      "min": 4.5,
+      "light": 19.79,
+      "dark": 17.16
+    },
+    {
+      "fg": "primary-foreground",
+      "bg": "primary",
+      "kind": "text",
+      "min": 4.5,
+      "light": 17.16,
+      "dark": 14.22
+    },
+    {
+      "fg": "secondary-foreground",
+      "bg": "secondary",
+      "kind": "text",
+      "min": 4.5,
+      "light": 16.42,
+      "dark": 14.48
+    },
+    {
+      "fg": "accent-foreground",
+      "bg": "accent",
+      "kind": "text",
+      "min": 4.5,
+      "light": 16.42,
+      "dark": 14.48
+    },
+    {
+      "fg": "destructive",
+      "bg": "background",
+      "kind": "text",
+      "min": 4.5,
+      "light": 4.76,
+      "dark": 6.84
+    },
+    {
+      "fg": "destructive",
+      "bg": "card",
+      "kind": "text",
+      "min": 4.5,
+      "light": 4.76,
+      "dark": 6.19
+    },
+    {
+      "fg": "warn-foreground",
+      "bg": "warn",
+      "kind": "text",
+      "min": 4.5,
+      "light": 7.87,
+      "dark": 9.85
+    },
+    {
+      "fg": "brand-foreground",
+      "bg": "brand",
+      "kind": "text",
+      "min": 4.5,
+      "light": 17.42,
+      "dark": 14.33
+    },
+    {
+      "fg": "stage-foreground",
+      "bg": "stage",
+      "kind": "text",
+      "min": 4.5,
+      "light": 18.5,
+      "dark": 19.3
+    },
+    {
+      "fg": "paper-foreground",
+      "bg": "paper",
+      "kind": "text",
+      "min": 4.5,
+      "light": 17.42,
+      "dark": 16.74
+    },
+    {
+      "fg": "agent-think",
+      "bg": "card",
+      "kind": "text",
+      "min": 4.5,
+      "light": 5.8,
+      "dark": 7.89
+    },
+    {
+      "fg": "agent-act",
+      "bg": "card",
+      "kind": "text",
+      "min": 4.5,
+      "light": 5.9,
+      "dark": 7.98
+    },
+    {
+      "fg": "agent-wait",
+      "bg": "card",
+      "kind": "text",
+      "min": 4.5,
+      "light": 6.12,
+      "dark": 8.4
+    },
+    {
+      "fg": "agent-done",
+      "bg": "card",
+      "kind": "text",
+      "min": 4.5,
+      "light": 5.34,
+      "dark": 8.66
+    },
+    {
+      "fg": "agent-fail",
+      "bg": "card",
+      "kind": "text",
+      "min": 4.5,
+      "light": 5.44,
+      "dark": 6.67
+    },
+    {
+      "fg": "agent-think",
+      "bg": "background",
+      "kind": "text",
+      "min": 4.5,
+      "light": 5.8,
+      "dark": 8.72
+    },
+    {
+      "fg": "agent-act",
+      "bg": "background",
+      "kind": "text",
+      "min": 4.5,
+      "light": 5.9,
+      "dark": 8.81
+    },
+    {
+      "fg": "agent-wait",
+      "bg": "background",
+      "kind": "text",
+      "min": 4.5,
+      "light": 6.12,
+      "dark": 9.29
+    },
+    {
+      "fg": "agent-done",
+      "bg": "background",
+      "kind": "text",
+      "min": 4.5,
+      "light": 5.34,
+      "dark": 9.56
+    },
+    {
+      "fg": "agent-fail",
+      "bg": "background",
+      "kind": "text",
+      "min": 4.5,
+      "light": 5.44,
+      "dark": 7.37
+    },
+    {
+      "fg": "s-todo",
+      "bg": "card",
+      "kind": "graphic",
+      "min": 3,
+      "light": 4.37,
+      "dark": 6.34
+    },
+    {
+      "fg": "s-doing",
+      "bg": "card",
+      "kind": "graphic",
+      "min": 3,
+      "light": 3.39,
+      "dark": 8.18
+    },
+    {
+      "fg": "s-review",
+      "bg": "card",
+      "kind": "graphic",
+      "min": 3,
+      "light": 4.99,
+      "dark": 6.16
+    },
+    {
+      "fg": "s-done",
+      "bg": "card",
+      "kind": "graphic",
+      "min": 3,
+      "light": 3.72,
+      "dark": 7.51
+    },
+    {
+      "fg": "p-high",
+      "bg": "card",
+      "kind": "graphic",
+      "min": 3,
+      "light": 5.24,
+      "dark": 6.67
+    },
+    {
+      "fg": "live",
+      "bg": "background",
+      "kind": "graphic",
+      "min": 3,
+      "light": 3.72,
+      "dark": 8.3
+    },
+    {
+      "fg": "today",
+      "bg": "background",
+      "kind": "graphic",
+      "min": 3,
+      "light": 4.59,
+      "dark": 6.98
+    },
+    {
+      "fg": "brand-gold",
+      "bg": "background",
+      "kind": "graphic",
+      "min": 3,
+      "light": 5.35,
+      "dark": 10.63
+    }
+  ]
+}

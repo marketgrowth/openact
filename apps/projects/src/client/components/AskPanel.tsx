@@ -3,11 +3,10 @@ import { AGENT_LEVEL_HELP, AGENT_LEVEL_LABELS, type AgentLevel } from "../../sha
 import type { Decision } from "../agui/useAgent";
 import type { RunView } from "../agui/reducer";
 import type { ScopeNotice } from "../../shared/agui";
-import { Icon, Notice } from "@openact/ui";
+import { AgentState, Icon, Notice } from "@openact/ui";
 import { Button } from "@openact/ui/components/button";
 import { Input } from "@openact/ui/components/input";
 import { Label } from "@openact/ui/components/label";
-import { cn } from "@openact/ui/lib/utils";
 
 /** How close to the bottom, in pixels, still counts as "at the bottom". */
 const STICK_PX = 48;
@@ -152,33 +151,18 @@ export function AskPanel({
                     const pending = pendingCalls.has(c.id) && !result;
                     const failed = !!result && /^(Failed|Not allowed|The person rejected|The approval|This approval|The app has no)/.test(result);
                     return (
-                      <div
-                        key={c.id}
-                        className={cn(
-                          "flex items-start gap-2 rounded-md border px-2.5 py-1.5 text-xs",
-                          pending && "border-status-doing/40 text-status-doing",
-                          failed && "border-destructive/40 text-destructive",
-                          !pending && !failed && result && "text-muted-foreground"
-                        )}
-                        data-action-chip=""
-                      >
-                        <Icon
-                          name={pending ? "shield" : failed ? "x" : result ? "check" : "dots"}
-                          size={13}
-                          className={cn("mt-px shrink-0", !pending && !failed && result && "text-status-done")}
-                        />
-                        <span>{pending ? "Waiting for your approval" : result ? chipText(result) : `Running ${c.name}…`}</span>
-                      </div>
+                      <AgentState key={c.id} state={pending ? "wait" : failed ? "fail" : result ? "done" : "act"} data-action-chip="">
+                        {pending ? "Waiting for your approval" : result ? chipText(result) : `Running ${c.name}…`}
+                      </AgentState>
                     );
                   })}
                 </div>
               );
             })}
             {running && (
-              <p className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span className="size-1.5 animate-pulse rounded-full bg-muted-foreground" aria-hidden="true" />
+              <AgentState state="think" className="w-fit border-transparent px-0">
                 {(view.step && STEP_TEXT[view.step]) || "Working…"}
-              </p>
+              </AgentState>
             )}
             {view.status === "error" && view.error && <Notice tone="error">{view.error}</Notice>}
           </div>
@@ -199,13 +183,13 @@ export function AskPanel({
 
       {waiting && (
         <div
-          className="mx-4 mb-3 grid gap-3 rounded-lg border border-status-doing/40 bg-card p-3 shadow-xs"
+          className="mx-4 mb-3 grid gap-3 rounded-lg border border-agent-wait/40 bg-card p-3 shadow-xs"
           role="group"
           aria-label="Approve agent actions"
           data-approval=""
         >
           <p className="flex items-center gap-2 text-sm font-medium">
-            <Icon name="shield" /> The agent wants to make {view.interrupts.length === 1 ? "this change" : `${view.interrupts.length} changes`}.
+            <Icon name="shield" className="text-agent-wait" /> The agent wants to make {view.interrupts.length === 1 ? "this change" : `${view.interrupts.length} changes`}.
           </p>
           <ul className="grid gap-1.5">
             {view.interrupts.map((i) => (

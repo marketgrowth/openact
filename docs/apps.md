@@ -171,5 +171,5 @@ Put numbered SQL files in `migrations/`, such as `0001_init.sql`. `npm run sync`
 1. **Prefix everything with your id.** Tables (`inventory_items`), routes (`/api/apps/inventory`), R2 keys (`inventory/...`), room kinds and command ids. The projects app made some tables before apps had prefixes: `projects`, `project_members`, `tasks`, `attachments`, `board_columns`, `invitations`, `agent_actions`, `access_requests` and `vector_outbox`. Never use these names.
 2. **Scope your data to a company.** Every row has a `company_id`. Check access with `requirePermission`, or your own item check built on it.
 3. **Use the core for people.** Never read or write `users`, `sessions`, `companies` or `company_members` directly, except for read-only joins. Never handle sign-in yourself.
-4. **Follow the UI rules** in AGENTS.md: shadcn/ui components, Tailwind token classes, Lucide icons, `SiteHeader` and `PageBody`.
+4. **Follow the UI rules** in AGENTS.md and the [design system](/design-system): shadcn/ui components, Tailwind token classes, Lucide icons, `SiteHeader`, `PageBody` and `AgentState` for agent work.
 5. **Clean up through hooks.** When a person leaves a company, or a company is deleted, your hooks remove their access and data.
