@@ -1,10 +1,11 @@
 /*
  * The sections of the Settings page. The side panel lists them, and each one has its own path.
- * Company sections: /settings/company/<id>. Site sections, for super admins: /settings/site/<id>.
+ * Company sections: /settings/company/<id>. Personal account sections: /settings/account/<id>.
+ * Site sections, for super admins: /settings/site/<id>.
  */
 import { SETTINGS_PATH } from "./app-paths.ts";
 
-export type SettingsScope = "company" | "site";
+export type SettingsScope = "company" | "account" | "site";
 
 export interface SettingsSection {
   scope: SettingsScope;
@@ -22,6 +23,11 @@ export const COMPANY_SECTIONS: readonly SettingsSection[] = [
   { scope: "company", id: "apps", label: "Apps", icon: "apps" },
   { scope: "company", id: "permissions", label: "Permissions", icon: "shield" },
   { scope: "company", id: "ai", label: "AI provider", icon: "bot" }
+];
+
+export const ACCOUNT_SECTIONS: readonly SettingsSection[] = [
+  { scope: "account", id: "profile", label: "Profile", icon: "user", description: "Your name, your email and how the app looks for you." },
+  { scope: "account", id: "security", label: "Sign-in and security", icon: "shield", description: "Sign out, or delete your account." }
 ];
 
 export const SITE_SECTIONS: readonly SettingsSection[] = [
@@ -56,7 +62,7 @@ export const settingsPath = (scope: SettingsScope, id: string): string => `${SET
 /** Reads a settings path. "/settings" alone gives no scope, so the page picks the first section the person can open. */
 export function parseSettingsPath(path: string): { scope?: SettingsScope; id?: string } | null {
   if (path === SETTINGS_PATH || path === `${SETTINGS_PATH}/`) return {};
-  const m = path.match(/^\/settings\/(company|site)(?:\/([^/]+))?\/?$/);
+  const m = path.match(/^\/settings\/(company|account|site)(?:\/([^/]+))?\/?$/);
   if (!m) return null;
   let id: string | undefined;
   try {

@@ -9,7 +9,13 @@ Every project belongs to one company. A person can be in many companies and swit
 | Member | See every company project as a viewer. Create projects. A company can change both in **Company settings > Permissions**. |
 | Guest | See only the projects they are invited to. |
 
-Owners and admins open **Company settings** with the gear at the bottom of the app rail. Settings opens as a page. The side panel lists its sections: **General**, **People**, **Apps**, **Permissions**, **AI provider**, and a section for each app that adds one. Each section has its own address, such as `/settings/company/people`, so you can link to it.
+The gear at the bottom of the app rail opens **Settings** as a page. The side panel lists its sections in three groups:
+
+- **Company settings**, for owners and admins: **General**, **People**, **Apps**, **Permissions**, **AI provider**, and a section for each app that adds one.
+- **Personal account**, for everyone: **Profile** (name, email and theme) and **Sign-in and security** (sign out, delete account).
+- **Site settings**, for super admins only.
+
+Each section has its own address, such as `/settings/company/people`, so you can link to it.
 
 | Project visibility | Who can see it |
 | --- | --- |

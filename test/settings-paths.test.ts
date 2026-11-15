@@ -22,6 +22,7 @@ test("a settings path reads back to its section", () => {
   assert.deepEqual(parseSettingsPath("/settings/company"), { scope: "company", id: undefined });
   assert.deepEqual(parseSettingsPath("/settings/company/ai/"), { scope: "company", id: "ai" });
   assert.deepEqual(parseSettingsPath("/settings/site/apps"), { scope: "site", id: "apps" });
+  assert.deepEqual(parseSettingsPath("/settings/account/profile"), { scope: "account", id: "profile" });
   assert.equal(parseSettingsPath("/settings/other/apps"), null);
   assert.equal(parseSettingsPath("/settings/company/a/b"), null);
   assert.equal(parseSettingsPath("/settings/company/%E0%A4%A"), null);
