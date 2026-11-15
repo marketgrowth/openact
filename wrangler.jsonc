@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "openact",
+  "name": "openact-on",
   "main": "src/worker.ts",
   "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat"],
@@ -8,6 +8,10 @@
   "observability": { "enabled": true },
 
   // The web app is built by Vite into dist/client. The Worker answers /api/* and Docs share links (/docs/s/*) first.
+  // MarketGrowth's private deploy at on.openact.ing, with only the License Keys app. Workers Builds deploys
+  // the `on` branch here on each push. See ON.md. Do not merge this branch into main.
+  "routes": [{ "pattern": "on.openact.ing", "custom_domain": true }],
+
   "assets": {
     "directory": "./dist/client",
     "binding": "ASSETS",
@@ -19,7 +23,7 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "openact",
+      "database_name": "openact-on",
       "migrations_dir": ".openact/migrations"
     }
   ],
@@ -28,7 +32,7 @@
   "r2_buckets": [
     {
       "binding": "FILES",
-      "bucket_name": "openact-files"
+      "bucket_name": "openact-on-files"
     }
   ],
 
@@ -36,23 +40,11 @@
   // Docs live editing: one Durable Object per doc holds the shared doc and its editors. Without DOCS_ROOMS, Docs saves the usual way.
   "durable_objects": {
     "bindings": [
-      { "name": "PROJECT_ROOMS", "class_name": "ProjectRoom" },
-      { "name": "DOCS_ROOMS", "class_name": "DocsRoom" }
+      { "name": "PROJECT_ROOMS", "class_name": "ProjectRoom" }
     ]
   },
   "migrations": [
-    { "tag": "v1", "new_sqlite_classes": ["ProjectRoom"] },
-    { "tag": "v2", "new_sqlite_classes": ["DocsRoom"] }
-  ],
-
-  // Search by meaning. Create the index once with: npm run search:setup
-  // 768 dimensions, cosine, for @cf/baai/bge-base-en-v1.5.
-  "vectorize": [
-    {
-      "binding": "VECTORS",
-      "index_name": "openact-tasks",
-      "remote": true
-    }
+    { "tag": "v1", "new_sqlite_classes": ["ProjectRoom"] }
   ],
 
   // Workers AI. Requests go through AI Gateway when AI_GATEWAY_ID is set.
@@ -62,12 +54,12 @@
   "triggers": { "crons": ["17 3 * * *", "*/10 * * * *"] },
 
   "vars": {
-    "APP_NAME": "OpenAct",
-    "SUPER_ADMIN_EMAILS": "",
-    "APP_URL": "",
-    "EMAIL_FROM": "OpenAct <no-reply@example.com>",
+    "APP_NAME": "OpenAct On",
+    "SUPER_ADMIN_EMAILS": "victor@marketgrowth.io",
+    "APP_URL": "https://on.openact.ing",
+    "EMAIL_FROM": "OpenAct On <no-reply@openact.ing>",
     "SIGNUP_MODE": "open",
-    "ALLOWED_EMAIL_DOMAINS": "",
+    "ALLOWED_EMAIL_DOMAINS": "marketgrowth.io",
     "AI_PROVIDER": "workers-ai",
     "AI_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
     "AI_SCOPE_MODEL": "",

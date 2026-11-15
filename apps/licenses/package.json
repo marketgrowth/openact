@@ -1,0 +1,25 @@
+{
+  "name": "@openact/app-licenses",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MarketGrowth only: make signing keys and issue OpenAct license keys. Runs on the private deploy at on.openact.ing.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    "./server": "./src/server/index.ts",
+    "./client": "./src/client/index.tsx"
+  },
+  "openact": {
+    "id": "licenses",
+    "name": "License Keys",
+    "server": "./src/server/index.ts",
+    "client": "./src/client/index.tsx",
+    "migrations": "./migrations"
+  },
+  "dependencies": {
+    "@openact/core": "0.2.0",
+    "@openact/ui": "0.2.0",
+    "hono": "^4.13.16",
+    "react": "^19.3.1"
+  }
+}
