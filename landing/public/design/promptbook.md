@@ -110,7 +110,7 @@ Deletes and people changes always wait for a person. The agent never goes past t
 
 | Part | Rule |
 | --- | --- |
-| Type | Geist for text. Geist Mono for labels, code and ids. Use `tabular` for dates, counts and money. |
+| Type | IBM Plex Sans for text. IBM Plex Mono for labels, code and ids. Use `tabular` for dates, counts and money. |
 | Label | `font-mono text-[11px] uppercase tracking-wider text-muted-foreground` |
 | Body | `text-sm` |
 | Title | `text-base font-semibold` |

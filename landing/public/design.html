@@ -18,7 +18,7 @@
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wdth,wght@75..100,500..800&family=Geist:wght@400..700&family=Geist+Mono:wght@400..600&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wdth,wght@75..100,500..800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" />
     <!-- The token values below come from packages/ui/src/theme.css. `npm run design -- build` writes them. -->
     <!-- promptbook:vars -->
 <style>
@@ -31,13 +31,13 @@
       :root {
         --max: 1200px;
         --line: var(--pb-border);
-        --display: "Open Sans", "Geist", ui-sans-serif, system-ui, sans-serif;
-        --mono: "Geist Mono", ui-monospace, Menlo, monospace;
+        --display: "Open Sans", "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+        --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
         --cue: var(--pb-brand-gold);
       }
       * { box-sizing: border-box; }
       html { -webkit-text-size-adjust: 100%; scroll-padding-top: 76px; }
-      body { margin: 0; background: var(--pb-background); color: var(--pb-foreground); font-family: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 16px; line-height: 1.6; }
+      body { margin: 0; background: var(--pb-background); color: var(--pb-foreground); font-family: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 16px; line-height: 1.6; }
       a { color: inherit; }
       code, pre, .mono { font-family: var(--mono); }
       code { font-size: 0.9em; }
@@ -221,7 +221,7 @@
       .tokens td.v { white-space: nowrap; font-family: var(--mono); font-size: 12px; color: var(--pb-muted-foreground); }
       .tokens td.v span { margin-left: 8px; }
       .tokens .grp th { padding-top: 22px; font-family: var(--display); font-size: 16px; font-weight: 700; text-transform: capitalize; border-bottom: 1px solid var(--line); }
-      .tokens .grp th span { margin-left: 10px; font-family: "Geist", sans-serif; font-size: 13px; font-weight: 400; text-transform: none; color: var(--pb-muted-foreground); }
+      .tokens .grp th span { margin-left: 10px; font-family: "IBM Plex Sans", sans-serif; font-size: 13px; font-weight: 400; text-transform: none; color: var(--pb-muted-foreground); }
       .sw { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; border-radius: 4px; box-shadow: inset 0 0 0 1px var(--line); }
       details.more { margin-top: 12px; }
       details.more summary { cursor: pointer; font-size: 14px; color: var(--pb-muted-foreground); }
@@ -234,7 +234,7 @@
       .seedviz div { display: grid; gap: 10px; padding: 16px; border-radius: 10px; border: 1px solid var(--line); font-family: var(--mono); font-size: 12px; }
       .seedviz .l { background: #ffffff; color: #0a0a0a; border-color: #e5e5e5; } /* promptbook-allow: shows the light theme on purpose */
       .seedviz .d { background: #0a0a0a; color: #fafafa; border-color: #262626; } /* promptbook-allow: shows the dark theme on purpose */
-      .seedviz .btnx { display: inline-block; padding: 6px 12px; border-radius: 8px; text-decoration: none; font-family: "Geist", sans-serif; font-weight: 600; font-size: 13px; justify-self: start; }
+      .seedviz .btnx { display: inline-block; padding: 6px 12px; border-radius: 8px; text-decoration: none; font-family: "IBM Plex Sans", sans-serif; font-weight: 600; font-size: 13px; justify-self: start; }
       @media (max-width: 560px) { .seedviz { grid-template-columns: 1fr; } }
 
       /* Closing */
