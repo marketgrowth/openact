@@ -5,7 +5,7 @@ import { api, errorText } from "../api";
 import { Link, navigate, usePath } from "../router";
 import { Field, Modal, ToastProvider, useToast } from "../ui";
 import { WorkspaceProvider, useWorkspace } from "../workspace";
-import { APPS_PATH, ShellContext, appHome, railOrder, type ClientApp, type DirectoryApp, type Shell } from "../apps";
+import { APPS_PATH, SETTINGS_PATH, ShellContext, appHome, isSettingsPath, railOrder, type ClientApp, type DirectoryApp, type Shell } from "../apps";
 import { SignIn } from "./SignIn";
 import { PLAN_PATH, PlanPage } from "./Plan";
 import { AppSidebar } from "./Sidebar";
@@ -17,8 +17,7 @@ import { Input } from "@openact/ui/components/input";
 import { Separator } from "@openact/ui/components/separator";
 
 // Loaded on first use, so the first page loads less code.
-const CompanySettings = lazy(() => import("./CompanyDialogs").then((m) => ({ default: m.CompanySettings })));
-const SiteSettingsDialog = lazy(() => import("./SiteSettings").then((m) => ({ default: m.SiteSettingsDialog })));
+const SettingsPage = lazy(() => import("./SettingsPage").then((m) => ({ default: m.SettingsPage })));
 const NewCompanyDialog = lazy(() => import("./CompanyDialogs").then((m) => ({ default: m.NewCompanyDialog })));
 const AppsPage = lazy(() => import("./AppsPage").then((m) => ({ default: m.AppsPage })));
 
@@ -132,7 +131,7 @@ function Root({ apps, directory, primary }: { apps: ClientApp[]; directory: read
   );
 }
 
-type Dialog = null | "account" | "site" | "newCompany" | "companySettings" | { command: string };
+type Dialog = null | "account" | "newCompany" | { command: string };
 
 /** Shows the site logo as the tab icon, or the default icon from index.html. */
 function setFavicon(url: string | null) {
@@ -169,8 +168,8 @@ function SignedIn({
   const [open, setOpen] = useState(readPanelOpen);
   const [dialog, setDialog] = useState<Dialog>(null);
   const close = useCallback(() => setDialog(null), []);
-  // Super admins see Site settings in their menu. The server checks again on every change.
-  const [superAdmin, setSuperAdmin] = useState(false);
+  // Super admins see Site settings on the Settings page. The server checks again on every change. undefined while it loads.
+  const [superAdmin, setSuperAdmin] = useState<boolean | undefined>(undefined);
   useEffect(() => {
     api<SiteSettings>("/api/site")
       .then((s) => setSuperAdmin(s.canEdit))
@@ -214,12 +213,28 @@ function SignedIn({
   );
 
   const shell = useMemo<Shell>(
-    () => ({ me, config, apps, primary, directory, open: (d) => setDialog(d), runCommand: (id) => setDialog({ command: id }) }),
+    () => ({
+      me,
+      config,
+      apps,
+      primary,
+      directory,
+      // Company settings is a page now. Apps that still ask for the dialog go to the page.
+      open: (d) => (d === "companySettings" ? navigate(SETTINGS_PATH) : setDialog(d)),
+      runCommand: (id) => setDialog({ command: id })
+    }),
     [me, config, apps, primary, directory]
   );
 
   // The page: the first app route that matches, or the first app's home page at "/".
-  let page: ReactNode = path === APPS_PATH ? <AppsPage /> : path === PLAN_PATH ? <PlanPage /> : null;
+  let page: ReactNode =
+    path === APPS_PATH ? (
+      <AppsPage />
+    ) : path === PLAN_PATH ? (
+      <PlanPage />
+    ) : isSettingsPath(path) ? (
+      <SettingsPage me={me} apps={onApps} superAdmin={superAdmin} onSite={onSite} />
+    ) : null;
   for (const app of page ? [] : apps) {
     for (const r of app.routes ?? []) {
       const m = path.match(r.pattern);
@@ -251,9 +266,8 @@ function SignedIn({
         primary={primary}
         onRunCommand={(id) => setDialog({ command: id })}
         onNewCompany={() => setDialog("newCompany")}
-        onCompanySettings={() => setDialog("companySettings")}
         onAccount={() => setDialog("account")}
-        onSiteSettings={superAdmin ? () => setDialog("site") : undefined}
+        superAdmin={superAdmin === true}
         onSignOut={signOut}
       />
       <SidebarInset className="min-w-0">
@@ -269,9 +283,7 @@ function SignedIn({
       </SidebarInset>
       <Suspense fallback={null}>
         {dialog === "account" && <AccountDialog me={me} onChange={onMe} onSignOut={signOut} onClose={close} />}
-        {dialog === "site" && <SiteSettingsDialog onSaved={onSite} onClose={close} />}
         {dialog === "newCompany" && <NewCompanyDialog onClose={close} />}
-        {dialog === "companySettings" && ws.current && <CompanySettings companyId={ws.current.id} me={me} apps={onApps} onClose={close} />}
         {activeCommand && <activeCommand.Dialog onClose={close} />}
       </Suspense>
     </SidebarProvider>
@@ -308,7 +320,7 @@ function AppOff({ name, locked = false }: { name: string; locked?: boolean }) {
       <PageBody>
         <div className="mx-auto flex w-full max-w-lg flex-col items-center gap-3 rounded-xl border border-dashed p-8 text-center" data-app-off="">
           <h2 className="text-lg font-semibold">{name ? `${name} is off for this company` : "No apps are on for this company"}</h2>
-          <p className="text-sm text-muted-foreground">A company owner or admin can turn it on in Company settings, on the Apps tab.</p>
+          <p className="text-sm text-muted-foreground">A company owner or admin can turn it on in Company settings, under Apps.</p>
         </div>
       </PageBody>
     </>

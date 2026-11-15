@@ -29,7 +29,7 @@ The code says "advisor" and "offer". Each company sets its own label in Company 
 | Manager | Approves advisors, sets each advisor's fee, pauses profiles, sees every engagement | Manage advisors (`advisory.manage`) |
 | Client in a project | Works with the advisor in the engagement project only | A member of that project |
 
-By default, owners, admins and members can hire and sell. Owners and admins manage. Change this in Company settings, on the Permissions tab. Guests do not see Advisory.
+By default, owners, admins and members can hire and sell. Owners and admins manage. Change this in Company settings, under Permissions. Guests do not see Advisory.
 
 ## Hire an advisor
 
@@ -78,7 +78,7 @@ Owners and admins open **Manage advisors** in the Advisory panel.
 
 ### Settings
 
-In **Company settings**, on the **Advisory** tab:
+In **Company settings**, under **Advisory** in the side panel:
 
 | Setting | What it does |
 | --- | --- |

@@ -16,7 +16,7 @@ import {
 /*
  * One model turn with tool calling. Every provider goes through Cloudflare AI Gateway.
  * The deploy default comes from AI_PROVIDER: workers-ai (default), anthropic, openai, or dev-scripted (local tests only).
- * A company owner can replace it with their own provider, model and API key in Company settings, on the AI provider tab.
+ * A company owner can replace it with their own provider, model and API key in Company settings, under AI provider.
  */
 
 const DEFAULT_MODELS: Record<string, string> = {
@@ -81,8 +81,8 @@ function missingKey(setup: AiSetup, secret: string): HttpError {
   return new HttpError(
     500,
     setup.source === "company"
-      ? "Your company's AI key is missing. A company owner can add it in Company settings, on the AI provider tab."
-      : `Set the ${secret} secret to use this AI provider. Or a company owner can add their own key in Company settings, on the AI provider tab.`
+      ? "Your company's AI key is missing. A company owner can add it in Company settings, under AI provider."
+      : `Set the ${secret} secret to use this AI provider. Or a company owner can add their own key in Company settings, under AI provider.`
   );
 }
 
@@ -96,7 +96,7 @@ const gatewayAuth = (env: Env): Record<string, string> => (env.AI_GATEWAY_TOKEN 
 async function failed(res: Response, setup: AiSetup): Promise<HttpError> {
   console.error(`[openact] AI provider returned ${res.status}: ${(await res.text().catch(() => "")).slice(0, 500)}`);
   if (setup.source === "company" && (res.status === 401 || res.status === 403)) {
-    return new HttpError(502, "The AI provider did not accept your company's API key. A company owner can check it in Company settings, on the AI provider tab.");
+    return new HttpError(502, "The AI provider did not accept your company's API key. A company owner can check it in Company settings, under AI provider.");
   }
   return new HttpError(502, "The AI service did not answer. Try again in a minute.");
 }

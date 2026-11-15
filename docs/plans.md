@@ -26,7 +26,7 @@ When a company has both, it gets the higher plan.
 
 ### The Plan page
 
-Open the company menu at the top of the app rail, then choose **Plan**. Company owners and admins also find it in **Company settings**, on the **Plan** tab.
+Open the company menu at the top of the app rail, then choose **Plan**. Company owners and admins also find it in **Company settings**, under **Plan**.
 
 The page shows:
 

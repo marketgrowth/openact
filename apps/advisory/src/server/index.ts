@@ -43,7 +43,7 @@ export default defineServerApp({
     app.route(API, paymentRoutes);
   },
   hooks: {
-    // Company settings, on the Advisory tab.
+    // Company settings, Advisory section.
     companyDetail: async (env, companyId) => ({ advisory: { ...(await loadSettings(env, companyId)), payments: paymentsOn(env as AdvisoryEnv) } }),
     companyUpdate: async (env, companyId, body) => {
       if (body.advisory === undefined) return false;

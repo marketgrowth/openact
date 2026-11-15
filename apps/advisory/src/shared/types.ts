@@ -38,7 +38,7 @@ export interface Money {
   currency: string;
 }
 
-/** The brand's settings, in Company settings on the Advisory tab. */
+/** The brand's settings, in Company settings, Advisory section. */
 export interface AdvisorySettings {
   /** What the company calls an advisor, such as "Consultant". */
   label: string;

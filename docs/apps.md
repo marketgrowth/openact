@@ -158,8 +158,8 @@ export default defineClientApp({
 
 The side panel has two columns, like a desktop chat app:
 
-- **The app rail** on the left. It shows the company, one icon for each app, the App directory, the footer items, Company settings and the person's menu. Projects is first, because it is installed first.
-- **The app panel** beside it. It shows the active app's name, its commands, its `nav` items and its `SidebarSection`. The projects app shows Pinned, Projects and Recent here.
+- **The app rail** on the left. It shows the company, one icon for each app, the App directory, the footer items, Settings and the person's menu. Projects is first, because it is installed first.
+- **The app panel** beside it. It shows the active app's name, its commands, its `nav` items and its `SidebarSection`. The projects app shows Pinned, Projects and Recent here. On the Settings page, it lists the settings sections.
 
 Ctrl+B or Cmd+B collapses the panel and leaves only the rail. On a phone, both columns open as one sheet.
 
@@ -198,7 +198,7 @@ An app shows in the rail when it has an `icon` or a `Mark`. Its pages live under
 | `nav` | Items at the top of the app's panel (`main`), or icons at the bottom of the rail for every app (`footer`) |
 | `SidebarSection` | Groups in the app's panel, such as Pinned, Projects and Recent |
 | `commands` | Dialogs that open from the app's panel (`inSidebar`), a shortcut such as Ctrl+K, or `useShell().runCommand(id)` |
-| `companySettingsTabs` | Tabs in Company settings |
+| `companySettingsTabs` | Sections in Company settings. Each one shows in the side panel and opens at `/settings/company/<id>`. |
 | `Provider` | State for your app around the whole shell |
 | `publicRoutes` | Pages that work without sign-in |
 
