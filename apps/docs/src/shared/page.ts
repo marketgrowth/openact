@@ -73,8 +73,8 @@ export function paginate(blocks: Block[], pageHeight: number): number[] {
   return starts;
 }
 
-/** The font stack for doc text. The web app loads Geist, and the share page loads it too. */
-export const DOC_FONT = `"Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif`;
+/** The font stack for doc text. The web app loads IBM Plex Sans, and the share page loads it too. */
+export const DOC_FONT = `"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif`;
 export const DOC_MONO = `"Geist Mono", ui-monospace, Menlo, Consolas, monospace`;
 
 /**
