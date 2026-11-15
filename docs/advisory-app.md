@@ -15,7 +15,7 @@ Advisory comes with OpenAct, next to Projects and Docs. It has its own icon in t
 
 ## Examples
 
-- **GTM Matters** runs Advisory with the label "Consultant". Paid members hire GTM consultants. Members can also apply to sell their own consulting.
+- **A GTM consulting network** runs Advisory with the label "Consultant". Paid members hire GTM consultants. Members can also apply to sell their own consulting.
 - **Orbytt** runs Advisory with the label "Coach". VA coaches and mentors sell coaching sessions and mentorship programs.
 
 The code says "advisor" and "offer". Each company sets its own label in Company settings.
