@@ -1,6 +1,16 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { SITE_NAME_MAX, cleanSiteName, isSuperAdminEmail, parseEmailList, siteLogoUrl } from "../packages/core/src/shared/site.ts";
+import {
+  LEGAL_URL_MAX,
+  SITE_NAME_MAX,
+  cleanLegalUrl,
+  cleanSignInText,
+  cleanSiteName,
+  isSuperAdminEmail,
+  parseEmailList,
+  signInBackgroundUrl,
+  siteLogoUrl
+} from "../packages/core/src/shared/site.ts";
 
 test("the super admin list accepts commas, spaces and any case", () => {
   assert.deepEqual(parseEmailList(" Victor@Example.com, ops@example.com;\nthird@example.org "), [
@@ -38,4 +48,26 @@ test("the app name is one clean line with a length limit", () => {
 test("the logo URL changes with each upload", () => {
   assert.notEqual(siteLogoUrl("2026-11-08T07:00:00.000Z"), siteLogoUrl("2026-11-08T07:05:00.000Z"));
   assert.match(siteLogoUrl("2026-11-08T07:00:00.000Z"), /^\/api\/site\/logo\?v=/);
+});
+
+test("sign-in text is one clean line with a length limit", () => {
+  assert.deepEqual(cleanSignInText("  Plan the\nwork.  ", "Heading", 20), { text: "Plan the work." });
+  assert.deepEqual(cleanSignInText(undefined, "Heading", 20), { text: "" });
+  assert.ok("problem" in cleanSignInText("x".repeat(21), "Heading", 20));
+  assert.ok("problem" in cleanSignInText(42, "Credit", 20));
+});
+
+test("legal links must be full http or https links", () => {
+  assert.deepEqual(cleanLegalUrl(" https://example.com/terms ", "Terms of Use"), { url: "https://example.com/terms" });
+  assert.deepEqual(cleanLegalUrl("http://example.com/privacy", "Privacy Policy"), { url: "http://example.com/privacy" });
+  assert.deepEqual(cleanLegalUrl("", "Terms of Use"), { url: "" });
+  assert.deepEqual(cleanLegalUrl(null, "Terms of Use"), { url: "" });
+  assert.ok("problem" in cleanLegalUrl("javascript:alert(1)", "Terms of Use"));
+  assert.ok("problem" in cleanLegalUrl("data:text/html,hi", "Terms of Use"));
+  assert.ok("problem" in cleanLegalUrl("/terms", "Terms of Use"));
+  assert.ok("problem" in cleanLegalUrl("https://example.com/" + "a".repeat(LEGAL_URL_MAX), "Terms of Use"));
+});
+
+test("the sign-in background URL changes with each upload", () => {
+  assert.equal(signInBackgroundUrl("2026-11-14T00:00:00.000Z"), "/api/site/sign-in-background?v=2026-11-14T00%3A00%3A00.000Z");
 });

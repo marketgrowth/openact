@@ -40,6 +40,14 @@
   --brand: #1c1824;
   --brand-foreground: #ffffff;
   --brand-gold: #8a6420;
+  /* Sign-in stage: the dark panel beside the sign-in form. It stays dark in both themes. */
+  --stage: #15121c;
+  --stage-foreground: #ffffff;
+  --stage-muted: #b9b2c6;
+  --stage-card: #221d2c;
+  --stage-border: #ffffff1a;
+  --stage-line: #ffffff14;
+  --stage-glow: #e3b85c;
 
   /* Docs paper. The sheet stays light in both themes, like printed paper. The desk around it follows the theme. */
   --paper: #ffffff;
@@ -119,6 +127,13 @@
   --brand: #ece7f2;
   --brand-foreground: #1c1824;
   --brand-gold: #e3b85c;
+  --stage: #0f0d14;
+  --stage-foreground: #ffffff;
+  --stage-muted: #b9b2c6;
+  --stage-card: #1c1824;
+  --stage-border: #ffffff1a;
+  --stage-line: #ffffff14;
+  --stage-glow: #e3b85c;
 
   --paper: #fbfafc;
   --paper-foreground: #1c1824;
@@ -195,6 +210,13 @@
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
   --color-brand-gold: var(--brand-gold);
+  --color-stage: var(--stage);
+  --color-stage-foreground: var(--stage-foreground);
+  --color-stage-muted: var(--stage-muted);
+  --color-stage-card: var(--stage-card);
+  --color-stage-border: var(--stage-border);
+  --color-stage-line: var(--stage-line);
+  --color-stage-glow: var(--stage-glow);
   --color-paper: var(--paper);
   --color-paper-foreground: var(--paper-foreground);
   --color-paper-muted: var(--paper-muted);

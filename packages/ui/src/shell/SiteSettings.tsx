@@ -1,5 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { SITE_LOGO_MAX_BYTES, SITE_LOGO_TYPES, SITE_NAME_MAX, type SiteSettings } from "@openact/core/shared";
+import {
+  DEFAULT_SIGN_IN_CREDIT,
+  DEFAULT_SIGN_IN_HEADING,
+  LEGAL_URL_MAX,
+  SIGN_IN_BACKGROUND_MAX_BYTES,
+  SIGN_IN_CREDIT_MAX,
+  SIGN_IN_HEADING_MAX,
+  SITE_LOGO_MAX_BYTES,
+  SITE_LOGO_TYPES,
+  SITE_NAME_MAX,
+  type SiteSettings
+} from "@openact/core/shared";
 import { api, errorText } from "../api";
 import { Field, Logo, Modal, useToast } from "../ui";
 import { useWorkspace } from "../workspace";
@@ -8,7 +19,7 @@ import { Button } from "@openact/ui/components/button";
 import { Input } from "@openact/ui/components/input";
 import { Separator } from "@openact/ui/components/separator";
 
-/** Site settings for super admins: the app name, the logo and the apps of this deploy. */
+/** Site settings for super admins: the app name, the logo, the sign-in page and the apps of this deploy. */
 export function SiteSettingsDialog({ onSaved, onClose }: { onSaved: (s: SiteSettings) => void; onClose: () => void }) {
   const toast = useToast();
   const ws = useWorkspace();
@@ -17,12 +28,24 @@ export function SiteSettingsDialog({ onSaved, onClose }: { onSaved: (s: SiteSett
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const file = useRef<HTMLInputElement>(null);
+  const bgFile = useRef<HTMLInputElement>(null);
+  const [signIn, setSignIn] = useState({ heading: "", credit: "", termsUrl: "", privacyUrl: "" });
+  const [signInBusy, setSignInBusy] = useState(false);
+
+  // The form holds what a super admin saved. Empty fields mean the defaults.
+  const signInForm = (s: SiteSettings) => ({
+    heading: s.signIn.customHeading ? s.signIn.heading : "",
+    credit: s.signIn.customHeading ? s.signIn.credit : "",
+    termsUrl: s.signIn.termsUrl ?? "",
+    privacyUrl: s.signIn.privacyUrl ?? ""
+  });
 
   useEffect(() => {
     api<SiteSettings>("/api/site")
       .then((s) => {
         setSite(s);
         setName(s.customName ? s.appName : "");
+        setSignIn(signInForm(s));
       })
       .catch((err) => toast(errorText(err)));
   }, [toast]);
@@ -63,6 +86,46 @@ export function SiteSettingsDialog({ onSaved, onClose }: { onSaved: (s: SiteSett
     }
   };
 
+  const saveSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSignInBusy(true);
+    try {
+      const s = await api<SiteSettings>("/api/site/sign-in", { method: "PATCH", body: signIn });
+      apply(s);
+      setSignIn(signInForm(s));
+      toast("The sign-in page is saved.");
+    } catch (err) {
+      toast(errorText(err));
+    } finally {
+      setSignInBusy(false);
+    }
+  };
+
+  const uploadBackground = async (f: File | undefined) => {
+    if (!f) return;
+    try {
+      if (!(SITE_LOGO_TYPES as readonly string[]).includes(f.type)) throw new Error("Use a PNG, JPEG or WebP image.");
+      if (f.size > SIGN_IN_BACKGROUND_MAX_BYTES) throw new Error("The background must be 3 MB or smaller.");
+      const form = new FormData();
+      form.append("file", f);
+      apply(await api<SiteSettings>("/api/site/sign-in-background", { method: "PUT", form }));
+      toast("The sign-in background is saved.");
+    } catch (err) {
+      toast(errorText(err));
+    } finally {
+      if (bgFile.current) bgFile.current.value = "";
+    }
+  };
+
+  const removeBackground = async () => {
+    try {
+      apply(await api<SiteSettings>("/api/site/sign-in-background", { method: "DELETE" }));
+      toast("The default sign-in background is back.");
+    } catch (err) {
+      toast(errorText(err));
+    }
+  };
+
   const setAppOn = async (id: string, name: string, enabled: boolean) => {
     setAppBusy(true);
     try {
@@ -86,7 +149,7 @@ export function SiteSettingsDialog({ onSaved, onClose }: { onSaved: (s: SiteSett
   };
 
   return (
-    <Modal title="Site settings" description="The name, logo and apps that everyone on this site sees. Only super admins can change them." onClose={onClose}>
+    <Modal title="Site settings" description="The name, logo, sign-in page and apps that everyone on this site sees. Only super admins can change them." onClose={onClose}>
       {!site ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : (
@@ -125,6 +188,94 @@ export function SiteSettingsDialog({ onSaved, onClose }: { onSaved: (s: SiteSett
               {site.logoUrl && (
                 <Button type="button" variant="ghost" size="sm" onClick={removeLogo}>
                   Remove
+                </Button>
+              )}
+            </div>
+          </Field>
+          <Separator />
+          <form className="grid gap-4" onSubmit={saveSignIn} data-site-sign-in-form="">
+            <Field
+              label="Sign-in heading"
+              htmlFor="site-signin-heading"
+              help="It shows beside the sign-in form. Leave it empty to use the default quote."
+            >
+              <Input
+                id="site-signin-heading"
+                value={signIn.heading}
+                maxLength={SIGN_IN_HEADING_MAX}
+                placeholder={DEFAULT_SIGN_IN_HEADING}
+                onChange={(e) => setSignIn((v) => ({ ...v, heading: e.target.value }))}
+              />
+            </Field>
+            <Field label="Credit" htmlFor="site-signin-credit" help="Who said the heading. It shows under the heading. Leave it empty for no credit.">
+              <Input
+                id="site-signin-credit"
+                value={signIn.credit}
+                maxLength={SIGN_IN_CREDIT_MAX}
+                placeholder={signIn.heading.trim() ? "" : DEFAULT_SIGN_IN_CREDIT}
+                disabled={!signIn.heading.trim()}
+                onChange={(e) => setSignIn((v) => ({ ...v, credit: e.target.value }))}
+              />
+            </Field>
+            <Field
+              label="Terms of Use link"
+              htmlFor="site-terms-url"
+              help="The sign-in page says that people agree to the Terms of Use and Privacy Policy. Add the links so people can read them."
+            >
+              <Input
+                id="site-terms-url"
+                type="url"
+                inputMode="url"
+                value={signIn.termsUrl}
+                maxLength={LEGAL_URL_MAX}
+                placeholder="https://example.com/terms"
+                onChange={(e) => setSignIn((v) => ({ ...v, termsUrl: e.target.value }))}
+              />
+            </Field>
+            <Field label="Privacy Policy link" htmlFor="site-privacy-url">
+              <Input
+                id="site-privacy-url"
+                type="url"
+                inputMode="url"
+                value={signIn.privacyUrl}
+                maxLength={LEGAL_URL_MAX}
+                placeholder="https://example.com/privacy"
+                onChange={(e) => setSignIn((v) => ({ ...v, privacyUrl: e.target.value }))}
+              />
+            </Field>
+            <div className="flex justify-end">
+              <Button type="submit" disabled={signInBusy || JSON.stringify(signIn) === JSON.stringify(signInForm(site))}>
+                Save sign-in page
+              </Button>
+            </div>
+          </form>
+          <Separator />
+          <Field
+            label="Sign-in background"
+            help="PNG, JPEG or WebP, up to 3 MB. A wide image looks best. It shows behind the heading. Choose Use default to show the default background again."
+          >
+            <div className="flex flex-wrap items-center gap-3">
+              {site.signIn.backgroundUrl ? (
+                <img src={site.signIn.backgroundUrl} alt="" className="h-12 w-20 rounded-md border object-cover" />
+              ) : (
+                <span className="flex h-12 w-20 items-center justify-center rounded-md border bg-stage text-[10px] text-stage-muted">Default</span>
+              )}
+              <input
+                ref={bgFile}
+                type="file"
+                accept={SITE_LOGO_TYPES.join(",")}
+                className="sr-only"
+                id="site-signin-background"
+                onChange={(e) => uploadBackground(e.target.files?.[0])}
+              />
+              <Button asChild variant="outline" size="sm">
+                <label htmlFor="site-signin-background" className="cursor-pointer">
+                  {site.signIn.backgroundUrl ? "Replace background" : "Upload background"}
+                </label>
+              </Button>
+              {site.signIn.backgroundUrl && (
+                <Button type="button" variant="ghost" size="sm" onClick={removeBackground}>
+                  Use default
                 </Button>
               )}
             </div>
