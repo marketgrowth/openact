@@ -1,5 +1,5 @@
 import { COMPANY_ROLE_LABELS, type Company, type User } from "@openact/core/shared";
-import { APPS_PATH, SETTINGS_PATH, activeApp, appHome, isSettingsPath, railApps, type ClientApp } from "../apps";
+import { APPS_PATH, SETTINGS_PATH, activeApp, appHome, isSettingsPath, railApps, resolveAppPath, type ClientApp } from "../apps";
 import { ACCOUNT_SECTIONS, SITE_SECTIONS, companySections, parseSettingsPath, settingsPath, type SettingsSection } from "../settings-paths";
 import { canManageCompany } from "@openact/core/shared";
 import { Link, navigate, usePath } from "../router";
@@ -113,8 +113,10 @@ export function AppSidebar(p: AppSidebarProps) {
   const shellPage = onDirectory ? "apps" : onSettings ? "settings" : undefined;
   const panelTitle = onDirectory ? "Apps" : onSettings ? "Settings" : (active?.name ?? p.appName);
   const commands = current && active ? (active.commands ?? []).filter((c) => c.inSidebar) : [];
-  const main = (active?.nav ?? []).filter((n) => (n.placement ?? "main") === "main");
-  const footer = p.apps.flatMap((a) => a.nav ?? []).filter((n) => n.placement === "footer");
+  // Nav items that point at an app's own path (/a/<id>) go to the app's home, which can be "/".
+  const navOf = (app: ClientApp) => (app.nav ?? []).map((n) => ({ ...n, path: resolveAppPath(app, p.apps, n.path) }));
+  const main = (active ? navOf(active) : []).filter((n) => (n.placement ?? "main") === "main");
+  const footer = p.apps.flatMap(navOf).filter((n) => n.placement === "footer");
   const Section = current ? active?.SidebarSection : undefined;
 
   return (

@@ -6,7 +6,7 @@ import { Link, navigate, usePath } from "../router";
 import { ToastProvider } from "../ui";
 import { WorkspaceProvider, useWorkspace } from "../workspace";
 import { settingsPath } from "../settings-paths";
-import { APPS_PATH, ShellContext, appHome, isSettingsPath, railApps, type ClientApp, type DirectoryApp, type Shell } from "../apps";
+import { APPS_PATH, ShellContext, appHome, homeAppAt, isSettingsPath, railApps, type ClientApp, type DirectoryApp, type Shell } from "../apps";
 import { SignIn } from "./SignIn";
 import { PLAN_PATH, PlanPage } from "./Plan";
 import { AppSidebar } from "./Sidebar";
@@ -235,6 +235,14 @@ function SignedIn({
       }
     }
     if (page) break;
+  }
+  // An app's own path, /a/<id>, shows its home page. When the app owns "/", it goes there instead.
+  const homeApp = page ? undefined : homeAppAt(apps, path);
+  if (homeApp && homeApp.Home) {
+    const HomeAt = homeApp.Home;
+    if (!onApps.includes(homeApp)) page = <AppOff name={homeApp.name} locked={!!ws.access?.lockedApps.includes(homeApp.id)} />;
+    else if (appHome(homeApp, onApps) === "/") page = <Redirect to="/" />;
+    else page = <HomeAt />;
   }
   if (!page && path === "/") {
     const Home = onApps.find((a) => a.Home)?.Home;
