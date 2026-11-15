@@ -29,6 +29,7 @@ npx wrangler secret put STRIPE_SECRET_KEY
 | --- | --- |
 | `STRIPE_SECRET_KEY` | Turns on card payments. Use a [restricted key](https://docs.stripe.com/keys#limit-access) with write access to Checkout Sessions only. |
 | `STRIPE_ACCOUNT` | Optional. A connected account id (`acct_...`). Use it when your platform account creates the checkout for a connected account. |
+| `STRIPE_PORTAL_URL` | Optional. The [customer portal](https://docs.stripe.com/customer-management/activate-no-code-customer-portal) login link, such as `https://billing.stripe.com/p/login/...`. The page then shows "Manage your monthly contribution" under the card button. |
 | `X402_PAY_TO` | Turns on USDC payments. The receiving wallet address on Base. |
 | `X402_NETWORK` | `eip155:8453` for Base, or `eip155:84532` for Base Sepolia. Default: Base Sepolia, a test network. |
 | `X402_FACILITATOR_URL` | The x402 facilitator that checks and settles each payment. Default: `https://x402.org/facilitator`, which works only on test networks. |
@@ -58,7 +59,10 @@ If your Worker has another name than the one in `wrangler.jsonc`, add `--name <w
 5. Make the same restricted key in live mode. Set it as `STRIPE_SECRET_KEY` again.
 6. In Settings, then Customer emails, turn on receipts for successful payments.
 7. In Settings, then Public details, set the statement descriptor, such as `OPENACT`.
-8. In Billing settings, turn on the customer portal, so monthly supporters can stop their payments. The page does not link to the portal yet.
+8. In Settings, then Billing, then Customer portal, turn on the portal. Let customers cancel subscriptions and update payment methods. Copy the login link.
+9. Set it: `npx wrangler secret put STRIPE_PORTAL_URL`. The page then links to it, so monthly supporters can change or stop their payments.
+
+With a test mode key (`sk_test_` or `rk_test_`), the page shows a "Test mode" badge and the test card number. No real money moves. A live key removes both.
 
 ### 3. USDC on Base (x402)
 
