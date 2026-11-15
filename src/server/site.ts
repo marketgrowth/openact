@@ -6,9 +6,11 @@ import {
   encodeHeader,
   formatUsd,
   isAddress,
+  isStripeTestKey,
   parseUsd,
   paymentProblem,
   paymentRequirements,
+  stripePortalUrl,
   type ContributeOptions,
   type PaymentRequired,
   type X402Network
@@ -25,6 +27,8 @@ interface ContributeEnv extends Env {
   STRIPE_SECRET_KEY?: string;
   /** Optional. A connected account id (acct_...). Checkout then runs on that account, so funds go straight to it. */
   STRIPE_ACCOUNT?: string;
+  /** Optional. The Stripe customer portal login link (https://billing.stripe.com/p/login/...). */
+  STRIPE_PORTAL_URL?: string;
   /** The wallet that receives USDC. */
   X402_PAY_TO?: string;
   /** CAIP-2 network: eip155:8453 (Base) or eip155:84532 (Base Sepolia). Default: Base Sepolia. */
@@ -182,6 +186,8 @@ export const siteServer = defineServerApp({
       const setup = cryptoSetup(env);
       const options: ContributeOptions = {
         card: !!(env.STRIPE_SECRET_KEY || "").trim(),
+        cardTestMode: isStripeTestKey(env.STRIPE_SECRET_KEY || ""),
+        manageUrl: (env.STRIPE_SECRET_KEY || "").trim() ? stripePortalUrl(env.STRIPE_PORTAL_URL) : "",
         crypto: setup
           ? {
               network: setup.net.id,
