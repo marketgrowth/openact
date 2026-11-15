@@ -5,11 +5,12 @@ import { Icon, Logo, Notice, ThemeSwitch } from "../ui";
 import { Button } from "@openact/ui/components/button";
 import { Input } from "@openact/ui/components/input";
 import { Label } from "@openact/ui/components/label";
+import { Card, CardContent } from "@openact/ui/components/card";
 import { cn } from "../lib/utils";
 
 /** Passwordless sign-in: email first, then the 6-digit code from the inbox.
- *  Split layout: a dark stage with the heading on the left, the form on the right.
- *  On small screens the stage becomes a short band above the form.
+ *  Layout after the shadcn/ui login-04 block: one card with the form on the left and the stage on the right,
+ *  on a page with soft glows. On small screens the stage becomes a short band at the top of the card.
  *  A super admin sets the heading, credit, background and legal links in Site settings. */
 export function SignIn({ config, onSignedIn }: { config: AppConfig; onSignedIn: (u: User) => void }) {
   const [step, setStep] = useState<"email" | "code">("email");
@@ -54,98 +55,101 @@ export function SignIn({ config, onSignedIn }: { config: AppConfig; onSignedIn: 
   };
 
   return (
-    <div className="flex min-h-dvh flex-col lg:grid lg:grid-cols-2">
-      <Stage page={config.signIn} />
-
-      <div className="relative flex flex-1 flex-col bg-background px-6 py-10 md:px-10">
-        <div className="absolute top-4 right-4 lg:top-[max(1rem,env(safe-area-inset-top))]">
-          <ThemeSwitch />
-        </div>
-        <main className="mx-auto flex w-full max-w-sm flex-col gap-8 pt-10 lg:my-auto lg:pt-0">
-          <div className="flex items-center gap-2.5 text-lg font-semibold">
-            <Logo src={config.logoUrl} size={32} />
-            <span>{config.appName}</span>
-          </div>
-
-          {step === "email" ? (
-            <form className="grid gap-5" onSubmit={sendCode}>
-              <div className="flex items-baseline justify-between gap-4">
-                <h1 className="text-xl font-semibold">Sign in</h1>
-                {config.signupMode === "open" && <span className="text-sm text-muted-foreground">New here? Use your email.</span>}
-              </div>
-              <p className="-mt-2 text-sm text-muted-foreground">Type your email. We send you a sign-in code. You do not need a password.</p>
-              <div className="grid gap-2">
-                <Label htmlFor="si-email" className="sr-only">
-                  Email
-                </Label>
-                <div className="relative">
-                  <Icon name="mail" className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="si-email"
-                    type="email"
-                    required
-                    autoComplete="email"
-                    inputMode="email"
-                    placeholder="Email address"
-                    className="h-11 bg-card pl-9"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    autoFocus
-                  />
-                </div>
-              </div>
-              {error && <Notice tone="error">{error}</Notice>}
-              <Button type="submit" className="h-11 w-full" disabled={busy || !email.trim()}>
-                {busy ? "Sending…" : "Send sign-in code"}
-              </Button>
-              {config.signupMode === "invite" && (
-                <p className="text-center text-sm text-muted-foreground">No account? Ask a project owner to invite you.</p>
-              )}
-            </form>
-          ) : (
-            <form className="grid gap-5" onSubmit={verify}>
-              <h1 className="text-xl font-semibold">Check your email</h1>
-              {notice && <p className="-mt-2 text-sm text-muted-foreground">{notice}</p>}
-              <div className="grid gap-2">
-                <Label htmlFor="si-code">Sign-in code</Label>
-                <Input
-                  id="si-code"
-                  className="h-12 bg-card text-center font-mono text-2xl tracking-[0.4em]"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  pattern="[0-9]{6}"
-                  maxLength={6}
-                  required
-                  value={code}
-                  onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                  autoFocus
-                />
-              </div>
-              {error && <Notice tone="error">{error}</Notice>}
-              <Button type="submit" className="h-11 w-full" disabled={busy || code.length !== 6}>
-                {busy ? "Checking…" : "Sign in"}
-              </Button>
-              <div className="flex flex-wrap justify-center gap-1">
-                <Button type="button" variant="ghost" size="sm" onClick={() => sendCode()} disabled={busy}>
-                  Send a new code
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setStep("email");
-                    setError(null);
-                  }}
-                >
-                  Use a different email
-                </Button>
-              </div>
-            </form>
-          )}
-          <LegalNotice page={config.signIn} />
-        </main>
+    <div className="flex min-h-dvh flex-col items-center justify-center bg-background bg-glow p-6 md:p-10">
+      <div className="fixed top-[max(1rem,env(safe-area-inset-top))] right-4 z-10">
+        <ThemeSwitch />
       </div>
+      <main className="flex w-full max-w-sm flex-col gap-6 md:max-w-3xl">
+        <Card className="overflow-hidden p-0 shadow-xl">
+          <CardContent className="grid p-0 md:grid-cols-2">
+            <div className="flex flex-col justify-center p-6 md:p-8 md:py-10">
+              <div className="mb-6 flex flex-col items-center gap-2 text-center">
+                <Logo src={config.logoUrl} size={40} />
+                <span className="text-sm font-medium text-muted-foreground">{config.appName}</span>
+              </div>
+              {step === "email" ? (
+                <form className="grid gap-6" onSubmit={sendCode}>
+                  <div className="flex flex-col items-center gap-1 text-center">
+                    <h1 className="text-2xl font-bold">Welcome back</h1>
+                    <p className="text-balance text-muted-foreground">Type your email. We send you a sign-in code.</p>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="si-email">Email</Label>
+                    <div className="relative">
+                      <Icon name="mail" className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        id="si-email"
+                        type="email"
+                        required
+                        autoComplete="email"
+                        inputMode="email"
+                        placeholder="you@example.com"
+                        className="pl-9"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+                  {error && <Notice tone="error">{error}</Notice>}
+                  <Button type="submit" className="w-full" disabled={busy || !email.trim()}>
+                    {busy ? "Sending…" : "Send sign-in code"}
+                  </Button>
+                  <p className="text-center text-sm text-muted-foreground">
+                    {config.signupMode === "invite"
+                      ? "No account? Ask a project owner to invite you."
+                      : "New here? Type your email to make an account. You do not need a password."}
+                  </p>
+                </form>
+              ) : (
+                <form className="grid gap-6" onSubmit={verify}>
+                  <div className="flex flex-col items-center gap-1 text-center">
+                    <h1 className="text-2xl font-bold">Check your email</h1>
+                    {notice && <p className="text-balance text-muted-foreground">{notice}</p>}
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="si-code">Sign-in code</Label>
+                    <Input
+                      id="si-code"
+                      className="h-12 text-center font-mono text-2xl tracking-[0.4em]"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      pattern="[0-9]{6}"
+                      maxLength={6}
+                      required
+                      value={code}
+                      onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                      autoFocus
+                    />
+                  </div>
+                  {error && <Notice tone="error">{error}</Notice>}
+                  <Button type="submit" className="w-full" disabled={busy || code.length !== 6}>
+                    {busy ? "Checking…" : "Sign in"}
+                  </Button>
+                  <div className="flex flex-wrap justify-center gap-1">
+                    <Button type="button" variant="ghost" size="sm" onClick={() => sendCode()} disabled={busy}>
+                      Send a new code
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setStep("email");
+                        setError(null);
+                      }}
+                    >
+                      Use a different email
+                    </Button>
+                  </div>
+                </form>
+              )}
+            </div>
+            <Stage page={config.signIn} className="order-first min-h-40 md:order-none md:min-h-[520px]" />
+          </CardContent>
+        </Card>
+        <LegalNotice page={config.signIn} />
+      </main>
     </div>
   );
 }
@@ -154,14 +158,14 @@ export function SignIn({ config, onSignedIn }: { config: AppConfig; onSignedIn: 
 function LegalNotice({ page }: { page: SignInPage }) {
   const link = (url: string | null, text: string) =>
     url ? (
-      <a href={url} target="_blank" rel="noopener noreferrer" className="font-medium text-foreground underline-offset-4 hover:underline">
+      <a href={url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4 hover:text-foreground">
         {text}
       </a>
     ) : (
-      <span className="font-medium text-foreground">{text}</span>
+      <span className="text-foreground">{text}</span>
     );
   return (
-    <p className="text-center text-xs text-muted-foreground" data-sign-in-legal="">
+    <p className="px-6 text-center text-xs text-balance text-muted-foreground" data-sign-in-legal="">
       By signing in, you agree to the {link(page.termsUrl, "Terms of Use")} and {link(page.privacyUrl, "Privacy Policy")}.
     </p>
   );
@@ -202,9 +206,9 @@ const CARDS: Array<Array<{ title: string; project: string; status: Status; tags:
   ]
 ];
 
-function Stage({ page }: { page: SignInPage }) {
+function Stage({ page, className }: { page: SignInPage; className?: string }) {
   return (
-    <aside className="relative overflow-hidden bg-stage text-stage-foreground" data-sign-in-stage="">
+    <aside className={cn("relative overflow-hidden bg-stage text-stage-foreground", className)} data-sign-in-stage="">
       <div aria-hidden="true" className="absolute inset-0 select-none">
         {page.backgroundUrl ? (
           <>
@@ -223,7 +227,7 @@ function Stage({ page }: { page: SignInPage }) {
                 </div>
               ))}
             </div>
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_25%_50%,var(--stage)_10%,transparent_65%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_85%,var(--stage)_10%,transparent_70%)]" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_90%_5%,color-mix(in_oklab,var(--stage-glow)_22%,transparent),transparent_45%)]" />
             <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-stage to-transparent" />
             <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-stage to-transparent" />
@@ -231,12 +235,12 @@ function Stage({ page }: { page: SignInPage }) {
         )}
       </div>
 
-      <div className="relative flex h-full items-end px-6 pt-16 pb-6 lg:items-center lg:px-12 lg:py-0 xl:px-20">
+      <div className="relative flex h-full items-end p-6 pt-14 md:p-8">
         {page.heading && (
-          <figure className="max-w-md animate-in fade-in duration-500">
-            <blockquote className="text-xl font-bold tracking-tight text-balance lg:text-4xl lg:leading-tight">{page.heading}</blockquote>
+          <figure className="max-w-sm animate-in fade-in duration-500">
+            <blockquote className="text-lg font-bold tracking-tight text-balance md:text-2xl md:leading-snug">{page.heading}</blockquote>
             {page.credit && (
-              <figcaption className="mt-3 flex items-center gap-3 text-sm text-stage-muted lg:mt-5 lg:text-base">
+              <figcaption className="mt-3 flex items-center gap-3 text-sm text-stage-muted md:mt-4">
                 <span className="h-px w-8 bg-stage-glow" aria-hidden="true" />
                 {page.credit}
               </figcaption>
