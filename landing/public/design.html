@@ -1,0 +1,604 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>The OpenAct Promptbook: the design system for OpenAct apps</title>
+    <meta name="description" content="The Promptbook is the OpenAct design system. It holds the tokens, rules and checks for OpenAct apps in one file that app developers and their coding agents read first." />
+    <meta name="color-scheme" content="dark light" />
+    <link rel="canonical" href="https://openact.ing/design" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="alternate" type="text/markdown" href="/design/promptbook.md" title="The Promptbook for agents" />
+    <link rel="alternate" type="application/json" href="/design/promptbook.json" title="The Promptbook as JSON" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://openact.ing/design" />
+    <meta property="og:title" content="The Promptbook: the OpenAct design system" />
+    <meta property="og:description" content="Tokens, agent states and checks for OpenAct apps, in one file your coding agent reads first." />
+    <meta property="og:image" content="https://openact.ing/images/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wdth,wght@75..100,500..800&family=Geist:wght@400..700&family=Geist+Mono:wght@400..600&display=swap" />
+    <!-- The token values below come from packages/ui/src/theme.css. `npm run design -- build` writes them. -->
+    <!-- promptbook:vars -->
+<style>
+      :root { --pb-background: oklch(0.145 0 0); --pb-foreground: oklch(0.985 0 0); --pb-card: oklch(0.205 0 0); --pb-card-foreground: oklch(0.985 0 0); --pb-popover: oklch(0.205 0 0); --pb-popover-foreground: oklch(0.985 0 0); --pb-muted: oklch(0.269 0 0); --pb-muted-foreground: oklch(0.708 0 0); --pb-border: oklch(1 0 0 / 10%); --pb-input: oklch(1 0 0 / 15%); --pb-ring: oklch(0.556 0 0); --pb-scrim: oklch(0 0 0 / 65%); --pb-primary: oklch(0.922 0 0); --pb-primary-foreground: oklch(0.205 0 0); --pb-secondary: oklch(0.269 0 0); --pb-secondary-foreground: oklch(0.985 0 0); --pb-accent: oklch(0.269 0 0); --pb-accent-foreground: oklch(0.985 0 0); --pb-destructive: oklch(0.704 0.191 22.216); --pb-destructive-foreground: #ffffff; --pb-s-backlog: #7c899d; --pb-s-todo: #6c9ae9; --pb-s-doing: #e8a138; --pb-s-review: #a886e6; --pb-s-done: #4abc82; --pb-p-high: #f37b63; --pb-p-med: #e1aa4c; --pb-p-low: #a3a3a3; --pb-live: #4abc82; --pb-today: #fe6a54; --pb-warn: oklch(0.27 0.04 75); --pb-warn-foreground: oklch(0.86 0.1 85); --pb-warn-border: oklch(0.42 0.07 75); --pb-agent-think: #a3adbb; --pb-agent-act: #8aabff; --pb-agent-wait: #cf9cff; --pb-agent-done: #56c98f; --pb-agent-fail: #f37b63; --pb-brand: #ece7f2; --pb-brand-foreground: #1c1824; --pb-brand-gold: #e3b85c; --pb-stage: #0f0d14; --pb-stage-foreground: #ffffff; --pb-paper: #fbfafc; --pb-paper-foreground: #1c1824; --pb-desk: #1b191f; }
+      @media (prefers-color-scheme: light) { :root { --pb-background: oklch(1 0 0); --pb-foreground: oklch(0.145 0 0); --pb-card: oklch(1 0 0); --pb-card-foreground: oklch(0.145 0 0); --pb-popover: oklch(1 0 0); --pb-popover-foreground: oklch(0.145 0 0); --pb-muted: oklch(0.97 0 0); --pb-muted-foreground: oklch(0.535 0 0); --pb-border: oklch(0.922 0 0); --pb-input: oklch(0.922 0 0); --pb-ring: oklch(0.708 0 0); --pb-scrim: oklch(0 0 0 / 50%); --pb-primary: oklch(0.205 0 0); --pb-primary-foreground: oklch(0.985 0 0); --pb-secondary: oklch(0.97 0 0); --pb-secondary-foreground: oklch(0.205 0 0); --pb-accent: oklch(0.97 0 0); --pb-accent-foreground: oklch(0.205 0 0); --pb-destructive: oklch(0.577 0.245 27.325); --pb-destructive-foreground: #ffffff; --pb-s-backlog: #8d99a9; --pb-s-todo: #4a78c7; --pb-s-doing: #c47b10; --pb-s-review: #8658c4; --pb-s-done: #2c9662; --pb-p-high: #c0402b; --pb-p-med: #a8711a; --pb-p-low: #737373; --pb-live: #2c9662; --pb-today: #d53f2c; --pb-warn: oklch(0.97 0.04 85); --pb-warn-foreground: oklch(0.42 0.09 70); --pb-warn-border: oklch(0.86 0.09 85); --pb-agent-think: #5d6675; --pb-agent-act: #2f5bd3; --pb-agent-wait: #8a35c9; --pb-agent-done: #1b7a4b; --pb-agent-fail: #c0392b; --pb-brand: #1c1824; --pb-brand-foreground: #ffffff; --pb-brand-gold: #8a6420; --pb-stage: #15121c; --pb-stage-foreground: #ffffff; --pb-paper: #ffffff; --pb-paper-foreground: #1c1824; --pb-desk: #ebe9ee; } }
+    </style>
+<!-- /promptbook:vars -->
+    <style>
+      /* This page draws itself with the Promptbook tokens (--pb-*). Only the layout is local. */
+      :root {
+        --max: 1200px;
+        --line: var(--pb-border);
+        --display: "Open Sans", "Geist", ui-sans-serif, system-ui, sans-serif;
+        --mono: "Geist Mono", ui-monospace, Menlo, monospace;
+        --cue: var(--pb-brand-gold);
+      }
+      * { box-sizing: border-box; }
+      html { -webkit-text-size-adjust: 100%; scroll-padding-top: 76px; }
+      body { margin: 0; background: var(--pb-background); color: var(--pb-foreground); font-family: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 16px; line-height: 1.6; }
+      a { color: inherit; }
+      code, pre, .mono { font-family: var(--mono); }
+      code { font-size: 0.9em; }
+      .wrap { max-width: var(--max); margin: 0 auto; padding: 0 24px; }
+      .skip { position: absolute; left: -999px; }
+      .skip:focus { left: 16px; top: 16px; background: var(--pb-card); padding: 8px 12px; z-index: 30; }
+      :focus-visible { outline: 2px solid var(--cue); outline-offset: 3px; }
+      h1, h2, h3 { font-family: var(--display); font-stretch: 92%; margin: 0; }
+      .label { margin: 0; font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--pb-muted-foreground); }
+      .soft { color: var(--pb-muted-foreground); }
+
+      /* Buttons */
+      .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 15px; line-height: 1.2; text-decoration: none; white-space: nowrap; }
+      .btn:hover { border-color: var(--pb-muted-foreground); }
+      .btn-cue { background: var(--cue); border-color: var(--cue); color: var(--pb-background); }
+      .btn-cue:hover { border-color: var(--pb-foreground); }
+      .btn-sm { padding: 6px 12px; font-size: 14px; }
+
+      /* Header */
+      .top { position: sticky; top: 0; z-index: 20; background: color-mix(in oklab, var(--pb-background) 86%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
+      .top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 60px; }
+      .brand { display: inline-flex; align-items: center; gap: 10px; font-family: var(--display); font-weight: 700; font-size: 18px; text-decoration: none; }
+      .brand svg { width: 24px; height: 24px; }
+      .brand small { font-family: var(--mono); font-weight: 400; font-size: 12px; color: var(--pb-muted-foreground); }
+      .nav { display: flex; align-items: center; gap: 18px; font-size: 14px; }
+      .nav a:not(.btn) { color: var(--pb-muted-foreground); text-decoration: none; }
+      .nav a:not(.btn):hover { color: var(--pb-foreground); }
+      @media (max-width: 760px) { .nav a:not(.btn) { display: none; } }
+
+      /* Hero */
+      .hero { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; padding-top: 80px; padding-bottom: 72px; }
+      .hero h1 { margin: 16px 0 20px; font-size: clamp(2.6rem, 5.6vw, 4.6rem); font-weight: 750; letter-spacing: -0.04em; line-height: 1.02; }
+      .hero .lead { margin: 0 0 28px; max-width: 520px; font-size: 18px; color: var(--pb-muted-foreground); }
+      .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+      .ver { display: inline-block; margin-top: 18px; font-family: var(--mono); font-size: 12px; color: var(--pb-muted-foreground); }
+      .prompt { border: 1px solid var(--line); border-radius: 10px; background: var(--pb-card); }
+      .prompt header { display: flex; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+      .prompt pre { margin: 0; padding: 18px 16px 20px; font-size: 12.5px; line-height: 1.75; color: var(--pb-card-foreground); white-space: pre-wrap; word-break: break-word; user-select: all; }
+      .prompt pre b { font-weight: 500; color: var(--cue); }
+      .prompt footer { padding: 10px 16px; border-top: 1px solid var(--line); font-size: 13px; color: var(--pb-muted-foreground); }
+      @media (max-width: 900px) { .hero { grid-template-columns: 1fr; padding-top: 48px; } }
+
+      /* The hairline grid. Cells share their lines, so every line meets at the corners. */
+      .grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+      .cell { position: relative; padding: 28px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); min-width: 0; }
+      .cell h3 { margin: 14px 0 8px; font-size: 24px; font-weight: 700; letter-spacing: -0.025em; line-height: 1.15; }
+      .cell > p { margin: 0; max-width: 460px; font-size: 15px; color: var(--pb-muted-foreground); }
+      .c3 { grid-column: span 3; } .c4 { grid-column: span 4; } .c5 { grid-column: span 5; } .c6 { grid-column: span 6; } .c7 { grid-column: span 7; } .c8 { grid-column: span 8; } .c12 { grid-column: span 12; }
+      .foot-row { display: flex; justify-content: space-between; gap: 12px; margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 11.5px; color: var(--pb-muted-foreground); }
+      @media (max-width: 960px) { .c3, .c4, .c5, .c7, .c8 { grid-column: span 6; } }
+      @media (max-width: 680px) { .grid > * { grid-column: 1 / -1; } .cell { padding: 22px; } }
+
+      /* Premise */
+      .premise { padding-bottom: 96px; }
+      .premise .cell h3 { font-size: 18px; margin-top: 0; }
+      .premise .cell p { font-size: 14px; }
+      .premise .intro { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: end; }
+      .premise .intro p { margin: 0; font-size: 17px; color: var(--pb-muted-foreground); }
+      @media (max-width: 900px) { .premise .intro { grid-template-columns: 1fr; gap: 16px; } }
+      .p5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+      .p5 .cell { grid-column: auto; }
+      @media (max-width: 1000px) { .p5 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+      @media (max-width: 600px) { .p5 { grid-template-columns: 1fr; } }
+
+      /* Section heads */
+      .section { padding-top: 104px; }
+      .head { max-width: 720px; margin-bottom: 32px; }
+      .head h2 { margin: 0 0 12px; font-size: clamp(2.1rem, 4vw, 3.2rem); font-weight: 750; letter-spacing: -0.035em; line-height: 1.05; }
+      .head p { margin: 0; font-size: 17px; color: var(--pb-muted-foreground); }
+      .intro { margin-bottom: 32px; }
+      .intro h2 { font-size: clamp(2.1rem, 4vw, 3.2rem); font-weight: 750; letter-spacing: -0.035em; line-height: 1.05; }
+
+      /* Tokens cell */
+      .map { display: grid; gap: 8px; margin-top: 28px; font-family: var(--mono); font-size: 12.5px; }
+      .map div { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; }
+      .map span { display: inline-flex; align-items: center; gap: 8px; }
+      .map em { font-style: normal; color: var(--pb-muted-foreground); }
+      .dot { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+
+      /* Components cell: outline drawings */
+      .kit { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 32px; }
+      .kit figure { margin: 0; display: grid; gap: 12px; }
+      .kit figcaption { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--pb-muted-foreground); }
+      .draw { height: 70px; display: grid; place-items: center; }
+      .draw .b { width: 86%; height: 34px; border: 1.5px solid var(--pb-muted-foreground); border-radius: 8px; display: grid; place-items: center; }
+      .draw .b::after { content: ""; width: 40%; height: 2px; background: var(--pb-muted-foreground); }
+      .draw .f { width: 86%; display: grid; gap: 6px; }
+      .draw .f i { height: 2px; width: 34%; background: var(--pb-muted-foreground); }
+      .draw .f b { height: 30px; border: 1.5px solid var(--pb-muted-foreground); border-radius: 8px; }
+      .draw .s { width: 86%; height: 64px; border: 1.5px solid var(--pb-muted-foreground); border-radius: 8px; display: grid; grid-template-columns: 1fr 44%; overflow: hidden; }
+      .draw .s i { border-left: 1.5px solid var(--pb-muted-foreground); background: color-mix(in oklab, var(--pb-muted) 70%, transparent); }
+      .draw .a { width: 86%; height: 30px; border: 1.5px solid var(--pb-agent-act); border-radius: 8px; display: flex; align-items: center; gap: 8px; padding: 0 10px; }
+      .draw .a::before { content: ""; width: 12px; height: 12px; border-radius: 3px; border: 1.5px solid var(--pb-agent-act); }
+      .draw .a::after { content: ""; flex: 1; height: 2px; background: var(--pb-agent-act); opacity: 0.6; }
+      @media (max-width: 560px) { .kit { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+      /* Agent states: a copy of the AgentState component and the approval group */
+      .states { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 28px; align-items: start; }
+      .ag-list { display: grid; gap: 8px; }
+      .ag { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; }
+      .ag svg { width: 14px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+      .ag code { margin-left: auto; font-size: 11px; color: var(--pb-muted-foreground); }
+      .ag.think { color: var(--pb-agent-think); border-color: color-mix(in oklab, var(--pb-agent-think) 30%, transparent); }
+      .ag.act { color: var(--pb-agent-act); border-color: color-mix(in oklab, var(--pb-agent-act) 40%, transparent); background: color-mix(in oklab, var(--pb-agent-act) 5%, transparent); }
+      .ag.wait { color: var(--pb-agent-wait); border-color: color-mix(in oklab, var(--pb-agent-wait) 40%, transparent); background: color-mix(in oklab, var(--pb-agent-wait) 5%, transparent); }
+      .ag.done { color: var(--pb-muted-foreground); }
+      .ag.done svg { color: var(--pb-agent-done); }
+      .ag.fail { color: var(--pb-agent-fail); border-color: color-mix(in oklab, var(--pb-agent-fail) 40%, transparent); }
+      .approve { display: grid; gap: 12px; padding: 14px; border: 1px solid color-mix(in oklab, var(--pb-agent-wait) 40%, transparent); border-radius: 10px; background: var(--pb-card); }
+      .approve p { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; }
+      .approve p svg { width: 15px; height: 15px; color: var(--pb-agent-wait); fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+      .approve ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 14px; }
+      .approve li { display: flex; gap: 8px; align-items: flex-start; }
+      .approve li svg { flex: none; width: 16px; height: 16px; margin-top: 3px; border-radius: 4px; background: var(--pb-primary); color: var(--pb-primary-foreground); fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; padding: 2px; }
+      .approve li.risk { color: var(--pb-destructive); font-weight: 500; }
+      .approve .row { display: flex; justify-content: flex-end; gap: 8px; }
+      .approve .row span { padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; border: 1px solid var(--line); }
+      .approve .row span.go { background: var(--pb-primary); color: var(--pb-primary-foreground); border-color: var(--pb-primary); }
+      @media (max-width: 760px) { .states { grid-template-columns: 1fr; } }
+
+      /* Motion */
+      .curves { margin-top: 22px; }
+      .curves svg { display: block; width: 100%; height: auto; overflow: visible; }
+      .curves path { fill: none; stroke-width: 1.6; }
+      .curves .enter { stroke: var(--pb-foreground); }
+      .curves .exit { stroke: var(--pb-muted-foreground); stroke-dasharray: 4 4; }
+      .curves .move { stroke: var(--pb-muted-foreground); }
+      .curves .axis { stroke: var(--line); stroke-width: 1; }
+      .legend { display: grid; gap: 4px; margin-top: 14px; font-family: var(--mono); font-size: 11.5px; color: var(--pb-muted-foreground); }
+      .legend b { font-weight: 500; color: var(--pb-foreground); }
+
+      /* Contrast bars, written by the build */
+      .bars { display: grid; gap: 10px; margin: 24px 0 0; padding: 0; list-style: none; font-family: var(--mono); font-size: 11.5px; color: var(--pb-muted-foreground); }
+      .bars li { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 6px 10px; }
+      .bars i { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: linear-gradient(to right, var(--pb-foreground) var(--w), var(--pb-muted) var(--w)); }
+      .bars b { grid-row: 1; grid-column: 2; font-weight: 500; color: var(--pb-foreground); text-align: right; }
+
+      /* Diff */
+      .diff { margin-top: 22px; border: 1px solid var(--line); border-radius: 8px; font-family: var(--mono); font-size: 12px; overflow: hidden; }
+      .diff div { display: grid; grid-template-columns: 34px 16px 1fr; padding: 5px 10px; color: var(--pb-muted-foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .diff .rm { text-decoration: line-through; }
+      .diff .add { background: var(--pb-muted); color: var(--pb-foreground); }
+      .diff .msg { display: block; padding: 8px 10px; white-space: normal; line-height: 1.5; }
+      .diff .msg.ok { border-top: 1px solid var(--line); }
+      .diff .msg.bad { color: var(--pb-agent-fail); }
+      .diff .msg.ok { color: var(--pb-agent-done); }
+
+      /* Blocking wireframes */
+      .wire { margin-top: 18px; height: 112px; border: 1.5px solid var(--pb-muted-foreground); border-radius: 8px; display: grid; grid-template-rows: 14px 1fr; overflow: hidden; }
+      .wire > i { border-bottom: 1.5px solid var(--pb-muted-foreground); }
+      .wire > div { display: grid; gap: 6px; padding: 8px; }
+      .wire b { display: block; border-radius: 4px; background: color-mix(in oklab, var(--pb-muted-foreground) 26%, transparent); text-decoration: none; }
+      .wire.board > div { grid-template-columns: repeat(3, 1fr); }
+      .wire.list > div { grid-template-columns: 1fr 42%; }
+      .wire.list b + b { background: none; border: 1.5px solid var(--pb-muted-foreground); }
+      .wire.doc > div { background: color-mix(in oklab, var(--pb-muted) 80%, transparent); place-items: center; }
+      .wire.doc b { width: 52%; height: 100%; background: var(--pb-paper); }
+      .wire.form > div { grid-template-rows: repeat(3, 12px) 1fr; padding: 10px 18% 10px 10px; }
+      .wire.form b:last-child { width: 34%; height: 14px; align-self: end; justify-self: end; background: var(--pb-muted-foreground); }
+      .wire.agent > div { grid-template-columns: 1fr 38%; }
+      .wire.agent b + b { background: none; border: 1.5px solid var(--pb-agent-wait); }
+      .p5 .cell h3 { font-size: 16px; margin: 0; }
+      .p5 .cell p { font-size: 13.5px; }
+
+      /* Tables */
+      .table-wrap { border: 1px solid var(--line); border-radius: 10px; overflow-x: auto; }
+      table { width: 100%; border-collapse: collapse; font-size: 14px; }
+      th, td { padding: 11px 16px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+      thead th { font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--pb-muted-foreground); }
+      tbody tr:last-child td { border-bottom: 0; }
+      .method td:first-child { width: 150px; white-space: nowrap; font-family: var(--display); font-weight: 700; font-size: 18px; }
+      .method td:first-child span { display: block; font-family: var(--mono); font-weight: 400; font-size: 11.5px; color: var(--pb-muted-foreground); }
+      .method td { color: var(--pb-muted-foreground); }
+      .method td:first-child { color: var(--pb-foreground); }
+      .method td b { display: block; color: var(--pb-foreground); font-weight: 600; font-size: 13px; }
+      .cues td.id { width: 64px; font-family: var(--mono); color: var(--pb-muted-foreground); }
+      .chk { font-family: var(--mono); font-size: 12px; }
+      .chk.script { color: var(--cue); }
+      .chk.review { color: var(--pb-muted-foreground); }
+      .tokens td:first-child { white-space: nowrap; }
+      .tokens td.v { white-space: nowrap; font-family: var(--mono); font-size: 12px; color: var(--pb-muted-foreground); }
+      .tokens td.v span { margin-left: 8px; }
+      .tokens .grp th { padding-top: 22px; font-family: var(--display); font-size: 16px; font-weight: 700; text-transform: capitalize; border-bottom: 1px solid var(--line); }
+      .tokens .grp th span { margin-left: 10px; font-family: "Geist", sans-serif; font-size: 13px; font-weight: 400; text-transform: none; color: var(--pb-muted-foreground); }
+      .sw { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; border-radius: 4px; box-shadow: inset 0 0 0 1px var(--line); }
+      details.more { margin-top: 12px; }
+      details.more summary { cursor: pointer; font-size: 14px; color: var(--pb-muted-foreground); }
+      details.more[open] summary { margin-bottom: 16px; }
+
+      /* Seed terminal */
+      .term { margin: 0; padding: 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--pb-card); font-family: var(--mono); font-size: 12.5px; line-height: 1.8; color: var(--pb-muted-foreground); white-space: pre-wrap; word-break: break-word; }
+      .term b { font-weight: 500; color: var(--pb-foreground); }
+      .seedviz { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 22px; }
+      .seedviz div { display: grid; gap: 10px; padding: 16px; border-radius: 10px; border: 1px solid var(--line); font-family: var(--mono); font-size: 12px; }
+      .seedviz .l { background: #ffffff; color: #0a0a0a; border-color: #e5e5e5; } /* promptbook-allow: shows the light theme on purpose */
+      .seedviz .d { background: #0a0a0a; color: #fafafa; border-color: #262626; } /* promptbook-allow: shows the dark theme on purpose */
+      .seedviz .btnx { display: inline-block; padding: 6px 12px; border-radius: 8px; text-decoration: none; font-family: "Geist", sans-serif; font-weight: 600; font-size: 13px; justify-self: start; }
+      @media (max-width: 560px) { .seedviz { grid-template-columns: 1fr; } }
+
+      /* Closing */
+      .closer { margin-top: 104px; }
+      .closer .cell { padding: 40px 28px; }
+      .closer h2 { font-size: clamp(2.2rem, 4.6vw, 3.6rem); font-weight: 750; letter-spacing: -0.04em; line-height: 1.02; }
+      .closer ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 0; counter-reset: s; }
+      .closer li { display: grid; grid-template-columns: 34px 1fr; gap: 8px; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 15px; color: var(--pb-muted-foreground); counter-increment: s; }
+      .closer li::before { content: counter(s, decimal-leading-zero); font-family: var(--mono); font-size: 12px; color: var(--cue); padding-top: 3px; }
+      .closer li code { color: var(--pb-foreground); }
+
+      /* Footer */
+      .foot { margin-top: 96px; border-top: 1px solid var(--line); }
+      .foot .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; padding-top: 28px; padding-bottom: 44px; font-size: 13px; color: var(--pb-muted-foreground); }
+      .foot nav { display: flex; flex-wrap: wrap; gap: 18px; }
+      .foot a { text-decoration: none; }
+      .foot a:hover { color: var(--pb-foreground); }
+      @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+    </style>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to the content</a>
+    <header class="top">
+      <div class="wrap">
+        <a class="brand" href="/" aria-label="OpenAct home">
+          <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="currentColor" /><circle cx="16" cy="16" r="8" fill="none" stroke-width="4.5" style="stroke: var(--pb-background)" /></svg>
+          OpenAct <small>/ design</small>
+        </a>
+        <nav class="nav" aria-label="Main">
+          <a href="#system">System</a>
+          <a href="#method">Method</a>
+          <a href="#cues">Cues</a>
+          <a href="#tokens">Tokens</a>
+          <a href="https://docs.openact.ing/design-system">Docs</a>
+          <a class="btn btn-sm" href="https://a.openact.ing">Try the demo</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <div class="wrap hero">
+        <div>
+          <p class="label">The OpenAct design system</p>
+          <h1>The Promptbook. Your agent reads it first.</h1>
+          <p class="lead">The Promptbook holds the tokens, the rules and the checks for OpenAct apps. It is one file. App developers read it. Their coding agents read it before they build a screen.</p>
+          <div class="actions">
+            <a class="btn btn-cue" href="/design/promptbook.md">Read promptbook.md</a>
+            <a class="btn" href="/design/promptbook.json">Get promptbook.json</a>
+          </div>
+          <!-- promptbook:version -->
+<span class="ver">v1.0.0 · 15 cues · 60 tokens</span>
+<!-- /promptbook:version -->
+        </div>
+        <section class="prompt" aria-labelledby="prompt-title">
+          <header><p class="label" id="prompt-title">Paste this into your coding agent</p><p class="label">Claude Code · Codex</p></header>
+<pre>You build an app for OpenAct. Before you write UI code, read the OpenAct Promptbook at <b>https://openact.ing/design/promptbook.md</b> and AGENTS.md.
+
+- Pick colors by intent from the Promptbook tokens. Never write a hex value.
+- Build screens from the blocking patterns and the @openact/ui components.
+- Show agent work with the AgentState component and its five states.
+- Write all text in ASD-STE100 style: short sentences, active voice.
+- If the app needs an accent, run: <b>npm run design -- seed &lt;app-id&gt; &lt;hue&gt;</b>
+- Before you finish, run: <b>npm run design -- check</b>, then <b>npm test</b>.
+- In the pull request, list the cues that need a review by a person.</pre>
+          <footer>Click the prompt once to select all of it.</footer>
+        </section>
+      </div>
+
+      <div class="wrap premise">
+        <div class="intro">
+          <h2>Why a promptbook?</h2>
+          <p>In a theater, the prompt book is the stage manager's master copy of the show. It holds the script, every cue and every move. The crew works from it. Today, much of the crew that builds software is coding agents. They need the same master copy.</p>
+        </div>
+        <div class="grid p5">
+          <div class="cell"><h3>Written for agents first</h3><p>The source is a JSON file and a Markdown file, not a picture. An agent can read every rule. So can a person.</p></div>
+          <div class="cell"><h3>Intent, not values</h3><p>Pick a token by what it means. Use status-done for a done task. Never pick a green because it looks good.</p></div>
+          <div class="cell"><h3>Seeds, not palettes</h3><p>A new app gives one hue. A script makes the light and dark values and tests their contrast.</p></div>
+          <div class="cell"><h3>Agents have states</h3><p>Agent work has five states with their own tokens. A person can always see what the agent does.</p></div>
+          <div class="cell"><h3>Every rule has a check</h3><p>A rule is a cue. Each cue has a script, a test or a review by a person.</p></div>
+        </div>
+      </div>
+
+      <div class="wrap" id="system">
+        <div class="head">
+          <h2>The system under every OpenAct app.</h2>
+          <p>Seven parts. Each part lives in the code, and this page draws itself with the same token values.</p>
+        </div>
+        <div class="grid">
+          <article class="cell c5">
+            <p class="label">Tokens</p>
+            <h3>Say what it means. The value follows.</h3>
+            <p>An agent asks for an intent. The theme gives the right value for light or dark.</p>
+            <div class="map" aria-label="Examples of intents and their classes">
+              <div><span><i class="dot" style="background: var(--pb-s-done)"></i>a task is done</span><em>text-status-done</em></div>
+              <div><span><i class="dot" style="background: var(--pb-agent-wait)"></i>the agent needs you</span><em>text-agent-wait</em></div>
+              <div><span><i class="dot" style="background: var(--pb-muted-foreground)"></i>a date or a count</span><em>text-muted-foreground</em></div>
+              <div><span><i class="dot" style="background: var(--pb-destructive)"></i>this deletes data</span><em>variant="destructive"</em></div>
+            </div>
+          </article>
+          <article class="cell c7">
+            <p class="label">Components</p>
+            <h3>shadcn/ui inside. Your app outside.</h3>
+            <p>Every app builds from the same kit in @openact/ui. Icons come from Lucide through one Icon component.</p>
+            <div class="kit" aria-hidden="true">
+              <figure><div class="draw"><div class="b"></div></div><figcaption>Button</figcaption></figure>
+              <figure><div class="draw"><div class="f"><i></i><b></b></div></div><figcaption>Field</figcaption></figure>
+              <figure><div class="draw"><div class="s"><span></span><i></i></div></div><figcaption>Sheet</figcaption></figure>
+              <figure><div class="draw"><div class="a"></div></div><figcaption>AgentState</figcaption></figure>
+            </div>
+          </article>
+
+          <article class="cell c12">
+            <p class="label">Agent states</p>
+            <h3>Agent work has its own signs.</h3>
+            <p>Every agent surface uses five states. People learn one set of signs. The agent never goes past the wait state on its own, and agent work never uses the brand colors.</p>
+            <div class="states">
+              <div class="ag-list">
+                <div class="ag think"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" /></svg>Reading 12 tasks in Spring season launch<code>think</code></div>
+                <div class="ag act"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8V4H8" /><rect width="16" height="12" x="4" y="8" rx="2" /><path d="M2 14h2" /><path d="M20 14h2" /><path d="M15 13v2" /><path d="M9 13v2" /></svg>Moving 3 tasks to Review<code>act</code></div>
+                <div class="ag wait"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>Waiting for your approval<code>wait</code></div>
+                <div class="ag done"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>Moved 3 tasks to Review<code>done</code></div>
+                <div class="ag fail"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>You rejected the change. Nothing was deleted.<code>fail</code></div>
+              </div>
+              <div class="approve" role="img" aria-label="An approval group. The agent asks to delete a task and to remove a person. The person can reject all or approve all.">
+                <p><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>The agent wants to make 2 changes.</p>
+                <ul>
+                  <li class="risk"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>Delete the task "Old flyer draft"</li>
+                  <li class="risk"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>Remove Sam from Spring season launch</li>
+                </ul>
+                <div class="row"><span>Reject all</span><span class="go">Approve all</span></div>
+                <div class="foot-row"><span>deletes and people changes</span><span>always wait</span></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="cell c4">
+            <p class="label">Motion</p>
+            <h3>Three curves. Leave faster.</h3>
+            <p>Enter, leave and move. Every animation stops for reduced motion.</p>
+            <div class="curves" aria-hidden="true">
+              <svg viewBox="0 0 200 104">
+                <path class="axis" d="M0 102H200" />
+                <path class="enter" d="M0 100C44 0 72 0 200 0" />
+                <path class="move" d="M0 100C130 100 70 0 200 0" />
+                <path class="exit" d="M0 100C110 100 200 55 200 0" />
+              </svg>
+            </div>
+            <div class="legend"><span><b>ease-enter</b> · 200 ms</span><span><b>ease-move</b> · reorder and drag</span><span><b>ease-exit</b> · 120 ms, dashed</span></div>
+          </article>
+          <article class="cell c4">
+            <p class="label">Contrast</p>
+            <h3>Checked by a script.</h3>
+            <p>Every text pair needs 4.5:1 in both themes. The lower of the two themes shows here.</p>
+            <ul class="bars">
+              <!-- promptbook:contrast -->
+<li><span>foreground / background</span><i style="--w:100%"></i><b>19.0:1 AAA</b></li>
+<li><span>muted-foreground / background</span><i style="--w:74%"></i><b>5.2:1 AA</b></li>
+<li><span>destructive / card</span><i style="--w:68%"></i><b>4.8:1 AA</b></li>
+<li><span>agent-act / card</span><i style="--w:84%"></i><b>5.9:1 AA</b></li>
+<li><span>agent-wait / card</span><i style="--w:87%"></i><b>6.1:1 AA</b></li>
+<li><span>s-doing / card</span><i style="--w:48%"></i><b>3.4:1 3:1 ok</b></li>
+<!-- /promptbook:contrast -->
+            </ul>
+          </article>
+          <article class="cell c4">
+            <p class="label">Ship</p>
+            <h3>A failed cue is a fix in a diff.</h3>
+            <p>This check failed while we wrote the Promptbook. Our first wait color was too close to the brand gold. The fix was one line.</p>
+            <div class="diff" aria-label="A token change that fixes a check">
+              <span class="msg bad">C09 --agent-wait is too close to --brand-gold in dark (0.021). Agent states must not look like the brand.</span>
+              <div class="rm"><span>196</span><span>-</span><span>--agent-wait: #f0b45a;</span></div>
+              <div class="add"><span>196</span><span>+</span><span>--agent-wait: #cf9cff;</span></div>
+              <span class="msg ok">Promptbook: every script cue passes.</span>
+            </div>
+          </article>
+        </div>
+
+        <div class="grid p5" style="border-top: 0" aria-label="Blocking patterns">
+          <div class="cell"><h3>Board</h3><p>Items that move through stages.</p><div class="wire board" aria-hidden="true"><i></i><div><b></b><b></b><b></b></div></div></div>
+          <div class="cell"><h3>List and detail</h3><p>A list and the open item.</p><div class="wire list" aria-hidden="true"><i></i><div><b></b><b></b></div></div></div>
+          <div class="cell"><h3>Document</h3><p>Long text on a page.</p><div class="wire doc" aria-hidden="true"><i></i><div><b></b></div></div></div>
+          <div class="cell"><h3>Form</h3><p>Settings and new items.</p><div class="wire form" aria-hidden="true"><i></i><div><b></b><b></b><b></b><b></b></div></div></div>
+          <div class="cell"><h3>Agent panel</h3><p>The agent beside the work.</p><div class="wire agent" aria-hidden="true"><i></i><div><b></b><b></b></div></div></div>
+        </div>
+      </div>
+
+      <div class="wrap section" id="method">
+        <div class="head">
+          <h2>Make a design system for your app in six steps.</h2>
+          <p>Use this method when you start an OpenAct app with a coding agent. The person decides. The agent does the work and runs the checks.</p>
+        </div>
+        <div class="table-wrap">
+          <table class="method">
+            <thead><tr><th scope="col">Step</th><th scope="col">The person</th><th scope="col">The agent</th></tr></thead>
+            <tbody>
+              <tr><td><span>01</span>Script</td><td><b>Writes the premise</b>One sentence about who uses the app and what they do.</td><td><b>Reads the Promptbook</b>Picks the blocking pattern for each screen.</td></tr>
+              <tr><td><span>02</span>Cast</td><td><b>Picks one hue</b>Only if the app needs its own accent.</td><td><b>Runs the seed</b><code>npm run design -- seed &lt;app-id&gt; &lt;hue&gt;</code>, then pastes the tokens into theme.css.</td></tr>
+              <tr><td><span>03</span>Block</td><td><b>Approves the screens</b>A short list, one pattern per screen.</td><td><b>Builds the screens</b>From the pattern and the @openact/ui components.</td></tr>
+              <tr><td><span>04</span>Cue</td><td><b>Names the risky actions</b>Says which agent actions need approval.</td><td><b>Writes the states and text</b>AgentState for agent work. ASD-STE100 for every sentence.</td></tr>
+              <tr><td><span>05</span>Rehearse</td><td><b>Looks at every screen</b>Light and dark, on a phone and a desktop.</td><td><b>Runs the checks</b><code>npm run design -- check</code> and <code>npm test</code>. Fixes every problem.</td></tr>
+              <tr><td><span>06</span>Open</td><td><b>Reviews and merges</b>Checks the cues marked review.</td><td><b>Opens the pull request</b>Lists the cues that need a person.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="wrap section" id="seed">
+        <div class="grid">
+          <div class="cell c6">
+            <p class="label">Step 02 in practice</p>
+            <h3>One hue in. Two safe values out.</h3>
+            <p>Most apps need no accent. When an app needs one, give the script a hue from 0 to 360. It finds a light and a dark value with 4.6:1 or more on the page and on cards. It also picks the text color for buttons in that accent.</p>
+            <div class="seedviz" aria-label="The advisory accent in the light and dark themes">
+              <div class="l"><span>light · #0e8557</span><span class="btnx" style="background: #0e8557; color: #ffffff">Book a consult</span></div><!-- promptbook-allow: real seed output -->
+              <div class="d"><span>dark · #23c987</span><span class="btnx" style="background: #23c987; color: #0d0f14">Book a consult</span></div><!-- promptbook-allow: real seed output -->
+            </div>
+          </div>
+          <div class="cell c6">
+<pre class="term"><b>$ npm run design -- seed advisory 160</b>
+
+/* In :root */
+  --app-advisory-accent: #0e8557; /* 4.65:1 on page and card */
+  --app-advisory-accent-foreground: #ffffff; /* 4.65:1 on the accent */
+
+/* In .dark */
+  --app-advisory-accent: #23c987; /* 8.34:1 on page and card */
+  --app-advisory-accent-foreground: #0d0f14; /* 8.92:1 on the accent */
+
+/* In @theme inline */
+  --color-app-advisory-accent: var(--app-advisory-accent);
+  --color-app-advisory-accent-foreground: var(--app-advisory-accent-foreground);</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="wrap section" id="cues">
+        <div class="head">
+          <h2>Fifteen cues. Each one has a check.</h2>
+          <p>A script checks some cues with every <code>npm test</code>. A test covers one. A person checks the rest in the pull request.</p>
+        </div>
+        <div class="table-wrap">
+          <table class="cues">
+            <thead><tr><th scope="col">Cue</th><th scope="col">Rule</th><th scope="col">Check</th></tr></thead>
+            <tbody>
+              <!-- promptbook:cues -->
+<tr><td class="id">C01</td><td>Use theme tokens for every color. Do not write hex, rgb or oklch values or fixed Tailwind palette classes in components.</td><td><span class="chk script">script</span></td></tr>
+<tr><td class="id">C02</td><td>Give every token a light value and a dark value.</td><td><span class="chk script">script</span></td></tr>
+<tr><td class="id">C03</td><td>Text has a contrast of 4.5:1 or more on its surface, in both themes.</td><td><span class="chk script">script</span></td></tr>
+<tr><td class="id">C04</td><td>Status marks, icons and lines that carry meaning have a contrast of 3:1 or more.</td><td><span class="chk script">script</span></td></tr>
+<tr><td class="id">C05</td><td>Pick a token by its intent. Do not pick a token by its color.</td><td><span class="chk review">review</span></td></tr>
+<tr><td class="id">C06</td><td>Use one primary action on a screen.</td><td><span class="chk review">review</span></td></tr>
+<tr><td class="id">C07</td><td>Every signed-in page starts with SiteHeader and puts its content in PageBody.</td><td><span class="chk review">review</span></td></tr>
+<tr><td class="id">C08</td><td>Build from the shadcn/ui components in @openact/ui. Use Lucide icons through Icon.</td><td><span class="chk review">review</span></td></tr>
+<tr><td class="id">C09</td><td>Show agent work with the five agent states and the AgentState component. Never show agent work in the brand colors.</td><td><span class="chk script">script</span></td></tr>
+<tr><td class="id">C10</td><td>An agent change that deletes data or changes people waits for a person. Show Approve and Reject.</td><td><span class="chk test">test</span></td></tr>
+<tr><td class="id">C11</td><td>Use the motion tokens. Stop every animation when the person asks for reduced motion.</td><td><span class="chk review">review</span></td></tr>
+<tr><td class="id">C12</td><td>Write text in ASD-STE100 style: short sentences, active voice, one idea per sentence, American spelling.</td><td><span class="chk review">review</span></td></tr>
+<tr><td class="id">C13</td><td>Do not use em dashes in text.</td><td><span class="chk script">script</span></td></tr>
+<tr><td class="id">C14</td><td>Start the name of an app token with the app id, such as --app-docs-accent.</td><td><span class="chk script">script</span></td></tr>
+<tr><td class="id">C15</td><td>Look at every new screen in light and dark, on a phone and on a desktop, before you open a pull request.</td><td><span class="chk review">review</span></td></tr>
+<!-- /promptbook:cues -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="wrap section" id="tokens">
+        <div class="head">
+          <h2>The tokens, by intent.</h2>
+          <p>The build reads these values from theme.css. Stage surfaces and identity colors are in <a href="/design/promptbook.json">promptbook.json</a>.</p>
+        </div>
+        <div class="table-wrap">
+          <table class="tokens">
+            <thead><tr><th scope="col">Class</th><th scope="col">Intent</th><th scope="col">Light</th><th scope="col">Dark</th></tr></thead>
+            <!-- promptbook:tokens -->
+<tbody><tr class="grp"><th colspan="4">agent<span>The five states of agent work. They never use the brand colors.</span></th></tr>
+<tr><td><code>agent-think</code></td><td>The agent reads and plans.</td><td class="v"><i class="sw" style="background:#5d6675"></i><span>#5d6675</span></td><td class="v"><i class="sw" style="background:#a3adbb"></i><span>#a3adbb</span></td></tr>
+<tr><td><code>agent-act</code></td><td>The agent runs a tool.</td><td class="v"><i class="sw" style="background:#2f5bd3"></i><span>#2f5bd3</span></td><td class="v"><i class="sw" style="background:#8aabff"></i><span>#8aabff</span></td></tr>
+<tr><td><code>agent-wait</code></td><td>The agent needs a person to approve or reject.</td><td class="v"><i class="sw" style="background:#8a35c9"></i><span>#8a35c9</span></td><td class="v"><i class="sw" style="background:#cf9cff"></i><span>#cf9cff</span></td></tr>
+<tr><td><code>agent-done</code></td><td>The agent finished the step.</td><td class="v"><i class="sw" style="background:#1b7a4b"></i><span>#1b7a4b</span></td><td class="v"><i class="sw" style="background:#56c98f"></i><span>#56c98f</span></td></tr>
+<tr><td><code>agent-fail</code></td><td>The step failed or a person rejected it.</td><td class="v"><i class="sw" style="background:#c0392b"></i><span>#c0392b</span></td><td class="v"><i class="sw" style="background:#f37b63"></i><span>#f37b63</span></td></tr>
+</tbody>
+<tbody><tr class="grp"><th colspan="4">meaning<span>Colors that carry meaning. Never use them for decoration.</span></th></tr>
+<tr><td><code>status-backlog</code></td><td>Status: not planned yet.</td><td class="v"><i class="sw" style="background:#8d99a9"></i><span>#8d99a9</span></td><td class="v"><i class="sw" style="background:#7c899d"></i><span>#7c899d</span></td></tr>
+<tr><td><code>status-todo</code></td><td>Status: planned.</td><td class="v"><i class="sw" style="background:#4a78c7"></i><span>#4a78c7</span></td><td class="v"><i class="sw" style="background:#6c9ae9"></i><span>#6c9ae9</span></td></tr>
+<tr><td><code>status-doing</code></td><td>Status: in progress.</td><td class="v"><i class="sw" style="background:#c47b10"></i><span>#c47b10</span></td><td class="v"><i class="sw" style="background:#e8a138"></i><span>#e8a138</span></td></tr>
+<tr><td><code>status-review</code></td><td>Status: waiting for review.</td><td class="v"><i class="sw" style="background:#8658c4"></i><span>#8658c4</span></td><td class="v"><i class="sw" style="background:#a886e6"></i><span>#a886e6</span></td></tr>
+<tr><td><code>status-done</code></td><td>Status: done.</td><td class="v"><i class="sw" style="background:#2c9662"></i><span>#2c9662</span></td><td class="v"><i class="sw" style="background:#4abc82"></i><span>#4abc82</span></td></tr>
+<tr><td><code>priority-high</code></td><td>Priority: high.</td><td class="v"><i class="sw" style="background:#c0402b"></i><span>#c0402b</span></td><td class="v"><i class="sw" style="background:#f37b63"></i><span>#f37b63</span></td></tr>
+<tr><td><code>priority-med</code></td><td>Priority: medium.</td><td class="v"><i class="sw" style="background:#a8711a"></i><span>#a8711a</span></td><td class="v"><i class="sw" style="background:#e1aa4c"></i><span>#e1aa4c</span></td></tr>
+<tr><td><code>priority-low</code></td><td>Priority: low.</td><td class="v"><i class="sw" style="background:#737373"></i><span>#737373</span></td><td class="v"><i class="sw" style="background:#a3a3a3"></i><span>#a3a3a3</span></td></tr>
+<tr><td><code>live</code></td><td>Something changes now, such as another viewer on the page.</td><td class="v"><i class="sw" style="background:#2c9662"></i><span>#2c9662</span></td><td class="v"><i class="sw" style="background:#4abc82"></i><span>#4abc82</span></td></tr>
+<tr><td><code>today</code></td><td>The line for today on a timeline.</td><td class="v"><i class="sw" style="background:#d53f2c"></i><span>#d53f2c</span></td><td class="v"><i class="sw" style="background:#fe6a54"></i><span>#fe6a54</span></td></tr>
+<tr><td><code>warn</code></td><td>The fill of a warning.</td><td class="v"><i class="sw" style="background:oklch(0.97 0.04 85)"></i><span>oklch(0.97 0.04 85)</span></td><td class="v"><i class="sw" style="background:oklch(0.27 0.04 75)"></i><span>oklch(0.27 0.04 75)</span></td></tr>
+<tr><td><code>warn-foreground</code></td><td>The text of a warning.</td><td class="v"><i class="sw" style="background:oklch(0.42 0.09 70)"></i><span>oklch(0.42 0.09 70)</span></td><td class="v"><i class="sw" style="background:oklch(0.86 0.1 85)"></i><span>oklch(0.86 0.1 85)</span></td></tr>
+<tr><td><code>warn-border</code></td><td>The edge of a warning.</td><td class="v"><i class="sw" style="background:oklch(0.86 0.09 85)"></i><span>oklch(0.86 0.09 85)</span></td><td class="v"><i class="sw" style="background:oklch(0.42 0.07 75)"></i><span>oklch(0.42 0.07 75)</span></td></tr>
+</tbody>
+<tbody><tr class="grp"><th colspan="4">brand<span>The OpenAct identity: Playbill ink with a stage gold cue.</span></th></tr>
+<tr><td><code>brand</code></td><td>The ink of the OpenAct mark.</td><td class="v"><i class="sw" style="background:#1c1824"></i><span>#1c1824</span></td><td class="v"><i class="sw" style="background:#ece7f2"></i><span>#ece7f2</span></td></tr>
+<tr><td><code>brand-foreground</code></td><td>Text on the brand ink.</td><td class="v"><i class="sw" style="background:#ffffff"></i><span>#ffffff</span></td><td class="v"><i class="sw" style="background:#1c1824"></i><span>#1c1824</span></td></tr>
+<tr><td><code>brand-gold</code></td><td>The cue light. Use it for brand moments only, never for status.</td><td class="v"><i class="sw" style="background:#8a6420"></i><span>#8a6420</span></td><td class="v"><i class="sw" style="background:#e3b85c"></i><span>#e3b85c</span></td></tr>
+</tbody>
+<tbody><tr class="grp"><th colspan="4">action<span>Things a person can do.</span></th></tr>
+<tr><td><code>primary</code></td><td>The main action on a screen. Use one per screen.</td><td class="v"><i class="sw" style="background:oklch(0.205 0 0)"></i><span>oklch(0.205 0 0)</span></td><td class="v"><i class="sw" style="background:oklch(0.922 0 0)"></i><span>oklch(0.922 0 0)</span></td></tr>
+<tr><td><code>primary-foreground</code></td><td>Text on the main action.</td><td class="v"><i class="sw" style="background:oklch(0.985 0 0)"></i><span>oklch(0.985 0 0)</span></td><td class="v"><i class="sw" style="background:oklch(0.205 0 0)"></i><span>oklch(0.205 0 0)</span></td></tr>
+<tr><td><code>secondary</code></td><td>Other actions.</td><td class="v"><i class="sw" style="background:oklch(0.97 0 0)"></i><span>oklch(0.97 0 0)</span></td><td class="v"><i class="sw" style="background:oklch(0.269 0 0)"></i><span>oklch(0.269 0 0)</span></td></tr>
+<tr><td><code>secondary-foreground</code></td><td>Text on other actions.</td><td class="v"><i class="sw" style="background:oklch(0.205 0 0)"></i><span>oklch(0.205 0 0)</span></td><td class="v"><i class="sw" style="background:oklch(0.985 0 0)"></i><span>oklch(0.985 0 0)</span></td></tr>
+<tr><td><code>accent</code></td><td>Hover and selected states.</td><td class="v"><i class="sw" style="background:oklch(0.97 0 0)"></i><span>oklch(0.97 0 0)</span></td><td class="v"><i class="sw" style="background:oklch(0.269 0 0)"></i><span>oklch(0.269 0 0)</span></td></tr>
+<tr><td><code>accent-foreground</code></td><td>Text on a hover or selected state.</td><td class="v"><i class="sw" style="background:oklch(0.205 0 0)"></i><span>oklch(0.205 0 0)</span></td><td class="v"><i class="sw" style="background:oklch(0.985 0 0)"></i><span>oklch(0.985 0 0)</span></td></tr>
+<tr><td><code>destructive</code></td><td>An action that deletes or cannot be undone.</td><td class="v"><i class="sw" style="background:oklch(0.577 0.245 27.325)"></i><span>oklch(0.577 0.245 27.325)</span></td><td class="v"><i class="sw" style="background:oklch(0.704 0.191 22.216)"></i><span>oklch(0.704 0.191 22.216)</span></td></tr>
+<tr><td><code>destructive-foreground</code></td><td>Text on a destructive fill.</td><td class="v"><i class="sw" style="background:#ffffff"></i><span>#ffffff</span></td><td class="v"><i class="sw" style="background:#ffffff"></i><span>#ffffff</span></td></tr>
+</tbody>
+<tbody><tr class="grp"><th colspan="4">surface<span>The planes that content sits on.</span></th></tr>
+<tr><td><code>background</code></td><td>The page.</td><td class="v"><i class="sw" style="background:oklch(1 0 0)"></i><span>oklch(1 0 0)</span></td><td class="v"><i class="sw" style="background:oklch(0.145 0 0)"></i><span>oklch(0.145 0 0)</span></td></tr>
+<tr><td><code>foreground</code></td><td>Text on the page.</td><td class="v"><i class="sw" style="background:oklch(0.145 0 0)"></i><span>oklch(0.145 0 0)</span></td><td class="v"><i class="sw" style="background:oklch(0.985 0 0)"></i><span>oklch(0.985 0 0)</span></td></tr>
+<tr><td><code>card</code></td><td>A raised panel, such as a task card or a dialog.</td><td class="v"><i class="sw" style="background:oklch(1 0 0)"></i><span>oklch(1 0 0)</span></td><td class="v"><i class="sw" style="background:oklch(0.205 0 0)"></i><span>oklch(0.205 0 0)</span></td></tr>
+<tr><td><code>card-foreground</code></td><td>Text on a card.</td><td class="v"><i class="sw" style="background:oklch(0.145 0 0)"></i><span>oklch(0.145 0 0)</span></td><td class="v"><i class="sw" style="background:oklch(0.985 0 0)"></i><span>oklch(0.985 0 0)</span></td></tr>
+<tr><td><code>popover</code></td><td>A menu or a popover.</td><td class="v"><i class="sw" style="background:oklch(1 0 0)"></i><span>oklch(1 0 0)</span></td><td class="v"><i class="sw" style="background:oklch(0.205 0 0)"></i><span>oklch(0.205 0 0)</span></td></tr>
+<tr><td><code>popover-foreground</code></td><td>Text in a menu.</td><td class="v"><i class="sw" style="background:oklch(0.145 0 0)"></i><span>oklch(0.145 0 0)</span></td><td class="v"><i class="sw" style="background:oklch(0.985 0 0)"></i><span>oklch(0.985 0 0)</span></td></tr>
+<tr><td><code>muted</code></td><td>A quiet fill, such as a hover row or a code chip.</td><td class="v"><i class="sw" style="background:oklch(0.97 0 0)"></i><span>oklch(0.97 0 0)</span></td><td class="v"><i class="sw" style="background:oklch(0.269 0 0)"></i><span>oklch(0.269 0 0)</span></td></tr>
+<tr><td><code>muted-foreground</code></td><td>Secondary text: dates, help text, counts.</td><td class="v"><i class="sw" style="background:oklch(0.535 0 0)"></i><span>oklch(0.535 0 0)</span></td><td class="v"><i class="sw" style="background:oklch(0.708 0 0)"></i><span>oklch(0.708 0 0)</span></td></tr>
+<tr><td><code>border</code></td><td>Lines between parts.</td><td class="v"><i class="sw" style="background:oklch(0.922 0 0)"></i><span>oklch(0.922 0 0)</span></td><td class="v"><i class="sw" style="background:oklch(1 0 0 / 10%)"></i><span>oklch(1 0 0 / 10%)</span></td></tr>
+<tr><td><code>input</code></td><td>The edge of a form field.</td><td class="v"><i class="sw" style="background:oklch(0.922 0 0)"></i><span>oklch(0.922 0 0)</span></td><td class="v"><i class="sw" style="background:oklch(1 0 0 / 15%)"></i><span>oklch(1 0 0 / 15%)</span></td></tr>
+<tr><td><code>ring</code></td><td>The focus ring.</td><td class="v"><i class="sw" style="background:oklch(0.708 0 0)"></i><span>oklch(0.708 0 0)</span></td><td class="v"><i class="sw" style="background:oklch(0.556 0 0)"></i><span>oklch(0.556 0 0)</span></td></tr>
+<tr><td><code>scrim</code></td><td>The shade behind a dialog or a sheet.</td><td class="v"><i class="sw" style="background:oklch(0 0 0 / 50%)"></i><span>oklch(0 0 0 / 50%)</span></td><td class="v"><i class="sw" style="background:oklch(0 0 0 / 65%)"></i><span>oklch(0 0 0 / 65%)</span></td></tr>
+</tbody>
+<!-- /promptbook:tokens -->
+          </table>
+        </div>
+      </div>
+
+      <div class="wrap closer">
+        <div class="grid">
+          <div class="cell c6">
+            <h2>Build your first OpenAct app.</h2>
+            <p class="soft" style="margin: 16px 0 24px; max-width: 440px">Start from the repository. Give your agent the prompt at the top of this page. Keep the person in charge of every cue marked review.</p>
+            <div class="actions">
+              <a class="btn btn-cue" href="https://docs.openact.ing/apps">Build an app</a>
+              <a class="btn" href="https://github.com/marketgrowth/openact">Open GitHub</a>
+            </div>
+          </div>
+          <div class="cell c6">
+            <ol>
+              <li><span><code>git clone github.com/marketgrowth/openact</code></span></li>
+              <li><span>Give your agent the prompt. Name your app and its users.</span></li>
+              <li><span><code>npm run design -- check</code> and <code>npm test</code></span></li>
+              <li><span>Open a pull request. A person approves it.</span></li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="foot">
+      <div class="wrap">
+        <span>The OpenAct Promptbook. Apache License 2.0. Made by MarketGrowth.</span>
+        <nav aria-label="Footer">
+          <a href="/">OpenAct</a>
+          <a href="/design/promptbook.md">promptbook.md</a>
+          <a href="/design/promptbook.json">promptbook.json</a>
+          <a href="https://docs.openact.ing/design-system">Docs</a>
+          <a href="https://github.com/marketgrowth/openact/blob/main/packages/ui/promptbook.json">Source</a>
+        </nav>
+      </div>
+    </footer>
+  </body>
+</html>
