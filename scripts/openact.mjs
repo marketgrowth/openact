@@ -16,6 +16,8 @@
  *     "migrations": "./migrations", "durableObjects": ["GroupRoom"], "enabledByDefault": true }
  *
  * "enabledByDefault": false makes each company turn the app on in Company settings before it shows.
+ * "plan": "director" or "producer" makes the app a paid app. It is locked in companies without that plan.
+ * Only official MarketGrowth apps use "plan". See https://docs.openact.app/plans.
  *
  * Like shadcn/ui, `add` copies the app's code into your repository. You own it, and you can read and change it.
  * `update` replaces the folder, so keep your own changes in git or send them to the app's authors.
@@ -32,6 +34,8 @@ const OUT = join(ROOT, ".openact");
 const CORE_MIGRATIONS = join(ROOT, "packages/core/migrations");
 const DIRECTORY = join(ROOT, "directory/apps.json");
 const ID = /^[a-z][a-z0-9-]{1,30}$/;
+const PAID_PLANS = ["director", "producer"];
+const PLAN_NAMES = { director: "Director", producer: "Producer" };
 
 const temps = [];
 const fail = (msg) => {
@@ -99,6 +103,7 @@ function manifest(dir, label = relative(ROOT, dir)) {
     if (m[key] && !existsSync(join(dir, m[key]))) fail(`The app "${m.id}" lists ${key}: ${m[key]}, but that file does not exist.`);
   }
   if (m.enabledByDefault !== undefined && typeof m.enabledByDefault !== "boolean") fail(`The app "${m.id}" has "enabledByDefault": it must be true or false.`);
+  if (m.plan !== undefined && !PAID_PLANS.includes(m.plan)) fail(`The app "${m.id}" has "plan": "${m.plan}". Use ${PAID_PLANS.join(" or ")}, or leave it out for a free app.`);
   return { ...m, name: m.name ?? m.id, durableObjects: m.durableObjects ?? [], enabledByDefault: m.enabledByDefault ?? true };
 }
 
@@ -134,7 +139,7 @@ function sync() {
       server.map((a, i) => `import app${i} from "${fromOut(join(a.dir, a.server))}";\n`).join("") +
       `\nexport const apps: ServerApp[] = [${server.map((_, i) => `app${i}`).join(", ")}];\n` +
       `\n/** Every installed app, also apps with only web code. */\nexport const catalog: AppInfo[] = ${JSON.stringify(
-        loaded.map((a) => ({ id: a.id, name: a.name, enabledByDefault: a.enabledByDefault }))
+        loaded.map((a) => ({ id: a.id, name: a.name, enabledByDefault: a.enabledByDefault, ...(a.plan ? { plan: a.plan } : {}) }))
       )};\n`
   );
   writeFileSync(
@@ -255,8 +260,10 @@ switch (cmd) {
     const label = { "built-in": "built in", available: "available", planned: "planned", example: "example" };
     for (const a of apps) {
       const state = installed.has(a.id) ? "installed" : label[a.status] ?? a.status;
-      console.log(`${a.id.padEnd(12)} ${state.padEnd(10)} ${a.name.padEnd(18)} ${a.summary}`);
+      const plan = a.plan ? PLAN_NAMES[a.plan] ?? a.plan : "";
+      console.log(`${a.id.padEnd(12)} ${state.padEnd(10)} ${plan.padEnd(9)} ${a.name.padEnd(18)} ${a.summary}`);
     }
+    if (apps.some((a) => a.plan)) console.log("\nDirector and Producer apps need a paid plan. Read https://docs.openact.app/plans");
     console.log("\nInstall an app with: npm run openact -- add <id>. Read more at https://docs.openact.app/directory");
     break;
   }

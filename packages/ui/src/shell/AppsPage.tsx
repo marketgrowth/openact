@@ -1,11 +1,12 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { canManageCompany } from "@openact/core/shared";
+import { PLANS, canManageCompany, type PaidPlan } from "@openact/core/shared";
 import { railApps, useShell, type ClientApp, type DirectoryApp } from "../apps";
 import { Link } from "../router";
 import { Icon, Notice, useToast } from "../ui";
 import { useWorkspace } from "../workspace";
 import { PageBody, SiteHeader } from "./SiteHeader";
 import { useCompanyApps } from "./AppSettings";
+import { PLAN_PATH, PlanBadge } from "./Plan";
 import { appHome } from "../app-paths";
 import { Badge } from "@openact/ui/components/badge";
 import { Button } from "@openact/ui/components/button";
@@ -82,12 +83,33 @@ function ManagedApps({ companyId, installed, info }: { companyId: string; instal
       {installed.map((app) => {
         const s = settings.find((x) => x.id === app.id);
         const on = s?.enabled ?? false;
+        const plan = s?.plan ?? null;
+        if (s?.locked && plan)
+          return (
+            <AppCard
+              key={app.id}
+              app={app}
+              summary={info(app.id)?.summary}
+              on={false}
+              plan={plan}
+              locked
+              action={
+                <>
+                  <span className="mr-auto text-xs text-muted-foreground">{`Part of ${PLANS[plan].name}`}</span>
+                  <Button asChild size="sm">
+                    <Link to={PLAN_PATH}>Upgrade</Link>
+                  </Button>
+                </>
+              }
+            />
+          );
         return (
           <AppCard
             key={app.id}
             app={app}
             summary={info(app.id)?.summary}
             on={on}
+            plan={plan}
             action={
               <>
                 {s?.siteOff && <span className="mr-auto text-xs text-muted-foreground">Off for this site</span>}
@@ -116,8 +138,10 @@ function MemberApps({ installed, info }: { installed: ClientApp[]; info: (id: st
   const ws = useWorkspace();
   const { apps } = useShell();
   const off = ws.access?.disabledApps ?? [];
+  const lockedIds = ws.access?.lockedApps ?? [];
   const shown = installed.filter((a) => !off.includes(a.id));
-  if (!shown.length) return <p className="text-sm text-muted-foreground">No apps are on for this company. Ask an owner or admin.</p>;
+  const locked = installed.filter((a) => lockedIds.includes(a.id));
+  if (!shown.length && !locked.length) return <p className="text-sm text-muted-foreground">No apps are on for this company. Ask an owner or admin.</p>;
   return (
     <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {shown.map((app) => (
@@ -126,6 +150,7 @@ function MemberApps({ installed, info }: { installed: ClientApp[]; info: (id: st
           app={app}
           summary={info(app.id)?.summary}
           on
+          plan={info(app.id)?.plan ?? null}
           action={
             <Button asChild size="sm" variant="outline">
               <Link to={appHome(app, apps)}>Open</Link>
@@ -133,19 +158,60 @@ function MemberApps({ installed, info }: { installed: ClientApp[]; info: (id: st
           }
         />
       ))}
+      {locked.map((app) => {
+        const plan = info(app.id)?.plan ?? "director";
+        return (
+          <AppCard
+            key={app.id}
+            app={app}
+            summary={info(app.id)?.summary}
+            on={false}
+            plan={plan}
+            locked
+            action={
+              <Button asChild size="sm" variant="outline">
+                <Link to={PLAN_PATH}>See plans</Link>
+              </Button>
+            }
+          />
+        );
+      })}
     </ul>
   );
 }
 
-function AppCard({ app, summary, on, action }: { app: ClientApp; summary?: string; on: boolean; action: ReactNode }) {
+function AppCard({
+  app,
+  summary,
+  on,
+  plan = null,
+  locked = false,
+  action
+}: {
+  app: ClientApp;
+  summary?: string;
+  on: boolean;
+  /** The plan the app needs, for the badge. */
+  plan?: PaidPlan | null;
+  /** True when the company does not have that plan. */
+  locked?: boolean;
+  action: ReactNode;
+}) {
   return (
-    <li className="flex flex-col gap-3 rounded-xl border bg-card p-4" data-installed-app={app.id}>
+    <li className="flex flex-col gap-3 rounded-xl border bg-card p-4" data-installed-app={app.id} data-locked={locked ? "" : undefined}>
       <div className="flex items-center gap-3">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground" aria-hidden="true">
+        <span
+          className={cn(
+            "flex size-9 shrink-0 items-center justify-center rounded-lg",
+            locked ? "border border-dashed text-muted-foreground" : "bg-primary text-primary-foreground"
+          )}
+          aria-hidden="true"
+        >
           {app.Mark ? <app.Mark className="size-4" /> : <Icon name={app.icon!} />}
         </span>
         <span className="min-w-0 flex-1 truncate font-medium">{app.name}</span>
-        <Badge variant={on ? "secondary" : "outline"}>{on ? "On" : "Off"}</Badge>
+        {plan && <PlanBadge plan={plan} />}
+        <Badge variant={on ? "secondary" : "outline"}>{locked ? "Locked" : on ? "On" : "Off"}</Badge>
       </div>
       {summary && <p className="flex-1 text-sm text-muted-foreground">{summary}</p>}
       <div className="flex items-center justify-end gap-2">{action}</div>
@@ -204,7 +270,7 @@ function DirectorySection({ apps }: { apps: readonly DirectoryApp[] }) {
                     {a.category} · {a.publisher}
                   </span>
                 </span>
-                <Badge variant="outline">{STATUS[a.status]}</Badge>
+                {a.plan ? <PlanBadge plan={a.plan} /> : <Badge variant="outline">{STATUS[a.status]}</Badge>}
               </div>
               <p className="flex-1 text-sm text-muted-foreground">{a.summary}</p>
               <div className="flex items-center justify-between gap-2">

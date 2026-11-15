@@ -2,14 +2,14 @@
 
 **All The World's A Stage**
 
-OpenAct is an open source framework for agentic business apps on Cloudflare. It comes with a Projects app and a Docs app. Add more apps from the app directory, or build your own.
+OpenAct is an open source framework for agentic business apps on Cloudflare. The core, the UI and the Projects app are free and open source. Paid apps, starting with Docs, come with OpenAct Director. Add more apps from the app directory, or build your own.
 
-- **A suite of apps.** Projects is ready now, with Kanban, Gantt and calendar views, an AI agent and search. Docs is a company library of paper-size documents. Official apps for time tracking, contacts, events, support and more are under review in the [app directory](https://docs.openact.app/directory).
+- **A suite of apps.** Projects is ready now, with Kanban, Gantt and calendar views, an AI agent and search. Docs is a company library of paper-size documents, in the OpenAct Director plan. Official apps for time tracking, contacts, events, support and more are under review in the [app directory](https://docs.openact.app/directory).
 - **A framework for your own apps.** Sign-in, companies, roles, permissions, live updates, email, files and the app shell are ready. Your app adds only its own features.
 - **Agents that know their limits.** The Projects agent acts for a person and never does more than their role allows. Risky changes wait for approval.
 - **Cloudflare from end to end.** Workers, D1, R2, Durable Objects, Vectorize and Workers AI, on your own account.
 
-MarketGrowth makes OpenAct and shares it under the Apache License 2.0.
+MarketGrowth makes OpenAct and shares the core, the UI and the Projects app under the Apache License 2.0. Docs is under the [OpenAct Director License](apps/docs/LICENSE). Read about [plans](https://docs.openact.app/plans).
 
 Read the documentation at [docs.openact.app](https://docs.openact.app).
 
@@ -33,7 +33,7 @@ Read the documentation at [docs.openact.app](https://docs.openact.app).
 - **Roles.** In a project, owners manage people and settings, editors change tasks, and viewers only look. In a company, owners and admins manage the company, members see company projects, and guests see only the projects they are invited to.
 - **Sign-in without passwords.** People type their email and get a 6-digit code. [Resend](https://resend.com) sends the email.
 - **File attachments.** Attach files up to 25 MB to a task. Files go to R2.
-- **Docs.** A company library of rich text docs on pages the size of Letter, A4 or Legal paper. Sort docs into folders up to 5 levels deep, give each a category, and add tags. Share a doc with a link that needs no account, or print it to PDF. The pages on screen match the printed pages. Live editing with cursors for each person, and offline changes that sync later. Comment threads on text or on the whole doc, with replies, resolve and @mentions by email. AI writing help improves, shortens, translates or continues selected text, when a company turns it on. A super admin can turn Docs off for the whole site. Read [docs/docs-app.md](docs/docs-app.md).
+- **Docs (OpenAct Director).** A company library of rich text docs on pages the size of Letter, A4 or Legal paper. Sort docs into folders up to 5 levels deep, give each a category, and add tags. Share a doc with a link that needs no account, or print it to PDF. The pages on screen match the printed pages. Live editing with cursors for each person, and offline changes that sync later. Comment threads on text or on the whole doc, with replies, resolve and @mentions by email. AI writing help improves, shortens, translates or continues selected text, when a company turns it on. Docs needs a Director or Producer plan. A super admin can turn Docs off for the whole site. Read [docs/docs-app.md](docs/docs-app.md).
 - **AI agent with role-based access.** Tell the agent what to do in plain words: "Move the late tasks to next week" or "Rename Review to QA". The agent acts for you and never has more power than your role. Owners choose how much each role may hand to the agent. Deletes, people changes and large batches wait for your approval, and every agent action is logged. Read [docs/reference/ag-ui.md](docs/reference/ag-ui.md).
 - **Search by words and by meaning.** Press Ctrl+K or Cmd+K to search every project you can see in the company. Search finds "Book the gala hall" when you type "venue". It uses [Vectorize](https://developers.cloudflare.com/vectorize/) and Workers AI embeddings, and falls back to words only when Vectorize is not set up. The task panel shows related tasks, and the agent can search big projects.
 - **Clickable links.** Web addresses in a project description or in task notes show as links that open in a new tab. OpenAct never fetches them. Only `http` and `https` links work.
@@ -202,6 +202,9 @@ Set these under `vars` in `wrangler.jsonc`, or in the Cloudflare dashboard.
 | `CF_ACCOUNT_ID` | empty | Your account ID. Needed for `anthropic` and `openai`. |
 | `TYPESAFE_MODEL` | `jev-1.14.0` | The Jev release for the topic check. Pinned, because the thresholds are set for it. |
 | `TYPESAFE_BASE_URL` | `https://api.typesafe.ai` | Another URL for the TypeSafe API, such as a gateway |
+| `STRIPE_PRICE_DIRECTOR` | empty | Plans: the Stripe Price id of the annual Director price. Director is for sale when it and `STRIPE_SECRET_KEY` are set. |
+| `STRIPE_PRICE_PRODUCER` | empty | Plans: the Stripe Price id of the annual Producer price |
+| `PLANS_CONTACT_URL` | empty | Plans: a `https://` or `mailto:` link for questions, such as about Producer |
 
 Set these secrets with `npx wrangler secret put NAME`:
 
@@ -213,6 +216,9 @@ Set these secrets with `npx wrangler secret put NAME`:
 | `OPENAI_API_KEY` | For `openai` | OpenAI API key, sent through AI Gateway |
 | `AI_GATEWAY_TOKEN` | No | Needed only if your AI Gateway uses authentication |
 | `TYPESAFE_API_KEY` | No | Turns on Jev for the topic check. Get a key from TypeSafe. |
+| `OPENACT_LICENSE` | No | A license key from MarketGrowth. It gives every company on a self-hosted deploy its paid plan. |
+| `STRIPE_SECRET_KEY` | No | Sells plans with Stripe, and takes card contributions |
+| `STRIPE_WEBHOOK_SECRET` | With plans | The signing secret of the Stripe webhook at `/api/billing/stripe-webhook` |
 
 The first person to sign in can always make an account, even in `invite` mode. An invitation always lets that email sign up, even when `ALLOWED_EMAIL_DOMAINS` does not include its domain.
 
@@ -324,6 +330,20 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md). To report a security problem, read [SEC
 
 To help pay for OpenAct, open `/contribute` on any OpenAct deploy. See [docs/contribute.md](docs/contribute.md).
 
+## Plans
+
+| Plan | For | What you get |
+| --- | --- | --- |
+| Free | Everyone | The core, the UI and the Projects app. Open source. |
+| Director | Startups to midmarket companies | Everything in Free, plus Docs. More paid apps will join it. |
+| Producer | Enterprise companies | Everything in Director. |
+
+Each paid plan has one annual price per company. A company owner buys a plan on the **Plan** page. A self-hosted deploy gets its plan from a license key in the `OPENACT_LICENSE` secret. Read [docs/plans.md](docs/plans.md).
+
 ## License
 
-Apache License 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE). Copyright 2026 MarketGrowth.
+The core (`packages/core`), the UI kit (`packages/ui`), the Projects app (`apps/projects`) and the examples are under the Apache License 2.0. See [LICENSE](LICENSE).
+
+The Docs app (`apps/docs`) is under the [OpenAct Director License](apps/docs/LICENSE). You can read and change it, and run it for development and testing. Production use needs a Director or Producer plan. Versions of Docs released before November 10, 2026 stay under the Apache License 2.0.
+
+See [NOTICE](NOTICE). Copyright 2026 MarketGrowth.

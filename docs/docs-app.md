@@ -1,13 +1,17 @@
 ---
 title: Docs
-description: A company library of paper-size docs, with folders, categories and tags. Share a doc with a link, or print it to PDF.
+description: A company library of paper-size docs, with folders, categories and tags. Share a doc with a link, or print it to PDF. Part of OpenAct Director.
 ---
 
 # Docs
 
 Docs is a company library of rich text documents. Each doc is a page the size of paper. You can sort docs into folders, give each doc a category, and add tags. You can share a doc with a link, and anyone can print it or save it as a PDF. The pages on screen match the printed pages.
 
-Docs comes with OpenAct, next to Projects. It has its own icon in the app rail. It is on for every company unless an admin turns it off.
+::: tip Part of OpenAct Director
+Docs is a paid app. It needs a [Director or Producer plan](plans.md). Without a plan, Docs is locked: the Apps page shows it with a **Director** badge and an **Upgrade** button, and your docs stay saved.
+:::
+
+Docs comes with OpenAct, next to Projects. It has its own icon in the app rail. In a company with a plan, it is on unless an admin turns it off.
 
 ## Write a doc
 

@@ -22,7 +22,8 @@ export const COMPANY_SECTIONS: readonly SettingsSection[] = [
   { scope: "company", id: "people", label: "People", icon: "users" },
   { scope: "company", id: "apps", label: "Apps", icon: "apps" },
   { scope: "company", id: "permissions", label: "Permissions", icon: "shield" },
-  { scope: "company", id: "ai", label: "AI provider", icon: "bot" }
+  { scope: "company", id: "ai", label: "AI provider", icon: "bot" },
+  { scope: "company", id: "plan", label: "Plan", icon: "star" }
 ];
 
 export const ACCOUNT_SECTIONS: readonly SettingsSection[] = [
