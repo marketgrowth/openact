@@ -126,15 +126,27 @@
       .features strong { color: var(--ink); font-weight: 600; }
       .after-shot { margin: 24px 0 0; }
 
-      .plans { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-      .plan { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 24px; }
-      .plan h3 { margin: 0; font-size: 22px; font-weight: 650; }
-      .plan .for { margin: 2px 0 12px; font-size: 15px; color: var(--gold); }
-      .plan p { margin: 0; color: var(--ink-soft); }
-      @media (max-width: 760px) { .plans { grid-template-columns: 1fr; } }
-      .plan-notes { margin: 28px 0 0; padding-left: 20px; color: var(--ink-soft); max-width: 760px; }
-      .plan-notes li { margin: 8px 0; }
-      .plan-notes strong { color: var(--ink); font-weight: 600; }
+
+      /* Pricing */
+      .pricing-head { max-width: 720px; }
+      .tiers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: stretch; }
+      .tier { position: relative; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); padding: 28px 24px; }
+      .tier-featured { border: 2px solid var(--gold); padding: 27px 23px; }
+      .tier-badge { position: absolute; top: -13px; left: 23px; margin: 0; padding: 2px 10px; border-radius: 6px; background: var(--gold); color: var(--on-gold); font-size: 13px; font-weight: 600; }
+      .tier h3 { margin: 0; font-size: 22px; font-weight: 650; }
+      .tier-for { margin: 4px 0 20px; font-size: 15px; color: var(--muted); }
+      .price { display: flex; flex-direction: column; gap: 6px; margin: 0 0 22px; }
+      .price .amount { font-size: 40px; font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
+      .price .per { font-size: 15px; color: var(--muted); min-height: 1.5em; }
+      .btn-block { width: 100%; }
+      .includes { list-style: none; margin: 24px 0 0; padding: 20px 0 0; border-top: 1px solid var(--line); display: grid; gap: 10px; }
+      .includes li { display: grid; grid-template-columns: 18px 1fr; gap: 10px; align-items: start; color: var(--ink-soft); font-size: 15px; line-height: 1.45; }
+      .check { width: 16px; height: 16px; margin-top: 3px; color: var(--gold); }
+      @media (max-width: 900px) { .tiers { grid-template-columns: 1fr; gap: 28px; } }
+      .faq { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 48px; margin-top: 56px; }
+      .faq h3 { margin: 0 0 6px; font-size: 17px; font-weight: 600; }
+      .faq p { margin: 0; color: var(--ink-soft); font-size: 16px; }
+      @media (max-width: 760px) { .faq { grid-template-columns: 1fr; } }
 
       .split { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: start; }
       .split p { color: var(--ink-soft); margin: 0 0 16px; }
@@ -172,7 +184,7 @@
           OpenAct
         </a>
         <nav class="nav" aria-label="Main">
-          <a class="hide-sm" href="https://docs.openact.app">Docs</a>
+          <a class="hide-sm" href="https://docs.openact.ing">Docs</a>
           <a class="hide-sm" href="https://github.com/marketgrowth/openact">GitHub</a>
           <a class="btn btn-gold btn-sm" href="https://a.openact.ing">Try the demo</a>
         </nav>
@@ -188,7 +200,7 @@
           </p>
           <div class="actions">
             <a class="btn btn-gold" href="https://a.openact.ing">Try the demo</a>
-            <a class="btn btn-line" href="https://docs.openact.app/getting-started">Read the docs</a>
+            <a class="btn btn-line" href="https://docs.openact.ing/getting-started">Read the docs</a>
           </div>
           <p class="note">The demo is free. Sign in with your email. You do not need a password.</p>
         </div>
@@ -269,31 +281,75 @@
         </section>
 
         <section id="plans" aria-labelledby="plans-title">
-          <h2 id="plans-title">How the plans work</h2>
-          <p class="intro">Each paid plan has one annual price per company. The price does not change with the number of people. Choose the plan that fits the size of your company.</p>
-          <div class="plans">
-            <article class="plan">
+          <div class="pricing-head">
+            <h2 id="plans-title">Plans and pricing</h2>
+            <p class="intro">Start free with the open source core. Add a paid plan for Docs and Advisory. Each paid plan has one annual price per company, with no charge per person.</p>
+          </div>
+          <div class="tiers">
+            <article class="tier">
               <h3>Free</h3>
-              <p class="for">For everyone</p>
-              <p>The core, the UI and the Projects app, under the Apache License 2.0.</p>
+              <p class="tier-for">For everyone</p>
+              <p class="price"><span class="amount">$0</span><span class="per">Open source, Apache License 2.0</span></p>
+              <a class="btn btn-line btn-block" href="https://deploy.workers.cloudflare.com/?url=https://github.com/marketgrowth/openact">Deploy to Cloudflare</a>
+              <ul class="includes" aria-label="Free includes">
+                <li><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>The core and the UI</li>
+                <li><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>Projects: Kanban, Gantt and calendar</li>
+                <li><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>AI agent with approvals</li>
+                <li><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>Bring your own AI</li>
+                <li><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>Many companies, no seat limits</li>
+                <li><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>Build and add your own apps</li>
+                <li><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>Your own Cloudflare account</li>
+                <li><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>Apache License 2.0</li>
+              </ul>
             </article>
-            <article class="plan">
+            <article class="tier tier-featured">
+              <p class="tier-badge">Try it free on the demo</p>
               <h3>Director</h3>
-              <p class="for">For startups to midmarket companies</p>
-              <p>Everything in Free, plus Docs and Advisory. More paid apps will join Director.</p>
+              <p class="tier-for">For startups to midmarket companies</p>
+              <p class="price"><span class="amount">Yearly</span><span class="per">One price per company</span></p>
+              <a class="btn btn-gold btn-block" href="https://a.openact.ing">Try Director on the demo</a>
+              <ul class="includes" aria-label="Director includes">
+                <li><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>Everything in Free</li>
+                <li><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>Docs: paper-size docs, live editing, comments</li>
+                <li><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>Advisory: an advisor marketplace with Stripe</li>
+                <li><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>New paid apps as they join Director</li>
+                <li><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>Pay with Stripe on a hosted OpenAct site</li>
+                <li><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>Or a license key for your own deploy</li>
+              </ul>
             </article>
-            <article class="plan">
+            <article class="tier">
               <h3>Producer</h3>
-              <p class="for">For enterprise companies</p>
-              <p>Everything in Director.</p>
+              <p class="tier-for">For enterprise companies</p>
+              <p class="price"><span class="amount">Yearly</span><span class="per">One price per company</span></p>
+              <a class="btn btn-line btn-block" href="https://docs.openact.ing/plans">Read about Producer</a>
+              <ul class="includes" aria-label="Producer includes">
+                <li><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>Everything in Director</li>
+                <li><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>A plan for the size of an enterprise</li>
+                <li><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>Pay with Stripe on a hosted OpenAct site</li>
+                <li><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>Or a license key for your own deploy</li>
+              </ul>
             </article>
           </div>
-          <ul class="plan-notes">
-            <li><strong>On a hosted OpenAct site,</strong> a company owner chooses a plan on the Plan page. Stripe takes the payment.</li>
-            <li><strong>On your own deploy,</strong> MarketGrowth gives you a license key. Every company on the deploy gets the plan in the key.</li>
-            <li><strong>Without a plan,</strong> Docs and Advisory are locked, but their data stays. The apps come back with all their data when the company gets a plan.</li>
-          </ul>
-          <p class="after-shot"><a class="btn btn-line btn-sm" href="https://docs.openact.app/plans">Read about plans</a></p>
+
+          <div class="faq">
+            <div>
+              <h3>How is the price set?</h3>
+              <p>Each paid plan has one annual price per company. The number of people does not change the price. Choose the plan that fits the size of your company.</p>
+            </div>
+            <div>
+              <h3>How do I pay?</h3>
+              <p>On a hosted OpenAct site, a company owner pays on the Plan page. Stripe takes the payment. On your own deploy, MarketGrowth gives you a license key.</p>
+            </div>
+            <div>
+              <h3>What happens without a plan?</h3>
+              <p>Docs and Advisory lock, but their data stays. The apps come back with all their data when the company gets a plan.</p>
+            </div>
+            <div>
+              <h3>Can I try the paid apps first?</h3>
+              <p>Yes. The demo has Docs and Advisory turned on for every company. The demo deletes all data every night.</p>
+            </div>
+          </div>
+          <p class="after-shot"><a class="btn btn-line btn-sm" href="https://docs.openact.ing/plans">Read about plans</a></p>
         </section>
       </div>
 
@@ -319,9 +375,9 @@
         <span>OpenAct is made by MarketGrowth.</span>
         <nav aria-label="Footer">
           <a href="https://a.openact.ing">Demo</a>
-          <a href="https://docs.openact.app">Docs</a>
+          <a href="https://docs.openact.ing">Docs</a>
           <a href="https://github.com/marketgrowth/openact">GitHub</a>
-          <a href="https://docs.openact.app/plans">Plans</a>
+          <a href="#plans">Plans</a>
           <a href="https://a.openact.ing/contribute">Contribute</a>
         </nav>
       </footer>

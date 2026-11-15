@@ -1,7 +1,7 @@
 import { defineConfig } from "vitepress";
 
 /*
- * The OpenAct docs site, published at https://docs.openact.app.
+ * The OpenAct docs site, published at https://docs.openact.app. The demo branch publishes it at https://docs.openact.ing.
  * The pages are the Markdown files in this folder, so they also read well on GitHub.
  */
 export default defineConfig({
@@ -12,7 +12,7 @@ export default defineConfig({
   lastUpdated: true,
   srcExclude: ["README.md"],
   ignoreDeadLinks: "localhostLinks",
-  sitemap: { hostname: "https://docs.openact.app" },
+  sitemap: { hostname: "https://docs.openact.ing" },
   head: [
     ["link", { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" }],
     ["link", { rel: "preconnect", href: "https://fonts.googleapis.com" }],
