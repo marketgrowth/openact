@@ -112,7 +112,7 @@ Deletes and people changes always wait for a person. The agent never goes past t
 
 | Part | Rule |
 | --- | --- |
-| Type | IBM Plex Sans for text. IBM Plex Mono for labels, code and ids. Use `tabular` for dates, counts and money. |
+| Type | Open Sans for text in apps. IBM Plex Mono for labels, code and ids. The website and the docs site use IBM Plex Sans. Use `tabular` for dates, counts and money. |
 | Label | `font-mono text-[11px] uppercase tracking-wider text-muted-foreground` |
 | Body | `text-sm` |
 | Title | `text-base font-semibold` |
