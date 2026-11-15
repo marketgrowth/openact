@@ -17,7 +17,7 @@ interface DemoEnv extends Env {
 export const DEMO_RESET_CRON = "17 10 * * *";
 
 const KEEP_TABLES = new Set(["d1_migrations", "site_settings"]);
-const KEEP_FILES = new Set(["site/logo"]);
+const KEEP_FILES = new Set(["site/logo", "site/sign-in-background"]);
 
 /** Deletes the demo data. Returns what it deleted, for the log. */
 export async function resetDemo(env: Env): Promise<{ tables: number; files: number; vectors: number }> {
