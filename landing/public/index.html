@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>OpenAct: open source business apps on Cloudflare</title>
-    <meta name="description" content="OpenAct is an open source framework for business apps on Cloudflare. It comes with Projects, Docs and Advisory. Try the free demo." />
+    <meta name="description" content="OpenAct is an open source framework for business apps on Cloudflare. It is open source, comes with a Projects app, and runs in your own Cloudflare account. Try the free demo." />
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#f6f3ee" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#1c1824" media="(prefers-color-scheme: dark)" />
@@ -113,6 +113,29 @@
       .app p { margin: 0; color: var(--ink-soft); }
       @media (max-width: 760px) { .apps { grid-template-columns: 1fr; } }
 
+
+      .pillars { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 40px; margin-bottom: 56px; }
+      .pillar { border-top: 2px solid var(--gold); padding: 20px 0 0; }
+      .pillar h3 { margin: 0 0 8px; font-size: 20px; font-weight: 600; }
+      .pillar p { margin: 0; color: var(--ink-soft); }
+      @media (max-width: 860px) { .pillars { grid-template-columns: 1fr; gap: 32px; } }
+
+      .list-title { font-size: 20px; font-weight: 600; margin: 0 0 16px; }
+      .features { list-style: none; margin: 0; padding: 0; columns: 3 260px; column-gap: 40px; }
+      .features li { break-inside: avoid; padding: 10px 0; border-bottom: 1px solid var(--line); color: var(--ink-soft); font-size: 16px; }
+      .features strong { color: var(--ink); font-weight: 600; }
+      .after-shot { margin: 24px 0 0; }
+
+      .plans { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+      .plan { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 24px; }
+      .plan h3 { margin: 0; font-size: 22px; font-weight: 650; }
+      .plan .for { margin: 2px 0 12px; font-size: 15px; color: var(--gold); }
+      .plan p { margin: 0; color: var(--ink-soft); }
+      @media (max-width: 760px) { .plans { grid-template-columns: 1fr; } }
+      .plan-notes { margin: 28px 0 0; padding-left: 20px; color: var(--ink-soft); max-width: 760px; }
+      .plan-notes li { margin: 8px 0; }
+      .plan-notes strong { color: var(--ink); font-weight: 600; }
+
       .split { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: start; }
       .split p { color: var(--ink-soft); margin: 0 0 16px; }
       .split ul { margin: 0; padding-left: 20px; color: var(--ink-soft); }
@@ -178,49 +201,99 @@
           <figcaption>The Projects board, with example data.</figcaption>
         </figure>
 
-        <section id="apps" aria-labelledby="apps-title">
-          <h2 id="apps-title">Apps for the work you do every day</h2>
+        <section id="open-source" aria-labelledby="oss-title">
+          <h2 id="oss-title">Open source, with a working app included</h2>
           <p class="intro">
-            Each company in OpenAct turns on the apps it needs. All apps use the same people, companies and roles. A person signs in one time and works in every app.
+            OpenAct is open source under the Apache License 2.0. It comes with Projects, a working app for project management. Use Projects as it is, or use it as a model for your own apps.
           </p>
+          <div class="pillars">
+            <article class="pillar">
+              <h3>Build your own apps</h3>
+              <p>Sign-in, companies, roles, permissions, email, files and the app shell are ready. Your app adds only its own features. AI coding agents such as Claude Code or Codex can build an app for you.</p>
+            </article>
+            <article class="pillar">
+              <h3>Your Cloudflare account, your control</h3>
+              <p>Deploy OpenAct to your own Cloudflare account with one click. You own the code. Your data stays in your own D1 database and R2 bucket. Nobody else holds it.</p>
+            </article>
+            <article class="pillar">
+              <h3>BYOAI: bring your own AI</h3>
+              <p>App agents use Workers AI on Cloudflare by default, so you need no other API key. Or bring your own model, such as Claude from Anthropic, or OpenAI. A company owner can add the company's own Claude key in Company settings.</p>
+            </article>
+          </div>
+
+          <h3 class="list-title">What you get for free</h3>
+          <ul class="features">
+            <li><strong>Many companies in one install.</strong> Each company has its own people, projects, logo and AI settings.</li>
+            <li><strong>Roles and permissions.</strong> Owners choose what each role can do in each app.</li>
+            <li><strong>Sign-in without passwords.</strong> People get a 6-digit code by email.</li>
+            <li><strong>No seat limits.</strong> Invite anyone by email.</li>
+            <li><strong>Kanban board.</strong> Make your own columns and drag cards between them.</li>
+            <li><strong>Gantt timeline.</strong> Drag bars to move tasks. Tasks group by phase.</li>
+            <li><strong>Calendar.</strong> See start dates and deadlines, and drag to change them.</li>
+            <li><strong>An AI agent in Projects.</strong> Tell it what to do in plain words.</li>
+            <li><strong>Agents that know their limits.</strong> The agent never does more than the person's role allows.</li>
+            <li><strong>Approvals.</strong> Deletes and changes to people wait for a person to approve them.</li>
+            <li><strong>An agent log.</strong> OpenAct records each action that the agent does.</li>
+            <li><strong>Search by words and by meaning.</strong> Find "Book the gala hall" when you type "venue".</li>
+            <li><strong>Live updates.</strong> Every open page shows changes at once.</li>
+            <li><strong>Secret projects.</strong> Only invited people see them. Others can ask for access.</li>
+            <li><strong>File attachments.</strong> Attach files up to 25 MB to a task.</li>
+            <li><strong>An app directory.</strong> Add an app with one command.</li>
+            <li><strong>Light and dark themes.</strong> Or follow the system setting.</li>
+            <li><strong>Known parts.</strong> shadcn/ui, Tailwind CSS and the AG-UI agent protocol.</li>
+          </ul>
+
+          <figure class="shot">
+            <picture>
+              <source srcset="/images/apps-dark.webp" media="(prefers-color-scheme: dark)" />
+              <img src="/images/apps-light.webp" width="1440" height="815" alt="The OpenAct Apps page. Projects, Docs and Advisory are on in the company. Docs and Advisory show a Director badge. Below, the directory lists more apps under review, such as TimeTrack, Directory, Profiles, Groups, Tasks and Contacts." />
+            </picture>
+            <figcaption>The Apps page. A company owner turns apps on or off. The directory lists more apps.</figcaption>
+          </figure>
+          <p class="after-shot"><a class="btn btn-line btn-sm" href="https://github.com/marketgrowth/openact">See the code on GitHub</a></p>
+        </section>
+
+        <section id="director" aria-labelledby="director-title">
+          <h2 id="director-title">Docs and Advisory</h2>
+          <p class="intro">These two apps need the OpenAct Director plan. You can try both for free on the demo.</p>
           <div class="apps">
             <article class="app">
-              <h3>Projects</h3>
-              <p>Plan work on a Kanban board, a Gantt timeline and a calendar. Ask the AI agent to move late tasks or to write a status summary. Changes show live on every open page.</p>
+              <h3>Docs <small>Director plan required</small></h3>
+              <p>A company library of documents on pages the size of Letter, A4 or Legal paper. Edit together live, with a cursor for each person. Add comment threads and @mentions. Use AI writing help. Sort docs into folders, and share a doc with a link or print it to PDF.</p>
             </article>
             <article class="app">
-              <h3>Docs <small>Director</small></h3>
-              <p>Write on pages the size of paper. Edit together live, add comments and print to PDF. Sort docs into folders, and share a doc with a link.</p>
-            </article>
-            <article class="app">
-              <h3>Advisory <small>Director</small></h3>
-              <p>List your approved advisors. Clients book a consult or pay for an offer through Stripe. A paid engagement opens a private project for the advisor and the client.</p>
-            </article>
-            <article class="app">
-              <h3>Your own apps</h3>
-              <p>Sign-in, companies, roles, permissions, email and files are ready. Your app adds only its own features. Add apps from the app directory with one command.</p>
+              <h3>Advisory <small>Director plan required</small></h3>
+              <p>A marketplace of approved advisors in your company. Members book a consult or pay for an offer in advance. Offers are one-time or monthly retainers. Clients pay through Stripe Connect, and the company keeps a fee. A paid engagement opens a private project for the advisor and the client.</p>
             </article>
           </div>
         </section>
 
-        <section aria-labelledby="how-title">
-          <div class="split">
-            <div>
-              <h2 id="how-title">Agents that know their limits</h2>
-              <p>The OpenAct agent works for one person. It never does more than that person's role allows.</p>
-              <ul>
-                <li>Deletes and changes to people wait for approval.</li>
-                <li>Company owners choose how much each role can give to the agent.</li>
-                <li>OpenAct records each action that the agent does.</li>
-              </ul>
-            </div>
-            <div>
-              <h2>Cloudflare from end to end</h2>
-              <p>OpenAct runs on Workers, D1, R2, Durable Objects, Vectorize and Workers AI. It runs in your own Cloudflare account, and you can deploy it with one click.</p>
-              <p>The core, the UI and the Projects app are open source under the Apache License 2.0. Docs and Advisory are part of the paid OpenAct Director plan.</p>
-              <a class="btn btn-line btn-sm" href="https://github.com/marketgrowth/openact">See the code on GitHub</a>
-            </div>
+        <section id="plans" aria-labelledby="plans-title">
+          <h2 id="plans-title">How the plans work</h2>
+          <p class="intro">Each paid plan has one annual price per company. The price does not change with the number of people. Choose the plan that fits the size of your company.</p>
+          <div class="plans">
+            <article class="plan">
+              <h3>Free</h3>
+              <p class="for">For everyone</p>
+              <p>The core, the UI and the Projects app, under the Apache License 2.0.</p>
+            </article>
+            <article class="plan">
+              <h3>Director</h3>
+              <p class="for">For startups to midmarket companies</p>
+              <p>Everything in Free, plus Docs and Advisory. More paid apps will join Director.</p>
+            </article>
+            <article class="plan">
+              <h3>Producer</h3>
+              <p class="for">For enterprise companies</p>
+              <p>Everything in Director.</p>
+            </article>
           </div>
+          <ul class="plan-notes">
+            <li><strong>On a hosted OpenAct site,</strong> a company owner chooses a plan on the Plan page. Stripe takes the payment.</li>
+            <li><strong>On your own deploy,</strong> MarketGrowth gives you a license key. Every company on the deploy gets the plan in the key.</li>
+            <li><strong>Without a plan,</strong> Docs and Advisory are locked, but their data stays. The apps come back with all their data when the company gets a plan.</li>
+          </ul>
+          <p class="after-shot"><a class="btn btn-line btn-sm" href="https://docs.openact.app/plans">Read about plans</a></p>
         </section>
       </div>
 
