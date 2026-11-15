@@ -9,7 +9,7 @@ import type { AppConfig, CompanyDetail, User } from "@openact/core/shared";
  * installed apps, and createClient() builds the shell from them.
  */
 
-export { APPS_PATH, activeApp, appHome, appOwnsPath, railApps } from "./app-paths.ts";
+export { APPS_PATH, SETTINGS_PATH, activeApp, appHome, appOwnsPath, isSettingsPath, railApps } from "./app-paths.ts";
 
 export interface NavItem {
   label: string;
@@ -75,6 +75,7 @@ export interface ClientApp {
   /** Groups in the app's panel, below the main items, such as pinned and recent projects. Shows when the app is active. */
   SidebarSection?: ComponentType;
   commands?: Command[];
+  /** Sections that the app adds to Company settings. Each shows in the side panel and opens at /settings/company/<id>. */
   companySettingsTabs?: CompanySettingsTab[];
 }
 
@@ -100,7 +101,7 @@ export interface Shell {
   apps: readonly ClientApp[];
   /** The app directory, for the Apps page. Empty when the host does not pass it. */
   directory: readonly DirectoryApp[];
-  /** Opens a shell dialog. */
+  /** Opens a shell dialog. "companySettings" and "account" go to their sections of the Settings page. */
   open: (dialog: "account" | "newCompany" | "companySettings") => void;
   /** Opens an app command, such as search. */
   runCommand: (id: string) => void;

@@ -59,9 +59,9 @@ Select text in a doc, then choose **AI** on the toolbar. Choose what the AI shou
 
 The answer streams into a preview. Your doc does not change until you choose **Replace selection**, **Insert below** or **Insert**. Choose **Try again** for another answer.
 
-AI writing help is off until a company owner or admin turns it on, because it sends doc text to the AI. To turn it on, open **Company settings**, then the **Docs** tab. It sends only the selected text and up to 1,500 characters before and after it. For Continue writing, it sends the text before the cursor.
+AI writing help is off until a company owner or admin turns it on, because it sends doc text to the AI. To turn it on, open **Company settings**, then **Docs** in the side panel. It sends only the selected text and up to 1,500 characters before and after it. For Continue writing, it sends the text before the cursor.
 
-Docs uses the company's AI provider: the company's own key when an owner set one on the AI provider tab, or the deploy default. Requests go through Cloudflare AI Gateway. For local tests without AI, set `AI_PROVIDER` to `dev-scripted`.
+Docs uses the company's AI provider: the company's own key when an owner set one in Company settings, under AI provider, or the deploy default. Requests go through Cloudflare AI Gateway. For local tests without AI, set `AI_PROVIDER` to `dev-scripted`.
 
 ## Organize the library
 
