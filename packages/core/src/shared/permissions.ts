@@ -81,5 +81,7 @@ export interface CompanyAppSettings {
   plan: PaidPlan | null;
   /** True when the company does not have that plan. A locked app is off, and a company cannot turn it on. */
   locked: boolean;
+  /** True when the company does not have that plan, but a super admin granted the app to one of its owners. */
+  granted: boolean;
   permissions: Array<PermissionDef & { id: string; current: CompanyRole[]; locked: CompanyRole[]; allowed: CompanyRole[] }>;
 }

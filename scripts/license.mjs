@@ -7,7 +7,7 @@
  *       Prints the public key. Add it to packages/core/src/server/license-keys.ts under its key id.
  *
  *   npm run license -- issue --key <private.pem> --kid mg-2026 --licensee "Acme Inc." --plan director --expires 2027-11-10
- *       [--id lic_0001] [--issued 2026-11-10] [--hosts app.acme.com,openact.acme.com]
+ *       [--id lic_0001] [--issued 2026-11-10] [--hosts app.acme.com,openact.acme.com] [--use grants]
  *       Prints a license key. The customer puts it in the OPENACT_LICENSE secret of their deploy.
  *
  *   npm run license -- inspect <license key>
@@ -65,6 +65,7 @@ function keygen(f) {
 function issue(f) {
   for (const k of ["key", "kid", "licensee", "plan", "expires"]) if (!f[k]) fail(`--${k} is required.`);
   if (!PLANS.includes(f.plan)) fail(`--plan must be ${PLANS.join(" or ")}.`);
+  if (f.use !== undefined && f.use !== "plan" && f.use !== "grants") fail("--use must be plan or grants.");
   const issuedAt = f.issued ?? new Date().toISOString().slice(0, 10);
   if (!DATE.test(issuedAt) || !DATE.test(f.expires)) fail("Dates must look like 2027-11-10.");
   if (f.expires < issuedAt) fail("--expires must be on or after the issue date.");
@@ -75,6 +76,7 @@ function issue(f) {
     plan: f.plan,
     issuedAt,
     expiresAt: f.expires,
+    ...(f.use === "grants" ? { use: "grants" } : {}),
     ...(f.hosts ? { hosts: f.hosts.split(",").map((h) => h.trim().toLowerCase()).filter(Boolean) } : {})
   };
   const key = createPrivateKey(readFileSync(expandHome(f.key)));
@@ -109,6 +111,6 @@ switch (cmd) {
     inspect(f._[0]);
     break;
   default:
-    console.log("Usage: npm run license -- keygen [--kid id] [--out file] | issue --key file --kid id --licensee name --plan director|producer --expires YYYY-MM-DD [--hosts a,b] | inspect <key>");
+    console.log("Usage: npm run license -- keygen [--kid id] [--out file] | issue --key file --kid id --licensee name --plan director|producer --expires YYYY-MM-DD [--hosts a,b] [--use plan|grants] | inspect <key>");
     if (cmd) process.exit(1);
 }
