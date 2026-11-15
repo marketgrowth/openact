@@ -3,6 +3,7 @@ import { SITE_LOGO_MAX_BYTES, SITE_LOGO_TYPES, SITE_NAME_MAX, type SiteSettings 
 import { api, errorText } from "../api";
 import { Field, Logo, Modal, useToast } from "../ui";
 import { useWorkspace } from "../workspace";
+import { SiteGrants } from "./SiteGrants";
 import { Switch } from "@openact/ui/components/switch";
 import { Button } from "@openact/ui/components/button";
 import { Input } from "@openact/ui/components/input";
@@ -86,7 +87,7 @@ export function SiteSettingsDialog({ onSaved, onClose }: { onSaved: (s: SiteSett
   };
 
   return (
-    <Modal title="Site settings" description="The name, logo and apps that everyone on this site sees. Only super admins can change them." onClose={onClose}>
+    <Modal title="Site settings" description="The name, logo and apps of this site, and who has paid apps. Only super admins can change them." onClose={onClose}>
       {!site ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : (
@@ -150,6 +151,7 @@ export function SiteSettingsDialog({ onSaved, onClose }: { onSaved: (s: SiteSett
               </Field>
             </>
           )}
+          <SiteGrants />
         </>
       )}
     </Modal>

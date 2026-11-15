@@ -3,7 +3,7 @@ import { HttpError } from "./util";
 import { companyRole } from "./data";
 import { getApps } from "./apps";
 import { siteState } from "./site-state";
-import { companyPlan } from "./plans";
+import { companyPlan, ownerGrants } from "./plans";
 import { COMPANY_ROLES, type CompanyRole } from "../shared/types";
 import { PLANS, planIncludes, type PaidPlan, type PlanId } from "../shared/plans";
 import { permissionApp, rolesWithPermission, type CompanyAccess, type PermissionDef } from "../shared/permissions";
@@ -13,7 +13,8 @@ import { permissionApp, rolesWithPermission, type CompanyAccess, type Permission
  *
  * The catalog lists every installed app, also apps that have only web code.
  * A super admin can turn an app off for the whole site. A company can turn an app off for itself.
- * An app that needs a plan, such as Docs with Director, is locked in a company without that plan.
+ * An app that needs a plan, such as Docs with Director, is locked in a company without that plan,
+ * unless a super admin granted the app to an owner of the company (app_grants).
  * A locked app is off: its routes, share links and live rooms stop, and its data stays.
  * Permissions come from each server app's `permissions`.
  */
@@ -47,8 +48,10 @@ export function permissionDef(permission: string): (PermissionDef & { appId: str
 export interface CompanyAppState {
   /** The company's plan. */
   plan: PlanId;
-  /** True when the app needs a plan that the company does not have. A locked app is off. */
+  /** True when the app needs a plan that the company does not have, and no owner has a grant for it. A locked app is off. */
   locked: (appId: string) => boolean;
+  /** True when the app needs a plan that the company does not have, but a super admin granted it to an owner. */
+  granted: (appId: string) => boolean;
   enabled: (appId: string) => boolean;
   /** The roles that have a permission in this company. */
   roles: (permission: string) => CompanyRole[];
@@ -59,18 +62,21 @@ export const appPlan = (appId: string): PaidPlan | undefined => catalog.find((a)
 
 export async function companyAppState(env: Env, companyId: string): Promise<CompanyAppState> {
   const paid = catalog.some((a) => a.plan);
-  const [rows, plan] = await Promise.all([
+  const [rows, plan, grants] = await Promise.all([
     env.DB.prepare("SELECT app_id, enabled, permissions FROM company_apps WHERE company_id = ?")
       .bind(companyId)
       .all<{ app_id: string; enabled: number; permissions: string }>(),
-    // Read the plan only when an installed app needs one.
-    paid ? companyPlan(env, companyId).then((p) => p.plan) : Promise.resolve<PlanId>("free")
+    // Read the plan and the grants only when an installed app needs a plan.
+    paid ? companyPlan(env, companyId).then((p) => p.plan) : Promise.resolve<PlanId>("free"),
+    paid ? ownerGrants(env, companyId) : Promise.resolve(new Set<string>())
   ]);
   const byApp = new Map(rows.results.map((r) => [r.app_id, r]));
-  const locked = (appId: string) => !planIncludes(plan, appPlan(appId));
+  const granted = (appId: string) => !planIncludes(plan, appPlan(appId)) && grants.has(appId);
+  const locked = (appId: string) => !planIncludes(plan, appPlan(appId)) && !grants.has(appId);
   return {
     plan,
     locked,
+    granted,
     enabled: (appId) => {
       if (siteAppOff(appId)) return false;
       if (locked(appId)) return false;

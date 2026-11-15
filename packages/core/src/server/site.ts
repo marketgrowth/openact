@@ -5,6 +5,8 @@ import { SITE_LOGO_MAX_BYTES, SITE_LOGO_TYPES, cleanSiteName, isSuperAdminEmail,
 import { HttpError, appName, nowIso, readJson, requireUser } from "./util";
 import { setSiteState, siteState, type SiteState } from "./site-state";
 import { getCatalog } from "./permissions";
+import { cleanGrantEnd, grantActive, type GrantUser, type SiteGrants } from "../shared/grants";
+import type { PaidPlan } from "../shared/plans";
 
 /*
  * Site settings: the app name, the logo and the apps of this deploy.
@@ -161,4 +163,123 @@ siteRoutes.delete("/logo", async (c) => {
   await write(c.env, [c.env.DB.prepare("DELETE FROM site_settings WHERE key IN ('logo_type', 'logo_updated_at')")]);
   await c.env.FILES.delete(LOGO_KEY);
   return c.json(settings(c, await loadSite(c.env, true)));
+});
+
+/*
+ * Paid app access: a super admin gives one person a paid app without a paid plan.
+ * The grant unlocks the app in every company where the person is an owner. See ownerGrants() in plans.ts.
+ */
+
+const paidApps = () => getCatalog().filter((a): a is typeof a & { plan: PaidPlan } => !!a.plan);
+
+interface GrantRow {
+  id: string;
+  name: string;
+  email: string;
+  owner_of: number;
+  app_id: string | null;
+  ends_on: string | null;
+  created_at: string | null;
+}
+
+/** Groups rows of users joined with their grants. Keeps the row order. Grants for apps that are not installed or not paid are left out. */
+function grantUsers(rows: GrantRow[], now = Date.now()): GrantUser[] {
+  const paid = new Set(paidApps().map((a) => a.id));
+  const byId = new Map<string, GrantUser>();
+  for (const r of rows) {
+    let u = byId.get(r.id);
+    if (!u) {
+      u = {
+        id: r.id,
+        name: r.name,
+        email: r.email,
+        ownerOf: r.owner_of,
+        grants: []
+      };
+      byId.set(r.id, u);
+    }
+    if (r.app_id && paid.has(r.app_id))
+      u.grants.push({
+        appId: r.app_id,
+        endsOn: r.ends_on,
+        active: grantActive(r.ends_on, now),
+        createdAt: r.created_at ?? ""
+      });
+  }
+  return [...byId.values()];
+}
+
+const GRANT_SELECT = `SELECT u.id, u.name, u.email,
+    (SELECT COUNT(*) FROM company_members m WHERE m.user_id = u.id AND m.role = 'owner') AS owner_of,
+    g.app_id, g.ends_on, g.created_at
+  FROM users u LEFT JOIN app_grants g ON g.user_id = u.id`;
+
+async function readGrants<T>(run: () => Promise<T>): Promise<T> {
+  try {
+    return await run();
+  } catch (e) {
+    if (/no such table/i.test(String(e))) throw new HttpError(503, "The app grants table is missing. Run the database migrations, then try again.");
+    throw e;
+  }
+}
+
+async function grantUser(env: Env, userId: string): Promise<GrantUser | null> {
+  const rows = await readGrants(() => env.DB.prepare(`${GRANT_SELECT} WHERE u.id = ? ORDER BY g.app_id`).bind(userId).all<GrantRow>());
+  return grantUsers(rows.results)[0] ?? null;
+}
+
+/** GET /api/site/grants?q=  With q: up to 20 people whose name or email matches. Without q: everyone with a grant. */
+siteRoutes.get("/grants", async (c) => {
+  requireSuperAdmin(c);
+  const q = (c.req.query("q") ?? "").trim().slice(0, 100);
+  const apps = paidApps().map((a) => ({
+    id: a.id,
+    name: a.name,
+    plan: a.plan
+  }));
+  if (!apps.length) return c.json({ apps, users: [] } satisfies SiteGrants);
+  const rows = await readGrants(() =>
+    q.length >= 2
+      ? c.env.DB.prepare(
+          `${GRANT_SELECT} WHERE u.id IN (
+             SELECT id FROM users WHERE email LIKE ?1 ESCAPE '\\' OR name LIKE ?1 ESCAPE '\\' ORDER BY email LIMIT 20
+           ) ORDER BY u.email, g.app_id`
+        )
+          .bind(`%${q.replace(/[\\%_]/g, (ch) => `\\${ch}`)}%`)
+          .all<GrantRow>()
+      : c.env.DB.prepare(`${GRANT_SELECT} WHERE u.id IN (SELECT user_id FROM app_grants) ORDER BY u.email, g.app_id LIMIT 1000`).all<GrantRow>()
+  );
+  return c.json({ apps, users: grantUsers(rows.results) } satisfies SiteGrants);
+});
+
+/** Gives a person a paid app, or changes the end day. Body: { endsOn: "YYYY-MM-DD" | null } */
+siteRoutes.put("/grants/:userId/:appId", async (c) => {
+  const admin = requireSuperAdmin(c);
+  const { userId, appId } = c.req.param();
+  const app = paidApps().find((a) => a.id === appId);
+  if (!app) throw new HttpError(400, "Only paid apps can be given to a person. This app is free or not installed.");
+  const r = cleanGrantEnd((await readJson(c)).endsOn);
+  if ("problem" in r) throw new HttpError(400, r.problem);
+  const exists = await c.env.DB.prepare("SELECT id FROM users WHERE id = ?").bind(userId).first();
+  if (!exists) throw new HttpError(404, "This person does not have an account on this site.");
+  const iso = nowIso();
+  await readGrants(() =>
+    c.env.DB.prepare(
+      `INSERT INTO app_grants (user_id, app_id, ends_on, granted_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)
+       ON CONFLICT (user_id, app_id) DO UPDATE SET ends_on = excluded.ends_on, granted_by = excluded.granted_by, updated_at = excluded.updated_at`
+    )
+      .bind(userId, appId, r.endsOn, admin.id, iso, iso)
+      .run()
+  );
+  return c.json(await grantUser(c.env, userId));
+});
+
+/** Takes a paid app back. The app locks again in the person's companies, unless they have a plan. Its data stays. */
+siteRoutes.delete("/grants/:userId/:appId", async (c) => {
+  requireSuperAdmin(c);
+  const { userId, appId } = c.req.param();
+  await readGrants(() => c.env.DB.prepare("DELETE FROM app_grants WHERE user_id = ? AND app_id = ?").bind(userId, appId).run());
+  const user = await grantUser(c.env, userId);
+  if (!user) throw new HttpError(404, "This person does not have an account on this site.");
+  return c.json(user);
 });

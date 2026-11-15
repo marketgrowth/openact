@@ -17,7 +17,7 @@ Each paid plan has one annual price per company. The price does not change with 
 
 ## Get a plan
 
-There are two ways to get a plan.
+There are two ways to get a plan. A super admin can also [give one person a paid app](#give-one-person-a-paid-app).
 
 - **On a site that sells plans:** a company owner opens the **Plan** page and chooses a plan. Stripe takes the payment. The plan starts as soon as Stripe confirms it.
 - **On your own deploy:** MarketGrowth gives you a license key. Put it in the `OPENACT_LICENSE` secret. Every company on the deploy gets the plan in the key.
@@ -48,6 +48,26 @@ An app that needs a plan is **locked** in a company without that plan.
 The app's data stays. When the company gets the plan again, the app comes back with all its data.
 
 If a payment fails, the plan keeps working while Stripe tries the card again. After the paid year ends, the plan keeps working for 7 more days, in case a message from Stripe is late.
+
+## Give one person a paid app
+
+A super admin can give a paid app to one person without a paid plan. Use it for a partner, a beta tester or a nonprofit.
+
+1. Open the account menu at the bottom of the app rail, then choose **Site settings**.
+2. In **Paid app access**, find the person by name or email.
+3. Turn on the app, such as **Docs**.
+4. Optional: set an end day. The grant works through the whole of that day (UTC). Leave it empty to keep it on.
+
+What the grant does:
+
+- The app unlocks in every company where the person is an **owner**. Everyone in that company can use it, with the permissions of their role.
+- A grant to a person who owns no company does nothing until they make or own one.
+- A grant to an admin, member or guest does not unlock their company. Give it to an owner of the company.
+- The company switch still applies. If the app starts off, a company owner or admin turns it on in **Company settings > Apps**. The Apps page says the app was given by a site admin.
+- When the grant ends or a super admin turns it off, the app locks again in those companies. Its data stays.
+- A site switch that is off wins over a grant.
+
+Grants are in the `app_grants` table (migration `0009_app_grants.sql`). Only super admins can read or change them.
 
 ## Sell plans on your site
 

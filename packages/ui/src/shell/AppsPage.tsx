@@ -112,7 +112,11 @@ function ManagedApps({ companyId, installed, info }: { companyId: string; instal
             plan={plan}
             action={
               <>
-                {s?.siteOff && <span className="mr-auto text-xs text-muted-foreground">Off for this site</span>}
+                {s?.siteOff ? (
+                  <span className="mr-auto text-xs text-muted-foreground">Off for this site</span>
+                ) : (
+                  s?.granted && <span className="mr-auto text-xs text-muted-foreground">Given by a site admin</span>
+                )}
                 {on && (
                   <Button asChild size="sm" variant="outline">
                     <Link to={appHome(app, apps)}>Open</Link>

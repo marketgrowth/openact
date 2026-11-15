@@ -1,6 +1,7 @@
 import type { Env } from "./env";
 import { deployLicense } from "./license.ts";
 import { higherPlan, subscriptionActive, type PaidPlan, type PlanId } from "../shared/plans.ts";
+import { utcDay } from "../shared/grants.ts";
 
 /*
  * The plan of a company: the higher of its subscription on this deploy and the deploy's license key.
@@ -48,6 +49,26 @@ export function resolvePlan(
   const plan = higherPlan(fromSub, fromLicense);
   const source = plan === "free" ? "free" : fromSub === plan ? "subscription" : "license";
   return { plan, source, subscriptionActive: subActive };
+}
+
+/**
+ * The paid apps that a super admin granted to an owner of the company. See app_grants (migration 0009).
+ * A grant to an admin, a member or a guest does not count. Before migration 0009 runs, there are none.
+ */
+export async function ownerGrants(env: Env, companyId: string, now = Date.now()): Promise<Set<string>> {
+  try {
+    const rows = await env.DB.prepare(
+      `SELECT DISTINCT g.app_id FROM app_grants g
+       JOIN company_members m ON m.user_id = g.user_id
+       WHERE m.company_id = ? AND m.role = 'owner' AND (g.ends_on IS NULL OR g.ends_on >= ?)`
+    )
+      .bind(companyId, utcDay(now))
+      .all<{ app_id: string }>();
+    return new Set(rows.results.map((r) => r.app_id));
+  } catch (e) {
+    if (/no such table/i.test(String(e))) return new Set();
+    throw e;
+  }
 }
 
 export async function companyPlan(env: Env, companyId: string, requestUrl?: string): Promise<CompanyPlanState> {
