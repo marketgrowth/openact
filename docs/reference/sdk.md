@@ -123,7 +123,7 @@ Live messages carry only revision numbers and viewer names. Pages load the data 
 | `nav` | Items at the top of the app's panel (`main`), or icons at the bottom of the rail (`footer`) |
 | `SidebarSection` | Groups in the app's panel, such as Pinned, Projects and Recent |
 | `commands` | Dialogs: `{ id, label, icon, shortcut?, inSidebar?, Dialog }`. `shortcut: "k"` opens with Ctrl+K or Cmd+K. |
-| `companySettingsTabs` | Extra tabs in Company settings: `{ id, label, Tab }` |
+| `companySettingsTabs` | Extra sections in Company settings: `{ id, label, Tab }`. Each one shows in the side panel under Company settings and opens at `/settings/company/<id>`. Its icon is the app's `icon`. |
 | `Provider` | State around the whole signed-in shell |
 
 An app shows in the rail only when it has an `icon` or a `Mark`, and only in companies where it is on.

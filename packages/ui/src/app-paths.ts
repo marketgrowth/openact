@@ -6,6 +6,12 @@
 /** The shell's Apps page: the apps in this company, and apps from the directory. The rail's App directory icon opens it. */
 export const APPS_PATH = "/apps";
 
+/** The shell's Settings page: company settings and, for super admins, site settings. Each section has its own path under it. */
+export const SETTINGS_PATH = "/settings";
+
+/** True for the Settings page and its sections. No app owns these paths. */
+export const isSettingsPath = (path: string): boolean => path === SETTINGS_PATH || path.startsWith(`${SETTINGS_PATH}/`);
+
 /** The parts of an app that these rules read. ClientApp has all of them. */
 export interface AppPathInfo {
   id: string;

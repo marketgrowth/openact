@@ -1,5 +1,6 @@
 import { COMPANY_ROLE_LABELS, type Company, type User } from "@openact/core/shared";
-import { APPS_PATH, activeApp, appHome, railApps, type ClientApp } from "../apps";
+import { APPS_PATH, SETTINGS_PATH, activeApp, appHome, isSettingsPath, railApps, type ClientApp } from "../apps";
+import { ACCOUNT_SECTIONS, SITE_SECTIONS, companySections, parseSettingsPath, settingsPath, type SettingsSection } from "../settings-paths";
 import { canManageCompany } from "@openact/core/shared";
 import { Link, navigate, usePath } from "../router";
 import { PLAN_PATH } from "./Plan";
@@ -74,10 +75,8 @@ export interface AppSidebarProps {
   apps: readonly ClientApp[];
   onRunCommand: (id: string) => void;
   onNewCompany: () => void;
-  onCompanySettings: () => void;
-  onAccount: () => void;
-  /** Only for super admins. Opens the site settings. */
-  onSiteSettings?: () => void;
+  /** True for super admins. They see Site settings on the Settings page. */
+  superAdmin: boolean;
   onSignOut: (everywhere: boolean) => void;
 }
 
@@ -96,8 +95,8 @@ const railTip = (children: string) => ({ children, hidden: false });
 
 /*
  * The left side panel has two columns.
- * The app rail: the company, one icon per app, company settings, and the person's menu.
- * The app panel: the active app's name, commands, items and groups.
+ * The app rail: the company, one icon per app, Settings, and the person's menu.
+ * The app panel: the active app's name, commands, items and groups. On the Settings page, it lists the settings sections.
  * Collapsing the panel (Ctrl+B or Cmd+B) leaves only the rail.
  */
 export function AppSidebar(p: AppSidebarProps) {
@@ -107,9 +106,12 @@ export function AppSidebar(p: AppSidebarProps) {
   const current = ws.current;
   const canManage = canManageCompany(current?.role ?? null);
   const rail = railApps(p.apps);
-  // The Apps page belongs to the shell, not to an app, so no app is active there.
+  // The Apps and Settings pages belong to the shell, not to an app, so no app is active there.
   const onDirectory = path === APPS_PATH;
-  const active = onDirectory ? undefined : activeApp(p.apps, path);
+  const onSettings = isSettingsPath(path);
+  const active = onDirectory || onSettings ? undefined : activeApp(p.apps, path);
+  const shellPage = onDirectory ? "apps" : onSettings ? "settings" : undefined;
+  const panelTitle = onDirectory ? "Apps" : onSettings ? "Settings" : (active?.name ?? p.appName);
   const commands = current && active ? (active.commands ?? []).filter((c) => c.inSidebar) : [];
   const main = (active?.nav ?? []).filter((n) => (n.placement ?? "main") === "main");
   const footer = p.apps.flatMap((a) => a.nav ?? []).filter((n) => n.placement === "footer");
@@ -125,7 +127,7 @@ export function AppSidebar(p: AppSidebarProps) {
           data-app-rail=""
         >
           <SidebarHeader className="px-2 pt-2 pb-0">
-            <CompanySwitcher appName={p.appName} onNewCompany={p.onNewCompany} onCompanySettings={p.onCompanySettings} onPick={done} />
+            <CompanySwitcher appName={p.appName} onNewCompany={p.onNewCompany} onPick={done} />
           </SidebarHeader>
           <SidebarContent>
             <SidebarGroup>
@@ -165,34 +167,29 @@ export function AppSidebar(p: AppSidebarProps) {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
-              {canManage && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton tooltip={railTip("Company settings")} onClick={p.onCompanySettings} className="justify-center p-0" aria-label="Company settings">
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip={railTip("Settings")} isActive={onSettings} className="justify-center p-0" data-settings-link="">
+                  <Link to={SETTINGS_PATH} onClick={done} aria-label="Settings" aria-current={onSettings ? "true" : undefined}>
                     <Icon name="gear" />
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
-            <NavUser me={p.me} onAccount={p.onAccount} onSiteSettings={p.onSiteSettings} onSignOut={p.onSignOut} />
+            <NavUser me={p.me} superAdmin={p.superAdmin} onPick={done} onSignOut={p.onSignOut} />
           </SidebarFooter>
         </Sidebar>
 
         <Sidebar
           collapsible="none"
           className="w-auto min-w-0 flex-1 group-data-[collapsible=icon]:hidden"
-          aria-label={onDirectory ? "Apps" : (active?.name ?? "App")}
-          data-app-panel={onDirectory ? "apps" : active?.id}
+          aria-label={shellPage ? panelTitle : (active?.name ?? "App")}
+          data-app-panel={shellPage ?? active?.id}
         >
           <SidebarHeader className="px-2 pt-2 pb-1">
-            <PanelSwitcher
-              title={onDirectory ? "Apps" : (active?.name ?? p.appName)}
-              appName={p.appName}
-              onNewCompany={p.onNewCompany}
-              onCompanySettings={p.onCompanySettings}
-              onPick={done}
-            />
+            <PanelSwitcher title={panelTitle} appName={p.appName} onNewCompany={p.onNewCompany} onPick={done} />
           </SidebarHeader>
           <SidebarContent>
+            {onSettings && <SettingsNav apps={p.apps} path={path} company={canManage} site={p.superAdmin} onPick={done} />}
             {onDirectory && (
               <SidebarGroup>
                 <SidebarGroupLabel>In this company</SidebarGroupLabel>
@@ -251,15 +248,48 @@ export function AppSidebar(p: AppSidebarProps) {
   );
 }
 
+/** The settings sections in the app panel: Company settings for owners and admins, Personal account for everyone, then Site settings for super admins. */
+function SettingsNav({ apps, path, company, site, onPick }: { apps: readonly ClientApp[]; path: string; company: boolean; site: boolean; onPick: () => void }) {
+  const here = parseSettingsPath(path);
+  const group = (label: string, sections: readonly SettingsSection[]) => (
+    <SidebarGroup key={label}>
+      <SidebarGroupLabel>{label}</SidebarGroupLabel>
+      <SidebarGroupContent>
+        <SidebarMenu aria-label={label}>
+          {sections.map((s) => {
+            const on = here?.scope === s.scope && here.id === s.id;
+            return (
+              <SidebarMenuItem key={s.id}>
+                <SidebarMenuButton asChild isActive={on}>
+                  <Link to={settingsPath(s.scope, s.id)} onClick={onPick} aria-current={on ? "page" : undefined} data-settings-nav={`${s.scope}/${s.id}`}>
+                    <Icon name={s.icon} />
+                    <span>{s.label}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            );
+          })}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  );
+  return (
+    <>
+      {company && group("Company settings", companySections(apps))}
+      {group("Personal account", ACCOUNT_SECTIONS)}
+      {site && group("Site settings", SITE_SECTIONS)}
+    </>
+  );
+}
+
 interface SwitcherProps {
   appName: string;
   onNewCompany: () => void;
-  onCompanySettings: () => void;
   onPick: () => void;
 }
 
 /** The company menu: the companies to switch between, Company settings and Create a company. The rail and the panel header both open it. */
-function CompanyMenu({ appName, onNewCompany, onCompanySettings, onPick, side, align }: SwitcherProps & { side: "right" | "bottom"; align: "start" | "end" }) {
+function CompanyMenu({ appName, onNewCompany, onPick, side, align }: SwitcherProps & { side: "right" | "bottom"; align: "start" | "end" }) {
   const ws = useWorkspace();
   const current = ws.current;
   const pick = async (id: string) => {
@@ -294,7 +324,12 @@ function CompanyMenu({ appName, onNewCompany, onCompanySettings, onPick, side, a
       </DropdownMenuRadioGroup>
       <DropdownMenuSeparator />
       {current && canManageCompany(current.role) && (
-        <DropdownMenuItem onSelect={onCompanySettings}>
+        <DropdownMenuItem
+          onSelect={() => {
+            onPick();
+            navigate(settingsPath("company", "general"));
+          }}
+        >
           <Icon name="gear" /> Company settings
         </DropdownMenuItem>
       )}
@@ -377,13 +412,13 @@ function PanelSwitcher({ title, ...p }: SwitcherProps & { title: string }) {
 
 function NavUser({
   me,
-  onAccount,
-  onSiteSettings,
+  superAdmin,
+  onPick,
   onSignOut
 }: {
   me: User;
-  onAccount: () => void;
-  onSiteSettings?: () => void;
+  superAdmin: boolean;
+  onPick: () => void;
   onSignOut: (everywhere: boolean) => void;
 }) {
   const { isMobile } = useSidebar();
@@ -413,11 +448,23 @@ function NavUser({
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={onAccount}>
-              <Icon name="users" /> Account
+            <DropdownMenuItem
+              onSelect={() => {
+                onPick();
+                navigate(settingsPath("account", "profile"));
+              }}
+              data-account-settings=""
+            >
+              <Icon name="user" /> Account settings
             </DropdownMenuItem>
-            {onSiteSettings && (
-              <DropdownMenuItem onSelect={onSiteSettings} data-site-settings="">
+            {superAdmin && (
+              <DropdownMenuItem
+                onSelect={() => {
+                  onPick();
+                  navigate(settingsPath("site", "general"));
+                }}
+                data-site-settings=""
+              >
                 <Icon name="gear" /> Site settings
               </DropdownMenuItem>
             )}

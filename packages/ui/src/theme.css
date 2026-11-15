@@ -1,6 +1,8 @@
 /* OpenAct theme. shadcn/ui (new-york, neutral) tokens plus the OpenAct colors that carry meaning:
    status, priority, project and avatar colors. Dark mode is the `.dark` class on <html>,
-   set by theme.ts from the person's choice or the system setting. */
+   set by theme.ts from the person's choice or the system setting.
+   This file holds the values of the OpenAct Promptbook (packages/ui/promptbook.json, https://openact.ing/design).
+   Pick tokens by intent. Run `npm run design -- check` after you change a value. */
 
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -20,10 +22,11 @@
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
+  --muted-foreground: oklch(0.535 0 0);
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: #ffffff;
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
@@ -40,6 +43,14 @@
   --brand: #1c1824;
   --brand-foreground: #ffffff;
   --brand-gold: #8a6420;
+  /* Sign-in stage: the dark panel beside the sign-in form. It stays dark in both themes. */
+  --stage: #15121c;
+  --stage-foreground: #ffffff;
+  --stage-muted: #b9b2c6;
+  --stage-card: #221d2c;
+  --stage-border: #ffffff1a;
+  --stage-line: #ffffff14;
+  --stage-glow: #e3b85c;
 
   /* Docs paper. The sheet stays light in both themes, like printed paper. The desk around it follows the theme. */
   --paper: #ffffff;
@@ -53,7 +64,7 @@
   /* Status of a task or a column */
   --s-backlog: #8d99a9;
   --s-todo: #4a78c7;
-  --s-doing: #d48618;
+  --s-doing: #c47b10;
   --s-review: #8658c4;
   --s-done: #2c9662;
   /* Priority */
@@ -86,6 +97,20 @@
   --av-6: #5f7a1e;
   --av-7: #a4478c;
   --av-ink: #ffffff;
+
+  /* Agent states. Agent work never uses the brand colors. Each value is safe for text on a card. */
+  --agent-think: #5d6675;
+  --agent-act: #2f5bd3;
+  --agent-wait: #8a35c9;
+  --agent-done: #1b7a4b;
+  --agent-fail: #c0392b;
+  /* The shade behind a dialog or a sheet */
+  --scrim: oklch(0 0 0 / 50%);
+
+  /* Motion durations. Leave faster than you enter. */
+  --motion-fast: 120ms;
+  --motion-base: 200ms;
+  --motion-slow: 320ms;
 }
 
 .dark {
@@ -104,6 +129,7 @@
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: #ffffff;
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
@@ -119,6 +145,13 @@
   --brand: #ece7f2;
   --brand-foreground: #1c1824;
   --brand-gold: #e3b85c;
+  --stage: #0f0d14;
+  --stage-foreground: #ffffff;
+  --stage-muted: #b9b2c6;
+  --stage-card: #1c1824;
+  --stage-border: #ffffff1a;
+  --stage-line: #ffffff14;
+  --stage-glow: #e3b85c;
 
   --paper: #fbfafc;
   --paper-foreground: #1c1824;
@@ -156,11 +189,19 @@
   --av-5: #3a8ccd;
   --av-6: #6d8c27;
   --av-7: #b3579e;
+  --av-ink: #ffffff;
+
+  --agent-think: #a3adbb;
+  --agent-act: #8aabff;
+  --agent-wait: #cf9cff;
+  --agent-done: #56c98f;
+  --agent-fail: #f37b63;
+  --scrim: oklch(0 0 0 / 65%);
 }
 
 @theme inline {
-  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-mono: "Geist Mono", ui-monospace, Menlo, Consolas, monospace;
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -180,6 +221,7 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -195,6 +237,13 @@
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
   --color-brand-gold: var(--brand-gold);
+  --color-stage: var(--stage);
+  --color-stage-foreground: var(--stage-foreground);
+  --color-stage-muted: var(--stage-muted);
+  --color-stage-card: var(--stage-card);
+  --color-stage-border: var(--stage-border);
+  --color-stage-line: var(--stage-line);
+  --color-stage-glow: var(--stage-glow);
   --color-paper: var(--paper);
   --color-paper-foreground: var(--paper-foreground);
   --color-paper-muted: var(--paper-muted);
@@ -214,6 +263,17 @@
   --color-priority-high: var(--p-high);
   --color-priority-med: var(--p-med);
   --color-priority-low: var(--p-low);
+  --color-agent-think: var(--agent-think);
+  --color-agent-act: var(--agent-act);
+  --color-agent-wait: var(--agent-wait);
+  --color-agent-done: var(--agent-done);
+  --color-agent-fail: var(--agent-fail);
+  --color-scrim: var(--scrim);
+
+  /* Motion curves: ease-enter, ease-exit and ease-move classes */
+  --ease-enter: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-exit: cubic-bezier(0.55, 0, 1, 0.45);
+  --ease-move: cubic-bezier(0.65, 0, 0.35, 1);
 }
 
 @layer base {
@@ -228,11 +288,21 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
-    font-feature-settings: "ss01";
   }
   /* Numbers line up in dates, counts and tables. */
   .tabular {
     font-variant-numeric: tabular-nums;
+  }
+  /* Promptbook cue C11: every animation and transition stops when the person asks for reduced motion. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 

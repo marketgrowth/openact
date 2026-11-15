@@ -138,8 +138,8 @@ export default defineClientApp({
 
 The side panel has two columns, like a desktop chat app:
 
-- **The app rail** on the left. It shows the company, one icon for each app, the footer items, Company settings and the person's menu. Projects is first, because it is installed first.
-- **The app panel** beside it. It shows the active app's name, its commands, its `nav` items and its `SidebarSection`. The projects app shows Pinned, Projects and Recent here.
+- **The app rail** on the left. It shows the company, one icon for each app, the footer items, Settings and the person's menu. Projects is first, because it is installed first.
+- **The app panel** beside it. It shows the active app's name, its commands, its `nav` items and its `SidebarSection`. The projects app shows Pinned, Projects and Recent here. On the Settings page, it lists the settings sections.
 
 Ctrl+B or Cmd+B collapses the panel and leaves only the rail. On a phone, both columns open as one sheet.
 
@@ -158,7 +158,7 @@ An app shows in the rail when it has an `icon` or a `Mark`. Its pages live under
 | `nav` | Items at the top of the app's panel (`main`), or icons at the bottom of the rail for every app (`footer`) |
 | `SidebarSection` | Groups in the app's panel, such as Pinned, Projects and Recent |
 | `commands` | Dialogs that open from the app's panel (`inSidebar`), a shortcut such as Ctrl+K, or `useShell().runCommand(id)` |
-| `companySettingsTabs` | Tabs in Company settings |
+| `companySettingsTabs` | Sections in Company settings. Each one shows in the side panel and opens at `/settings/company/<id>`. |
 | `Provider` | State for your app around the whole shell |
 | `publicRoutes` | Pages that work without sign-in |
 
@@ -173,5 +173,5 @@ Put numbered SQL files in `migrations/`, such as `0001_init.sql`. `npm run sync`
 1. **Prefix everything with your id.** Tables (`inventory_items`), routes (`/api/apps/inventory`), R2 keys (`inventory/...`), room kinds and command ids. The projects app made some tables before apps had prefixes: `projects`, `project_members`, `tasks`, `attachments`, `board_columns`, `invitations`, `agent_actions`, `access_requests` and `vector_outbox`. Never use these names.
 2. **Scope your data to a company.** Every row has a `company_id`. Check access with `requirePermission`, or your own item check built on it.
 3. **Use the core for people.** Never read or write `users`, `sessions`, `companies` or `company_members` directly, except for read-only joins. Never handle sign-in yourself.
-4. **Follow the UI rules** in AGENTS.md: shadcn/ui components, Tailwind token classes, Lucide icons, `SiteHeader` and `PageBody`.
+4. **Follow the UI rules** in AGENTS.md and the [design system](/design-system): shadcn/ui components, Tailwind token classes, Lucide icons, `SiteHeader`, `PageBody` and `AgentState` for agent work.
 5. **Clean up through hooks.** When a person leaves a company, or a company is deleted, your hooks remove their access and data.

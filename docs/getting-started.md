@@ -121,18 +121,22 @@ The first person to sign in can always make an account, even in `invite` mode. A
 | `PROJECT_ROOMS` | `ProjectRoom` | Live updates for projects and docs lists. Without it, pages check for changes every few seconds. |
 | `DOCS_ROOMS` | `DocsRoom` | Live editing in Docs. Without it, Docs saves the usual way. |
 
-## Site name, logo and apps
+## Site name, logo, sign-in page and apps
 
-A super admin sets the name and logo that everyone on the site sees, and can turn an app off for the whole site.
+A super admin sets the name, logo and sign-in page that everyone on the site sees, and can turn an app off for the whole site.
 
 1. Add your email to `SUPER_ADMIN_EMAILS` in `wrangler.jsonc`, then deploy.
-2. Sign in. Open your menu at the bottom of the app rail, then choose **Site settings**.
-3. Type the app name, then choose **Save name**. Leave it empty to use `APP_NAME` again.
+2. Sign in. Choose the gear at the bottom of the app rail to open **Settings**. Site settings has three sections in the side panel: **Name and logo**, **Sign-in page** and **Apps**. You can also open your menu at the bottom of the app rail, then choose **Site settings**.
+3. In **Name and logo**, type the app name, then choose **Save name**. Leave it empty to use `APP_NAME` again.
 4. Choose **Upload logo**. Use a PNG, JPEG or WebP image, up to 1 MB. A square image looks best.
-
-5. Under **Apps**, turn an app off to hide it in every company. Its data stays. Companies cannot turn it on again until a super admin does.
+5. In **Sign-in page**, type the **Sign-in heading** and its **Credit**, then choose **Save sign-in page**. Leave the heading empty to use the default quote.
+6. Type the **Terms of Use link** and the **Privacy Policy link**, then choose **Save sign-in page**. Use full links that start with `https://`.
+7. Choose **Upload background** to show your own image on the sign-in page. Use a PNG, JPEG or WebP image, up to 3 MB. Choose **Use default** to show the default background again.
+8. In **Apps**, turn an app off to hide it in every company. Its data stays. Companies cannot turn it on again until a super admin does.
 
 The name shows on the sign-in page, in the browser tab, in the company menu and in emails. The logo shows on the sign-in page and as the browser tab icon. Without a logo, the OpenAct mark shows.
+
+The sign-in page shows the heading and credit beside the form. On a phone, they show in a band above the form. The page also says that people agree to the Terms of Use and Privacy Policy when they sign in. Each name links to its page when you add the link. Without a link, the name shows as plain text.
 
 A super admin is not a company role. Super admins change only the site settings. They get no access to company data.
 
@@ -152,7 +156,7 @@ If an app loads files from another site, add that site to the matching directive
 
 ## Delete an account
 
-A person can delete their own account. They open **Account** from their menu, choose **Delete account**, then type their email to confirm.
+A person can delete their own account. They open **Settings**, then **Sign-in and security** under Personal account. They choose **Delete account**, then type their email to confirm.
 
 - They leave every company, and their sessions end.
 - Projects, tasks and files that they made stay with the company. Their name leaves them: assignments and "created by" fields become empty.
