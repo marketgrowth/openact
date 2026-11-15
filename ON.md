@@ -15,7 +15,8 @@ This branch runs MarketGrowth's private OpenAct at https://on.openact.ing. It ha
 - Worker: `openact-on` at on.openact.ing. Workers Builds builds this branch on every push.
 - Deploy command: `test "$WORKERS_CI_BRANCH" = on && npm run db:migrate:remote && npx wrangler deploy`. It skips `search:setup`, because this deploy has no Vectorize index.
 - D1 database: `openact-on`. R2 bucket: `openact-on-files`.
-- Secrets in the Worker settings: `AUTH_SECRET` (never change it), `RESEND_API_KEY`.
+- Secrets in the Worker settings: `AUTH_SECRET` (never change it), `RESEND_API_KEY`. Set them in the dashboard, under Settings, Variables and Secrets.
+- Workers Builds: production branch `on`, build command `npm run build`, build token "openact-demo build token", preview builds off.
 - Sign-up: only marketgrowth.io emails. Only the super admins in `SUPER_ADMIN_EMAILS` can open License Keys.
 
 ## What is different from main
