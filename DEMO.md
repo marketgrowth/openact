@@ -15,7 +15,7 @@ This branch runs the public demo app at https://a.openact.ing and the landing pa
 ## What is different from main
 
 1. `wrangler.jsonc` has the demo names, the `a.openact.ing` custom domain and the demo vars.
-2. `src/server/demo.ts` deletes all data each night at 10:17 UTC when `DEMO_RESET` is `"true"`. It keeps the site settings, the site logo, the sign-in background and the migration history.
+2. `src/server/demo.ts` deletes all data each night at 10:17 UTC when `DEMO_RESET` is `"true"`. It keeps the site settings, the site logo, the sign-in background and the migration history. It also keeps each company named in `DEMO_KEEP_COMPANIES` ("MarketGrowth") when a super admin owns it, with its data, files, people and their sessions. A visitor's company with the same name is deleted.
 3. `src/client/DemoNotice.tsx` tells signed-in people that data is deleted each night.
 4. `license-keys.ts` has the `demo-a-openact-ing` key id. It signs one Director license that works on `a.openact.ing` only and ends on 2027-11-14. Its private key was destroyed after issue. To renew, make a new key pair and license.
 
