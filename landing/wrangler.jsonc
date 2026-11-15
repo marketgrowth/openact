@@ -1,0 +1,20 @@
+{
+  // The OpenAct landing page at https://openact.ing. Static files in public/.
+  // The demo app is a separate Worker (openact-demo) at https://a.openact.ing.
+  // Workers Builds deploys this folder from the demo branch. See DEMO.md.
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "openact-site",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-01",
+  "observability": { "enabled": true },
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  },
+  "routes": [
+    { "pattern": "openact.ing", "custom_domain": true },
+    { "pattern": "www.openact.ing", "custom_domain": true }
+  ]
+}

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-/* A small, fixed notice on the public demo at openact.ing. This file lives on the `demo` branch only. */
+/* A small, fixed notice on the public demo at a.openact.ing. This file lives on the `demo` branch only. */
 
 export function DemoNotice({ children }: { children: ReactNode }) {
   return (

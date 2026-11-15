@@ -1,7 +1,7 @@
 import { defineServerApp, type Env } from "@openact/core/server";
 
 /*
- * The nightly reset for the public demo at openact.ing. This file lives on the `demo` branch only.
+ * The nightly reset for the public demo at a.openact.ing. This file lives on the `demo` branch only.
  *
  * When DEMO_RESET is "true", the reset cron deletes all people, companies and app data,
  * and all files except the site logo. It keeps the site settings and the migration history.

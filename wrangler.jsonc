@@ -7,8 +7,9 @@
   "upload_source_maps": true,
   "observability": { "enabled": true },
 
-  // The public demo. Workers Builds deploys the demo branch here on each push.
-  "routes": [{ "pattern": "openact.ing", "custom_domain": true }],
+  // The public demo app. Workers Builds deploys the demo branch here on each push.
+  // The landing page at openact.ing is a separate Worker in landing/.
+  "routes": [{ "pattern": "a.openact.ing", "custom_domain": true }],
 
   // The web app is built by Vite into dist/client. The Worker answers /api/* and Docs share links (/docs/s/*) first.
   "assets": {
@@ -69,7 +70,7 @@
   "vars": {
     "APP_NAME": "OpenAct Demo",
     "SUPER_ADMIN_EMAILS": "victor@marketgrowth.io",
-    "APP_URL": "https://openact.ing",
+    "APP_URL": "https://a.openact.ing",
     "EMAIL_FROM": "OpenAct Demo <no-reply@openact.ing>",
     "SIGNUP_MODE": "open",
     "ALLOWED_EMAIL_DOMAINS": "",

@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OpenAct: open source business apps on Cloudflare</title>
+    <meta name="description" content="OpenAct is an open source framework for business apps on Cloudflare. It comes with Projects, Docs and Advisory. Try the free demo." />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f6f3ee" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1c1824" media="(prefers-color-scheme: dark)" />
+    <link rel="canonical" href="https://openact.ing/" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://openact.ing/" />
+    <meta property="og:title" content="Build the apps that run your company" />
+    <meta property="og:description" content="OpenAct is an open source framework for business apps on Cloudflare. Try the free demo." />
+    <meta property="og:image" content="https://openact.ing/images/og.png" />
+    <meta property="og:image:alt" content="The OpenAct Projects board with Backlog, To do, In progress and Review columns" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&family=Geist+Mono:wght@400..600&display=swap" />
+    <style>
+      :root {
+        --ink: #1c1824;
+        --ink-soft: #4a4453;
+        --muted: #6b6576;
+        --paper: #f6f3ee;
+        --surface: #ffffff;
+        --line: #ddd7cf;
+        --gold: #8a6420;
+        --gold-strong: #6f4f17;
+        --on-gold: #ffffff;
+        --band: #1c1824;
+        --band-text: #f3eef7;
+        --band-muted: #b9b2c4;
+        --band-gold: #e3b85c;
+        --radius: 10px;
+        --max: 1120px;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --ink: #ece7f2;
+          --ink-soft: #cfc8d8;
+          --muted: #a49db0;
+          --paper: #15121b;
+          --surface: #1f1b27;
+          --line: #332d3d;
+          --gold: #e3b85c;
+          --gold-strong: #f0cd80;
+          --on-gold: #1c1824;
+          --band: #0d0b11;
+        }
+      }
+      * { box-sizing: border-box; }
+      html { -webkit-text-size-adjust: 100%; }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+        font-size: 17px;
+        line-height: 1.6;
+      }
+      a { color: inherit; }
+      img { display: block; max-width: 100%; height: auto; }
+      .wrap { max-width: var(--max); margin: 0 auto; padding: 0 24px; }
+      .skip { position: absolute; left: -999px; }
+      .skip:focus { left: 16px; top: 16px; background: var(--surface); padding: 8px 12px; z-index: 10; }
+
+      /* Header */
+      .top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 0; }
+      .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 600; font-size: 18px; text-decoration: none; }
+      .brand svg { width: 28px; height: 28px; }
+      .nav { display: flex; align-items: center; gap: 22px; font-size: 15px; }
+      .nav a { text-decoration: none; color: var(--ink-soft); }
+      .nav a:hover { color: var(--ink); }
+      .nav .btn { color: var(--on-gold); }
+      @media (max-width: 640px) { .nav .hide-sm { display: none; } }
+
+      /* Buttons */
+      .btn {
+        display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        padding: 12px 20px; border-radius: 8px; font-weight: 600; font-size: 16px;
+        text-decoration: none; border: 1px solid transparent; line-height: 1.2;
+      }
+      .btn-gold { background: var(--gold); color: var(--on-gold); }
+      .btn-gold:hover { background: var(--gold-strong); }
+      .btn-line { border-color: var(--line); color: var(--ink); background: transparent; }
+      .btn-line:hover { border-color: var(--ink-soft); }
+      .btn-sm { padding: 8px 14px; font-size: 15px; }
+      .btn:focus-visible, .nav a:focus-visible, .foot a:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+
+      /* Hero */
+      .hero { padding: 72px 0 40px; max-width: 760px; }
+      .hero h1 { font-size: clamp(40px, 6vw, 64px); line-height: 1.05; letter-spacing: -0.02em; margin: 0 0 20px; font-weight: 650; }
+      .hero p.lead { font-size: 20px; color: var(--ink-soft); margin: 0 0 28px; max-width: 640px; }
+      .actions { display: flex; flex-wrap: wrap; gap: 12px; }
+      .note { margin: 16px 0 0; font-size: 15px; color: var(--muted); }
+
+      .shot { margin: 32px 0 0; }
+      .shot img { border-radius: var(--radius); border: 1px solid var(--line); box-shadow: 0 12px 32px -18px rgb(0 0 0 / 0.35); }
+      .shot figcaption { font-size: 14px; color: var(--muted); margin-top: 12px; }
+
+      /* Sections */
+      section { padding: 88px 0 0; }
+      h2 { font-size: clamp(28px, 3.6vw, 38px); line-height: 1.15; letter-spacing: -0.01em; margin: 0 0 16px; font-weight: 650; }
+      .intro { color: var(--ink-soft); max-width: 680px; margin: 0 0 40px; font-size: 18px; }
+      .apps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 48px; }
+      .app { border-top: 1px solid var(--line); padding: 24px 0 32px; }
+      .app h3 { margin: 0 0 8px; font-size: 20px; font-weight: 600; }
+      .app h3 small { font-size: 14px; font-weight: 500; color: var(--gold); margin-left: 8px; }
+      .app p { margin: 0; color: var(--ink-soft); }
+      @media (max-width: 760px) { .apps { grid-template-columns: 1fr; } }
+
+      .split { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: start; }
+      .split p { color: var(--ink-soft); margin: 0 0 16px; }
+      .split ul { margin: 0; padding-left: 20px; color: var(--ink-soft); }
+      .split li { margin: 4px 0; }
+      @media (max-width: 860px) { .split { grid-template-columns: 1fr; gap: 40px; } }
+      code { font-family: "Geist Mono", ui-monospace, monospace; font-size: 0.9em; }
+
+      /* Demo band */
+      .band { margin-top: 104px; background: var(--band); color: var(--band-text); }
+      .band .wrap { padding-top: 72px; padding-bottom: 72px; display: grid; grid-template-columns: 1.3fr 1fr; gap: 48px; align-items: center; }
+      .band h2 { color: var(--band-text); }
+      .band p { color: var(--band-muted); margin: 0 0 12px; max-width: 560px; }
+      .band .btn-gold { background: var(--band-gold); color: #1c1824; }
+      .band .btn-gold:hover { background: #f0cd80; }
+      .band .btn:focus-visible { outline-color: var(--band-gold); }
+      .band ol { margin: 0; padding-left: 20px; color: var(--band-text); }
+      .band li { margin: 8px 0; }
+      .band li span { color: var(--band-muted); display: block; font-size: 15px; }
+      @media (max-width: 860px) { .band .wrap { grid-template-columns: 1fr; } }
+
+      /* Footer */
+      .foot { padding: 40px 0 56px; font-size: 15px; color: var(--muted); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; }
+      .foot nav { display: flex; flex-wrap: wrap; gap: 20px; }
+      .foot a { text-decoration: none; }
+      .foot a:hover { color: var(--ink); }
+    </style>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to the content</a>
+    <div class="wrap">
+      <header class="top">
+        <a class="brand" href="/" aria-label="OpenAct home">
+          <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="currentColor" /><circle cx="16" cy="16" r="8" fill="none" stroke-width="4.5" style="stroke: var(--paper)" /></svg>
+          OpenAct
+        </a>
+        <nav class="nav" aria-label="Main">
+          <a class="hide-sm" href="https://docs.openact.app">Docs</a>
+          <a class="hide-sm" href="https://github.com/marketgrowth/openact">GitHub</a>
+          <a class="btn btn-gold btn-sm" href="https://a.openact.ing">Try the demo</a>
+        </nav>
+      </header>
+    </div>
+
+    <main id="main">
+      <div class="wrap">
+        <div class="hero">
+          <h1>All the world's a stage.</h1>
+          <p class="lead">
+            OpenAct is an open source framework for business apps on Cloudflare. Use it to build the apps that run your company, with help from AI agents. You do not have to buy them.
+          </p>
+          <div class="actions">
+            <a class="btn btn-gold" href="https://a.openact.ing">Try the demo</a>
+            <a class="btn btn-line" href="https://docs.openact.app/getting-started">Read the docs</a>
+          </div>
+          <p class="note">The demo is free. Sign in with your email. You do not need a password.</p>
+        </div>
+
+        <figure class="shot">
+          <picture>
+            <source srcset="/images/board-dark.webp" media="(prefers-color-scheme: dark)" />
+            <img src="/images/board-light.webp" width="1440" height="900" alt="The OpenAct Projects board. A website project has Backlog, To do, In progress and Review columns, with tasks, dates and owners." />
+          </picture>
+          <figcaption>The Projects board, with example data.</figcaption>
+        </figure>
+
+        <section id="apps" aria-labelledby="apps-title">
+          <h2 id="apps-title">Apps for the work you do every day</h2>
+          <p class="intro">
+            Each company in OpenAct turns on the apps it needs. All apps use the same people, companies and roles. A person signs in one time and works in every app.
+          </p>
+          <div class="apps">
+            <article class="app">
+              <h3>Projects</h3>
+              <p>Plan work on a Kanban board, a Gantt timeline and a calendar. Ask the AI agent to move late tasks or to write a status summary. Changes show live on every open page.</p>
+            </article>
+            <article class="app">
+              <h3>Docs <small>Director</small></h3>
+              <p>Write on pages the size of paper. Edit together live, add comments and print to PDF. Sort docs into folders, and share a doc with a link.</p>
+            </article>
+            <article class="app">
+              <h3>Advisory <small>Director</small></h3>
+              <p>List your approved advisors. Clients book a consult or pay for an offer through Stripe. A paid engagement opens a private project for the advisor and the client.</p>
+            </article>
+            <article class="app">
+              <h3>Your own apps</h3>
+              <p>Sign-in, companies, roles, permissions, email and files are ready. Your app adds only its own features. Add apps from the app directory with one command.</p>
+            </article>
+          </div>
+        </section>
+
+        <section aria-labelledby="how-title">
+          <div class="split">
+            <div>
+              <h2 id="how-title">Agents that know their limits</h2>
+              <p>The OpenAct agent works for one person. It never does more than that person's role allows.</p>
+              <ul>
+                <li>Deletes and changes to people wait for approval.</li>
+                <li>Company owners choose how much each role can give to the agent.</li>
+                <li>OpenAct records each action that the agent does.</li>
+              </ul>
+            </div>
+            <div>
+              <h2>Cloudflare from end to end</h2>
+              <p>OpenAct runs on Workers, D1, R2, Durable Objects, Vectorize and Workers AI. It runs in your own Cloudflare account, and you can deploy it with one click.</p>
+              <p>The core, the UI and the Projects app are open source under the Apache License 2.0. Docs and Advisory are part of the paid OpenAct Director plan.</p>
+              <a class="btn btn-line btn-sm" href="https://github.com/marketgrowth/openact">See the code on GitHub</a>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <section class="band" id="demo" aria-labelledby="demo-title">
+        <div class="wrap">
+          <div>
+            <h2 id="demo-title">Try OpenAct on the demo stage</h2>
+            <p>The demo has every app turned on, Docs and Advisory too. Make a company, start a project and invite a friend.</p>
+            <p>The demo deletes all data every night at about 2 AM Pacific time. Do not put private data in it.</p>
+            <p style="margin-top: 28px"><a class="btn btn-gold" href="https://a.openact.ing">Open the demo</a></p>
+          </div>
+          <ol aria-label="How to start">
+            <li>Open the demo.<span>Go to a.openact.ing.</span></li>
+            <li>Type your email.<span>We send you a 6-digit sign-in code.</span></li>
+            <li>Make a company.<span>Then open Projects, Docs or Advisory from the app rail.</span></li>
+          </ol>
+        </div>
+      </section>
+    </main>
+
+    <div class="wrap">
+      <footer class="foot">
+        <span>OpenAct is made by MarketGrowth.</span>
+        <nav aria-label="Footer">
+          <a href="https://a.openact.ing">Demo</a>
+          <a href="https://docs.openact.app">Docs</a>
+          <a href="https://github.com/marketgrowth/openact">GitHub</a>
+          <a href="https://docs.openact.app/plans">Plans</a>
+          <a href="https://a.openact.ing/contribute">Contribute</a>
+        </nav>
+      </footer>
+    </div>
+  </body>
+</html>

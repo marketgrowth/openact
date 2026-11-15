@@ -9,5 +9,5 @@ export * from "../.openact/durable-objects";
 
 // The installed apps come from openact.apps.json. Run `npm run openact -- add github:owner/repo` to add one.
 // siteServer adds this deploy's own routes, such as contributions. It is not in the catalog, so companies cannot turn it off.
-// demoServer runs the nightly reset of the public demo at openact.ing (demo branch only).
+// demoServer runs the nightly reset of the public demo at a.openact.ing (demo branch only).
 export default createWorker({ apps: [...apps, siteServer, demoServer], catalog });
