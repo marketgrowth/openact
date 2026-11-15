@@ -65,7 +65,16 @@ function readPanelOpen(): boolean {
   }
 }
 
-const DEFAULT_CONFIG: AppConfig = { appName: "OpenAct", logoUrl: null, emailEnabled: true, signupMode: "open", aiProvider: "workers-ai", apps: [] };
+// The sign-in heading stays empty until /api/config loads, so a custom heading does not flash the default first.
+const DEFAULT_CONFIG: AppConfig = {
+  appName: "OpenAct",
+  logoUrl: null,
+  emailEnabled: true,
+  signupMode: "open",
+  aiProvider: "workers-ai",
+  apps: [],
+  signIn: { heading: "", credit: "", termsUrl: null, privacyUrl: null, backgroundUrl: null }
+};
 
 function Root({ apps, directory, primary }: { apps: ClientApp[]; directory: readonly DirectoryApp[]; primary: string | null }) {
   const path = usePath();
@@ -87,7 +96,14 @@ function Root({ apps, directory, primary }: { apps: ClientApp[]; directory: read
     setFavicon(config.logoUrl);
   }, [config.appName, config.logoUrl]);
 
-  const onSite = useCallback((s: SiteSettings) => setConfig((c) => ({ ...c, appName: s.appName, logoUrl: s.logoUrl })), []);
+  const onSite = useCallback(
+    (s: SiteSettings) =>
+      setConfig((c) => {
+        const { customHeading: _, ...signIn } = s.signIn;
+        return { ...c, appName: s.appName, logoUrl: s.logoUrl, signIn };
+      }),
+    []
+  );
 
   const noop = useCallback(() => {}, []);
   const publicShell = useMemo<Shell>(
