@@ -22,7 +22,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "openact",
+      "database_name": "openact-demo",
+      "database_id": "a646fb17-4f20-4efe-ad4e-6060d01af153",
       "migrations_dir": ".openact/migrations"
     }
   ],
@@ -31,7 +32,7 @@
   "r2_buckets": [
     {
       "binding": "FILES",
-      "bucket_name": "openact-files"
+      "bucket_name": "openact-demo-files"
     }
   ],
 
@@ -78,7 +79,7 @@
     "TYPESAFE_MODEL": "jev-1.14.0",
     "TYPESAFE_BASE_URL": "",
     "AI_GATEWAY_ID": "openact",
-    "CF_ACCOUNT_ID": "",
+    "CF_ACCOUNT_ID": "7ba24483701aad5568d7f9db0d81c3f7",
     // Deletes all demo data each night. See src/server/demo.ts.
     "DEMO_RESET": "true"
   }
