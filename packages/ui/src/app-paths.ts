@@ -33,6 +33,20 @@ export function appHome(app: AppPathInfo, apps: readonly AppPathInfo[]): string 
   return `/a/${app.id}`;
 }
 
+/**
+ * An app's own path, `/a/<id>`, goes to its home. Apps use it in links and nav items,
+ * so the link works whether or not the app owns "/".
+ */
+export function resolveAppPath(app: AppPathInfo, apps: readonly AppPathInfo[], path: string): string {
+  return path === `/a/${app.id}` ? appHome(app, apps) : path;
+}
+
+/** The app with a home page whose own path is `path` (`/a/<id>`, with or without a final slash). */
+export function homeAppAt<A extends AppPathInfo>(apps: readonly A[], path: string): A | undefined {
+  const m = path.match(/^\/a\/([^/]+)\/?$/);
+  return m ? apps.find((a) => a.Home && a.id === m[1]) : undefined;
+}
+
 /** True when the path belongs to the app. */
 export function appOwnsPath(app: AppPathInfo, apps: readonly AppPathInfo[], path: string): boolean {
   if (app.ownsPath) return app.ownsPath(path);

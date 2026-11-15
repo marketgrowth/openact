@@ -1,8 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { activeApp, appHome, appOwnsPath, railApps } from "../packages/ui/src/app-paths.ts";
+import { activeApp, appHome, appOwnsPath, homeAppAt, railApps, resolveAppPath } from "../packages/ui/src/app-paths.ts";
 
-const projects = { id: "projects", icon: "projects", Home: () => null, routes: [{ pattern: /^\/p\/([^/]+)/ }], ownsPath: (p: string) => p === "/" || p.startsWith("/p/") };
+const projects = { id: "projects", icon: "projects", Home: () => null, routes: [{ pattern: /^\/p\/([^/]+)/ }] };
 const orbytt = { id: "orbytt", Mark: () => null, routes: [{ pattern: /^\/a\/orbytt\/talent$/ }] };
 const hello = { id: "hello", icon: "chat", home: "/hello", routes: [{ pattern: /^\/hello\/?$/ }] };
 const site = { id: "site" };
@@ -29,4 +29,28 @@ test("a path picks the app that owns it", () => {
 test("a path that no app owns shows the first rail app", () => {
   assert.equal(activeApp(apps, "/nowhere")?.id, "projects");
   assert.equal(appOwnsPath(orbytt, apps, "/a/orbytter"), false);
+});
+
+// A deploy where another app, such as Plant care, owns the home page.
+const plants = { id: "plants", icon: "leaf", Home: () => null };
+const hosted = [plants, projects, orbytt];
+
+test("an app with a home page moves to /a/<id> when another app owns /", () => {
+  assert.equal(appHome(plants, hosted), "/");
+  assert.equal(appHome(projects, hosted), "/a/projects");
+  assert.equal(homeAppAt(hosted, "/a/projects")?.id, "projects");
+  assert.equal(homeAppAt(hosted, "/a/projects/")?.id, "projects");
+  assert.equal(homeAppAt(hosted, "/a/orbytt"), undefined);
+});
+
+test("the app that owns / keeps it, and the other app keeps its own paths", () => {
+  assert.equal(activeApp(hosted, "/")?.id, "plants");
+  assert.equal(activeApp(hosted, "/a/projects")?.id, "projects");
+  assert.equal(activeApp(hosted, "/p/abc/board")?.id, "projects");
+});
+
+test("a link to /a/<id> goes to the app's home", () => {
+  assert.equal(resolveAppPath(projects, apps, "/a/projects"), "/");
+  assert.equal(resolveAppPath(projects, hosted, "/a/projects"), "/a/projects");
+  assert.equal(resolveAppPath(projects, hosted, "/p/abc"), "/p/abc");
 });
