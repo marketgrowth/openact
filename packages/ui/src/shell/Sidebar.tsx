@@ -1,6 +1,6 @@
 import { COMPANY_ROLE_LABELS, type Company, type User } from "@openact/core/shared";
 import { APPS_PATH, SETTINGS_PATH, activeApp, appHome, isSettingsPath, railGroups, railOrder, type ClientApp } from "../apps";
-import { ACCOUNT_SECTIONS, SITE_SECTIONS, companySections, parseSettingsPath, settingsPath, type SettingsSection } from "../settings-paths";
+import { ACCOUNT_SECTIONS, COMPANY_SECTIONS, SITE_SECTIONS, appSections, parseSettingsPath, settingsPath, type SettingsSection } from "../settings-paths";
 import { canManageCompany } from "@openact/core/shared";
 import { Link, navigate, usePath } from "../router";
 import { PLAN_PATH } from "./Plan";
@@ -272,9 +272,13 @@ export function AppSidebar(p: AppSidebarProps) {
   );
 }
 
-/** The settings sections in the app panel: Company settings for owners and admins, Personal account for everyone, then Site settings for super admins. */
+/**
+ * The settings sections in the app panel: Company settings for owners and admins, Personal account for everyone,
+ * Site settings for super admins, then App settings (each app's sections, such as Docs and Advisory) for owners and admins.
+ */
 function SettingsNav({ apps, path, company, site, onPick }: { apps: readonly ClientApp[]; path: string; company: boolean; site: boolean; onPick: () => void }) {
   const here = parseSettingsPath(path);
+  const appTabs = appSections(apps);
   const group = (label: string, sections: readonly SettingsSection[]) => (
     <SidebarGroup key={label}>
       <SidebarGroupLabel>{label}</SidebarGroupLabel>
@@ -299,9 +303,10 @@ function SettingsNav({ apps, path, company, site, onPick }: { apps: readonly Cli
   );
   return (
     <>
-      {company && group("Company settings", companySections(apps))}
+      {company && group("Company settings", COMPANY_SECTIONS)}
       {group("Personal account", ACCOUNT_SECTIONS)}
       {site && group("Site settings", SITE_SECTIONS)}
+      {company && appTabs.length > 0 && group("App settings", appTabs)}
     </>
   );
 }

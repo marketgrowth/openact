@@ -2,6 +2,7 @@
  * The sections of the Settings page. The side panel lists them, and each one has its own path.
  * Company sections: /settings/company/<id>. Personal account sections: /settings/account/<id>.
  * Site sections, for super admins: /settings/site/<id>.
+ * App sections, for company owners and admins: /settings/company/<id>, listed under App settings.
  */
 import { SETTINGS_PATH } from "./app-paths.ts";
 
@@ -49,14 +50,28 @@ export interface SettingsApp {
   companySettingsTabs?: ReadonlyArray<{ id: string; label: string }>;
 }
 
-/** The company sections: the built-in ones, then each app's sections. An app section with a built-in id is left out. */
-export function companySections(apps: readonly SettingsApp[]): SettingsSection[] {
-  const out: SettingsSection[] = [...COMPANY_SECTIONS];
+/**
+ * The app sections: each app's company sections, in app order. They belong to a company, so their paths
+ * start with /settings/company, but the side panel lists them apart, under App settings.
+ * An app section with a built-in id, or with the id of an earlier app section, is left out.
+ */
+export function appSections(apps: readonly SettingsApp[]): SettingsSection[] {
+  const out: SettingsSection[] = [];
   for (const app of apps)
     for (const t of app.companySettingsTabs ?? [])
-      if (!out.some((s) => s.id === t.id)) out.push({ scope: "company", id: t.id, label: t.label, icon: app.icon ?? "apps" });
+      if (!COMPANY_SECTIONS.some((s) => s.id === t.id) && !out.some((s) => s.id === t.id))
+        out.push({ scope: "company", id: t.id, label: t.label, icon: app.icon ?? "apps" });
   return out;
 }
+
+/** Every section with a company path: the built-in ones, then the app sections. */
+export function companySections(apps: readonly SettingsApp[]): SettingsSection[] {
+  return [...COMPANY_SECTIONS, ...appSections(apps)];
+}
+
+/** True when a section comes from an app, so it shows under App settings. */
+export const isAppSection = (section: SettingsSection): boolean =>
+  section.scope === "company" && !COMPANY_SECTIONS.some((s) => s.id === section.id);
 
 export const settingsPath = (scope: SettingsScope, id: string): string => `${SETTINGS_PATH}/${scope}/${encodeURIComponent(id)}`;
 

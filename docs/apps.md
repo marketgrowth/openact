@@ -198,7 +198,7 @@ An app shows in the rail when it has an `icon` or a `Mark`. Its pages live under
 | `nav` | Items at the top of the app's panel (`main`), or icons at the bottom of the rail for every app (`footer`) |
 | `SidebarSection` | Groups in the app's panel, such as Pinned, Projects and Recent |
 | `commands` | Dialogs that open from the app's panel (`inSidebar`), a shortcut such as Ctrl+K, or `useShell().runCommand(id)` |
-| `companySettingsTabs` | Sections in Company settings. Each one shows in the side panel and opens at `/settings/company/<id>`. |
+| `companySettingsTabs` | Sections in App settings. Each one shows in the side panel under App settings and opens at `/settings/company/<id>`. |
 | `Provider` | State for your app around the whole shell |
 | `publicRoutes` | Pages that work without sign-in |
 

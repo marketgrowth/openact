@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { isSettingsPath } from "../packages/ui/src/app-paths.ts";
-import { COMPANY_SECTIONS, companySections, parseSettingsPath, settingsPath } from "../packages/ui/src/settings-paths.ts";
+import { COMPANY_SECTIONS, appSections, companySections, isAppSection, parseSettingsPath, settingsPath } from "../packages/ui/src/settings-paths.ts";
 
 test("settings paths belong to the shell", () => {
   assert.equal(isSettingsPath("/settings"), true);
@@ -37,4 +37,17 @@ test("apps add company sections after the built-in ones", () => {
   const ids = companySections(apps).map((s) => s.id);
   assert.deepEqual(ids, [...COMPANY_SECTIONS.map((s) => s.id), "projects.ai", "docs"]);
   assert.equal(companySections(apps).find((s) => s.id === "docs")?.icon, "doc");
+});
+
+test("app sections are listed apart from the company sections", () => {
+  const apps = [
+    { icon: "doc", companySettingsTabs: [{ id: "docs", label: "Docs" }, { id: "general", label: "Clash" }] },
+    { icon: "handshake", companySettingsTabs: [{ id: "advisory", label: "Advisory" }, { id: "docs", label: "Twice" }] }
+  ];
+  const tabs = appSections(apps);
+  assert.deepEqual(tabs.map((s) => s.id), ["docs", "advisory"]);
+  assert.equal(tabs.every((s) => s.scope === "company"), true);
+  assert.equal(tabs.every(isAppSection), true);
+  assert.equal(COMPANY_SECTIONS.some(isAppSection), false);
+  assert.equal(settingsPath(tabs[1].scope, tabs[1].id), "/settings/company/advisory");
 });

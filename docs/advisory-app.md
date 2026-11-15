@@ -18,7 +18,7 @@ Advisory comes with OpenAct, next to Projects and Docs. It has its own icon in t
 - **GTM Matters** runs Advisory with the label "Consultant". Paid members hire GTM consultants. Members can also apply to sell their own consulting.
 - **Orbytt** runs Advisory with the label "Coach". VA coaches and mentors sell coaching sessions and mentorship programs.
 
-The code says "advisor" and "offer". Each company sets its own label in Company settings.
+The code says "advisor" and "offer". Each company sets its own label in App settings, under Advisory.
 
 ## Who does what
 
@@ -78,7 +78,7 @@ Owners and admins open **Manage advisors** in the Advisory panel.
 
 ### Settings
 
-In **Company settings**, under **Advisory** in the side panel:
+In **App settings**, under **Advisory** in the side panel:
 
 | Setting | What it does |
 | --- | --- |

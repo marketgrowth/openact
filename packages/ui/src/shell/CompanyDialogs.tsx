@@ -167,13 +167,77 @@ export function GeneralTab({ detail, me, onChanged }: { detail: CompanyDetail; m
           <div className="grid gap-2 rounded-lg border border-destructive/30 p-4">
             <h3 className="text-sm font-medium">Delete company</h3>
             <p className="text-sm text-muted-foreground">Deleting a company removes all its projects, tasks and files for everyone. You cannot undo it.</p>
-            <div>
-              <ConfirmButton label="Delete company" confirmLabel="Click again to delete the company and all its projects" onConfirm={remove} />
-            </div>
+            <DeleteCompanyConfirm onDelete={remove} />
           </div>
         </>
       )}
     </div>
+  );
+}
+
+/** The word a company owner must type before the delete runs. */
+const DELETE_WORD = "DELETE";
+
+/**
+ * Delete company, in two steps. The first click shows a text field. The owner types DELETE,
+ * then clicks Confirm Delete. Cancel or Escape closes the step and clears the field.
+ */
+function DeleteCompanyConfirm({ onDelete }: { onDelete: () => Promise<void> }) {
+  const [open, setOpen] = useState(false);
+  const [typed, setTyped] = useState("");
+  const [busy, setBusy] = useState(false);
+  const matches = typed.trim() === DELETE_WORD;
+
+  const cancel = () => {
+    setOpen(false);
+    setTyped("");
+  };
+
+  const confirm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!matches || busy) return;
+    setBusy(true);
+    try {
+      await onDelete();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!open) {
+    return (
+      <div>
+        <Button type="button" variant="outline" size="sm" className="text-destructive hover:text-destructive" onClick={() => setOpen(true)}>
+          Delete company
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <form className="grid gap-3" onSubmit={confirm} onKeyDown={(e) => e.key === "Escape" && cancel()}>
+      <Field label={`Type ${DELETE_WORD} to confirm`} htmlFor="cs-delete-confirm">
+        <Input
+          id="cs-delete-confirm"
+          autoFocus
+          autoComplete="off"
+          autoCapitalize="characters"
+          spellCheck={false}
+          value={typed}
+          placeholder={DELETE_WORD}
+          onChange={(e) => setTyped(e.target.value)}
+          className="font-mono sm:max-w-xs"
+        />
+      </Field>
+      <div className="flex flex-col-reverse gap-2 sm:flex-row">
+        <Button type="button" variant="outline" size="sm" onClick={cancel} disabled={busy}>
+          Cancel
+        </Button>
+        <Button type="submit" variant="destructive" size="sm" disabled={!matches || busy}>
+          {busy ? "Deleting..." : "Confirm Delete"}
+        </Button>
+      </div>
+    </form>
   );
 }
 

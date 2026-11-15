@@ -5,7 +5,7 @@ import { api, errorText } from "../api";
 import { navigate, usePath } from "../router";
 import { Notice } from "../ui";
 import { useWorkspace } from "../workspace";
-import { ACCOUNT_SECTIONS, SITE_SECTIONS, companySections, parseSettingsPath, settingsPath, type SettingsSection } from "../settings-paths";
+import { ACCOUNT_SECTIONS, SITE_SECTIONS, companySections, isAppSection, parseSettingsPath, settingsPath, type SettingsSection } from "../settings-paths";
 import { PageBody, SiteHeader } from "./SiteHeader";
 import { CompanyMark } from "./Sidebar";
 import { GeneralTab, PeopleTab } from "./CompanyDialogs";
@@ -18,7 +18,8 @@ import { ProfileSection, SecuritySection } from "./AccountSettings";
 /*
  * The Settings page. It fills the main content area, and the side panel lists its sections.
  * Company settings are for company owners and admins. Personal account settings are for everyone.
- * Site settings are for super admins. The side panel lists them in that order.
+ * Site settings are for super admins. App settings, each app's own sections, are for company owners and admins.
+ * The side panel lists them in that order.
  * Each section has its own address, so the back button and links work, and the page keeps its place.
  */
 
@@ -80,21 +81,25 @@ export function SettingsPage({
 
   const section = sections.find((s) => s.id === id);
   if (!section) return <Missing />;
-  if (ws.companies === null) return <Loading title="Company settings" />;
+  const title = groupTitle(section);
+  if (ws.companies === null) return <Loading title={title} />;
   if (!current)
     return (
-      <Shell title="Company settings" section={section}>
+      <Shell title={title} section={section}>
         <Notice tone="info">You are not in a company yet. Create one from the company menu at the top of the side panel.</Notice>
       </Shell>
     );
   if (!manager)
     return (
-      <Shell title="Company settings" section={section}>
+      <Shell title={title} section={section}>
         <Notice tone="info">Only owners and admins of {current.name} can change its settings. Ask one of them for help.</Notice>
       </Shell>
     );
   return <CompanySection key={current.id} companyId={current.id} me={me} apps={apps} section={section} />;
 }
+
+/** The side panel group a company path belongs to: App settings for an app's section, else Company settings. */
+const groupTitle = (section: SettingsSection): string => (isAppSection(section) ? "App settings" : "Company settings");
 
 /** One company section. It loads the company once, and loads it again after a change. */
 function CompanySection({ companyId, me, apps, section }: { companyId: string; me: User; apps: readonly ClientApp[]; section: SettingsSection }) {
@@ -133,7 +138,7 @@ function CompanySection({ companyId, me, apps, section }: { companyId: string; m
 
   return (
     <Shell
-      title="Company settings"
+      title={groupTitle(section)}
       section={section}
       company={detail ?? undefined}
       count={section.id === "people" && detail ? detail.members.length : undefined}

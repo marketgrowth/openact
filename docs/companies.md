@@ -9,11 +9,12 @@ Every project belongs to one company. A person can be in many companies and swit
 | Member | See every company project as a viewer. Create projects. A company can change both in **Company settings > Permissions**. |
 | Guest | See only the projects they are invited to. |
 
-The gear at the bottom of the app rail opens **Settings** as a page. The side panel lists its sections in three groups:
+The gear at the bottom of the app rail opens **Settings** as a page. The side panel lists its sections in four groups:
 
-- **Company settings**, for owners and admins: **General**, **People**, **Apps**, **Permissions**, **AI provider**, and a section for each app that adds one.
+- **Company settings**, for owners and admins: **General**, **People**, **Apps**, **Permissions**, **AI provider** and **Plan**.
 - **Personal account**, for everyone: **Profile** (name, email and theme) and **Sign-in and security** (sign out, delete account).
 - **Site settings**, for super admins only.
+- **App settings**, for owners and admins: a section for each app that adds one, such as **AI defaults** (Projects), **Docs** and **Advisory**. These settings belong to the current company.
 
 Each section has its own address, such as `/settings/company/people`, so you can link to it.
 
@@ -26,9 +27,10 @@ Each section has its own address, such as `/settings/company/people`, so you can
 - **Invite to one project** from that project's **People** tab. Someone from outside the company joins as a guest and sees only that project.
 - **Email domain auto-join.** Set a domain such as `acme.com` in **Company settings > General**. People who sign in with that domain join as members. Public domains such as gmail.com are refused, your own email must use the domain, and each domain belongs to one company.
 - **Request access.** A person who opens a project link without access sees a request form. The project owners get an email and approve (with a role) or decline in the **People** tab. Approving someone from outside the company makes them a guest. The page never shows the project's name.
-- **AI defaults.** Company owners and admins set the AI access, note search and topic scope that new projects start with.
+- **AI defaults.** In **App settings > AI defaults**, company owners and admins set the AI access, note search and topic scope that new projects start with.
 - **AI provider.** A company owner can choose the AI for the company's projects. Read [The AI provider of a company](#the-ai-provider-of-a-company).
 - **Removing someone from a company** removes them from all its projects.
+- **Deleting a company.** Only an owner can do it, in **Company settings > General**. Click **Delete company**, type `DELETE` in the field, then click **Confirm Delete**. This removes all the company's projects, tasks and files for everyone. You cannot undo it.
 - **Upgrading an older install.** Migration `0003_companies.sql` gives each project owner a company that holds their projects. Everyone else becomes a guest, so nobody can see more than before. Make people members in **Company settings** when you are ready.
 - The AI agent only routes requests to projects in the same company.
 
