@@ -35,6 +35,7 @@ companyAppRoutes.get("/:id/apps", async (c) => {
       siteOff: siteAppOff(info.id),
       plan: info.plan ?? null,
       locked: state.locked(info.id),
+      granted: state.granted(info.id),
       permissions: Object.entries(server?.permissions ?? {}).map(([pid, def]) => ({
         id: pid,
         ...def,

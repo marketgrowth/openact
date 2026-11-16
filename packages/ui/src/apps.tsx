@@ -9,12 +9,13 @@ import type { AppConfig, CompanyDetail, PaidPlan, User } from "@openact/core/sha
  * installed apps, and createClient() builds the shell from them.
  */
 
-export { APPS_PATH, activeApp, appHome, appOwnsPath, railApps } from "./app-paths.ts";
+export { APPS_PATH, SETTINGS_PATH, activeApp, appHome, appOwnsPath, homeAppAt, isSettingsPath, railApps, railGroups, railOrder, resolveAppPath, type RailGroups } from "./app-paths.ts";
 
 export interface NavItem {
   label: string;
   /** A Lucide icon name from the Icon component, such as "projects" or "users". */
   icon: string;
+  /** Where the item goes. The app's own path, /a/<id>, goes to the app's home, which can be "/". */
   path: string;
   /**
    * "main" shows the item at the top of the app's panel, when the app is active.
@@ -66,7 +67,10 @@ export interface ClientApp {
   ownsPath?: (path: string) => boolean;
   /** Wraps the signed-in shell, for the app's own state, such as the current company's projects. */
   Provider?: ComponentType<{ children: ReactNode }>;
-  /** The page at "/". The first app with a home page owns it. */
+  /**
+   * The app's home page. The first app with a home page shows it at "/". Every other app shows it at /a/<id>.
+   * Link to /a/<id> to reach it: the shell sends that path to "/" when the app owns "/".
+   */
   Home?: ComponentType;
   routes?: Route[];
   /** Pages that work without sign-in, such as /colophon. */
@@ -75,6 +79,7 @@ export interface ClientApp {
   /** Groups in the app's panel, below the main items, such as pinned and recent projects. Shows when the app is active. */
   SidebarSection?: ComponentType;
   commands?: Command[];
+  /** Sections that the app adds to Company settings. Each shows in the side panel and opens at /settings/company/<id>. */
   companySettingsTabs?: CompanySettingsTab[];
 }
 
@@ -82,7 +87,6 @@ export function defineClientApp(app: ClientApp): ClientApp {
   return app;
 }
 
-/** What the shell shares with apps. */
 /** One entry of the app directory, from directory/apps.json. */
 export interface DirectoryApp {
   id: string;
@@ -96,13 +100,16 @@ export interface DirectoryApp {
   plan?: PaidPlan;
 }
 
+/** What the shell shares with apps. */
 export interface Shell {
   me: User | null;
   config: AppConfig;
   apps: readonly ClientApp[];
+  /** The id of the deploy's primary app, from "primary" in openact.apps.json. Null when there is none. */
+  primary: string | null;
   /** The app directory, for the Apps page. Empty when the host does not pass it. */
   directory: readonly DirectoryApp[];
-  /** Opens a shell dialog. */
+  /** Opens a shell dialog. "companySettings" and "account" go to their sections of the Settings page. */
   open: (dialog: "account" | "newCompany" | "companySettings") => void;
   /** Opens an app command, such as search. */
   runCommand: (id: string) => void;

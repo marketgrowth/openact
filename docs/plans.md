@@ -17,7 +17,7 @@ Each paid plan has one annual price per company. The price does not change with 
 
 ## Get a plan
 
-There are two ways to get a plan.
+There are two ways to get a plan. A super admin can also [give one person a paid app](#give-one-person-a-paid-app).
 
 - **On a site that sells plans:** a company owner opens the **Plan** page and chooses a plan. Stripe takes the payment. The plan starts as soon as Stripe confirms it.
 - **On your own deploy:** MarketGrowth gives you a license key. Put it in the `OPENACT_LICENSE` secret. Every company on the deploy gets the plan in the key.
@@ -26,7 +26,7 @@ When a company has both, it gets the higher plan.
 
 ### The Plan page
 
-Open the company menu at the top of the app rail, then choose **Plan**. Company owners and admins also find it in **Company settings**, on the **Plan** tab.
+Open the company menu at the top of the app rail, then choose **Plan**. Company owners and admins also find it in **Company settings**, under **Plan**.
 
 The page shows:
 
@@ -48,6 +48,28 @@ An app that needs a plan is **locked** in a company without that plan.
 The app's data stays. When the company gets the plan again, the app comes back with all its data.
 
 If a payment fails, the plan keeps working while Stripe tries the card again. After the paid year ends, the plan keeps working for 7 more days, in case a message from Stripe is late.
+
+## Give one person a paid app
+
+A super admin can give a paid app to one person without a paid plan. Use it for a partner, a beta tester or a nonprofit.
+
+Grants need a license key from MarketGrowth in `OPENACT_LICENSE`. A super admin can grant only the apps in the key's plan. Without a key, **Paid app access** says that the site needs one. To allow grants without giving every company the plan, use a key made with `--use grants`. Read [License keys](#license-keys).
+
+1. Open **Settings** with the gear at the bottom of the app rail.
+2. Under **Site settings**, choose **Paid app access**. Find the person by name or email.
+3. Turn on the app, such as **Docs**.
+4. Optional: set an end day. The grant works through the whole of that day (UTC). Leave it empty to keep it on.
+
+What the grant does:
+
+- The app unlocks in every company where the person is an **owner**. Everyone in that company can use it, with the permissions of their role.
+- A grant to a person who owns no company does nothing until they make or own one.
+- A grant to an admin, member or guest does not unlock their company. Give it to an owner of the company.
+- The company switch still applies. If the app starts off, a company owner or admin turns it on in **Company settings > Apps**. The Apps page says the app was given by a site admin.
+- When the grant ends or a super admin turns it off, the app locks again in those companies. Its data stays.
+- A site switch that is off wins over a grant.
+
+Grants are in the `app_grants` table (migration `0009_app_grants.sql`). Only super admins can read or change them.
 
 ## Sell plans on your site
 
@@ -82,7 +104,13 @@ The OpenAct Director License does not let you sell plans to yourself or to other
 
 ## License keys
 
-A license key is a signed text that starts with `oa1.`. It names the licensee, the plan, the last day and, if you want, the host names where it works. The core checks the signature with the public keys in `packages/core/src/server/license-keys.ts`. It needs no network.
+A license key is a signed text that starts with `oa1.`. It names the licensee, the plan, the last day and, if you want, the host names where it works and its use.
+
+| Use | What the key does |
+| --- | --- |
+| `plan` (the default) | Every company on the deploy gets the plan. Super admins can also give the plan's apps to one person. |
+| `grants` | No company gets the plan. Super admins can give the plan's apps to one person at a time. Use it on a site that sells plans with Stripe. |
+ The core checks the signature with the public keys in `packages/core/src/server/license-keys.ts`. It needs no network.
 
 To use a key:
 
@@ -103,6 +131,10 @@ npm run license -- keygen --kid mg-2026
 # For each customer:
 npm run license -- issue --key ~/.openact/license-mg-2026.pem --kid mg-2026 \
   --licensee "Acme Inc." --plan director --expires 2027-11-10 --hosts app.acme.com
+
+# For a site that sells plans, so super admins can give paid apps to one person:
+npm run license -- issue --key ~/.openact/license-mg-2026.pem --kid mg-2026 \
+  --licensee "GTM Matters" --plan director --expires 2027-11-10 --hosts app.gtmmatters.com --use grants
 
 # Read a key:
 npm run license -- inspect oa1....

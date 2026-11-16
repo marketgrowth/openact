@@ -39,6 +39,7 @@ import { PROJECT_VIEWS, UI_TOOLS, type OpenActAgentState, type ProjectView } fro
 import { useWorkspace } from "@openact/ui";
 import { onOpenTask, takePendingTask } from "../openTask";
 import { useProjects } from "../projects-context";
+import { PROJECTS_HOME } from "../paths";
 
 // Views and panels load on first use, so a project opens with less code.
 const named = <K extends string, M extends Record<K, React.ComponentType<any>>>(load: () => Promise<M>, key: K) =>
@@ -388,7 +389,7 @@ export function ProjectPage({ projectId, view, me, config }: { projectId: string
         <PageBody>
           <EmptyState title="This project cannot open" text={error}>
             <Button asChild>
-              <Link to="/">Go to your projects</Link>
+              <Link to={PROJECTS_HOME}>Go to your projects</Link>
             </Button>
           </EmptyState>
         </PageBody>
@@ -673,7 +674,7 @@ function ProjectSettings({
     try {
       await api(`/api/projects/${data.project.id}/members/${me.id}`, { method: "DELETE" });
       toast("You left the project.");
-      navigate("/");
+      navigate(PROJECTS_HOME);
     } catch (err) {
       toast(errorText(err));
     }
@@ -682,7 +683,7 @@ function ProjectSettings({
     try {
       await api(`/api/projects/${data.project.id}`, { method: "DELETE" });
       toast("Project deleted.");
-      navigate("/");
+      navigate(PROJECTS_HOME);
     } catch (err) {
       toast(errorText(err));
     }
@@ -803,7 +804,7 @@ function RequestAccess({ projectId }: { projectId: string }) {
                 The project owners got an email. You get an email when they approve it. Then this link opens the project.
               </p>
               <Button asChild variant="outline" className="mt-2">
-                <Link to="/">Go to your projects</Link>
+                <Link to={PROJECTS_HOME}>Go to your projects</Link>
               </Button>
             </>
           ) : (
@@ -825,7 +826,7 @@ function RequestAccess({ projectId }: { projectId: string }) {
                 </Field>
                 <div className="flex justify-end gap-2">
                   <Button asChild variant="outline">
-                    <Link to="/">Cancel</Link>
+                    <Link to={PROJECTS_HOME}>Cancel</Link>
                   </Button>
                   <Button type="submit" disabled={busy || state === "loading"}>
                     Request access

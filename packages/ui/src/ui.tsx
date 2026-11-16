@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
 import {
   ArrowLeft,
   Bot,
@@ -20,6 +20,7 @@ import {
   Heart,
   FolderKanban,
   Lock,
+  LogIn,
   LogOut,
   Menu,
   MessageSquare,
@@ -39,12 +40,14 @@ import {
   Sun,
   Trash2,
   UserRoundSearch,
+  UserRound,
   Users,
   Video,
   Wallet,
   X,
   LayoutGrid,
   Send,
+  Mail,
   History,
   AlignCenter,
   AlignJustify,
@@ -106,6 +109,7 @@ const ICONS: Record<string, LucideIcon> = {
   monitor: Monitor,
   sparkle: Sparkles,
   users: Users,
+  user: UserRound,
   board: SquareKanban,
   projects: FolderKanban,
   timeline: ChartGantt,
@@ -114,6 +118,7 @@ const ICONS: Record<string, LucideIcon> = {
   download: Download,
   back: ArrowLeft,
   out: LogOut,
+  signin: LogIn,
   gear: Settings,
   check: Check,
   calendar: Calendar,
@@ -141,6 +146,7 @@ const ICONS: Record<string, LucideIcon> = {
   box: Package,
   apps: LayoutGrid,
   send: Send,
+  mail: Mail,
   history: History,
   heart: Heart,
   card: CreditCard,
@@ -429,6 +435,36 @@ export function Notice({ children, tone = "warn", className }: { children: React
       )}
     >
       {children}
+    </div>
+  );
+}
+
+/** The five states of agent work in the OpenAct Promptbook (https://openact.ing/design). */
+export type AgentStateId = "think" | "act" | "wait" | "done" | "fail";
+
+const AGENT_STATES: Record<AgentStateId, { icon: string; label: string; box: string; icon_: string }> = {
+  think: { icon: "dots", label: "Reading", box: "border-agent-think/30 text-agent-think", icon_: "animate-pulse" },
+  act: { icon: "bot", label: "Running", box: "border-agent-act/40 bg-agent-act/5 text-agent-act", icon_: "" },
+  wait: { icon: "shield", label: "Waiting for your approval", box: "border-agent-wait/40 bg-agent-wait/5 text-agent-wait", icon_: "" },
+  done: { icon: "check", label: "Done", box: "text-muted-foreground", icon_: "text-agent-done" },
+  fail: { icon: "x", label: "Stopped", box: "border-agent-fail/40 text-agent-fail", icon_: "" }
+};
+
+/**
+ * One step of agent work. Use it for every agent surface, so people learn one set of signs.
+ * The children say what happens in plain words, such as "Moving 3 tasks". Without children it shows the state name.
+ */
+export function AgentState({ state, children, className, ...rest }: { state: AgentStateId; children?: ReactNode } & ComponentProps<"div">) {
+  const s = AGENT_STATES[state];
+  return (
+    <div
+      data-agent-state={state}
+      role={state === "fail" ? "alert" : undefined}
+      className={cn("flex items-start gap-2 rounded-md border px-2.5 py-1.5 text-xs", s.box, className)}
+      {...rest}
+    >
+      <Icon name={s.icon} size={13} className={cn("mt-px shrink-0", s.icon_)} />
+      <span>{children ?? s.label}</span>
     </div>
   );
 }

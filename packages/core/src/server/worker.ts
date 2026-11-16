@@ -10,7 +10,7 @@ import { setApps, type ServerApp } from "./apps";
 import { companyAppRoutes } from "./company-apps";
 import { companyAiRoutes } from "./company-ai";
 import { getCatalog, setCatalog, type AppInfo } from "./permissions";
-import { loadSite, siteLogo, siteMiddleware, siteRoutes } from "./site";
+import { loadSite, signInPage, siteLogo, siteMiddleware, siteRoutes } from "./site";
 import { accountRoutes } from "./account";
 import { billingRoutes, companyPlanRoutes } from "./billing";
 
@@ -67,7 +67,8 @@ export function createWorker({ apps, catalog }: { apps: ServerApp[]; catalog?: A
       emailEnabled: !!c.env.RESEND_API_KEY,
       signupMode: (c.env.SIGNUP_MODE || "open").trim() === "invite" ? "invite" : "open",
       aiProvider: (c.env.AI_PROVIDER || "workers-ai").trim(),
-      apps: getCatalog().map((a) => ({ id: a.id, name: a.name }))
+      apps: getCatalog().map((a) => ({ id: a.id, name: a.name })),
+      signIn: signInPage()
     };
     return c.json(config);
   });

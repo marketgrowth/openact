@@ -18,7 +18,7 @@ Inventory app      declares inventory.create, inventory.delete, ...
     |
 OpenAct core       keeps each company's choices in the company_apps table
     |
-Company settings   Apps tab: on or off.  Permissions tab: a box for each role
+Company settings   Apps: on or off.  Permissions: a box for each role
     |
 Every request      requirePermission() -> 404, 403 app_off, 403 no_permission or OK
 ```
@@ -151,15 +151,15 @@ export function NewItemButton({ onClick }: { onClick: () => void }) {
 
 ## 4. Owners and admins choose
 
-Company settings has two tabs for apps. OpenAct builds both from the declarations, so your app needs no settings code.
+Company settings has two sections for apps. OpenAct builds both from the declarations, so your app needs no settings code.
 
 **Apps.** A switch for each installed app. An app that is off leaves the app rail, its commands and its pages for everyone in the company. Its data stays, so the company can turn it on again later. A company must keep at least one app on.
 
-![The Apps tab in Company settings, with a switch for each app](images/apps-tab.png)
+![The Apps section in Company settings, with a switch for each app](images/apps-tab.png)
 
 **Permissions.** A table for each app, with a row for each permission and a box for each role. Boxes for the owner, for locked roles, and for guests on permissions without `guests: true` cannot change.
 
-![The Permissions tab in Company settings, with a box for each role](images/permissions-tab.png)
+![The Permissions section in Company settings, with a box for each role](images/permissions-tab.png)
 
 A change takes effect on the next request. The person who made it sees the new rail and buttons at once.
 

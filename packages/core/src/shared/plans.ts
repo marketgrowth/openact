@@ -88,7 +88,17 @@ export interface LicensePayload {
   expiresAt: string;
   /** Optional. The host names where the key works, such as ["app.example.com"]. Empty or missing: any host. */
   hosts?: string[];
+  /**
+   * Optional. "plan" (the default): every company on the deploy gets the plan.
+   * "grants": no company gets the plan. Super admins can give the plan's apps to one person at a time (app grants).
+   */
+  use?: LicenseUse;
 }
+
+export type LicenseUse = "plan" | "grants";
+
+/** True when a license key gives every company on the deploy its plan. A grants key does not. */
+export const licenseGivesPlan = (p: Pick<LicensePayload, "use">): boolean => (p.use ?? "plan") === "plan";
 
 const fromB64Url = (s: string): Uint8Array => {
   const b = atob(s.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - (s.length % 4)) % 4));
@@ -125,6 +135,7 @@ export function parseLicense(key: string): { payload: LicensePayload; signed: st
   if (!DATE.test(payload.issuedAt ?? "") || !DATE.test(payload.expiresAt ?? "")) return { error: "The license key has no valid dates." };
   if (payload.hosts !== undefined && (!Array.isArray(payload.hosts) || payload.hosts.some((h) => typeof h !== "string")))
     return { error: "The license key has a bad host list." };
+  if (payload.use !== undefined && payload.use !== "plan" && payload.use !== "grants") return { error: "The license key names a use that this OpenAct does not know." };
   return { payload, signed: `${parts[0]}.${parts[1]}`, signature };
 }
 
