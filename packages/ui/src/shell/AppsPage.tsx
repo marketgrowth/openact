@@ -84,7 +84,7 @@ function ManagedApps({ companyId, installed, info }: { companyId: string; instal
         const s = settings.find((x) => x.id === app.id);
         const on = s?.enabled ?? false;
         const plan = s?.plan ?? null;
-        if (s?.locked && plan)
+        if (s?.locked && plan && !s.blocked)
           return (
             <AppCard
               key={app.id}
@@ -116,6 +116,8 @@ function ManagedApps({ companyId, installed, info }: { companyId: string; instal
               <>
                 {s?.siteOff ? (
                   <span className="mr-auto text-xs text-muted-foreground">Off for this site</span>
+                ) : s?.blocked ? (
+                  <span className="mr-auto text-xs text-muted-foreground">Not available for this company</span>
                 ) : (
                   s?.granted && <span className="mr-auto text-xs text-muted-foreground">Given by a site admin</span>
                 )}
@@ -126,7 +128,7 @@ function ManagedApps({ companyId, installed, info }: { companyId: string; instal
                 )}
                 <Switch
                   checked={on}
-                  disabled={busy || !s || s.siteOff}
+                  disabled={busy || !s || s.siteOff || s.blocked}
                   onCheckedChange={(next) => save(app.id, { enabled: next }, `${app.name} is ${next ? "on" : "off"}.`)}
                   aria-label={`${app.name} app`}
                 />
@@ -144,7 +146,8 @@ function MemberApps({ installed, info }: { installed: ClientApp[]; info: (id: st
   const ws = useWorkspace();
   const { apps, primary } = useShell();
   const off = ws.access?.disabledApps ?? [];
-  const lockedIds = ws.access?.lockedApps ?? [];
+  const blockedIds = ws.access?.blockedApps ?? [];
+  const lockedIds = (ws.access?.lockedApps ?? []).filter((id) => !blockedIds.includes(id));
   const shown = installed.filter((a) => !off.includes(a.id));
   const locked = installed.filter((a) => lockedIds.includes(a.id));
   if (!shown.length && !locked.length) return <p className="text-sm text-muted-foreground">No apps are on for this company. Ask an owner or admin.</p>;

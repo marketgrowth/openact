@@ -64,12 +64,14 @@ export function AppsTab({ companyId }: { companyId: string }) {
                   ? `${planPart(a.plan)}. Ask the owner of this site to upgrade the plan.`
                   : a.siteOff
                   ? "Off for this site. A super admin can turn it on in Site settings."
+                  : a.blocked
+                  ? "Not available for this company. Ask the owner of this site to make it available in Site settings."
                   : `${a.permissions.length} ${a.permissions.length === 1 ? "permission" : "permissions"} · ${a.enabledByDefault ? "On" : "Off"} for new companies`}
               </span>
             </div>
             <Switch
               checked={a.enabled}
-              disabled={busy || a.siteOff || a.locked}
+              disabled={busy || a.siteOff || a.blocked || a.locked}
               onCheckedChange={(on) => save(a.id, { enabled: on }, `${a.name} is ${on ? "on" : "off"}.`)}
               aria-label={`${a.name} app`}
             />

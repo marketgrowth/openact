@@ -255,7 +255,7 @@ function SignedIn({
     for (const r of app.routes ?? []) {
       const m = path.match(r.pattern);
       if (m) {
-        page = onApps.includes(app) ? r.render(m) : <AppOff name={app.name} locked={!!ws.access?.lockedApps.includes(app.id)} superAdmin={superAdmin === true} />;
+        page = onApps.includes(app) ? r.render(m) : <AppOff name={app.name} locked={!!ws.access?.lockedApps.includes(app.id)} blocked={!!ws.access?.blockedApps?.includes(app.id)} superAdmin={superAdmin === true} />;
         break;
       }
     }
@@ -265,7 +265,7 @@ function SignedIn({
   const homeApp = page ? undefined : homeAppAt(apps, path);
   if (homeApp && homeApp.Home) {
     const HomeAt = homeApp.Home;
-    if (!onApps.includes(homeApp)) page = <AppOff name={homeApp.name} locked={!!ws.access?.lockedApps.includes(homeApp.id)} superAdmin={superAdmin === true} />;
+    if (!onApps.includes(homeApp)) page = <AppOff name={homeApp.name} locked={!!ws.access?.lockedApps.includes(homeApp.id)} blocked={!!ws.access?.blockedApps?.includes(homeApp.id)} superAdmin={superAdmin === true} />;
     else if (appHome(homeApp, onApps) === "/") page = <Redirect to="/" />;
     else page = <HomeAt />;
   }
@@ -320,7 +320,26 @@ function Redirect({ to }: { to: string }) {
 }
 
 /** An app that is off in this company. An empty name means that every app is off. */
-function AppOff({ name, locked = false, superAdmin = false }: { name: string; locked?: boolean; superAdmin?: boolean }) {
+function AppOff({ name, locked = false, blocked = false, superAdmin = false }: { name: string; locked?: boolean; blocked?: boolean; superAdmin?: boolean }) {
+  if (blocked)
+    return (
+      <>
+        <SiteHeader title={name} />
+        <PageBody>
+          <div className="mx-auto flex w-full max-w-lg flex-col items-center gap-3 rounded-xl border border-dashed p-8 text-center" data-app-blocked="">
+            <h2 className="text-lg font-semibold">{name} is not available for this company</h2>
+            <p className="text-sm text-muted-foreground">
+              {superAdmin ? "Make it available in Site settings, under Apps." : "Ask the owner of this site to make it available."} Your data in {name} stays.
+            </p>
+            {superAdmin && (
+              <Button asChild>
+                <Link to={settingsPath("site", "apps")}>Open Site settings</Link>
+              </Button>
+            )}
+          </div>
+        </PageBody>
+      </>
+    );
   if (locked)
     return (
       <>

@@ -38,7 +38,7 @@ export const SITE_SECTIONS: readonly SettingsSection[] = [
     id: "apps",
     label: "Apps",
     icon: "apps",
-    description: "Turn an app off for every company on this site. An app that is off keeps its data. Companies cannot turn it on again until you do."
+    description: "Turn an app off for every company, or for one company. An app that is off keeps its data. Companies cannot turn it on again until you do."
   },
   {
     scope: "site",
