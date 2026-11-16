@@ -10,6 +10,11 @@
       "id": "docs",
       "path": "apps/docs",
       "source": "local"
+    },
+    {
+      "id": "advisory",
+      "path": "apps/advisory",
+      "source": "local"
     }
   ]
 }

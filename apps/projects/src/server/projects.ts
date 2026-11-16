@@ -22,7 +22,8 @@ import { currentCompanyId } from "./companies";
 import { accessGrantedEmail, accessRequestEmail, sendEmail } from "./email";
 import { reindexProjectStatement } from "./search";
 import { markProjectChanged } from "./live";
-import { changeMemberRole, defaultColumnStatements, inviteMember, removeMember } from "./services";
+import { changeMemberRole, inviteMember, removeMember } from "./services";
+import { newProjectStatements } from "./api";
 import { HttpError, addDays, appUrl, companyAiChoice, newId, nowIso, oneOf, readJson, requireAppOn, requirePermission, requireUser, text, todayIso } from "./util";
 import { aiModelLabel } from "@openact/core/shared";
 
@@ -152,17 +153,11 @@ projectRoutes.post("/", async (c) => {
   await requirePermission(c.env, companyId, user.id, "projects.create");
   // New projects start with the company's AI defaults.
   const co = await c.env.DB.prepare("SELECT ai_defaults FROM companies WHERE id = ?").bind(companyId).first<{ ai_defaults: string }>();
-  const aiPolicy = JSON.stringify(parsePolicy(co?.ai_defaults));
   const id = newId();
   const iso = nowIso();
-  const stmts: D1PreparedStatement[] = [
-    c.env.DB.prepare(
-      "INSERT INTO projects (id, name, description, color, company_id, visibility, ai_policy, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-    ).bind(id, name, description, color, companyId, visibility, aiPolicy, user.id, iso, iso),
-    c.env.DB.prepare("INSERT INTO project_members (project_id, user_id, role, created_at) VALUES (?, ?, 'owner', ?)").bind(id, user.id, iso)
-  ];
-  const cols = defaultColumnStatements(c.env, id);
-  stmts.push(...cols.stmts);
+  const made = newProjectStatements(c.env, { id, companyId, name, description, color, visibility, ownerId: user.id, createdBy: user.id, aiDefaults: co?.ai_defaults });
+  const stmts: D1PreparedStatement[] = made.stmts;
+  const cols = { ids: made.columnIds };
   if (template === "example") {
     // Start on the Monday of this week so the plan lines up with the calendar.
     const today = todayIso();

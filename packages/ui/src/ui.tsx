@@ -85,6 +85,11 @@ import {
   Pencil,
   Inbox,
   Library,
+  Handshake,
+  UserRoundCheck,
+  BadgeDollarSign,
+  ReceiptText,
+  Upload,
   type LucideIcon
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@openact/ui/components/dialog";
@@ -183,7 +188,13 @@ const ICONS: Record<string, LucideIcon> = {
   category: Shapes,
   pencil: Pencil,
   inbox: Inbox,
-  library: Library
+  library: Library,
+  // Advisory
+  handshake: Handshake,
+  "user-check": UserRoundCheck,
+  earnings: BadgeDollarSign,
+  receipt: ReceiptText,
+  upload: Upload
 };
 
 export function Icon({ name, size = 16, className }: { name: keyof typeof ICONS | string; size?: number; className?: string }) {

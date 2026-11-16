@@ -3,7 +3,7 @@
  *
  * The core, the UI kit and the Projects app are free and open source. Paid apps need a plan:
  *   - Free: the open source core with the apps that need no plan.
- *   - Director: paid apps for startups to midmarket companies. Docs is the first one.
+ *   - Director: paid apps for startups to midmarket companies: Docs and Advisory.
  *   - Producer: everything in Director, for enterprise companies.
  *
  * A company gets a plan from an annual subscription on this deploy, or from the deploy's license key.
