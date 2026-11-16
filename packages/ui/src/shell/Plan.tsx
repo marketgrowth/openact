@@ -45,12 +45,7 @@ export function PlanPage() {
     <>
       <SiteHeader title={current?.name ?? "Plan"} />
       <PageBody>
-        <div className="grid gap-1">
-          <h2 className="text-2xl font-semibold tracking-tight">Plan</h2>
-          <p className="text-sm text-muted-foreground">
-            OpenAct is free and open source. Director and Producer add paid apps, with one annual price per company.
-          </p>
-        </div>
+        <h2 className="text-2xl font-semibold tracking-tight">Plan</h2>
         {current ? <PlanPanel companyId={current.id} /> : <p className="text-sm text-muted-foreground">Make a company to choose a plan.</p>}
       </PageBody>
     </>
