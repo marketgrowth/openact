@@ -6,4 +6,6 @@
  * then add the public key here with a new key id. Keep old ids while their licenses are still in use.
  * Changing or removing these keys to get paid apps without a license breaks the OpenAct Director License.
  */
-export const LICENSE_PUBLIC_KEYS: Record<string, string> = {};
+export const LICENSE_PUBLIC_KEYS: Record<string, string> = {
+  "mg-2026": "adiEkiCpO29iL7sy_dSpYtNm5CFqAB2bvPerbFbAIMI"
+};
