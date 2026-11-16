@@ -19,7 +19,7 @@ import { cn } from "@openact/ui/lib/utils";
  * Owners and admins turn installed apps on or off here. Adding an app from the directory is a code change, so the page shows the command.
  */
 
-const DIRECTORY_URL = "https://docs.openact.app/directory";
+const DIRECTORY_URL = "https://docs.openact.ing/directory";
 
 const STATUS: Record<DirectoryApp["status"], string> = {
   "built-in": "Built in",

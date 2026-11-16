@@ -11,9 +11,11 @@ import { PAID_PLANS, PLANS, planDescriptions, planIncludes, type CompanyPlan, ty
 
 /*
  * Plans for sale on this deploy: an annual Stripe subscription per company.
+ * Only a super owner (a super admin who owns the company) buys a plan, in Site settings > Plan.
+ * That plan is the site plan. Every company on the deploy gets it. See sitePlan() in plans.ts.
  *
  *   GET  /api/companies/:id/plan            The plan, the offers and the apps that need a plan. Any member.
- *   POST /api/companies/:id/plan/checkout   Starts Stripe Checkout for Director or Producer. Owners only.
+ *   POST /api/companies/:id/plan/checkout   Starts Stripe Checkout for Director or Producer. Super owners only.
  *   POST /api/companies/:id/plan/portal     Opens the Stripe billing portal to change, renew or cancel. Owners only.
  *   POST /api/billing/checkout-sync         Saves the subscription when the person comes back from Checkout.
  *   POST /api/billing/stripe-webhook        Stripe sends subscription changes here.
@@ -21,6 +23,9 @@ import { PAID_PLANS, PLANS, planDescriptions, planIncludes, type CompanyPlan, ty
  * Plans are for sale when STRIPE_SECRET_KEY and a plan's price (STRIPE_PRICE_DIRECTOR, STRIPE_PRICE_PRODUCER) are set.
  * Plans always use the deploy's own Stripe account. STRIPE_ACCOUNT, for contributions, does not apply.
  */
+
+/** The Plan section of Site settings. Stripe sends the person back here. */
+const PLAN_PAGE = "/settings/site/plan";
 
 const prices = (env: Env): Partial<Record<PaidPlan, string>> => ({
   director: (env.STRIPE_PRICE_DIRECTOR || "").trim() || undefined,
@@ -172,13 +177,16 @@ companyPlanRoutes.get("/:id/plan", async (c) => {
   const user = requireUser(c);
   const id = c.req.param("id");
   const role = await requireCompanyRole(c.env, id, user.id, ["owner", "admin", "member"]);
-  return c.json(await planDetail(c, id, role === "owner"));
+  // Plans are in Site settings. Only a super owner can buy or change one.
+  return c.json(await planDetail(c, id, role === "owner" && isSuperAdmin(c.env, user)));
 });
 
 companyPlanRoutes.post("/:id/plan/checkout", async (c) => {
   const user = requireUser(c);
   const id = c.req.param("id");
   await requireCompanyRole(c.env, id, user.id, ["owner"]);
+  if (!isSuperAdmin(c.env, user))
+    throw new HttpError(403, "Only the owner of this site can choose a plan. Ask the person who runs this site.", "not_super_admin");
   const body = await readJson(c);
   const plan = oneOf(body.plan, "Plan", PAID_PLANS);
   const priceId = prices(c.env)[plan];
@@ -197,8 +205,8 @@ companyPlanRoutes.post("/:id/plan/checkout", async (c) => {
     "line_items[0][quantity]": "1",
     client_reference_id: id,
     allow_promotion_codes: "true",
-    success_url: `${base}/plan?checkout=done&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${base}/plan`,
+    success_url: `${base}${PLAN_PAGE}?checkout=done&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${base}${PLAN_PAGE}`,
     "metadata[source]": "openact-plan",
     "metadata[company_id]": id,
     "metadata[plan]": plan,
@@ -224,7 +232,7 @@ companyPlanRoutes.post("/:id/plan/portal", async (c) => {
     c.env,
     "POST",
     "billing_portal/sessions",
-    new URLSearchParams({ customer: row.stripe_customer_id, return_url: `${appUrl(c)}/plan` })
+    new URLSearchParams({ customer: row.stripe_customer_id, return_url: `${appUrl(c)}${PLAN_PAGE}` })
   );
   if (!session.url) throw new HttpError(502, "Stripe did not open the billing page. Try again.");
   return c.json({ url: session.url });
