@@ -16,9 +16,17 @@ export interface PageSettings {
   pageSize: PageSize;
   orientation: Orientation;
   margin: Margin;
+  /** Header and footer text for each page. Plain text. {page}, {total} and {title} are filled in. Empty for none. */
+  header: string;
+  footer: string;
+  /** True to leave the header and footer off the first page. */
+  hideFirst: boolean;
 }
 
-export const DEFAULT_PAGE: PageSettings = { pageSize: "letter", orientation: "portrait", margin: "normal" };
+export const DEFAULT_PAGE: PageSettings = { pageSize: "letter", orientation: "portrait", margin: "normal", header: "", footer: "{page} / {total}", hideFirst: false };
+
+/** The longest header or footer. */
+export const HEADER_MAX = 200;
 
 /** The longest doc title. */
 export const TITLE_MAX = 200;

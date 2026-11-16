@@ -28,6 +28,7 @@ import { CATEGORIES_MAX, FOLDERS_MAX, cleanName, cleanTagNames, folderMoveProble
 import {
   CATEGORY_COLORS,
   CONTENT_MAX_BYTES,
+  HEADER_MAX,
   IMAGE_MAX_BYTES,
   MARGINS,
   ORIENTATIONS,
@@ -45,6 +46,7 @@ import {
   type Library,
   type Margin,
   type Orientation,
+  type PageSettings,
   type PageSize,
   type Tag
 } from "../shared/types";
@@ -78,12 +80,28 @@ export interface DocRow {
   page_size: PageSize;
   orientation: Orientation;
   margin: Margin;
+  header: string;
+  footer: string;
+  hide_first: number;
   rev: number;
   updated_by: string | null;
   updated_at: string;
 }
 
-const DOC_COLUMNS = "id, company_id, folder_id, category_id, title, content, page_size, orientation, margin, rev, updated_by, updated_at";
+export const DOC_COLUMNS = "id, company_id, folder_id, category_id, title, content, page_size, orientation, margin, header, footer, hide_first, rev, updated_by, updated_at";
+
+/** The page settings of a doc row. */
+export const pageSettings = (doc: DocRow): PageSettings => ({
+  pageSize: doc.page_size,
+  orientation: doc.orientation,
+  margin: doc.margin,
+  header: doc.header ?? "",
+  footer: doc.footer ?? "",
+  hideFirst: !!doc.hide_first
+});
+
+/** A header or footer from the editor: one line of plain text. */
+const headerText = (v: unknown, label: string) => text(v, label, { max: HEADER_MAX }).replace(/[\r\n\t]+/g, " ");
 
 export async function loadDoc(env: Env, id: string): Promise<DocRow> {
   const row = await env.DB.prepare(`SELECT ${DOC_COLUMNS} FROM docs_docs WHERE id = ?`).bind(id).first<DocRow>();
@@ -296,9 +314,7 @@ docsRoutes.get("/docs/:id", async (c) => {
     categoryId: doc.category_id,
     tagIds,
     content: parseContent(doc.content),
-    pageSize: doc.page_size,
-    orientation: doc.orientation,
-    margin: doc.margin,
+    ...pageSettings(doc),
     rev: doc.rev,
     updatedAt: doc.updated_at,
     updatedByName: who ? displayName(who.name, who.email) : null,
@@ -322,7 +338,7 @@ docsRoutes.get("/docs/:id/rev", async (c) => {
 });
 
 /**
- * Saves a doc. Body: { baseRev, title?, content?, pageSize?, orientation?, margin? }
+ * Saves a doc. Body: { baseRev, title?, content?, pageSize?, orientation?, margin?, header?, footer?, hideFirst? }
  * baseRev is the rev the editor loaded. When someone else saved first, the save is refused with 409 and code "conflict".
  */
 docsRoutes.patch("/docs/:id", async (c) => {
@@ -359,6 +375,9 @@ docsRoutes.patch("/docs/:id", async (c) => {
   if (body.pageSize !== undefined) (sets.push("page_size = ?"), binds.push(oneOf(body.pageSize, "Page size", PAGE_SIZES)));
   if (body.orientation !== undefined) (sets.push("orientation = ?"), binds.push(oneOf(body.orientation, "Orientation", ORIENTATIONS)));
   if (body.margin !== undefined) (sets.push("margin = ?"), binds.push(oneOf(body.margin, "Margins", MARGINS)));
+  if (body.header !== undefined) (sets.push("header = ?"), binds.push(headerText(body.header, "Header")));
+  if (body.footer !== undefined) (sets.push("footer = ?"), binds.push(headerText(body.footer, "Footer")));
+  if (body.hideFirst !== undefined) (sets.push("hide_first = ?"), binds.push(body.hideFirst === true ? 1 : 0));
   if (!sets.length) return c.json({ rev: doc.rev, updatedAt: doc.updated_at });
 
   const iso = nowIso();
@@ -707,7 +726,7 @@ docsRoutes.get("/docs/:id/print", async (c) => {
     title: doc.title,
     siteName: appName(c.env),
     doc: parseContent(doc.content),
-    settings: { pageSize: doc.page_size, orientation: doc.orientation, margin: doc.margin },
+    settings: pageSettings(doc),
     updatedAt: doc.updated_at,
     imageUrl: (src) => src,
     nonce,

@@ -3,7 +3,9 @@ import { EditorContent, useEditor, useEditorState, type Editor } from "@tiptap/r
 import { Placeholder } from "@tiptap/extensions";
 import { docExtensions } from "../shared/schema";
 import { forgetLocalCopy, useCollab, type Collab } from "./collab";
-import { ApiError, api, errorText, fmtDateTime, Icon, Link, navigate, Notice, PageBody, SiteHeader, useLive, useShell, useToast } from "@openact/ui";
+import { ApiError, api, errorText, Field, fmtDateTime, Icon, Link, Modal, navigate, Notice, PageBody, SiteHeader, useLive, useShell, useToast } from "@openact/ui";
+import { Input } from "@openact/ui/components/input";
+import { Checkbox } from "@openact/ui/components/checkbox";
 import { Button } from "@openact/ui/components/button";
 import { Badge } from "@openact/ui/components/badge";
 import { Toggle } from "@openact/ui/components/toggle";
@@ -24,8 +26,12 @@ import { CategorySelect, FolderSelect, TagInput } from "./library-dialogs";
 import { AiDialog, AiMenu, type AiChoice } from "./ai";
 import { CommentsPanel, NewThreadDialog, commentCss, useComments } from "./comments";
 import { DOCS_HOME, useDocs } from "./state";
-import { contentCss, MARGIN_LABELS, PAGE_SIZE_LABELS, pageBox, paginate } from "../shared/page";
+import { contentCss, fillHeader, MARGIN_LABELS, PAGE_SIZE_LABELS, pageBox, SHEET_GAP, showsHeader } from "../shared/page";
+import { layoutPages, PageSpacers, sameSpacers, spacerKey, type Spacer } from "./pages";
+import { PastePageBreaks } from "./paste";
+import { TableOfContentsView } from "./toc-view";
 import {
+  HEADER_MAX,
   IMAGE_MAX_BYTES,
   IMAGE_TYPES,
   MARGINS,
@@ -40,13 +46,36 @@ import {
 } from "../shared/types";
 
 /*
- * The doc editor: a Tiptap editor on a sheet of the page size.
+ * The doc editor: a Tiptap editor on sheets of the page size, one sheet for each printed page.
  * Changes save on their own after a short pause. Each save sends the rev it started from,
- * so a save never replaces someone else's newer version. Dashed lines show where each printed page starts.
+ * so a save never replaces someone else's newer version.
  */
 
 const SAVE_DELAY_MS = 1000;
 const POLL_MS = 8000;
+const ZOOMS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
+type Zoom = "fit" | (typeof ZOOMS)[number];
+const ZOOM_KEY = "openact.docs.zoom";
+
+const pageSettingsOf = (d: DocDetail): PageSettings => ({
+  pageSize: d.pageSize,
+  orientation: d.orientation,
+  margin: d.margin,
+  header: d.header,
+  footer: d.footer,
+  hideFirst: d.hideFirst
+});
+
+function savedZoom(): Zoom {
+  try {
+    const v = localStorage.getItem(ZOOM_KEY);
+    if (v === "fit") return "fit";
+    const n = Number(v);
+    return (ZOOMS as readonly number[]).includes(n) ? (n as Zoom) : 1;
+  } catch {
+    return 1;
+  }
+}
 
 type Status = "saved" | "dirty" | "saving" | "error" | "conflict";
 
@@ -164,7 +193,7 @@ function LoadedDoc({ initial }: { initial: DocDetail }) {
   const { me } = useShell();
   const id = initial.id;
   const [title, setTitle] = useState(initial.title);
-  const [settings, setSettings] = useState<PageSettings>({ pageSize: initial.pageSize, orientation: initial.orientation, margin: initial.margin });
+  const [settings, setSettings] = useState<PageSettings>(() => pageSettingsOf(initial));
   const [shareUrl, setShareUrl] = useState(initial.shareUrl);
   const [shared, setShared] = useState(initial.shared);
   const [status, setStatus] = useState<Status>("saved");
@@ -172,16 +201,28 @@ function LoadedDoc({ initial }: { initial: DocDetail }) {
   const [savedAt, setSavedAt] = useState(initial.updatedAt);
   const [remoteChanged, setRemoteChanged] = useState(false);
   const [gone, setGone] = useState(false);
-  const [dialog, setDialog] = useState<null | "share" | "link" | "delete">(null);
+  const [dialog, setDialog] = useState<null | "share" | "link" | "delete" | "header">(null);
   const [aiChoice, setAiChoice] = useState<AiChoice | null>(null);
   const comments = useComments(initial.id, initial.canComment);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [activeThread, setActiveThread] = useState<string | null>(null);
   const [newThread, setNewThread] = useState(false);
   const openThreads = (comments.list?.threads ?? []).filter((t) => t.status === "open").length;
-  const [layout, setLayout] = useState<{ pages: number; words: number; markers: Array<{ top: number; page: number }> }>({ pages: 1, words: 0, markers: [] });
   const canEdit = initial.canEdit && !gone;
   const box = useMemo(() => pageBox(settings), [settings]);
+  const [layout, setLayout] = useState({ pages: 1, words: 0, height: box.height });
+  const [zoom, setZoomState] = useState<Zoom>(savedZoom);
+  const [deskWidth, setDeskWidth] = useState(0);
+  const deskRef = useRef<HTMLDivElement>(null);
+  const setZoom = (z: Zoom) => {
+    setZoomState(z);
+    try {
+      localStorage.setItem(ZOOM_KEY, String(z));
+    } catch {
+      // Zoom is a convenience. Without storage it resets on the next visit.
+    }
+  };
+  const scale = zoom === "fit" ? (deskWidth > 0 ? Math.min(2, Math.max(0.25, (deskWidth - 48) / box.width)) : 1) : zoom;
 
   /* Saving */
 
@@ -290,8 +331,11 @@ function LoadedDoc({ initial }: { initial: DocDetail }) {
     shouldRerenderOnTransaction: false,
     immediatelyRender: true,
     extensions: [
-      ...docExtensions({ collab: !!collab }),
+      // The same extensions as the collaboration room, with the editor's view of the table of contents.
+      ...docExtensions({ collab: !!collab }).map((e) => (e.name === "tableOfContents" ? TableOfContentsView : e)),
       ...(collab ? collab.extensions : []),
+      PageSpacers,
+      PastePageBreaks,
       Placeholder.configure({ placeholder: initial.canEdit ? "Start writing…" : "" })
     ],
     content: collab ? undefined : initial.content,
@@ -327,36 +371,55 @@ function LoadedDoc({ initial }: { initial: DocDetail }) {
     editor?.setEditable(canEdit);
   }, [editor, canEdit]);
 
-  /* Page lines: where each printed page starts, with the same splitter as the share page */
+  /* Pages: sheets of paper behind the doc, with spacers that start each page on its own sheet */
 
   useEffect(() => {
     if (!editor) return;
     let frame = 0;
+    let applied: Spacer[] = [];
+    let runs: number[] = [];
     const measure = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        const dom = editor.view.dom as HTMLElement;
-        const kids = Array.from(dom.children) as HTMLElement[];
-        const blocks = kids.map((el) => ({ top: el.offsetTop, bottom: el.offsetTop + el.offsetHeight, forced: el.hasAttribute("data-page-break") }));
-        const starts = paginate(blocks, box.contentHeight);
-        const markers = starts
-          .map((i, k) => ({ i, page: k + 1 }))
-          .filter(({ i, page }) => page > 1 && !kids[i - 1]?.hasAttribute("data-page-break"))
-          .map(({ i, page }) => ({ top: kids[i]!.offsetTop, page }));
+        if (editor.isDestroyed) return;
+        const { spacers, layout: l } = layoutPages(editor.view, box);
+        // Spacers move the doc, so the next run reads it again. Stop after a few runs a second, so it can never loop.
+        const now = Date.now();
+        runs = runs.filter((t) => now - t < 1000);
+        if (!sameSpacers(spacers, applied) && runs.length < 6) {
+          runs.push(now);
+          applied = spacers;
+          editor.view.dispatch(editor.state.tr.setMeta(spacerKey, spacers).setMeta("addToHistory", false));
+        }
         const words = (editor.getText({ blockSeparator: " " }).match(/\S+/g) ?? []).length;
-        setLayout({ pages: starts.length, words, markers });
+        setLayout({ pages: l.pages, words, height: l.height });
+        const toc = editor.storage.tableOfContents;
+        if (toc && toc.pages.join() !== l.headingPages.join()) {
+          toc.pages = l.headingPages;
+          toc.listeners.forEach((f) => f());
+        }
       });
     };
     measure();
     editor.on("update", measure);
     const ro = new ResizeObserver(measure);
     ro.observe(editor.view.dom);
+    void document.fonts?.ready.then(measure);
     return () => {
       cancelAnimationFrame(frame);
       editor.off("update", measure);
       ro.disconnect();
     };
-  }, [editor, box.contentHeight]);
+  }, [editor, box]);
+
+  // The width of the desk, for zoom to fit.
+  useEffect(() => {
+    const el = deskRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setDeskWidth(el.clientWidth));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   /* Other people's changes */
 
@@ -372,7 +435,7 @@ function LoadedDoc({ initial }: { initial: DocDetail }) {
       editor?.commands.setContent(d.content, { emitUpdate: false });
       if (editor) baseline.current = JSON.stringify(editor.getJSON());
       setTitle(d.title);
-      setSettings({ pageSize: d.pageSize, orientation: d.orientation, margin: d.margin });
+      setSettings(pageSettingsOf(d));
       setShared(d.shared);
       setShareUrl(d.shareUrl);
       setSavedAt(d.updatedAt);
@@ -493,8 +556,10 @@ function LoadedDoc({ initial }: { initial: DocDetail }) {
 ${contentCss(".doc-paper .ProseMirror")}
 .doc-paper .ProseMirror{outline:none;position:relative;min-height:${box.contentHeight}px}
 .doc-paper .ProseMirror p.is-editor-empty:first-child::before{content:attr(data-placeholder);color:var(--doc-muted);float:left;height:0;pointer-events:none}
-.doc-paper .doc-page-break{display:flex;align-items:center;justify-content:center;height:28px;margin:16px -${box.margin}px;background:var(--desk);color:var(--muted-foreground);font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;user-select:none}
-.doc-paper .doc-page-break.ProseMirror-selectednode{outline:2px solid var(--ring)}
+.doc-paper .doc-page-break{display:flex;align-items:center;gap:8px;height:20px;margin:4px 0;color:var(--doc-muted);font-size:10px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;user-select:none}
+.doc-paper .doc-page-break::before,.doc-paper .doc-page-break::after{content:"";flex:1;border-top:1px dashed var(--doc-border)}
+.doc-paper .doc-page-break.ProseMirror-selectednode,.doc-paper .doc-toc.ProseMirror-selectednode{outline:2px solid var(--ring);outline-offset:2px;border-radius:2px}
+.doc-paper .doc-page-spacer,.doc-paper .doc-page-spacer > td{padding:0;margin:0;border:0;background:none;pointer-events:none}
 .doc-paper .ProseMirror img.ProseMirror-selectednode{outline:2px solid var(--doc-link);outline-offset:2px}
 .doc-paper .ProseMirror td,.doc-paper .ProseMirror th{position:relative}
 .doc-paper .ProseMirror .selectedCell{background:var(--doc-soft)}
@@ -511,7 +576,7 @@ ${contentCss(".doc-paper .ProseMirror")}
 .doc-paper .collaboration-carets__label{position:absolute;top:-1.45em;left:-1px;padding:1px 5px;border-radius:3px 3px 3px 0;color:var(--paper);font-family:var(--font-sans);font-size:11px;font-weight:600;line-height:normal;white-space:nowrap;user-select:none}
 .doc-paper .ProseMirror-yjs-selection{opacity:.35}
 `,
-    [box.contentHeight, box.margin]
+    [box.contentHeight]
   );
 
   return (
@@ -523,7 +588,8 @@ ${contentCss(".doc-paper .ProseMirror")}
             {others.length === 1 ? `${others[0]!.name} is here` : `${others.length} others are here`}
           </Badge>
         )}
-        {canEdit && <PageMenu settings={settings} onChange={changeSettings} />}
+        <ZoomMenu zoom={zoom} scale={scale} onChange={setZoom} />
+        {canEdit && <PageMenu settings={settings} onChange={changeSettings} onHeader={() => setDialog("header")} />}
         <Button variant="outline" size="sm" onClick={print} data-doc-print="">
           <Icon name="print" /> <span className="hidden sm:inline">Print or PDF</span>
         </Button>
@@ -620,27 +686,22 @@ ${contentCss(".doc-paper .ProseMirror")}
           />
 
           <div className={commentsOpen ? "grid items-start gap-3 xl:grid-cols-[minmax(0,1fr)_340px]" : "grid"}>
-            <div className="-mx-4 min-w-0 overflow-x-auto bg-desk px-4 py-6 md:rounded-xl lg:-mx-0 lg:px-6" data-doc-desk="">
-              <div
-                className="doc-paper mx-auto rounded-sm bg-paper text-paper-foreground shadow-md"
-                style={{ width: box.width, minHeight: box.height, padding: box.margin }}
-                data-page-size={settings.pageSize}
-              >
-                <div className="relative">
-                  <EditorContent editor={editor} />
-                  {layout.markers.map((m) => (
-                    <div
-                      key={m.page}
-                      className="pointer-events-none absolute border-t border-dashed border-paper-border"
-                      style={{ top: m.top - 8, left: -box.margin, right: -box.margin }}
-                      aria-hidden="true"
-                      data-page-marker={m.page}
-                    >
-                      <span className="absolute -top-2.5 right-2 bg-paper px-1.5 text-[10px] font-medium tracking-wide text-paper-muted uppercase">
-                        Page {m.page}
-                      </span>
-                    </div>
+            <div ref={deskRef} className="-mx-4 min-w-0 overflow-x-auto bg-desk px-4 py-6 md:rounded-xl lg:-mx-0 lg:px-6" data-doc-desk="">
+              <div className="mx-auto" style={{ width: box.width * scale, height: layout.height * scale }} data-doc-zoom={scale}>
+                <div
+                  className="relative origin-top-left"
+                  style={{ width: box.width, height: layout.height, transform: scale === 1 ? undefined : `scale(${scale})` }}
+                >
+                  {Array.from({ length: layout.pages }, (_, i) => (
+                    <Sheet key={i} page={i + 1} total={layout.pages} settings={settings} title={title} box={box} />
                   ))}
+                  <div
+                    className="doc-paper relative text-paper-foreground"
+                    style={{ width: box.width, padding: box.margin }}
+                    data-page-size={settings.pageSize}
+                  >
+                    <EditorContent editor={editor} />
+                  </div>
                 </div>
               </div>
             </div>
@@ -671,9 +732,19 @@ ${contentCss(".doc-paper .ProseMirror")}
           <p className="text-xs text-muted-foreground" data-doc-footer="">
             {layout.pages} {layout.pages === 1 ? "page" : "pages"} · {layout.words} {layout.words === 1 ? "word" : "words"} ·{" "}
             {PAGE_SIZE_LABELS[settings.pageSize].split(" (")[0]}, {settings.orientation} · {MARGIN_LABELS[settings.margin].split(" (")[0]} margins. Pages may
-            differ a little in print when a table or image is taller than a page.
+            differ a little in print when one block, such as an image or a long paragraph, is taller than a page.
           </p>
 
+          {dialog === "header" && (
+            <HeaderDialog
+              settings={settings}
+              onSave={(patch) => {
+                changeSettings(patch);
+                setDialog(null);
+              }}
+              onClose={() => setDialog(null)}
+            />
+          )}
           {dialog === "share" && (
             <ShareDialog
               docId={id}
@@ -773,7 +844,7 @@ function SaveStatus({
   );
 }
 
-function PageMenu({ settings, onChange }: { settings: PageSettings; onChange: (p: Partial<PageSettings>) => void }) {
+function PageMenu({ settings, onChange, onHeader }: { settings: PageSettings; onChange: (p: Partial<PageSettings>) => void; onHeader: () => void }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -808,8 +879,106 @@ function PageMenu({ settings, onChange }: { settings: PageSettings; onChange: (p
             </DropdownMenuRadioItem>
           ))}
         </DropdownMenuRadioGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={onHeader} data-header-footer="">
+          Header and footer…
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+/** Zoom for the sheets. It changes only how big the pages look, never the pages or the print. */
+function ZoomMenu({ zoom, scale, onChange }: { zoom: Zoom; scale: number; onChange: (z: Zoom) => void }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" aria-label="Zoom" data-zoom-menu="">
+          <Icon name="zoom" /> <span className="tabular hidden sm:inline">{Math.round(scale * 100)}%</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-40">
+        <DropdownMenuLabel>Zoom</DropdownMenuLabel>
+        <DropdownMenuRadioGroup value={String(zoom)} onValueChange={(v) => onChange(v === "fit" ? "fit" : (Number(v) as Zoom))}>
+          <DropdownMenuRadioItem value="fit">Fit to width</DropdownMenuRadioItem>
+          {ZOOMS.map((z) => (
+            <DropdownMenuRadioItem key={z} value={String(z)}>
+              {z * 100}%
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/** One sheet of paper behind the doc, with its header and footer. */
+function Sheet({ page, total, settings, title, box }: { page: number; total: number; settings: PageSettings; title: string; box: ReturnType<typeof pageBox> }) {
+  const show = showsHeader(settings, page);
+  const name = title.trim() || "Untitled doc";
+  const line = "pointer-events-none absolute truncate text-right text-[11px] text-paper-muted";
+  return (
+    <div
+      className="absolute left-0 rounded-sm bg-paper shadow-md"
+      style={{ top: (page - 1) * (box.height + SHEET_GAP), width: box.width, height: box.height }}
+      aria-hidden="true"
+      data-doc-sheet={page}
+    >
+      {show && settings.header.trim() && (
+        <div className={line} style={{ top: box.margin / 2, left: box.margin, right: box.margin, transform: "translateY(-50%)" }} data-sheet-head="">
+          {fillHeader(settings.header.trim(), page, total, name)}
+        </div>
+      )}
+      {show && settings.footer.trim() && (
+        <div className={line} style={{ bottom: box.margin / 2, left: box.margin, right: box.margin, transform: "translateY(50%)" }} data-sheet-foot="">
+          {fillHeader(settings.footer.trim(), page, total, name)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Edits the header and footer text of every page. */
+function HeaderDialog({
+  settings,
+  onSave,
+  onClose
+}: {
+  settings: PageSettings;
+  onSave: (p: Pick<PageSettings, "header" | "footer" | "hideFirst">) => void;
+  onClose: () => void;
+}) {
+  const [header, setHeader] = useState(settings.header);
+  const [footer, setFooter] = useState(settings.footer);
+  const [hideFirst, setHideFirst] = useState(settings.hideFirst);
+  const oneLine = (v: string) => v.replace(/[\r\n\t]+/g, " ");
+  return (
+    <Modal title="Header and footer" description="They show at the top and bottom of every page, on screen and in print." onClose={onClose}>
+      <form
+        className="grid gap-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          onSave({ header: header.trim(), footer: footer.trim(), hideFirst });
+        }}
+      >
+        <Field label="Header" htmlFor="doc-header" help="Leave it empty for no header.">
+          <Input id="doc-header" autoFocus value={header} maxLength={HEADER_MAX} placeholder="{title}" onChange={(e) => setHeader(oneLine(e.target.value))} />
+        </Field>
+        <Field label="Footer" htmlFor="doc-footer" help="Write {page} for the page number, {total} for the number of pages and {title} for the doc title.">
+          <Input id="doc-footer" value={footer} maxLength={HEADER_MAX} placeholder="Page {page} of {total}" onChange={(e) => setFooter(oneLine(e.target.value))} />
+        </Field>
+        <label className="flex items-center gap-2 text-sm">
+          <Checkbox checked={hideFirst} onCheckedChange={(v) => setHideFirst(v === true)} />
+          Leave them off the first page
+        </label>
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit">Save</Button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 
@@ -936,6 +1105,7 @@ function Toolbar({
         <TableMenu editor={editor} inTable={s.table} />
         <Tool label="Line" icon="rule" onClick={() => c().setHorizontalRule().run()} />
         <Tool label="Page break" icon="pagebreak" onClick={() => c().setPageBreak().run()} shortcut={`${mod}Enter`} />
+        <Tool label="Table of contents" icon="toc" onClick={() => c().insertTableOfContents().run()} />
       </Group>
       {ai && (
         <>
