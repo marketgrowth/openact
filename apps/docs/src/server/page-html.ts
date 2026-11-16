@@ -1,4 +1,4 @@
-import { contentCss, DOC_FONT, pageBox, paginate, printCss } from "../shared/page";
+import { contentCss, DOC_FONT, pageBox, pageUnits, paginate, printCss, splitAt } from "../shared/page";
 import { escapeHtml, renderHtml } from "../shared/content";
 import type { DocNode, PageSettings } from "../shared/types";
 
@@ -85,41 +85,67 @@ body{margin:0;background:var(--desk);font-family:${DOC_FONT};-webkit-font-smooth
 .toc a:hover{background:var(--bar-border)}
 .toc .l2{padding-left:10px}.toc .l3{padding-left:20px}.toc .l4{padding-left:30px}
 .desk{display:flex;flex-direction:column;align-items:center;gap:24px;transform-origin:top center}
-.sheet{background:var(--paper);width:${box.width}px;min-height:${box.height}px;padding:${box.margin}px;box-shadow:0 1px 2px #0000001a,0 4px 16px #00000014;border-radius:2px}
+.sheet{position:relative;background:var(--paper);width:${box.width}px;min-height:${box.height}px;padding:${box.margin}px;box-shadow:0 1px 2px #0000001a,0 4px 16px #00000014;border-radius:2px}
 .sheet.fit{height:${box.height}px;overflow:hidden}
 .sheet-body{position:relative}
 .sheet-body > :first-child{margin-top:0}
+.sheet-head,.sheet-foot{position:absolute;left:${box.margin}px;right:${box.margin}px;font:8pt ${DOC_FONT};color:#666;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transform:translateY(-50%)}
+.sheet-head{top:${Math.round(box.margin / 2)}px}
+.sheet-foot{bottom:${Math.round(box.margin / 2)}px;transform:translateY(50%)}
+.doc-content li.cont{list-style:none}
+.doc-content li.task.cont{padding-left:1.25em}
 @media (max-width:${box.width + 300}px){.toc{display:none}}
 ${contentCss(".doc-content")}
-${printCss(p.settings)}
+${printCss(p.settings, p.title || "Untitled doc")}
 @media print{.layout{display:block;padding:0}.desk{zoom:1!important}}
 `;
 
-  // The page splitter is the same function the editor uses, sent as source.
+  // The page splitter is the same code the editor uses, sent as source.
   const script = `
 (function(){
   var paginate = ${paginate.toString()};
+  var pageUnits = ${pageUnits.toString()};
+  var splitAt = ${splitAt.toString()};
   var H = ${box.contentHeight}, W = ${box.width};
+  var HF = ${JSON.stringify({ header: p.settings.header.trim(), footer: p.settings.footer.trim(), hideFirst: p.settings.hideFirst, title: p.title || "Untitled doc" }).replace(/</g, "\\u003c")};
   var desk = document.getElementById("desk"), flow = document.getElementById("flow");
   function split(){
-    var els = Array.prototype.slice.call(flow.children);
-    if (!els.length) return;
-    var blocks = els.map(function(el){ return { top: el.offsetTop, bottom: el.offsetTop + el.offsetHeight, forced: el.hasAttribute("data-page-break") }; });
-    var starts = paginate(blocks, H);
-    for (var p = 1; p < starts.length; p++) {
+    if (!flow.children.length) return;
+    var units = pageUnits(flow);
+    var starts = paginate(units, H);
+    // Split from the last page back, so each split takes only the rest of the doc.
+    var made = [];
+    for (var p = starts.length - 1; p >= 1; p--) {
       var sheet = document.createElement("article"); sheet.className = "sheet";
       var body = document.createElement("div"); body.className = "sheet-body doc-content";
       sheet.appendChild(body);
-      var end = p + 1 < starts.length ? starts[p + 1] : els.length;
-      for (var i = starts[p]; i < end; i++) body.appendChild(els[i]);
-      desk.appendChild(sheet);
+      body.appendChild(splitAt(flow, units[starts[p]].el));
+      made.unshift(sheet);
     }
+    for (var m = 0; m < made.length; m++) desk.appendChild(made[m]);
     var sheets = desk.querySelectorAll(".sheet");
     for (var s = 0; s < sheets.length; s++) {
       var b = sheets[s].firstElementChild;
       if (b && b.scrollHeight <= H + 1) sheets[s].classList.add("fit");
     }
     document.documentElement.setAttribute("data-pages", String(starts.length));
+    decorate();
+  }
+  function fill(t, page, total){
+    return t.replace(/\\{(page|total|title)\\}/g, function(_, k){ return k === "page" ? String(page) : k === "total" ? String(total) : HF.title; });
+  }
+  // Headers and footers on screen, and page numbers in the table of contents. Print uses the @page boxes for headers.
+  function decorate(){
+    var sheets = desk.querySelectorAll(".sheet"), total = sheets.length, pages = {};
+    for (var i = 0; i < total; i++) {
+      var hs = sheets[i].querySelectorAll("h1[id],h2[id],h3[id],h4[id]");
+      for (var j = 0; j < hs.length; j++) pages[hs[j].id] = i + 1;
+      if (HF.hideFirst && i === 0) continue;
+      if (HF.header) { var h = document.createElement("div"); h.className = "sheet-head no-print"; h.textContent = fill(HF.header, i + 1, total); sheets[i].appendChild(h); }
+      if (HF.footer) { var f = document.createElement("div"); f.className = "sheet-foot no-print"; f.textContent = fill(HF.footer, i + 1, total); sheets[i].appendChild(f); }
+    }
+    var marks = document.querySelectorAll("[data-toc-page]");
+    for (var m = 0; m < marks.length; m++) marks[m].textContent = pages[marks[m].getAttribute("data-toc-page")] || "";
   }
   function fit(){
     var room = document.documentElement.clientWidth - 32;
