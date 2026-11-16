@@ -1,6 +1,6 @@
 import { Hono, type Context } from "hono";
 import { HttpError, appUrl, newId, nowIso, oneOf, readJson, requirePermission, requireUser, text, type AppEnv } from "@openact/core/server";
-import { ADVISORY_HOME, LIMITS, formatPrice, percentToBps, priceProblem, sniffPhoto } from "../shared/rules";
+import { ADVISORY_HOME, LIMITS, accountQuery, connectedAccountBody, formatPrice, onboardingLinkBody, percentToBps, priceProblem, sniffPhoto } from "../shared/rules";
 import { OFFER_KINDS, type MyAdvisorPage, type OfferKind } from "../shared/types";
 import {
   advisorByUser,
@@ -18,7 +18,7 @@ import {
   type OfferRow,
   type RequestRow
 } from "./data";
-import { accountReady, stripe, type StripeAccount } from "./stripe";
+import { accountReady, stripe, stripeV2, type StripeAccount } from "./stripe";
 import { applicationEmail, declinedEmail, paymentLinkEmail, send } from "./emails";
 
 /*
@@ -214,44 +214,26 @@ advisorRoutes.delete("/companies/:cid/me/offers/:oid", async (c) => {
 
 /* Stripe Connect */
 
-/** Starts or continues Stripe onboarding. Makes an Express account the first time. */
+/** Starts or continues Stripe onboarding. Makes a v2 connected account (Express dashboard) the first time. */
 advisorRoutes.post("/companies/:cid/me/stripe/connect", async (c) => {
   const { cid, env, a } = await myAdvisor(c);
   let account = a.stripe_account_id;
   if (!account) {
-    const made = await stripe<StripeAccount>(
-      env,
-      "POST",
-      "accounts",
-      new URLSearchParams({
-        type: "express",
-        email: a.email,
-        "capabilities[card_payments][requested]": "true",
-        "capabilities[transfers][requested]": "true",
-        "metadata[source]": "openact-advisory",
-        "metadata[company_id]": cid,
-        "metadata[advisor_id]": a.id
-      })
-    );
+    const made = await stripeV2<StripeAccount>(env, "POST", "core/accounts", connectedAccountBody({ email: a.email, name: a.name, companyId: cid, advisorId: a.id }));
     account = made.id;
     await env.DB.prepare("UPDATE advisory_advisors SET stripe_account_id = ?, stripe_ready = 0, updated_at = ? WHERE id = ?").bind(account, nowIso(), a.id).run();
   }
-  const back = `${appUrl(c)}${ADVISORY_HOME}/me?tab=earnings&stripe=back`;
-  const link = await stripe<{ url?: string }>(
-    env,
-    "POST",
-    "account_links",
-    new URLSearchParams({ account, type: "account_onboarding", refresh_url: `${appUrl(c)}${ADVISORY_HOME}/me?tab=earnings&stripe=retry`, return_url: back })
-  );
+  const home = `${appUrl(c)}${ADVISORY_HOME}/me?tab=earnings`;
+  const link = await stripeV2<{ url?: string }>(env, "POST", "core/account_links", onboardingLinkBody(account, `${home}&stripe=retry`, `${home}&stripe=back`));
   if (!link.url) throw new HttpError(502, "Stripe did not start the setup. Try again.");
   return c.json({ url: link.url });
 });
 
-/** Reads the connected account from Stripe and saves whether it can take payments. */
+/** Reads the connected account from Stripe and saves whether it can receive payments. */
 advisorRoutes.post("/companies/:cid/me/stripe/refresh", async (c) => {
   const { env, a } = await myAdvisor(c);
   if (!a.stripe_account_id) return c.json({ connected: false, ready: false });
-  const acct = await stripe<StripeAccount>(env, "GET", `accounts/${encodeURIComponent(a.stripe_account_id)}`);
+  const acct = await stripeV2<StripeAccount>(env, "GET", `core/accounts/${encodeURIComponent(a.stripe_account_id)}`, undefined, accountQuery());
   const ready = accountReady(acct);
   await env.DB.prepare("UPDATE advisory_advisors SET stripe_ready = ?, updated_at = ? WHERE id = ?").bind(ready ? 1 : 0, nowIso(), a.id).run();
   return c.json({ connected: true, ready });

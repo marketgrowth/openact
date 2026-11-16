@@ -164,6 +164,46 @@ export function checkoutForm(i: CheckoutInput): URLSearchParams {
   return f;
 }
 
+/*
+ * Stripe Connect with Accounts v2. New Connect platforms cannot call POST /v1/accounts,
+ * so Advisory makes connected accounts with POST /v2/core/accounts.
+ * Advisory uses destination charges, so an advisor needs only the recipient configuration.
+ * Stripe requires both responsibilities set to "application" for a recipient with the Express dashboard.
+ */
+export interface ConnectedAccountInput {
+  email: string;
+  name: string;
+  companyId: string;
+  advisorId: string;
+}
+
+export function connectedAccountBody(i: ConnectedAccountInput) {
+  const name = i.name.trim().slice(0, 100);
+  return {
+    contact_email: i.email,
+    ...(name ? { display_name: name } : {}),
+    dashboard: "express",
+    defaults: { responsibilities: { fees_collector: "application", losses_collector: "application" } },
+    configuration: { recipient: { capabilities: { stripe_balance: { stripe_transfers: { requested: true } } } } },
+    metadata: { source: STRIPE_SOURCE, company_id: i.companyId, advisor_id: i.advisorId },
+    include: ["configuration.recipient", "requirements"]
+  };
+}
+
+/** The v2 Account Link that sends an advisor to Stripe onboarding for the recipient configuration. */
+export function onboardingLinkBody(account: string, refreshUrl: string, returnUrl: string) {
+  return {
+    account,
+    use_case: {
+      type: "account_onboarding",
+      account_onboarding: { configurations: ["recipient"], refresh_url: refreshUrl, return_url: returnUrl }
+    }
+  };
+}
+
+/** The query that asks a v2 Account for the fields Advisory reads. */
+export const accountQuery = () => new URLSearchParams([["include[0]", "configuration.recipient"], ["include[1]", "requirements"]]);
+
 /** The image type of a profile photo from its first bytes, or null when it is not PNG, JPEG or WebP. */
 export function sniffPhoto(b: Uint8Array): "image/png" | "image/jpeg" | "image/webp" | null {
   if (b.length >= 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return "image/png";

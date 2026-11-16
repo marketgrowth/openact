@@ -99,9 +99,11 @@ When a retainer ends, the engagement shows **Ended**. The project and its data s
 
 ## Set up payments
 
-The company's Stripe account is the Stripe Connect platform. Each advisor has a connected Express account. Advisory uses destination charges: the client pays the platform, Stripe sends the advisor's share to their account, and the platform keeps the fee.
+The company's Stripe account is the Stripe Connect platform. Each advisor has a connected account with the Express dashboard. Advisory uses destination charges: the client pays the platform, Stripe sends the advisor's share to their account, and the platform keeps the fee.
 
-1. In Stripe, turn on Connect for the platform account.
+Advisory makes connected accounts with the Accounts v2 API (`POST /v2/core/accounts`). Stripe does not let new Connect platforms use `POST /v1/accounts`. Each account gets the `recipient` configuration with the `stripe_balance.stripe_transfers` capability. An advisor can take payments when that capability is `active`.
+
+1. In Stripe, turn on Connect for the platform account. In the Connect platform profile, accept that the platform pays the Stripe fees and is responsible for negative balances. Advisory sets both responsibilities to `application`, because Stripe requires this for recipient accounts with the Express dashboard.
 2. Set these secrets with `npx wrangler secret put NAME`:
 
    | Secret | Value |
