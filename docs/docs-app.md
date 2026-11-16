@@ -19,9 +19,20 @@ Docs comes with OpenAct, next to Projects. It has its own icon in the app rail. 
 2. Choose **New doc**. Type a title, and choose a folder, a category and a paper size if you want them.
 3. Write. Your changes save on their own after a short pause.
 
-The toolbar has headings, bold, italic, underline, strikethrough, links, lists, checklists, quotes, code blocks, sections that open and close, text alignment, images, tables, lines and page breaks. Press Ctrl+Enter (Cmd+Enter on a Mac) to start a new page.
+The toolbar has headings, bold, italic, underline, strikethrough, links, lists, checklists, quotes, code blocks, sections that open and close, text alignment, images, tables, lines, page breaks and a table of contents.
 
-Choose **Page** to set the paper size (Letter, A4 or Legal), the orientation and the margins. Dashed lines on the sheet show where each printed page starts.
+### Pages
+
+The editor shows each printed page as its own sheet of paper. A page can end between two blocks, between two list items or between two table rows. A heading at the bottom of a page moves to the next page with the text under it. A single block that is taller than a page, such as a large image, gets a page of its own.
+
+- **Page breaks.** Press Ctrl+Enter (Cmd+Enter on a Mac) to start a new page. In a list, the page break splits the list after the current item, and a numbered list goes on with the right number on the next page. When you paste from Google Docs or Word, their page breaks stay.
+- **Paper.** Choose **Page** to set the paper size (Letter, A4 or Legal), the orientation and the margins.
+- **Header and footer.** Choose **Page**, then **Header and footer**. Write `{page}` for the page number, `{total}` for the number of pages and `{title}` for the doc title. For example, `Page {page} of {total}`. You can leave them off the first page, for a cover page. New docs start with page numbers in the footer.
+- **Zoom.** Choose the zoom button to see the pages larger or smaller, or to fit them to the width of the window. Zoom changes only what you see. It does not change the pages or the print, and other people keep their own zoom.
+
+### Table of contents
+
+Choose **Table of contents** in the toolbar to add one where the cursor is. It lists the doc's headings with their page numbers and updates as you write. Click an entry to go to that heading. On a share page, the entries are links. In print and in a PDF, each entry shows its page number.
 
 Images must be PNG, JPEG, WebP or GIF files, up to 5 MB.
 
@@ -118,9 +129,9 @@ Share pages ask search engines not to list them, and they send no referrer to ot
 
 Choose **Print or PDF** in the editor, or **Print or save as PDF** on a share page. In the print dialog, choose **Save as PDF** as the printer.
 
-The share page splits the doc into sheets of the page size, and each sheet prints as one page. Page numbers show at the bottom of each page. Sections that open and close print open.
+The share page splits the doc into the same pages as the editor, and each page prints as one page. The header and footer print at the top and bottom of each page. Sections that open and close print open.
 
-A table or image that is taller than one page gets a page of its own on screen, but the browser splits it in print. Keep long tables short, or split them, when the page count matters.
+A single block that is taller than one page, such as a large image or a very long paragraph, gets a page of its own on screen, but the browser splits it in print. Then the printed page count can differ from the editor.
 
 ## Turn Docs off
 
