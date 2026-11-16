@@ -17,12 +17,27 @@ Each paid plan has one annual price per company. The price does not change with 
 
 ## Get a plan
 
-There are two ways to get a plan. A super admin can also [give one person a paid app](#give-one-person-a-paid-app).
+There are three ways to get a plan. A super admin can also [give one person a paid app](#give-one-person-a-paid-app).
 
 - **On a site that sells plans:** a company owner opens the **Plan** page and chooses a plan. Stripe takes the payment. The plan starts as soon as Stripe confirms it.
+- **The site plan:** when the owner of the site pays for a plan, every company on the site gets it. Read [The site plan](#the-site-plan).
 - **On your own deploy:** MarketGrowth gives you a license key. Put it in the `OPENACT_LICENSE` secret. Every company on the deploy gets the plan in the key.
 
-When a company has both, it gets the higher plan.
+When a company has more than one, it gets the highest plan.
+
+### The site plan
+
+The super owner is the owner of the brand that runs the site. In OpenAct, that is a super admin (an email in `SUPER_ADMIN_EMAILS`) who is an **owner** of a company.
+
+When the super owner pays for a plan in their own company, that plan becomes the site plan. Every company on the site gets its paid apps.
+
+- Other companies see "The owner of this site pays for this plan" on the Plan page. They cannot buy a plan that the site plan already covers.
+- The super owner's company sees that its plan unlocks paid apps for every company.
+- Each company still turns apps on or off in **Company settings > Apps**.
+- Only a company that a super admin owns can give the site plan. A plan that another company pays for covers only that company.
+- When the site plan stops, the paid apps lock in every company that has no plan of its own. Their data stays.
+
+The site plan follows the same rules as any subscription: past_due keeps it, and it works 7 days after the paid year ends.
 
 ### The Plan page
 

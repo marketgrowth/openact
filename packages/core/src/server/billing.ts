@@ -2,10 +2,11 @@ import { Hono, type Context } from "hono";
 import type { AppEnv, Env } from "./env";
 import { requireCompanyRole } from "./data";
 import { HttpError, appUrl, nowIso, oneOf, readJson, requireUser, text } from "./util";
-import { companyPlan, planRow } from "./plans";
+import { companyPlan, planRow, sitePlan } from "./plans";
 import { getCatalog } from "./permissions";
 import { subscriptionFields, verifyStripeSignature, type StripeSubscription, type SubscriptionFields } from "./stripe";
 import { isSuperAdmin, loadSite } from "./site";
+import { isSuperAdminEmail } from "../shared/site";
 import { PAID_PLANS, PLANS, planDescriptions, planIncludes, type CompanyPlan, type PaidPlan, type PlanOffer } from "../shared/plans";
 
 /*
@@ -109,6 +110,16 @@ export async function hasRenewingSubscription(env: Env, companyId: string): Prom
   return !!row && ["active", "trialing", "past_due"].includes(row.status) && row.cancel_at_period_end !== 1;
 }
 
+/** True when a super admin is an owner of the company. Its paid plan is then the site plan. */
+async function ownedBySuperOwner(env: Env, companyId: string): Promise<boolean> {
+  const owners = await env.DB.prepare(
+    "SELECT u.email FROM company_members m JOIN users u ON u.id = m.user_id WHERE m.company_id = ? AND m.role = 'owner'"
+  )
+    .bind(companyId)
+    .all<{ email: string }>();
+  return owners.results.some((o) => isSuperAdminEmail(env.SUPER_ADMIN_EMAILS, o.email));
+}
+
 async function planDetail(c: Context<AppEnv>, companyId: string, canManage: boolean): Promise<CompanyPlan> {
   const env = c.env;
   const state = await companyPlan(env, companyId, c.req.url);
@@ -123,10 +134,13 @@ async function planDetail(c: Context<AppEnv>, companyId: string, canManage: bool
     })
   );
   const row = state.row;
+  const paysForSite = state.subscriptionActive && state.site !== "free" && (await ownedBySuperOwner(env, companyId));
   const contact = (env.PLANS_CONTACT_URL || "").trim();
   return {
     plan: state.plan,
     source: state.source,
+    sitePlan: state.site === "free" ? null : state.site,
+    paysForSite,
     subscription:
       row && (row.plan === "director" || row.plan === "producer")
         ? {
@@ -172,6 +186,9 @@ companyPlanRoutes.post("/:id/plan/checkout", async (c) => {
   const row = await planRow(c.env, id);
   if (row && ["active", "trialing", "past_due"].includes(row.status))
     throw new HttpError(400, "This company already has a plan. Change it with Manage billing.", "has_plan");
+  // The site plan covers every company. Do not charge a company for a plan it already has.
+  if (planIncludes(await sitePlan(c.env), plan))
+    throw new HttpError(400, `The owner of this site pays for ${PLANS[plan].name}. Every company on the site has it already.`, "site_plan");
 
   const base = appUrl(c);
   const form = new URLSearchParams({

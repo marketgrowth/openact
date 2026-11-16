@@ -21,7 +21,7 @@ import {
   subscriptionActive
 } from "../packages/core/src/shared/plans.ts";
 import { checkLicense } from "../packages/core/src/server/license.ts";
-import { resolvePlan } from "../packages/core/src/server/plans.ts";
+import { resolvePlan, rowPlan } from "../packages/core/src/server/plans.ts";
 import { subscriptionFields, verifyStripeSignature } from "../packages/core/src/server/stripe.ts";
 
 const DAY = 86400000;
@@ -59,6 +59,25 @@ test("the plan is the higher of the subscription and the license", () => {
   });
   assert.equal(resolvePlan(null, { ok: false }, now).plan, "free");
   assert.equal(resolvePlan({ ...row, plan: "gold" }, null, now).plan, "free");
+});
+
+test("the site plan of a super owner covers every company", () => {
+  const now = Date.parse("2027-01-10T00:00:00Z");
+  const row = { plan: "director", status: "active", period_end: "2027-06-01T00:00:00Z" };
+  // A company with no subscription gets the site plan.
+  assert.deepEqual(resolvePlan(null, null, now, "director"), { plan: "director", source: "site", subscriptionActive: false });
+  // Its own subscription wins when it is the same plan.
+  assert.equal(resolvePlan(row, null, now, "director").source, "subscription");
+  // The higher plan wins.
+  assert.deepEqual(resolvePlan(row, null, now, "producer"), { plan: "producer", source: "site", subscriptionActive: true });
+  assert.equal(resolvePlan(null, { ok: true, payload: { plan: "producer" } }, now, "director").source, "license");
+  // A grants key gives no plan, so the site plan stays.
+  assert.equal(resolvePlan(null, { ok: true, payload: { plan: "producer", use: "grants" } }, now, "director").source, "site");
+  assert.equal(resolvePlan(null, null, now, "free").plan, "free");
+  // A stopped subscription gives no site plan.
+  assert.equal(rowPlan({ ...row, status: "canceled" }, now), "free");
+  assert.equal(rowPlan({ ...row, period_end: "2026-12-01T00:00:00Z" }, now), "free");
+  assert.equal(rowPlan(row, now), "director");
 });
 
 test("license dates and hosts", () => {
