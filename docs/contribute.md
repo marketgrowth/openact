@@ -4,7 +4,7 @@ Every OpenAct deploy has a public page at `/contribute`. People use it to help b
 
 The page also lists the nonprofits, and the projects that support nonprofits, that OpenAct helps build software for. Edit the list in `SUPPORTED_PROJECTS` in `src/shared/contribute.ts`.
 
-The Contribute icon (a heart) sits at the bottom of the app rail, on top of the Colophon icon.
+The Contribute icon (a heart) sits at the bottom of the app rail.
 
 People can pay in two ways:
 
@@ -46,7 +46,7 @@ Do these steps in order. Test each payment method before you switch it to live.
 1. Pull the latest code: `git pull origin main`.
 2. Install: `npm install`.
 3. Deploy: `npm run deploy`. No new migration is needed.
-4. Open `/contribute`. The page says that contributions are not set up yet. The heart icon shows on top of the Colophon icon in the app rail.
+4. Open `/contribute`. The page says that contributions are not set up yet. The heart icon shows at the bottom of the app rail.
 
 If your Worker has another name than the one in `wrangler.jsonc`, add `--name <worker>` to each `wrangler secret put` command below.
 

@@ -19,35 +19,63 @@ Each paid plan has one annual price per company. The price does not change with 
 
 There are two ways to get a plan. A super admin can also [give one person a paid app](#give-one-person-a-paid-app).
 
-- **On a site that sells plans:** a company owner opens the **Plan** page and chooses a plan. Stripe takes the payment. The plan starts as soon as Stripe confirms it.
+- **The site plan:** the owner of the site chooses a plan in **Site settings > Plan**. Stripe takes the payment. Every company on the site gets the plan as soon as Stripe confirms it. Read [The site plan](#the-site-plan).
 - **On your own deploy:** MarketGrowth gives you a license key. Put it in the `OPENACT_LICENSE` secret. Every company on the deploy gets the plan in the key.
 
 When a company has both, it gets the higher plan.
 
+### The site plan
+
+The super owner is the owner of the brand that runs the site. In OpenAct, that is a super admin (an email in `SUPER_ADMIN_EMAILS`) who is an **owner** of a company.
+
+When the super owner pays for a plan in their own company, that plan becomes the site plan. Every company on the site gets its paid apps.
+
+- Only the super owner can buy a plan. Company owners and admins do not see the Plan page.
+- Each company still turns apps on or off in **Company settings > Apps**.
+- When the site plan stops, the paid apps lock in every company that has no plan of its own. Their data stays.
+
+The site plan follows the same rules as any subscription: past_due keeps it, and it works 7 days after the paid year ends.
+
 ### The Plan page
 
-Open the company menu at the top of the app rail, then choose **Plan**. Company owners and admins also find it in **Company settings**, under **Plan**.
+The Plan page is in Site settings. Only super admins see it.
 
-The page shows:
+1. Open **Settings** with the gear at the bottom of the app rail.
+2. Under **Site settings**, choose **Plan**.
 
-- the company's plan, and when it renews or stops
+The page shows the plan of a company that you own: the current company when you own it, or else the first one. You need to own a company to buy a plan. The page shows:
+
+- the plan, and when it renews or stops
 - the plans for sale on this site, with their prices
 - the apps in each plan
 
-Only a company owner can buy a plan. Choose **Manage billing** to change the card, see invoices, switch between Director and Producer, or cancel. A canceled plan works until the end of the paid year.
+In the app, the plans are named **Director** and **Producer**, so the names fit any brand that runs OpenAct.
+
+Only a super admin who owns the company can buy a plan. The server checks it on every checkout. Choose **Manage billing** to change the card, see invoices, switch between Director and Producer, or cancel. A canceled plan works until the end of the paid year.
 
 ## What happens without a plan
 
 An app that needs a plan is **locked** in a company without that plan.
 
-- The Apps page shows the app with a **Director** badge and an **Upgrade** button. The switch is off and cannot be turned on.
-- The app leaves the app rail. Its pages say that it is part of OpenAct Director.
+- **Company settings > Apps** shows the app with a **Director** badge. The switch is off and cannot be turned on.
+- The app leaves the app rail. Its pages say that it is part of a paid plan, and ask people to talk to the owner of the site.
 - Its API routes answer with the code `plan_required`.
 - For Docs: share links stop working, and live editing closes.
 
 The app's data stays. When the company gets the plan again, the app comes back with all its data.
 
 If a payment fails, the plan keeps working while Stripe tries the card again. After the paid year ends, the plan keeps working for 7 more days, in case a message from Stripe is late.
+
+### Change the plan descriptions
+
+A super admin can change the sentence under each plan name on the Plan page. Use it to describe the plans in the words of your brand, such as "For homes with up to 15 beds."
+
+1. Open **Settings**, then **Site settings > Plan**.
+2. Choose the pencil button next to the description of **Free plan**, **Director** or **Producer**.
+3. Type the new description, then choose **Save**. Use 200 characters or fewer.
+4. To show the default text again, choose **Use default**.
+
+The Free plan description shows only when the site has no plan. The server checks that the person is a super admin on every save (`PATCH /api/site/plans/:planId`).
 
 ## Give one person a paid app
 

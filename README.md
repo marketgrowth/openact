@@ -46,7 +46,7 @@ Read the documentation at [docs.openact.app](https://docs.openact.app).
 - **Apps.** OpenAct is a core plus apps. The core gives every app sign-in, people, companies, roles, live updates and the web shell. Project management is the first app. Add more from GitHub with one command: `npm run openact -- add github:owner/repo`. See [docs/apps.md](docs/apps.md).
 - **Built with shadcn/ui.** The web app uses [shadcn/ui](https://ui.shadcn.com) components, [Tailwind CSS](https://tailwindcss.com) and [Lucide](https://lucide.dev) icons, with the layout of shadcn's dashboard-01 block. Most React developers and coding agents already know these parts.
 - **Live updates.** When someone changes a project, every open page updates at once, including changes made by the AI agent. The header shows who else is viewing. Each project has a Durable Object that holds its WebSockets, and idle connections hibernate, so they cost almost nothing. If live updates are not available, pages check for changes every 5 seconds.
-- **Contributions.** A public page at `/contribute` lets people help pay for OpenAct, by card through Stripe Checkout or in USDC through [x402](https://www.x402.org). AI agents can pay the same x402 endpoint. The heart icon sits on top of the Colophon icon in the app rail. See [docs/contribute.md](docs/contribute.md).
+- **Contributions.** A public page at `/contribute` lets people help pay for OpenAct, by card through Stripe Checkout or in USDC through [x402](https://www.x402.org). AI agents can pay the same x402 endpoint. The heart icon sits at the bottom of the app rail. See [docs/contribute.md](docs/contribute.md).
 
 ## Screenshots
 
@@ -57,7 +57,7 @@ The screenshots use example data: a sample team and projects, seen by Lyra, a co
 | ![Projects home page that greets Lyra, with Pinned, Projects and Recent in the panel](docs/images/projects.png) | ![Company menu open from the app rail](docs/images/switcher.png) |
 | **Projects.** The company's projects, with Pinned, Projects and Recent tasks in the panel. | **Company menu.** Every app's panel names the current company. Select it, or the mark on the app rail, to change company. |
 | ![Apps page with the apps in this company and apps from the directory](docs/images/apps-page.png) | ![Apps page in dark theme](docs/images/apps-page-dark.png) |
-| **Apps.** The App directory icon, below the divider on the app rail, opens the apps in this company and apps from the directory. Owners turn apps on or off here. | **Directory.** Official apps that are not ready say "Under review". Apps you can add show their install command. |
+| **Apps.** The App directory icon, below the divider on the app rail, opens the apps in this company and apps from the directory. Only super admins see it. Company owners turn apps on or off in Company settings. | **Directory.** Official apps that are not ready say "Under review". Apps you can add show their install command. |
 | ![Gantt timeline with phases and today line](docs/images/timeline.png) | ![Month calendar with start cards and deadline pills](docs/images/calendar.png) |
 | **Timeline.** Drag bars to move tasks. Phases have summary bars. | **Calendar.** Cards show starts. Pills show deadlines. |
 | ![Task drawer with dates, assignee and files](docs/images/task.png) | ![Panel collapsed to the app rail](docs/images/collapsed.png) |
@@ -236,7 +236,7 @@ OpenAct stores only SHA-256 hashes of codes and session tokens. It limits code r
 
 ## How it is built
 
-For the full list of tools, services, fonts and versions, read the [Colophon](docs/colophon.md). The app shows it at `/colophon`.
+For the full list of tools, services, fonts and versions, read the [Colophon](docs/colophon.md). The app shows it at `/colophon`. The page has no icon on the app rail.
 
 | Part | Choice |
 | --- | --- |

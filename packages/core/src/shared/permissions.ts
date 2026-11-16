@@ -65,6 +65,8 @@ export interface CompanyAccess {
   disabledApps: string[];
   /** Apps that need a plan the company does not have. */
   lockedApps: string[];
+  /** Apps that a super admin turned off for this company. They are also off. */
+  blockedApps: string[];
   /** The permissions this person has in this company. */
   permissions: string[];
 }
@@ -77,6 +79,8 @@ export interface CompanyAppSettings {
   enabledByDefault: boolean;
   /** True when a super admin turned the app off for the whole site. A company cannot turn it on. */
   siteOff: boolean;
+  /** True when a super admin turned the app off for this company only. A company cannot turn it on. */
+  blocked: boolean;
   /** The plan the app needs, or null when it is free. */
   plan: PaidPlan | null;
   /** True when the company does not have that plan. A locked app is off, and a company cannot turn it on. */

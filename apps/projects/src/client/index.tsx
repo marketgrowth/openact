@@ -4,6 +4,7 @@ import type { CompanyDetail } from "../shared/types";
 import { ProjectsProvider } from "./projects-context";
 import { ProjectsSection } from "./ProjectsSection";
 import { ProjectsPage } from "./pages/Projects";
+import { PROJECTS_HOME } from "./paths";
 
 /*
  * The projects app in the web app: the projects page, a project's board, timeline, calendar and people,
@@ -44,7 +45,6 @@ export default defineClientApp({
   id: "projects",
   name: "Projects",
   icon: "projects",
-  ownsPath: (path) => path === "/" || path.startsWith("/p/"),
   Provider,
   Home: ProjectsPage,
   routes: [
@@ -53,7 +53,7 @@ export default defineClientApp({
       render: (m) => <ProjectRoute id={m[1]!} view={(m[2] as View) || "board"} />
     }
   ],
-  nav: [{ label: "All projects", icon: "projects", path: "/" }],
+  nav: [{ label: "All projects", icon: "projects", path: PROJECTS_HOME }],
   SidebarSection: ProjectsSection,
   commands: [
     { id: "projects.new", label: "New project", icon: "plus", inSidebar: false, Dialog: NewProject },

@@ -1,9 +1,8 @@
 import { COMPANY_ROLE_LABELS, type Company, type User } from "@openact/core/shared";
-import { APPS_PATH, SETTINGS_PATH, activeApp, appHome, isSettingsPath, railGroups, railOrder, type ClientApp } from "../apps";
+import { APPS_PATH, SETTINGS_PATH, activeApp, appHome, isSettingsPath, railGroups, railOrder, resolveAppPath, type ClientApp } from "../apps";
 import { ACCOUNT_SECTIONS, COMPANY_SECTIONS, SITE_SECTIONS, appSections, parseSettingsPath, settingsPath, type SettingsSection } from "../settings-paths";
 import { canManageCompany } from "@openact/core/shared";
 import { Link, navigate, usePath } from "../router";
-import { PLAN_PATH } from "./Plan";
 import { Avatar, Icon } from "../ui";
 import { useWorkspace } from "../workspace";
 import { getTheme, setTheme, type ThemePref } from "../theme";
@@ -77,7 +76,7 @@ export interface AppSidebarProps {
   primary?: string | null;
   onRunCommand: (id: string) => void;
   onNewCompany: () => void;
-  /** True for super admins. They see Site settings on the Settings page. */
+  /** True for super admins. They see Site settings on the Settings page and the App directory on the rail. */
   superAdmin: boolean;
   onSignOut: (everywhere: boolean) => void;
 }
@@ -114,7 +113,7 @@ const RailDivider = () => <SidebarSeparator className="mx-auto my-2 data-[orient
 /*
  * The left side panel has two columns.
  * The app rail: the company, the primary app (if the deploy has one), a divider, the other apps,
- * a divider, the App directory, then Settings and the person's menu.
+ * a divider and the App directory (super admins only), then Settings and the person's menu.
  * The app panel: the active app's name, commands, items and groups. On the Settings page, it lists the settings sections.
  * Collapsing the panel (Ctrl+B or Cmd+B) leaves only the rail.
  */
@@ -133,8 +132,10 @@ export function AppSidebar(p: AppSidebarProps) {
   const shellPage = onDirectory ? "apps" : onSettings ? "settings" : undefined;
   const panelTitle = onDirectory ? "Apps" : onSettings ? "Settings" : (active?.name ?? p.appName);
   const commands = current && active ? (active.commands ?? []).filter((c) => c.inSidebar) : [];
-  const main = (active?.nav ?? []).filter((n) => (n.placement ?? "main") === "main");
-  const footer = p.apps.flatMap((a) => a.nav ?? []).filter((n) => n.placement === "footer");
+  // Nav items that point at an app's own path (/a/<id>) go to the app's home, which can be "/".
+  const navOf = (app: ClientApp) => (app.nav ?? []).map((n) => ({ ...n, path: resolveAppPath(app, p.apps, n.path) }));
+  const main = (active ? navOf(active) : []).filter((n) => (n.placement ?? "main") === "main");
+  const footer = p.apps.flatMap(navOf).filter((n) => n.placement === "footer");
   const Section = current ? active?.SidebarSection : undefined;
 
   return (
@@ -167,16 +168,21 @@ export function AppSidebar(p: AppSidebarProps) {
                     ))}
                   </SidebarMenu>
                 )}
-                {rail.length > 0 && <RailDivider />}
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild tooltip={railTip("App directory")} isActive={onDirectory} className="justify-center p-0" data-app-directory="">
-                      <Link to={APPS_PATH} onClick={done} aria-label="App directory" aria-current={onDirectory ? "page" : undefined}>
-                        <Icon name="apps" />
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </SidebarMenu>
+                {/* The App directory belongs to the owner of the brand (the super admin). Others do not see it. */}
+                {p.superAdmin && (
+                  <>
+                    {rail.length > 0 && <RailDivider />}
+                    <SidebarMenu>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild tooltip={railTip("App directory")} isActive={onDirectory} className="justify-center p-0" data-app-directory="">
+                          <Link to={APPS_PATH} onClick={done} aria-label="App directory" aria-current={onDirectory ? "page" : undefined}>
+                            <Icon name="apps" />
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    </SidebarMenu>
+                  </>
+                )}
               </SidebarGroupContent>
             </SidebarGroup>
           </SidebarContent>
@@ -360,11 +366,6 @@ function CompanyMenu({ appName, onNewCompany, onPick, side, align }: SwitcherPro
           }}
         >
           <Icon name="gear" /> Company settings
-        </DropdownMenuItem>
-      )}
-      {current && current.role !== "guest" && (
-        <DropdownMenuItem onSelect={() => navigate(PLAN_PATH)}>
-          <Icon name="star" /> Plan
         </DropdownMenuItem>
       )}
       <DropdownMenuItem onSelect={onNewCompany}>

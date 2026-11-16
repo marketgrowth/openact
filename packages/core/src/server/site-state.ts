@@ -3,6 +3,8 @@
  * siteMiddleware refreshes them, so appName() can stay a plain function.
  */
 
+import type { PlanId } from "../shared/plans";
+
 export interface SiteState {
   /** The name a super admin set, or "" to use APP_NAME. */
   name: string;
@@ -18,6 +20,8 @@ export interface SiteState {
   backgroundUpdatedAt: string | null;
   /** Apps that a super admin turned off for the whole site. They are off in every company. */
   appsOff: string[];
+  /** Plan descriptions that a super admin set. A missing plan uses the default. */
+  planDescriptions: Partial<Record<PlanId, string>>;
   /** When this isolate read the settings, in milliseconds. */
   at: number;
 }

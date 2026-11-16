@@ -6,9 +6,9 @@ import { Link, navigate, usePath } from "../router";
 import { ToastProvider } from "../ui";
 import { WorkspaceProvider, useWorkspace } from "../workspace";
 import { settingsPath } from "../settings-paths";
-import { APPS_PATH, ShellContext, appHome, isSettingsPath, railOrder, type ClientApp, type DirectoryApp, type Shell } from "../apps";
+import { APPS_PATH, ShellContext, appHome, homeAppAt, isSettingsPath, railOrder, type ClientApp, type DirectoryApp, type Shell } from "../apps";
 import { SignIn } from "./SignIn";
-import { PLAN_PATH, PlanPage } from "./Plan";
+import { PLAN_PATH } from "./Plan";
 import { AppSidebar } from "./Sidebar";
 import { PageBody, SiteHeader } from "./SiteHeader";
 import { SidebarInset, SidebarProvider } from "@openact/ui/components/sidebar";
@@ -167,7 +167,7 @@ function SignedIn({
   const [open, setOpen] = useState(readPanelOpen);
   const [dialog, setDialog] = useState<Dialog>(null);
   const close = useCallback(() => setDialog(null), []);
-  // Super admins see Site settings on the Settings page. The server checks again on every change. undefined while it loads.
+  // Super admins see Site settings on the Settings page and the App directory. The server checks again on every change. undefined while it loads.
   const [superAdmin, setSuperAdmin] = useState<boolean | undefined>(undefined);
   useEffect(() => {
     api<SiteSettings>("/api/site")
@@ -229,21 +229,45 @@ function SignedIn({
   // The page: the first app route that matches, or the first app's home page at "/".
   let page: ReactNode =
     path === APPS_PATH ? (
-      <AppsPage />
-    ) : path === PLAN_PATH ? (
-      <PlanPage />
+      // Only super admins, the owners of the brand, see the App directory. Others go to the home page.
+      superAdmin === true ? (
+        <AppsPage />
+      ) : superAdmin === false ? (
+        <Redirect to="/" />
+      ) : (
+        <PageBody>
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        </PageBody>
+      )
+    ) : path === "/plan" ? (
+      // The old Plan page. Plans are in Site settings now.
+      superAdmin === undefined ? (
+        <PageBody>
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        </PageBody>
+      ) : (
+        <Redirect to={superAdmin ? PLAN_PATH : "/"} />
+      )
     ) : isSettingsPath(path) ? (
-      <SettingsPage me={me} apps={onApps} onSite={onSite} onMe={onMe} onSignOut={signOut} />
+      <SettingsPage me={me} apps={onApps} superAdmin={superAdmin} onSite={onSite} onMe={onMe} onSignOut={signOut} />
     ) : null;
   for (const app of page ? [] : apps) {
     for (const r of app.routes ?? []) {
       const m = path.match(r.pattern);
       if (m) {
-        page = onApps.includes(app) ? r.render(m) : <AppOff name={app.name} locked={!!ws.access?.lockedApps.includes(app.id)} />;
+        page = onApps.includes(app) ? r.render(m) : <AppOff name={app.name} locked={!!ws.access?.lockedApps.includes(app.id)} blocked={!!ws.access?.blockedApps?.includes(app.id)} superAdmin={superAdmin === true} />;
         break;
       }
     }
     if (page) break;
+  }
+  // An app's own path, /a/<id>, shows its home page. When the app owns "/", it goes there instead.
+  const homeApp = page ? undefined : homeAppAt(apps, path);
+  if (homeApp && homeApp.Home) {
+    const HomeAt = homeApp.Home;
+    if (!onApps.includes(homeApp)) page = <AppOff name={homeApp.name} locked={!!ws.access?.lockedApps.includes(homeApp.id)} blocked={!!ws.access?.blockedApps?.includes(homeApp.id)} superAdmin={superAdmin === true} />;
+    else if (appHome(homeApp, onApps) === "/") page = <Redirect to="/" />;
+    else page = <HomeAt />;
   }
   if (!page && path === "/") {
     const Home = onApps.find((a) => a.Home)?.Home;
@@ -296,18 +320,42 @@ function Redirect({ to }: { to: string }) {
 }
 
 /** An app that is off in this company. An empty name means that every app is off. */
-function AppOff({ name, locked = false }: { name: string; locked?: boolean }) {
+function AppOff({ name, locked = false, blocked = false, superAdmin = false }: { name: string; locked?: boolean; blocked?: boolean; superAdmin?: boolean }) {
+  if (blocked)
+    return (
+      <>
+        <SiteHeader title={name} />
+        <PageBody>
+          <div className="mx-auto flex w-full max-w-lg flex-col items-center gap-3 rounded-xl border border-dashed p-8 text-center" data-app-blocked="">
+            <h2 className="text-lg font-semibold">{name} is not available for this company</h2>
+            <p className="text-sm text-muted-foreground">
+              {superAdmin ? "Make it available in Site settings, under Apps." : "Ask the owner of this site to make it available."} Your data in {name} stays.
+            </p>
+            {superAdmin && (
+              <Button asChild>
+                <Link to={settingsPath("site", "apps")}>Open Site settings</Link>
+              </Button>
+            )}
+          </div>
+        </PageBody>
+      </>
+    );
   if (locked)
     return (
       <>
         <SiteHeader title={name} />
         <PageBody>
           <div className="mx-auto flex w-full max-w-lg flex-col items-center gap-3 rounded-xl border border-dashed p-8 text-center" data-app-locked="">
-            <h2 className="text-lg font-semibold">{name} is part of OpenAct Director</h2>
-            <p className="text-sm text-muted-foreground">A company owner can upgrade on the Plan page. Your data in {name} stays while it is locked.</p>
-            <Button asChild>
-              <Link to={PLAN_PATH}>See plans</Link>
-            </Button>
+            <h2 className="text-lg font-semibold">{name} is part of a paid plan</h2>
+            <p className="text-sm text-muted-foreground">
+              {superAdmin ? "Choose a plan in Site settings." : "Ask the owner of this site to upgrade the plan."} Your data in {name} stays while it
+              is locked.
+            </p>
+            {superAdmin && (
+              <Button asChild>
+                <Link to={PLAN_PATH}>See plans</Link>
+              </Button>
+            )}
           </div>
         </PageBody>
       </>

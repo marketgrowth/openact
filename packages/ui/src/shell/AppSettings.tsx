@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { COMPANY_ROLES, COMPANY_ROLE_LABELS, PLANS, type CompanyAppSettings, type CompanyRole } from "@openact/core/shared";
+import { COMPANY_ROLES, COMPANY_ROLE_LABELS, planPart, type CompanyAppSettings, type CompanyRole } from "@openact/core/shared";
 import { PlanBadge } from "./Plan";
 import { api, errorText } from "../api";
 import { Notice, useToast } from "../ui";
@@ -61,15 +61,17 @@ export function AppsTab({ companyId }: { companyId: string }) {
               </span>
               <span className="text-xs text-muted-foreground">
                 {a.locked && a.plan
-                  ? `Part of ${PLANS[a.plan].name}. A company owner can upgrade in Company settings, under Plan.`
+                  ? `${planPart(a.plan)}. Ask the owner of this site to upgrade the plan.`
                   : a.siteOff
                   ? "Off for this site. A super admin can turn it on in Site settings."
+                  : a.blocked
+                  ? "Not available for this company. Ask the owner of this site to make it available in Site settings."
                   : `${a.permissions.length} ${a.permissions.length === 1 ? "permission" : "permissions"} · ${a.enabledByDefault ? "On" : "Off"} for new companies`}
               </span>
             </div>
             <Switch
               checked={a.enabled}
-              disabled={busy || a.siteOff || a.locked}
+              disabled={busy || a.siteOff || a.blocked || a.locked}
               onCheckedChange={(on) => save(a.id, { enabled: on }, `${a.name} is ${on ? "on" : "off"}.`)}
               aria-label={`${a.name} app`}
             />

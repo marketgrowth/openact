@@ -6,16 +6,22 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHmac } from "node:crypto";
 import {
+  PLANS,
+  PLAN_DESCRIPTION_MAX,
+  cleanPlanDescription,
   formatPrice,
   higherPlan,
   licenseHostOk,
   licenseTime,
   parseLicense,
+  planDescriptionKey,
+  planDescriptions,
   planIncludes,
+  planPart,
   subscriptionActive
 } from "../packages/core/src/shared/plans.ts";
 import { checkLicense } from "../packages/core/src/server/license.ts";
-import { resolvePlan } from "../packages/core/src/server/plans.ts";
+import { resolvePlan, rowPlan } from "../packages/core/src/server/plans.ts";
 import { subscriptionFields, verifyStripeSignature } from "../packages/core/src/server/stripe.ts";
 
 const DAY = 86400000;
@@ -53,6 +59,25 @@ test("the plan is the higher of the subscription and the license", () => {
   });
   assert.equal(resolvePlan(null, { ok: false }, now).plan, "free");
   assert.equal(resolvePlan({ ...row, plan: "gold" }, null, now).plan, "free");
+});
+
+test("the site plan of a super owner covers every company", () => {
+  const now = Date.parse("2027-01-10T00:00:00Z");
+  const row = { plan: "director", status: "active", period_end: "2027-06-01T00:00:00Z" };
+  // A company with no subscription gets the site plan.
+  assert.deepEqual(resolvePlan(null, null, now, "director"), { plan: "director", source: "site", subscriptionActive: false });
+  // Its own subscription wins when it is the same plan.
+  assert.equal(resolvePlan(row, null, now, "director").source, "subscription");
+  // The higher plan wins.
+  assert.deepEqual(resolvePlan(row, null, now, "producer"), { plan: "producer", source: "site", subscriptionActive: true });
+  assert.equal(resolvePlan(null, { ok: true, payload: { plan: "producer" } }, now, "director").source, "license");
+  // A grants key gives no plan, so the site plan stays.
+  assert.equal(resolvePlan(null, { ok: true, payload: { plan: "producer", use: "grants" } }, now, "director").source, "site");
+  assert.equal(resolvePlan(null, null, now, "free").plan, "free");
+  // A stopped subscription gives no site plan.
+  assert.equal(rowPlan({ ...row, status: "canceled" }, now), "free");
+  assert.equal(rowPlan({ ...row, period_end: "2026-12-01T00:00:00Z" }, now), "free");
+  assert.equal(rowPlan(row, now), "director");
 });
 
 test("license dates and hosts", () => {
@@ -154,4 +179,27 @@ test("subscription fields: the price decides the plan", () => {
 test("prices read like plain text", () => {
   assert.equal(formatPrice({ amount: 120000, currency: "usd", interval: "year" }), "$1,200 a year");
   assert.equal(formatPrice({ amount: 9950, currency: "usd", interval: "year" }), "$99.50 a year");
+});
+
+test("plan names in the app have no OpenAct prefix", () => {
+  assert.equal(PLANS.director.name, "Director");
+  assert.equal(PLANS.producer.name, "Producer");
+  assert.equal(planPart("director"), "Part of the Director plan");
+});
+
+test("a plan description is one clean line with a length limit", () => {
+  assert.deepEqual(cleanPlanDescription("  For small\n  homes  "), { text: "For small homes" });
+  assert.deepEqual(cleanPlanDescription(""), { text: "" });
+  assert.deepEqual(cleanPlanDescription(null), { text: "" });
+  assert.ok("problem" in cleanPlanDescription(42));
+  assert.ok("problem" in cleanPlanDescription("x".repeat(PLAN_DESCRIPTION_MAX + 1)));
+  assert.deepEqual(cleanPlanDescription("x".repeat(PLAN_DESCRIPTION_MAX)), { text: "x".repeat(PLAN_DESCRIPTION_MAX) });
+});
+
+test("saved plan descriptions replace the defaults, and blanks fall back", () => {
+  const d = planDescriptions({ director: "For homes with up to 15 beds.", producer: "   " });
+  assert.deepEqual(d.director, { text: "For homes with up to 15 beds.", custom: true });
+  assert.deepEqual(d.producer, { text: PLANS.producer.audience, custom: false });
+  assert.deepEqual(d.free, { text: PLANS.free.audience, custom: false });
+  assert.equal(planDescriptionKey("free"), "plan_desc_free");
 });

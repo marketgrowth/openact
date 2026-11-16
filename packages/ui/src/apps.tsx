@@ -9,12 +9,13 @@ import type { AppConfig, CompanyDetail, PaidPlan, User } from "@openact/core/sha
  * installed apps, and createClient() builds the shell from them.
  */
 
-export { APPS_PATH, SETTINGS_PATH, activeApp, appHome, appOwnsPath, isSettingsPath, railApps, railGroups, railOrder, type RailGroups } from "./app-paths.ts";
+export { APPS_PATH, SETTINGS_PATH, activeApp, appHome, appOwnsPath, homeAppAt, isSettingsPath, railApps, railGroups, railOrder, resolveAppPath, type RailGroups } from "./app-paths.ts";
 
 export interface NavItem {
   label: string;
   /** A Lucide icon name from the Icon component, such as "projects" or "users". */
   icon: string;
+  /** Where the item goes. The app's own path, /a/<id>, goes to the app's home, which can be "/". */
   path: string;
   /**
    * "main" shows the item at the top of the app's panel, when the app is active.
@@ -66,7 +67,10 @@ export interface ClientApp {
   ownsPath?: (path: string) => boolean;
   /** Wraps the signed-in shell, for the app's own state, such as the current company's projects. */
   Provider?: ComponentType<{ children: ReactNode }>;
-  /** The page at "/". The first app with a home page owns it. */
+  /**
+   * The app's home page. The first app with a home page shows it at "/". Every other app shows it at /a/<id>.
+   * Link to /a/<id> to reach it: the shell sends that path to "/" when the app owns "/".
+   */
   Home?: ComponentType;
   routes?: Route[];
   /** Pages that work without sign-in, such as /colophon. */

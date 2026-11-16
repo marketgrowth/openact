@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { PLANS, canManageCompany, type PaidPlan } from "@openact/core/shared";
+import { canManageCompany, planPart, type PaidPlan } from "@openact/core/shared";
 import { railOrder, useShell, type ClientApp, type DirectoryApp } from "../apps";
 import { Link } from "../router";
 import { Icon, Notice, useToast } from "../ui";
@@ -19,7 +19,7 @@ import { cn } from "@openact/ui/lib/utils";
  * Owners and admins turn installed apps on or off here. Adding an app from the directory is a code change, so the page shows the command.
  */
 
-const DIRECTORY_URL = "https://docs.openact.app/directory";
+const DIRECTORY_URL = "https://docs.openact.ing/directory";
 
 const STATUS: Record<DirectoryApp["status"], string> = {
   "built-in": "Built in",
@@ -84,18 +84,19 @@ function ManagedApps({ companyId, installed, info }: { companyId: string; instal
         const s = settings.find((x) => x.id === app.id);
         const on = s?.enabled ?? false;
         const plan = s?.plan ?? null;
-        if (s?.locked && plan)
+        if (s?.locked && plan && !s.blocked)
           return (
             <AppCard
               key={app.id}
               app={app}
               summary={info(app.id)?.summary}
               on={false}
+              primary={app.id === primary}
               plan={plan}
               locked
               action={
                 <>
-                  <span className="mr-auto text-xs text-muted-foreground">{`Part of ${PLANS[plan].name}`}</span>
+                  <span className="mr-auto text-xs text-muted-foreground">{planPart(plan)}</span>
                   <Button asChild size="sm">
                     <Link to={PLAN_PATH}>Upgrade</Link>
                   </Button>
@@ -109,12 +110,14 @@ function ManagedApps({ companyId, installed, info }: { companyId: string; instal
             app={app}
             summary={info(app.id)?.summary}
             on={on}
-            plan={plan}
             primary={app.id === primary}
+            plan={plan}
             action={
               <>
                 {s?.siteOff ? (
                   <span className="mr-auto text-xs text-muted-foreground">Off for this site</span>
+                ) : s?.blocked ? (
+                  <span className="mr-auto text-xs text-muted-foreground">Not available for this company</span>
                 ) : (
                   s?.granted && <span className="mr-auto text-xs text-muted-foreground">Given by a site admin</span>
                 )}
@@ -125,7 +128,7 @@ function ManagedApps({ companyId, installed, info }: { companyId: string; instal
                 )}
                 <Switch
                   checked={on}
-                  disabled={busy || !s || s.siteOff}
+                  disabled={busy || !s || s.siteOff || s.blocked}
                   onCheckedChange={(next) => save(app.id, { enabled: next }, `${app.name} is ${next ? "on" : "off"}.`)}
                   aria-label={`${app.name} app`}
                 />
@@ -143,7 +146,8 @@ function MemberApps({ installed, info }: { installed: ClientApp[]; info: (id: st
   const ws = useWorkspace();
   const { apps, primary } = useShell();
   const off = ws.access?.disabledApps ?? [];
-  const lockedIds = ws.access?.lockedApps ?? [];
+  const blockedIds = ws.access?.blockedApps ?? [];
+  const lockedIds = (ws.access?.lockedApps ?? []).filter((id) => !blockedIds.includes(id));
   const shown = installed.filter((a) => !off.includes(a.id));
   const locked = installed.filter((a) => lockedIds.includes(a.id));
   if (!shown.length && !locked.length) return <p className="text-sm text-muted-foreground">No apps are on for this company. Ask an owner or admin.</p>;
@@ -155,8 +159,8 @@ function MemberApps({ installed, info }: { installed: ClientApp[]; info: (id: st
           app={app}
           summary={info(app.id)?.summary}
           on
-          plan={info(app.id)?.plan ?? null}
           primary={app.id === primary}
+          plan={info(app.id)?.plan ?? null}
           action={
             <Button asChild size="sm" variant="outline">
               <Link to={appHome(app, apps)}>Open</Link>
@@ -172,6 +176,7 @@ function MemberApps({ installed, info }: { installed: ClientApp[]; info: (id: st
             app={app}
             summary={info(app.id)?.summary}
             on={false}
+            primary={app.id === primary}
             plan={plan}
             locked
             action={
@@ -198,7 +203,7 @@ function AppCard({
   app: ClientApp;
   summary?: string;
   on: boolean;
-  /** True for the deploy's primary app. */
+  /** True for the deploy's primary app, for the badge. */
   primary?: boolean;
   /** The plan the app needs, for the badge. */
   plan?: PaidPlan | null;

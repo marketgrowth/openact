@@ -2,15 +2,18 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   DEFAULT_SETTINGS,
+  accountQuery,
   applicationFee,
   bpsToPercent,
   checkoutForm,
   cleanLabel,
+  connectedAccountBody,
   engagementProjectName,
   engagementStatusFor,
   feeProblem,
   formatMoney,
   formatPrice,
+  onboardingLinkBody,
   parsePriceInput,
   percentToBps,
   priceProblem,
@@ -157,4 +160,23 @@ test("profile photos must be PNG, JPEG or WebP by their bytes", () => {
   assert.equal(sniffPhoto(new Uint8Array([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50])), "image/webp");
   assert.equal(sniffPhoto(new TextEncoder().encode("<svg onload=alert(1)>")), null);
   assert.equal(sniffPhoto(new Uint8Array([])), null);
+});
+
+test("connected accounts use Accounts v2 with the recipient configuration and the Express dashboard", () => {
+  const body = connectedAccountBody({ email: "pat@example.com", name: "  Pat Lee  ", companyId: "c1", advisorId: "a1" });
+  assert.equal(body.contact_email, "pat@example.com");
+  assert.equal(body.display_name, "Pat Lee");
+  assert.equal(body.dashboard, "express");
+  assert.deepEqual(body.defaults, { responsibilities: { fees_collector: "application", losses_collector: "application" } });
+  assert.deepEqual(body.configuration, { recipient: { capabilities: { stripe_balance: { stripe_transfers: { requested: true } } } } });
+  assert.deepEqual(body.metadata, { source: STRIPE_SOURCE, company_id: "c1", advisor_id: "a1" });
+  assert.equal("type" in body, false, "v1 fields must not leak into the v2 body");
+  assert.equal("display_name" in connectedAccountBody({ email: "x@example.com", name: " ", companyId: "c", advisorId: "a" }), false);
+
+  const link = onboardingLinkBody("acct_1", "https://x.test/r", "https://x.test/b");
+  assert.deepEqual(link, {
+    account: "acct_1",
+    use_case: { type: "account_onboarding", account_onboarding: { configurations: ["recipient"], refresh_url: "https://x.test/r", return_url: "https://x.test/b" } }
+  });
+  assert.equal(accountQuery().toString(), "include%5B0%5D=configuration.recipient&include%5B1%5D=requirements");
 });

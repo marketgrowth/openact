@@ -133,7 +133,7 @@ export default defineServerApp({
 
 Declare what people can do in your app in `permissions`, and check it with `requirePermission()` in every route. The core stores each company's choices, and Company settings shows them. Read [Permissions](permissions.md) for the full guide.
 
-Apps that a super admin turns off in Site settings are off in every company. `requirePermission`, `requireAppOn` and `companyAppState` already count that switch. Routes outside `/api/`, such as a public link, must call `loadSite(env)` first, because only `/api/` routes load the site settings for you.
+Apps that a super admin turns off in Site settings are off in every company. A super admin can also turn an app off for one company (the `company_app_blocks` table). `requirePermission`, `requireAppOn` and `companyAppState` already count both switches. Routes outside `/api/`, such as a public link, must call `loadSite(env)` first, because only `/api/` routes load the site settings for you.
 
 Live updates: call `registerRoomKind("inventory-item", readRevisions)` once, `markChanged("inventory-item", id)` when data changes, and `acceptLive()` in a route that checks access first. Pages use `useLive()` from `@openact/ui`.
 
@@ -158,7 +158,7 @@ export default defineClientApp({
 
 The side panel has two columns, like a desktop chat app:
 
-- **The app rail** on the left. It shows the company, one icon for each app, the App directory, the footer items, Settings and the person's menu. Projects is first, because it is installed first.
+- **The app rail** on the left. It shows the company, the primary app if the deploy has one, one icon for each other app, the App directory (super admins only), the footer items, Settings and the person's menu. Projects is first, because it is installed first.
 - **The app panel** beside it. It shows the active app's name, its commands, its `nav` items and its `SidebarSection`. The projects app shows Pinned, Projects and Recent here. On the Settings page, it lists the settings sections.
 
 Ctrl+B or Cmd+B collapses the panel and leaves only the rail. On a phone, both columns open as one sheet.
@@ -167,12 +167,12 @@ Ctrl+B or Cmd+B collapses the panel and leaves only the rail. On a phone, both c
 
 ### The primary app
 
-A deploy can have one primary app. Use it for the app that the deploy is for, such as a company's own app. The primary app goes at the top of the rail, above a divider. The other apps go below it, in install order. Another divider separates them from the App directory.
+A deploy can have one primary app. Use it for the app that the deploy is for, such as a company's own app. The primary app goes at the top of the rail, above a divider. The other apps go below it, in install order. Another divider separates them from the App directory. Only super admins, the owners of the brand that runs the deploy, see the App directory and its page at `/apps`. Company owners and admins turn apps on or off in **Company settings > Apps**.
 
 | Primary app | The rail, from the top |
 | --- | --- |
-| None | Projects, Docs, divider, App directory |
-| `orbytt` | Orbytt, divider, Projects, Docs, divider, App directory |
+| None | Projects, Docs, divider, App directory (super admins) |
+| `orbytt` | Orbytt, divider, Projects, Docs, divider, App directory (super admins) |
 
 Set it with the app tool. The command writes `"primary"` in `openact.apps.json`:
 
@@ -194,13 +194,15 @@ An app shows in the rail when it has an `icon` or a `Mark`. Its pages live under
 | `home` | Where the rail icon goes. Default: `/` for the first app with a home page, otherwise `/a/<id>` |
 | `ownsPath` | Says which paths belong to the app. Default: the home, `/a/<id>/...` and the app's routes |
 | `routes` | Pages. Start each one with `SiteHeader` and put its content in `PageBody`. |
-| `Home` | The page at `/`. The first app with a home page owns it. |
-| `nav` | Items at the top of the app's panel (`main`), or icons at the bottom of the rail for every app (`footer`) |
+| `Home` | The app's home page. The first app with a home page shows it at `/`. Other apps show it at `/a/<id>`. |
+| `nav` | Items at the top of the app's panel (`main`), or icons at the bottom of the rail for every app (`footer`). A `path` of `/a/<id>` goes to the app's home. |
 | `SidebarSection` | Groups in the app's panel, such as Pinned, Projects and Recent |
 | `commands` | Dialogs that open from the app's panel (`inSidebar`), a shortcut such as Ctrl+K, or `useShell().runCommand(id)` |
 | `companySettingsTabs` | Sections in App settings. Each one shows in the side panel under App settings and opens at `/settings/company/<id>`. |
 | `Provider` | State for your app around the whole shell |
 | `publicRoutes` | Pages that work without sign-in |
+
+Do not assume that your app owns `/`. Another app, such as a host's own app, can own the home page. To link to your home page, use `/a/<id>`. When your app owns `/`, the shell sends `/a/<id>` there. Do not set `ownsPath` to claim `/`: the default rules give your app `/` only when it is the home app.
 
 Use `useShell()` for the person and the config, `useWorkspace()` for the current company, and the shadcn/ui components at `@openact/ui/components/<name>`. Load pages with `lazy()`, so new apps do not slow the first page.
 

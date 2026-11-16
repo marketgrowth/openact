@@ -23,8 +23,7 @@ export const COMPANY_SECTIONS: readonly SettingsSection[] = [
   { scope: "company", id: "people", label: "People", icon: "users" },
   { scope: "company", id: "apps", label: "Apps", icon: "apps" },
   { scope: "company", id: "permissions", label: "Permissions", icon: "shield" },
-  { scope: "company", id: "ai", label: "AI provider", icon: "bot" },
-  { scope: "company", id: "plan", label: "Plan", icon: "star" }
+  { scope: "company", id: "ai", label: "AI provider", icon: "bot" }
 ];
 
 export const ACCOUNT_SECTIONS: readonly SettingsSection[] = [
@@ -40,7 +39,14 @@ export const SITE_SECTIONS: readonly SettingsSection[] = [
     id: "apps",
     label: "Apps",
     icon: "apps",
-    description: "Turn an app off for every company on this site. An app that is off keeps its data. Companies cannot turn it on again until you do."
+    description: "Turn an app off for every company, or for one company. An app that is off keeps its data. Companies cannot turn it on again until you do."
+  },
+  {
+    scope: "site",
+    id: "plan",
+    label: "Plan",
+    icon: "star",
+    description: "The plan you pay for covers every company on this site."
   },
   {
     scope: "site",
