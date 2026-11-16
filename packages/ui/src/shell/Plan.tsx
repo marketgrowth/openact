@@ -125,7 +125,9 @@ export function PlanPanel({ companyId }: { companyId: string }) {
           </h3>
           {info.plan !== "free" && <PlanBadge plan={info.plan} />}
         </div>
-        {info.source === "license" && info.license ? (
+        {info.source === "site" ? (
+          <p className="text-sm text-muted-foreground">The owner of this site pays for this plan. Every company on the site gets its paid apps.</p>
+        ) : info.source === "license" && info.license ? (
           <p className="text-sm text-muted-foreground">{`This site has a license for ${info.license.licensee}, until ${dateText(info.license.expiresAt)}.`}</p>
         ) : info.source === "subscription" && sub ? (
           <p className="text-sm text-muted-foreground">
@@ -135,6 +137,9 @@ export function PlanPanel({ companyId }: { companyId: string }) {
           </p>
         ) : (
           <PlanDescription plan="free" info={info} onSaved={load} />
+        )}
+        {info.paysForSite && (
+          <p className="text-sm text-muted-foreground">This plan also unlocks its paid apps for every company on this site.</p>
         )}
         {info.license?.inGrace && (
           <Notice tone="warn">The license key expired. Paid apps stop soon. Ask the person who runs this site to put in a new key.</Notice>
@@ -157,7 +162,7 @@ export function PlanPanel({ companyId }: { companyId: string }) {
             current={info.plan === o.plan}
             included={info.plan === "producer" && o.plan === "director"}
             apps={info.apps.filter((a) => a.plan === "director" || a.plan === o.plan).map((a) => a.name)}
-            canBuy={info.canManage && !paying && info.source !== "license"}
+            canBuy={info.canManage && !paying && info.source !== "license" && info.source !== "site"}
             busy={busy === o.plan}
             disabled={!!busy}
             contactUrl={info.contactUrl}

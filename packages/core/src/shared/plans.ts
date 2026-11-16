@@ -6,7 +6,8 @@
  *   - Director: paid apps for startups to midmarket companies: Docs and Advisory.
  *   - Producer: everything in Director, for enterprise companies.
  *
- * A company gets a plan from an annual subscription on this deploy, or from the deploy's license key.
+ * A company gets a plan from an annual subscription on this deploy, from the site plan, or from the deploy's license key.
+ * The site plan is the plan that a super owner (a super admin who owns a company) pays for. Every company on the deploy gets it.
  * An app asks for a plan with "plan" in the "openact" field of its package.json.
  */
 
@@ -199,8 +200,12 @@ export interface PlanOffer {
 
 export interface CompanyPlan {
   plan: PlanId;
-  /** Where the plan comes from. */
-  source: "free" | "subscription" | "license";
+  /** Where the plan comes from. "site": a super owner pays for it, for every company on the deploy. */
+  source: "free" | "subscription" | "site" | "license";
+  /** The plan that a super owner pays for, when there is one. Every company on the deploy gets it. */
+  sitePlan: PaidPlan | null;
+  /** True when this company's own subscription is the site plan, so it unlocks paid apps for every company. */
+  paysForSite: boolean;
   /** The subscription, when the company has one, even when it stopped. */
   subscription: null | {
     plan: PaidPlan;
