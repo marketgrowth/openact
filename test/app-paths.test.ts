@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { activeApp, appHome, appOwnsPath, homeAppAt, railApps, resolveAppPath } from "../packages/ui/src/app-paths.ts";
+import { activeApp, appHome, appOwnsPath, homeAppAt, railApps, railGroups, railOrder, resolveAppPath } from "../packages/ui/src/app-paths.ts";
 
 const projects = { id: "projects", icon: "projects", Home: () => null, routes: [{ pattern: /^\/p\/([^/]+)/ }] };
 const orbytt = { id: "orbytt", Mark: () => null, routes: [{ pattern: /^\/a\/orbytt\/talent$/ }] };
@@ -53,4 +53,29 @@ test("a link to /a/<id> goes to the app's home", () => {
   assert.equal(resolveAppPath(projects, apps, "/a/projects"), "/");
   assert.equal(resolveAppPath(projects, hosted, "/a/projects"), "/a/projects");
   assert.equal(resolveAppPath(projects, hosted, "/p/abc"), "/p/abc");
+});
+
+test("without a primary app, the rail keeps install order", () => {
+  const g = railGroups(apps, null);
+  assert.equal(g.primary, undefined);
+  assert.deepEqual(g.others.map((a) => a.id), ["projects", "orbytt", "hello"]);
+  assert.deepEqual(railOrder(apps).map((a) => a.id), ["projects", "orbytt", "hello"]);
+});
+
+test("the primary app goes first, on its own", () => {
+  const g = railGroups(apps, "hello");
+  assert.equal(g.primary?.id, "hello");
+  assert.deepEqual(g.others.map((a) => a.id), ["projects", "orbytt"]);
+  assert.deepEqual(railOrder(apps, "hello").map((a) => a.id), ["hello", "projects", "orbytt"]);
+});
+
+test("a primary app that is off or has no rail icon is ignored", () => {
+  assert.equal(railGroups(apps, "site").primary, undefined);
+  assert.equal(railGroups(apps, "missing").primary, undefined);
+  assert.deepEqual(railOrder(apps, "missing").map((a) => a.id), ["projects", "orbytt", "hello"]);
+});
+
+test("the primary app does not change which app owns a path", () => {
+  assert.equal(activeApp(apps, "/")?.id, "projects");
+  assert.equal(appHome(projects, apps), "/");
 });

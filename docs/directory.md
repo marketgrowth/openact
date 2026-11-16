@@ -21,7 +21,7 @@ npm run deploy
 
 Run `npm run openact -- directory` to see the same list in your terminal.
 
-In the app, select **App directory** below the divider on the app rail. The Apps page shows the apps in the current company and the apps from this directory that you can add. Owners and admins can turn apps on or off there. To show the directory on that page, the host passes it to `createClient`:
+In the app, select **App directory** below the last divider on the app rail. The Apps page shows the apps in the current company and the apps from this directory that you can add. Owners and admins can turn apps on or off there. To show the directory on that page, the host passes it to `createClient`:
 
 ```tsx
 import directory from "../../directory/apps.json";

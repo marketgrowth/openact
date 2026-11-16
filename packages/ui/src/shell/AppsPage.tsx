@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { PLANS, canManageCompany, type PaidPlan } from "@openact/core/shared";
-import { railApps, useShell, type ClientApp, type DirectoryApp } from "../apps";
+import { railOrder, useShell, type ClientApp, type DirectoryApp } from "../apps";
 import { Link } from "../router";
 import { Icon, Notice, useToast } from "../ui";
 import { useWorkspace } from "../workspace";
@@ -29,11 +29,11 @@ const STATUS: Record<DirectoryApp["status"], string> = {
 };
 
 export function AppsPage() {
-  const { apps, directory } = useShell();
+  const { apps, primary, directory } = useShell();
   const ws = useWorkspace();
   const current = ws.current;
   const manager = canManageCompany(current?.role ?? null);
-  const installed = railApps(apps);
+  const installed = railOrder(apps, primary);
   const installedIds = new Set(apps.map((a) => a.id));
   const more = directory.filter((d) => !installedIds.has(d.id) && d.status !== "built-in");
   const info = (id: string) => directory.find((d) => d.id === id);
@@ -75,7 +75,7 @@ export function AppsPage() {
 /** Owners and admins see every installed app, with its switch. */
 function ManagedApps({ companyId, installed, info }: { companyId: string; installed: ClientApp[]; info: (id: string) => DirectoryApp | undefined }) {
   const { apps: settings, error, busy, save } = useCompanyApps(companyId);
-  const { apps } = useShell();
+  const { apps, primary } = useShell();
   if (error) return <Notice tone="error">{error}</Notice>;
   if (!settings) return <p className="text-sm text-muted-foreground">Loading…</p>;
   return (
@@ -91,6 +91,7 @@ function ManagedApps({ companyId, installed, info }: { companyId: string; instal
               app={app}
               summary={info(app.id)?.summary}
               on={false}
+              primary={app.id === primary}
               plan={plan}
               locked
               action={
@@ -109,6 +110,7 @@ function ManagedApps({ companyId, installed, info }: { companyId: string; instal
             app={app}
             summary={info(app.id)?.summary}
             on={on}
+            primary={app.id === primary}
             plan={plan}
             action={
               <>
@@ -140,7 +142,7 @@ function ManagedApps({ companyId, installed, info }: { companyId: string; instal
 /** Members see the apps that are on. */
 function MemberApps({ installed, info }: { installed: ClientApp[]; info: (id: string) => DirectoryApp | undefined }) {
   const ws = useWorkspace();
-  const { apps } = useShell();
+  const { apps, primary } = useShell();
   const off = ws.access?.disabledApps ?? [];
   const lockedIds = ws.access?.lockedApps ?? [];
   const shown = installed.filter((a) => !off.includes(a.id));
@@ -154,6 +156,7 @@ function MemberApps({ installed, info }: { installed: ClientApp[]; info: (id: st
           app={app}
           summary={info(app.id)?.summary}
           on
+          primary={app.id === primary}
           plan={info(app.id)?.plan ?? null}
           action={
             <Button asChild size="sm" variant="outline">
@@ -170,6 +173,7 @@ function MemberApps({ installed, info }: { installed: ClientApp[]; info: (id: st
             app={app}
             summary={info(app.id)?.summary}
             on={false}
+            primary={app.id === primary}
             plan={plan}
             locked
             action={
@@ -188,6 +192,7 @@ function AppCard({
   app,
   summary,
   on,
+  primary = false,
   plan = null,
   locked = false,
   action
@@ -195,6 +200,8 @@ function AppCard({
   app: ClientApp;
   summary?: string;
   on: boolean;
+  /** True for the deploy's primary app, for the badge. */
+  primary?: boolean;
   /** The plan the app needs, for the badge. */
   plan?: PaidPlan | null;
   /** True when the company does not have that plan. */
@@ -214,6 +221,11 @@ function AppCard({
           {app.Mark ? <app.Mark className="size-4" /> : <Icon name={app.icon!} />}
         </span>
         <span className="min-w-0 flex-1 truncate font-medium">{app.name}</span>
+        {primary && (
+          <Badge variant="outline" data-primary-app="">
+            Primary
+          </Badge>
+        )}
         {plan && <PlanBadge plan={plan} />}
         <Badge variant={on ? "secondary" : "outline"}>{locked ? "Locked" : on ? "On" : "Off"}</Badge>
       </div>
