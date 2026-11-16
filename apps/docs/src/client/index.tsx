@@ -3,7 +3,7 @@ import { defineClientApp, useShell } from "@openact/ui";
 import { DocsProvider, DOCS_HOME } from "./state";
 import { DocsSection } from "./DocsSection";
 import { LibraryPage, type View } from "./LibraryPage";
-import { NewDocDialog } from "./library-dialogs";
+import { NewDocDialog, UploadPdfDialog } from "./library-dialogs";
 
 /*
  * Docs in the web app: its own icon in the app rail, a company library with folders, categories and tags,
@@ -14,9 +14,11 @@ import { NewDocDialog } from "./library-dialogs";
  *   /a/docs/c/<id>      a category
  *   /a/docs/t/<id>      a tag
  *   /a/docs/d/<id>      one doc
+ *   /a/docs/p/<id>      one uploaded PDF
  */
 
 const DocPage = lazy(() => import("./DocEditor").then((m) => ({ default: m.DocPage })));
+const PdfPage = lazy(() => import("./PdfPage").then((m) => ({ default: m.PdfPage })));
 const DocsSettingsTab = lazy(() => import("./SettingsTab").then((m) => ({ default: m.DocsSettingsTab })));
 
 const library = (view: View) => <LibraryPage key={JSON.stringify(view)} view={view} />;
@@ -25,6 +27,12 @@ function NewDoc({ onClose }: { onClose: () => void }) {
   const { me } = useShell();
   if (!me) return null;
   return <NewDocDialog onClose={onClose} />;
+}
+
+function UploadPdf({ onClose }: { onClose: () => void }) {
+  const { me } = useShell();
+  if (!me) return null;
+  return <UploadPdfDialog onClose={onClose} />;
 }
 
 export default defineClientApp({
@@ -39,13 +47,17 @@ export default defineClientApp({
     { pattern: /^\/a\/docs\/f\/([^/]+)\/?$/, render: (m) => library({ kind: "folder", id: m[1]! }) },
     { pattern: /^\/a\/docs\/c\/([^/]+)\/?$/, render: (m) => library({ kind: "category", id: m[1]! }) },
     { pattern: /^\/a\/docs\/t\/([^/]+)\/?$/, render: (m) => library({ kind: "tag", id: m[1]! }) },
-    { pattern: /^\/a\/docs\/d\/([^/]+)\/?$/, render: (m) => <DocPage key={m[1]} docId={m[1]!} /> }
+    { pattern: /^\/a\/docs\/d\/([^/]+)\/?$/, render: (m) => <DocPage key={m[1]} docId={m[1]!} /> },
+    { pattern: /^\/a\/docs\/p\/([^/]+)\/?$/, render: (m) => <PdfPage key={m[1]} docId={m[1]!} /> }
   ],
   nav: [
     { label: "All docs", icon: "library", path: DOCS_HOME },
     { label: "Not in a folder", icon: "inbox", path: `${DOCS_HOME}/unfiled` }
   ],
   SidebarSection: DocsSection,
-  commands: [{ id: "docs.new", label: "New doc", icon: "plus", inSidebar: true, Dialog: NewDoc }],
+  commands: [
+    { id: "docs.new", label: "New doc", icon: "plus", inSidebar: true, Dialog: NewDoc },
+    { id: "docs.upload", label: "Upload PDF", icon: "upload", Dialog: UploadPdf }
+  ],
   companySettingsTabs: [{ id: "docs", label: "Docs", Tab: ({ detail, onChanged }) => <DocsSettingsTab detail={detail} onChanged={onChanged} /> }]
 });

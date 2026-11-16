@@ -22,7 +22,7 @@ import {
   DropdownMenuTrigger
 } from "@openact/ui/components/dropdown-menu";
 import { DeleteDialog, LinkDialog, ShareDialog } from "./dialogs";
-import { CategorySelect, FolderSelect, TagInput } from "./library-dialogs";
+import { MetaBar, Trail } from "./doc-parts";
 import { AiDialog, AiMenu, type AiChoice } from "./ai";
 import { CommentsPanel, NewThreadDialog, commentCss, useComments } from "./comments";
 import { DOCS_HOME, useDocs } from "./state";
@@ -86,7 +86,10 @@ export function DocPage({ docId }: { docId: string }) {
 
   const load = useCallback(async () => {
     try {
-      setDoc(await api<DocDetail>(`/api/apps/docs/docs/${docId}`));
+      const d = await api<DocDetail>(`/api/apps/docs/docs/${docId}`);
+      // An uploaded PDF has its own page.
+      if (d.kind === "pdf") return navigate(`${DOCS_HOME}/p/${docId}`, true);
+      setDoc(d);
       setError(null);
     } catch (e) {
       setError(errorText(e));
@@ -105,87 +108,6 @@ export function DocPage({ docId }: { docId: string }) {
       </>
     );
   return <LoadedDoc initial={doc} />;
-}
-
-/** The folder path of a doc, as links, for the page header. */
-function Trail({ folderId }: { folderId: string | null }) {
-  const { folderTrail } = useDocs();
-  const trail = folderTrail(folderId);
-  return (
-    <span className="flex min-w-0 items-center gap-1 text-sm" data-doc-trail="">
-      <Link to={DOCS_HOME} className="shrink-0 text-muted-foreground hover:text-foreground">
-        Docs
-      </Link>
-      {trail.map((f) => (
-        <span key={f.id} className="flex min-w-0 items-center gap-1">
-          <Icon name="right" size={14} className="shrink-0 text-muted-foreground" />
-          <Link to={`${DOCS_HOME}/f/${f.id}`} className="truncate text-muted-foreground hover:text-foreground">
-            {f.name}
-          </Link>
-        </span>
-      ))}
-    </span>
-  );
-}
-
-/** Folder, category and tags. They save at once, apart from the content, so they never clash with someone who is writing. */
-function MetaBar({ doc, canEdit }: { doc: DocDetail; canEdit: boolean }) {
-  const toast = useToast();
-  const { library, tag, reload } = useDocs();
-  const [folderId, setFolderId] = useState(doc.folderId);
-  const [categoryId, setCategoryId] = useState(doc.categoryId);
-  const [tags, setTags] = useState<string[] | null>(null);
-  const tagNames = tags ?? doc.tagIds.map((id) => tag(id)?.name).filter((n): n is string => !!n);
-
-  const save = async (body: Record<string, unknown>, done: string) => {
-    try {
-      await api(`/api/apps/docs/docs/${doc.id}/meta`, { method: "PATCH", body });
-      await reload();
-      toast(done);
-    } catch (e) {
-      toast(errorText(e));
-    }
-  };
-
-  return (
-    <div className="grid gap-3 rounded-xl border bg-card p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,2fr)]" data-doc-meta="">
-      <label className="grid gap-1 text-xs font-medium text-muted-foreground">
-        Folder
-        <FolderSelect
-          value={folderId}
-          disabled={!canEdit}
-          onChange={(v) => {
-            setFolderId(v);
-            void save({ folderId: v }, "The doc moved.");
-          }}
-        />
-      </label>
-      <label className="grid gap-1 text-xs font-medium text-muted-foreground">
-        Category
-        <CategorySelect
-          value={categoryId}
-          disabled={!canEdit}
-          onChange={(v) => {
-            setCategoryId(v);
-            void save({ categoryId: v }, "The category is saved.");
-          }}
-        />
-      </label>
-      <div className="grid gap-1 text-xs font-medium text-muted-foreground">
-        <span>Tags</span>
-        <TagInput
-          id={`doc-tags-${doc.id}`}
-          value={tagNames}
-          disabled={!canEdit}
-          known={library?.tags ?? []}
-          onChange={(names) => {
-            setTags(names);
-            void save({ tags: names }, "The tags are saved.");
-          }}
-        />
-      </div>
-    </div>
-  );
 }
 
 function LoadedDoc({ initial }: { initial: DocDetail }) {
