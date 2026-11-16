@@ -10,9 +10,6 @@ export const site = defineClientApp({
   id: "site",
   name: "OpenAct",
   publicRoutes: { "/contribute": Contribute, "/colophon": Colophon },
-  // Footer items show at the bottom of the app rail, in this order. Contribute sits on top of the colophon.
-  nav: [
-    { label: "Contribute", icon: "heart", path: "/contribute", placement: "footer" },
-    { label: "Colophon", icon: "doc", path: "/colophon", placement: "footer" }
-  ]
+  // Footer items show at the bottom of the app rail. The colophon has no icon there. Its page still works at /colophon.
+  nav: [{ label: "Contribute", icon: "heart", path: "/contribute", placement: "footer" }]
 });

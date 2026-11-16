@@ -138,6 +138,8 @@ The name shows on the sign-in page, in the browser tab, in the company menu and 
 
 The sign-in page shows the heading and credit beside the form. On a phone, they show in a band above the form. The page also says that people agree to the Terms of Use and Privacy Policy when they sign in. Each name links to its page when you add the link. Without a link, the name shows as plain text.
 
+Super admins also see the **App directory** icon on the app rail, and they can change the description under each plan name on the Plan page. Read [Change the plan descriptions](plans.md#change-the-plan-descriptions).
+
 A super admin is not a company role. Super admins change only the site settings. They get no access to company data.
 
 An app that is off for the site is off in every company: its pages, its API and its public links stop working. You cannot turn every app off. Keep at least one on.

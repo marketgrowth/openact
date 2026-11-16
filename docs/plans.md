@@ -34,6 +34,8 @@ The page shows:
 - the plans for sale on this site, with their prices
 - the apps in each plan
 
+In the app, the plans are named **Director** and **Producer**, so the names fit any brand that runs OpenAct.
+
 Only a company owner can buy a plan. Choose **Manage billing** to change the card, see invoices, switch between Director and Producer, or cancel. A canceled plan works until the end of the paid year.
 
 ## What happens without a plan
@@ -41,13 +43,24 @@ Only a company owner can buy a plan. Choose **Manage billing** to change the car
 An app that needs a plan is **locked** in a company without that plan.
 
 - The Apps page shows the app with a **Director** badge and an **Upgrade** button. The switch is off and cannot be turned on.
-- The app leaves the app rail. Its pages say that it is part of OpenAct Director.
+- The app leaves the app rail. Its pages say that it is part of a paid plan.
 - Its API routes answer with the code `plan_required`.
 - For Docs: share links stop working, and live editing closes.
 
 The app's data stays. When the company gets the plan again, the app comes back with all its data.
 
 If a payment fails, the plan keeps working while Stripe tries the card again. After the paid year ends, the plan keeps working for 7 more days, in case a message from Stripe is late.
+
+### Change the plan descriptions
+
+A super admin can change the sentence under each plan name on the Plan page. Use it to describe the plans in the words of your brand, such as "For homes with up to 15 beds."
+
+1. Open the **Plan** page.
+2. Choose the pencil button next to the description of **Free plan**, **Director** or **Producer**.
+3. Type the new description, then choose **Save**. Use 200 characters or fewer.
+4. To show the default text again, choose **Use default**.
+
+Every company on the site sees the same descriptions. The Free plan description shows only to companies on the free plan. The server checks that the person is a super admin on every save (`PATCH /api/site/plans/:planId`).
 
 ## Give one person a paid app
 

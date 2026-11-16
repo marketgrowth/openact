@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { PLANS, canManageCompany, type PaidPlan } from "@openact/core/shared";
+import { canManageCompany, planPart, type PaidPlan } from "@openact/core/shared";
 import { railOrder, useShell, type ClientApp, type DirectoryApp } from "../apps";
 import { Link } from "../router";
 import { Icon, Notice, useToast } from "../ui";
@@ -96,7 +96,7 @@ function ManagedApps({ companyId, installed, info }: { companyId: string; instal
               locked
               action={
                 <>
-                  <span className="mr-auto text-xs text-muted-foreground">{`Part of ${PLANS[plan].name}`}</span>
+                  <span className="mr-auto text-xs text-muted-foreground">{planPart(plan)}</span>
                   <Button asChild size="sm">
                     <Link to={PLAN_PATH}>Upgrade</Link>
                   </Button>

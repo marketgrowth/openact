@@ -5,7 +5,8 @@ import { HttpError, appUrl, nowIso, oneOf, readJson, requireUser, text } from ".
 import { companyPlan, planRow } from "./plans";
 import { getCatalog } from "./permissions";
 import { subscriptionFields, verifyStripeSignature, type StripeSubscription, type SubscriptionFields } from "./stripe";
-import { PAID_PLANS, PLANS, planIncludes, type CompanyPlan, type PaidPlan, type PlanOffer } from "../shared/plans";
+import { isSuperAdmin, loadSite } from "./site";
+import { PAID_PLANS, PLANS, planDescriptions, planIncludes, type CompanyPlan, type PaidPlan, type PlanOffer } from "../shared/plans";
 
 /*
  * Plans for sale on this deploy: an annual Stripe subscription per company.
@@ -113,11 +114,12 @@ async function planDetail(c: Context<AppEnv>, companyId: string, canManage: bool
   const state = await companyPlan(env, companyId, c.req.url);
   const on = billingOn(env);
   const p = prices(env);
+  const descriptions = planDescriptions((await loadSite(env)).planDescriptions);
   const offers: PlanOffer[] = await Promise.all(
     PAID_PLANS.map(async (plan) => {
       const priceId = p[plan];
       const price = on && priceId ? await priceOf(env, priceId) : null;
-      return { plan, name: PLANS[plan].name, audience: PLANS[plan].audience, price, buyable: on && !!priceId && !!price };
+      return { plan, name: PLANS[plan].name, audience: descriptions[plan].text, price, buyable: on && !!priceId && !!price };
     })
   );
   const row = state.row;
@@ -141,6 +143,8 @@ async function planDetail(c: Context<AppEnv>, companyId: string, canManage: bool
     canManage: canManage && on,
     billing: on,
     offers,
+    descriptions,
+    canEditDescriptions: isSuperAdmin(env, c.get("user")),
     contactUrl: /^(https:\/\/|mailto:)/i.test(contact) ? contact : null,
     apps: getCatalog()
       .filter((a) => a.plan)

@@ -158,7 +158,7 @@ export default defineClientApp({
 
 The side panel has two columns, like a desktop chat app:
 
-- **The app rail** on the left. It shows the company, the primary app if the deploy has one, one icon for each other app, the App directory, the footer items, Settings and the person's menu. Projects is first, because it is installed first.
+- **The app rail** on the left. It shows the company, the primary app if the deploy has one, one icon for each other app, the App directory (super admins only), the footer items, Settings and the person's menu. Projects is first, because it is installed first.
 - **The app panel** beside it. It shows the active app's name, its commands, its `nav` items and its `SidebarSection`. The projects app shows Pinned, Projects and Recent here. On the Settings page, it lists the settings sections.
 
 Ctrl+B or Cmd+B collapses the panel and leaves only the rail. On a phone, both columns open as one sheet.
@@ -167,12 +167,12 @@ Ctrl+B or Cmd+B collapses the panel and leaves only the rail. On a phone, both c
 
 ### The primary app
 
-A deploy can have one primary app. Use it for the app that the deploy is for, such as a company's own app. The primary app goes at the top of the rail, above a divider. The other apps go below it, in install order. Another divider separates them from the App directory.
+A deploy can have one primary app. Use it for the app that the deploy is for, such as a company's own app. The primary app goes at the top of the rail, above a divider. The other apps go below it, in install order. Another divider separates them from the App directory. Only super admins, the owners of the brand that runs the deploy, see the App directory and its page at `/apps`. Company owners and admins turn apps on or off in **Company settings > Apps**.
 
 | Primary app | The rail, from the top |
 | --- | --- |
-| None | Projects, Docs, divider, App directory |
-| `orbytt` | Orbytt, divider, Projects, Docs, divider, App directory |
+| None | Projects, Docs, divider, App directory (super admins) |
+| `orbytt` | Orbytt, divider, Projects, Docs, divider, App directory (super admins) |
 
 Set it with the app tool. The command writes `"primary"` in `openact.apps.json`:
 

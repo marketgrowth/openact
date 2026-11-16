@@ -167,7 +167,7 @@ function SignedIn({
   const [open, setOpen] = useState(readPanelOpen);
   const [dialog, setDialog] = useState<Dialog>(null);
   const close = useCallback(() => setDialog(null), []);
-  // Super admins see Site settings on the Settings page. The server checks again on every change. undefined while it loads.
+  // Super admins see Site settings on the Settings page and the App directory. The server checks again on every change. undefined while it loads.
   const [superAdmin, setSuperAdmin] = useState<boolean | undefined>(undefined);
   useEffect(() => {
     api<SiteSettings>("/api/site")
@@ -229,7 +229,16 @@ function SignedIn({
   // The page: the first app route that matches, or the first app's home page at "/".
   let page: ReactNode =
     path === APPS_PATH ? (
-      <AppsPage />
+      // Only super admins, the owners of the brand, see the App directory. Others go to the home page.
+      superAdmin === true ? (
+        <AppsPage />
+      ) : superAdmin === false ? (
+        <Redirect to="/" />
+      ) : (
+        <PageBody>
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        </PageBody>
+      )
     ) : path === PLAN_PATH ? (
       <PlanPage />
     ) : isSettingsPath(path) ? (
@@ -311,7 +320,7 @@ function AppOff({ name, locked = false }: { name: string; locked?: boolean }) {
         <SiteHeader title={name} />
         <PageBody>
           <div className="mx-auto flex w-full max-w-lg flex-col items-center gap-3 rounded-xl border border-dashed p-8 text-center" data-app-locked="">
-            <h2 className="text-lg font-semibold">{name} is part of OpenAct Director</h2>
+            <h2 className="text-lg font-semibold">{name} is part of a paid plan</h2>
             <p className="text-sm text-muted-foreground">A company owner can upgrade on the Plan page. Your data in {name} stays while it is locked.</p>
             <Button asChild>
               <Link to={PLAN_PATH}>See plans</Link>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { COMPANY_ROLES, COMPANY_ROLE_LABELS, PLANS, type CompanyAppSettings, type CompanyRole } from "@openact/core/shared";
+import { COMPANY_ROLES, COMPANY_ROLE_LABELS, planPart, type CompanyAppSettings, type CompanyRole } from "@openact/core/shared";
 import { PlanBadge } from "./Plan";
 import { api, errorText } from "../api";
 import { Notice, useToast } from "../ui";
@@ -61,7 +61,7 @@ export function AppsTab({ companyId }: { companyId: string }) {
               </span>
               <span className="text-xs text-muted-foreground">
                 {a.locked && a.plan
-                  ? `Part of ${PLANS[a.plan].name}. A company owner can upgrade under Plan, in Company settings.`
+                  ? `${planPart(a.plan)}. A company owner can upgrade under Plan, in Company settings.`
                   : a.siteOff
                   ? "Off for this site. A super admin can turn it on in Site settings."
                   : `${a.permissions.length} ${a.permissions.length === 1 ? "permission" : "permissions"} · ${a.enabledByDefault ? "On" : "Off"} for new companies`}

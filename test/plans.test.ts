@@ -6,12 +6,18 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHmac } from "node:crypto";
 import {
+  PLANS,
+  PLAN_DESCRIPTION_MAX,
+  cleanPlanDescription,
   formatPrice,
   higherPlan,
   licenseHostOk,
   licenseTime,
   parseLicense,
+  planDescriptionKey,
+  planDescriptions,
   planIncludes,
+  planPart,
   subscriptionActive
 } from "../packages/core/src/shared/plans.ts";
 import { checkLicense } from "../packages/core/src/server/license.ts";
@@ -154,4 +160,27 @@ test("subscription fields: the price decides the plan", () => {
 test("prices read like plain text", () => {
   assert.equal(formatPrice({ amount: 120000, currency: "usd", interval: "year" }), "$1,200 a year");
   assert.equal(formatPrice({ amount: 9950, currency: "usd", interval: "year" }), "$99.50 a year");
+});
+
+test("plan names in the app have no OpenAct prefix", () => {
+  assert.equal(PLANS.director.name, "Director");
+  assert.equal(PLANS.producer.name, "Producer");
+  assert.equal(planPart("director"), "Part of the Director plan");
+});
+
+test("a plan description is one clean line with a length limit", () => {
+  assert.deepEqual(cleanPlanDescription("  For small\n  homes  "), { text: "For small homes" });
+  assert.deepEqual(cleanPlanDescription(""), { text: "" });
+  assert.deepEqual(cleanPlanDescription(null), { text: "" });
+  assert.ok("problem" in cleanPlanDescription(42));
+  assert.ok("problem" in cleanPlanDescription("x".repeat(PLAN_DESCRIPTION_MAX + 1)));
+  assert.deepEqual(cleanPlanDescription("x".repeat(PLAN_DESCRIPTION_MAX)), { text: "x".repeat(PLAN_DESCRIPTION_MAX) });
+});
+
+test("saved plan descriptions replace the defaults, and blanks fall back", () => {
+  const d = planDescriptions({ director: "For homes with up to 15 beds.", producer: "   " });
+  assert.deepEqual(d.director, { text: "For homes with up to 15 beds.", custom: true });
+  assert.deepEqual(d.producer, { text: PLANS.producer.audience, custom: false });
+  assert.deepEqual(d.free, { text: PLANS.free.audience, custom: false });
+  assert.equal(planDescriptionKey("free"), "plan_desc_free");
 });
