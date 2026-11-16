@@ -9,6 +9,7 @@ export { DocsRoom } from "./room";
 /*
  * The Docs app: a company library of paper-size documents, in folders, with categories and tags.
  * A doc can have a share link that needs no account, and anyone can print it or save it as a PDF.
+ * People can also upload PDFs into the library. A PDF has the same folder, category, tags and share link as a doc.
  * A company owner or admin turns Docs on or off in Company settings. A super admin turns it off for the whole site in Site settings.
  */
 
@@ -26,19 +27,38 @@ registerRoomKind(DOC_ROOM, (env, ids) => revisions(env, "SELECT id, rev FROM doc
 registerRoomKind(COMMENTS_ROOM, (env, ids) => revisions(env, "SELECT id, comments_rev AS rev FROM docs_docs WHERE id IN (?)", ids));
 registerRoomKind(LIBRARY_ROOM, (env, ids) => revisions(env, "SELECT company_id AS id, rev FROM docs_library WHERE company_id IN (?)", ids));
 
-/** Deletes images whose doc no longer exists, in case a delete stopped half way. */
+/**
+ * Deletes files whose doc no longer exists, and old files of PDFs that a new upload replaced,
+ * in case a delete or a replace stopped half way. Docs keeps only the latest file of a PDF.
+ */
 async function cleanOrphanFiles(env: Env): Promise<void> {
   for (let round = 0; round < 5; round++) {
     const rows = await env.DB.prepare("SELECT f.id, f.r2_key FROM docs_files f LEFT JOIN docs_docs d ON d.id = f.doc_id WHERE d.id IS NULL LIMIT 200").all<{
       id: string;
       r2_key: string;
     }>();
-    if (!rows.results.length) return;
-    await env.FILES.delete(rows.results.map((r) => r.r2_key));
-    await env.DB.prepare(`DELETE FROM docs_files WHERE id IN (${rows.results.map(() => "?").join(", ")})`)
-      .bind(...rows.results.map((r) => r.id))
-      .run();
+    if (!rows.results.length) break;
+    await dropFiles(env, rows.results);
   }
+  // A replace that stopped half way can leave a file that the PDF no longer uses. Wait an hour, so a replace in progress finishes first.
+  const before = new Date(Date.now() - 3600_000).toISOString();
+  for (let round = 0; round < 5; round++) {
+    const rows = await env.DB.prepare(
+      `SELECT f.id, f.r2_key FROM docs_files f JOIN docs_docs d ON d.id = f.doc_id
+       WHERE d.kind = 'pdf' AND (d.file_id IS NULL OR f.id != d.file_id) AND f.created_at < ? LIMIT 200`
+    )
+      .bind(before)
+      .all<{ id: string; r2_key: string }>();
+    if (!rows.results.length) return;
+    await dropFiles(env, rows.results);
+  }
+}
+
+async function dropFiles(env: Env, rows: Array<{ id: string; r2_key: string }>): Promise<void> {
+  await env.FILES.delete(rows.map((r) => r.r2_key));
+  await env.DB.prepare(`DELETE FROM docs_files WHERE id IN (${rows.map(() => "?").join(", ")})`)
+    .bind(...rows.map((r) => r.id))
+    .run();
 }
 
 export default defineServerApp({
@@ -53,7 +73,7 @@ export default defineServerApp({
     },
     "docs.edit": {
       label: "Write docs",
-      description: "Make, change and delete docs, add images, put docs in folders and categories, and tag them.",
+      description: "Make, change and delete docs, upload and replace PDFs, add images, put docs in folders and categories, and tag them.",
       roles: ["owner", "admin", "member"]
     },
     "docs.organize": {

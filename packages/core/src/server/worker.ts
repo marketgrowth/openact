@@ -19,7 +19,8 @@ const securityHeaders: MiddlewareHandler<AppEnv> = async (c, next) => {
   if (c.res.status === 101) return; // A WebSocket upgrade. Its headers cannot change.
   c.header("X-Content-Type-Options", "nosniff");
   c.header("Referrer-Policy", "same-origin");
-  c.header("X-Frame-Options", "DENY");
+  // A route can allow its own page to frame a response (the Docs PDF viewer sets SAMEORIGIN). Everything else is DENY.
+  if (!c.res.headers.has("X-Frame-Options")) c.header("X-Frame-Options", "DENY");
   if (!c.res.headers.has("Cache-Control")) c.header("Cache-Control", "no-store");
 };
 
