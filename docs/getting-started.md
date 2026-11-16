@@ -123,7 +123,7 @@ The first person to sign in can always make an account, even in `invite` mode. A
 
 ## Site name, logo, sign-in page and apps
 
-A super admin sets the name, logo and sign-in page that everyone on the site sees, and can turn an app off for the whole site.
+A super admin sets the name, logo and sign-in page that everyone on the site sees. A super admin also chooses which apps each company can use.
 
 1. Add your email to `SUPER_ADMIN_EMAILS` in `wrangler.jsonc`, then deploy.
 2. Sign in. Choose the gear at the bottom of the app rail to open **Settings**. Site settings has three sections in the side panel: **Name and logo**, **Sign-in page** and **Apps**. You can also open your menu at the bottom of the app rail, then choose **Site settings**.
@@ -132,7 +132,8 @@ A super admin sets the name, logo and sign-in page that everyone on the site see
 5. In **Sign-in page**, type the **Sign-in heading** and its **Credit**, then choose **Save sign-in page**. Leave the heading empty to use the default quote.
 6. Type the **Terms of Use link** and the **Privacy Policy link**, then choose **Save sign-in page**. Use full links that start with `https://`.
 7. Choose **Upload background** to show your own image on the sign-in page. Use a PNG, JPEG or WebP image, up to 3 MB. Choose **Use default** to show the default background again.
-8. In **Apps**, turn an app off to hide it in every company. Its data stays. Companies cannot turn it on again until a super admin does.
+8. In **Apps**, under **Every company**, turn an app off to hide it in every company. Its data stays. Companies cannot turn it on again until a super admin does.
+9. In **Apps**, under **One company**, find a company by name. Turn an app off to hide it in that company only. The other companies keep the app. The company's owners and admins cannot turn it on again until a super admin does.
 
 The name shows on the sign-in page, in the browser tab, in the company menu and in emails. The logo shows on the sign-in page and as the browser tab icon. Without a logo, the OpenAct mark shows.
 
@@ -143,6 +144,10 @@ Super admins also see the **App directory** icon on the app rail, and they choos
 A super admin is not a company role. Super admins change only the site settings. They get no access to company data.
 
 An app that is off for the site is off in every company: its pages, its API and its public links stop working. You cannot turn every app off. Keep at least one on.
+
+An app that is off for one company works the same way, but only in that company. Its data stays, so the app comes back as it was when you make it available again. Company owners and admins see "Not available for this company" in **Company settings > Apps**.
+
+Company owners and admins can also turn an app off for their own company in **Company settings > Apps**. That switch never changes other companies.
 
 Each Worker keeps the settings for up to 30 seconds. After a change, other open pages show it when they load again.
 

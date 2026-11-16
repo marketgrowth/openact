@@ -126,6 +126,7 @@ A table or image that is taller than one page gets a page of its own on screen, 
 
 - **For one company:** a company owner or admin opens **Company settings > Apps**, then turns off Docs. The data stays.
 - **For the whole site:** a super admin opens **Site settings**, then turns off Docs under **Apps**. Companies cannot turn it on again until a super admin does. Read [Site name, logo, sign-in page and apps](getting-started.md#site-name-logo-sign-in-page-and-apps).
+- **For one company, by a super admin:** a super admin opens **Site settings > Apps**, finds the company under **One company**, then turns off Docs. The company cannot turn it on again until a super admin does.
 
 ## How it works
 

@@ -43,6 +43,26 @@ export interface SiteSettings {
   apps?: Array<{ id: string; name: string; enabled: boolean }>;
 }
 
+/** One company in Site settings > Apps. */
+export interface SiteCompanyApps {
+  id: string;
+  name: string;
+  /** The number of people in the company. */
+  members: number;
+  /** The apps that a super admin turned off for this company. */
+  blocked: string[];
+}
+
+/** GET /api/site/companies. Super admins only. */
+export interface SiteCompanies {
+  /** Every installed app. siteOff: the app is off for the whole site, so it is off in every company. */
+  apps: Array<{ id: string; name: string; siteOff: boolean }>;
+  /** The number of companies on the site. */
+  total: number;
+  /** With a search: the companies that match. Without one: the first companies by name. */
+  companies: SiteCompanyApps[];
+}
+
 /** Reads the saved list of apps that are off for the site. Bad data counts as an empty list. */
 export function parseAppsOff(raw: string | undefined | null): string[] {
   if (!raw) return [];

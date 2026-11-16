@@ -21,6 +21,7 @@ import {
 import { HttpError, appName, nowIso, readJson, requireUser } from "./util";
 import { setSiteState, siteState, type SiteState } from "./site-state";
 import { getCatalog } from "./permissions";
+import type { SiteCompanies, SiteCompanyApps } from "../shared/site";
 import { cleanGrantEnd, grantActive, type GrantUser, type SiteGrants } from "../shared/grants";
 import { PLAN_IDS, cleanPlanDescription, isPlanId, planDescriptionKey, planIncludes, type PaidPlan, type PlanId } from "../shared/plans";
 import { deployLicense } from "./license";
@@ -182,6 +183,84 @@ siteRoutes.patch("/apps/:appId", async (c) => {
   if (getCatalog().every((a) => off.has(a.id))) throw new HttpError(400, "Keep at least one app on for the site. Turn on another app first.");
   await write(c.env, [upsert(c.env, "apps_off", JSON.stringify([...off]), user.id, nowIso())]);
   return c.json(settings(c, await loadSite(c.env, true)));
+});
+
+/*
+ * Apps per company: a super admin turns an app off for one company, and leaves it on for the others.
+ * A blocked app is off in that company, and its owners and admins cannot turn it on. Its data stays.
+ */
+
+interface CompanyRow {
+  id: string;
+  name: string;
+  members: number;
+  blocked: string | null;
+}
+
+async function readBlocks<T>(run: () => Promise<T>): Promise<T> {
+  try {
+    return await run();
+  } catch (e) {
+    if (/no such table/i.test(String(e))) throw new HttpError(503, "The company app blocks table is missing. Run the database migrations, then try again.");
+    throw e;
+  }
+}
+
+const COMPANY_SELECT = `SELECT c.id, c.name,
+    (SELECT COUNT(*) FROM company_members m WHERE m.company_id = c.id) AS members,
+    (SELECT json_group_array(b.app_id) FROM company_app_blocks b WHERE b.company_id = c.id) AS blocked
+  FROM companies c`;
+
+function siteCompany(r: CompanyRow): SiteCompanyApps {
+  let blocked: string[] = [];
+  try {
+    const v: unknown = JSON.parse(r.blocked ?? "[]");
+    if (Array.isArray(v)) blocked = v.filter((x): x is string => typeof x === "string");
+  } catch {
+    blocked = [];
+  }
+  const installed = new Set(getCatalog().map((a) => a.id));
+  return { id: r.id, name: r.name, members: r.members, blocked: blocked.filter((id) => installed.has(id)) };
+}
+
+/** GET /api/site/companies?q=  With q: up to 20 companies whose name matches. Without q: the first 50 companies by name. */
+siteRoutes.get("/companies", async (c) => {
+  requireSuperAdmin(c);
+  const q = (c.req.query("q") ?? "").trim().slice(0, 100);
+  const s = await loadSite(c.env);
+  const apps = getCatalog().map((a) => ({ id: a.id, name: a.name, siteOff: s.appsOff.includes(a.id) }));
+  const rows = await readBlocks(() =>
+    q.length >= 2
+      ? c.env.DB.prepare(`${COMPANY_SELECT} WHERE c.name LIKE ? ESCAPE '\\' ORDER BY c.name COLLATE NOCASE LIMIT 20`)
+          .bind(`%${q.replace(/[\\%_]/g, (ch) => `\\${ch}`)}%`)
+          .all<CompanyRow>()
+      : c.env.DB.prepare(`${COMPANY_SELECT} ORDER BY c.name COLLATE NOCASE LIMIT 50`).all<CompanyRow>()
+  );
+  const total = await c.env.DB.prepare("SELECT COUNT(*) AS n FROM companies").first<{ n: number }>();
+  return c.json({ apps, total: total?.n ?? 0, companies: rows.results.map(siteCompany) } satisfies SiteCompanies);
+});
+
+/** Makes an app available or not available in one company. Body: { available: boolean } */
+siteRoutes.put("/companies/:companyId/apps/:appId", async (c) => {
+  const user = requireSuperAdmin(c);
+  const { companyId, appId } = c.req.param();
+  const info = getCatalog().find((a) => a.id === appId);
+  if (!info) throw new HttpError(404, "This app is not installed.");
+  const body = await readJson(c);
+  if (typeof body.available !== "boolean") throw new HttpError(400, "Available must be true or false.");
+  const exists = await c.env.DB.prepare("SELECT id FROM companies WHERE id = ?").bind(companyId).first();
+  if (!exists) throw new HttpError(404, "This company does not exist. It may have been deleted.");
+  if (body.available) {
+    await readBlocks(() => c.env.DB.prepare("DELETE FROM company_app_blocks WHERE company_id = ? AND app_id = ?").bind(companyId, appId).run());
+  } else {
+    await readBlocks(() =>
+      c.env.DB.prepare("INSERT INTO company_app_blocks (company_id, app_id, blocked_by, created_at) VALUES (?, ?, ?, ?) ON CONFLICT (company_id, app_id) DO NOTHING")
+        .bind(companyId, appId, user.id, nowIso())
+        .run()
+    );
+  }
+  const row = await c.env.DB.prepare(`${COMPANY_SELECT} WHERE c.id = ?`).bind(companyId).first<CompanyRow>();
+  return c.json(siteCompany(row!));
 });
 
 /**

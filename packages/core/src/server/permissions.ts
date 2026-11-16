@@ -12,7 +12,8 @@ import { permissionApp, rolesWithPermission, type CompanyAccess, type Permission
  * Apps per company, and app permissions.
  *
  * The catalog lists every installed app, also apps that have only web code.
- * A super admin can turn an app off for the whole site. A company can turn an app off for itself.
+ * A super admin can turn an app off for the whole site, or for one company (company_app_blocks).
+ * A company's owners and admins can turn an app off for their own company.
  * An app that needs a plan, such as Docs with Director, is locked in a company without that plan,
  * unless a super admin granted the app to an owner of the company (app_grants).
  * A locked app is off: its routes, share links and live rooms stop, and its data stays.
@@ -52,6 +53,8 @@ export interface CompanyAppState {
   locked: (appId: string) => boolean;
   /** True when the app needs a plan that the company does not have, but a super admin granted it to an owner. */
   granted: (appId: string) => boolean;
+  /** True when a super admin turned the app off for this company only. The company cannot turn it on. */
+  blocked: (appId: string) => boolean;
   enabled: (appId: string) => boolean;
   /** The roles that have a permission in this company. */
   roles: (permission: string) => CompanyRole[];
@@ -62,10 +65,11 @@ export const appPlan = (appId: string): PaidPlan | undefined => catalog.find((a)
 
 export async function companyAppState(env: Env, companyId: string): Promise<CompanyAppState> {
   const paid = catalog.some((a) => a.plan);
-  const [rows, planState, ownerApps] = await Promise.all([
+  const [rows, blocks, planState, ownerApps] = await Promise.all([
     env.DB.prepare("SELECT app_id, enabled, permissions FROM company_apps WHERE company_id = ?")
       .bind(companyId)
       .all<{ app_id: string; enabled: number; permissions: string }>(),
+    companyBlocks(env, companyId),
     // Read the plan and the grants only when an installed app needs a plan.
     paid ? companyPlan(env, companyId) : Promise.resolve(null),
     paid ? ownerGrants(env, companyId) : Promise.resolve(new Set<string>())
@@ -77,12 +81,15 @@ export async function companyAppState(env: Env, companyId: string): Promise<Comp
   const byApp = new Map(rows.results.map((r) => [r.app_id, r]));
   const granted = (appId: string) => !planIncludes(plan, appPlan(appId)) && hasGrant(appId);
   const locked = (appId: string) => !planIncludes(plan, appPlan(appId)) && !hasGrant(appId);
+  const blocked = (appId: string) => blocks.has(appId);
   return {
     plan,
     locked,
     granted,
+    blocked,
     enabled: (appId) => {
       if (siteAppOff(appId)) return false;
+      if (blocked(appId)) return false;
       if (locked(appId)) return false;
       const row = byApp.get(appId);
       if (row) return row.enabled === 1;
@@ -100,6 +107,17 @@ export async function companyAppState(env: Env, companyId: string): Promise<Comp
       return rolesWithPermission(def, Array.isArray(chosen) ? chosen : null);
     }
   };
+}
+
+/** The apps that a super admin turned off for one company. Before migration 0010 runs, there are none. */
+export async function companyBlocks(env: Env, companyId: string): Promise<Set<string>> {
+  try {
+    const rows = await env.DB.prepare("SELECT app_id FROM company_app_blocks WHERE company_id = ?").bind(companyId).all<{ app_id: string }>();
+    return new Set(rows.results.map((r) => r.app_id));
+  } catch (e) {
+    if (/no such table/i.test(String(e))) return new Set();
+    throw e;
+  }
 }
 
 /**
@@ -127,11 +145,21 @@ export function planRequiredError(appId: string): HttpError {
  * The error for an app that is off in a company. Apps can throw it from their own access checks.
  * Pass the company's state to get the plan message for a locked app.
  */
-export function appOffError(appId: string, state?: Pick<CompanyAppState, "locked">): HttpError {
+export function appOffError(appId: string, state?: Pick<CompanyAppState, "locked" | "blocked">): HttpError {
   if (state?.locked(appId)) return planRequiredError(appId);
   if (siteAppOff(appId))
     return new HttpError(403, `The ${appName(appId)} app is off for this site. A super admin can turn it on in Site settings.`, "app_off");
+  if (state?.blocked(appId)) return blockedError(appId);
   return new HttpError(403, `The ${appName(appId)} app is off for this company. A company owner or admin can turn it on in Company settings.`, "app_off");
+}
+
+/** The error for an app that a super admin turned off for one company. */
+export function blockedError(appId: string): HttpError {
+  return new HttpError(
+    403,
+    `The ${appName(appId)} app is not available for this company. Ask the owner of this site to make it available in Site settings.`,
+    "app_blocked"
+  );
 }
 
 /** Throws when the app is off in the company. */
@@ -176,12 +204,13 @@ export async function companyAccess(env: Env, companyId: string, role: CompanyRo
   const state = await companyAppState(env, companyId);
   const disabledApps = catalog.filter((a) => !state.enabled(a.id)).map((a) => a.id);
   const lockedApps = catalog.filter((a) => state.locked(a.id)).map((a) => a.id);
+  const blockedApps = catalog.filter((a) => state.blocked(a.id)).map((a) => a.id);
   const permissions: string[] = [];
   for (const app of getApps()) {
     if (!state.enabled(app.id)) continue;
     for (const id of Object.keys(app.permissions ?? {})) if (state.roles(id).includes(role)) permissions.push(id);
   }
-  return { role, plan: state.plan, disabledApps, lockedApps, permissions };
+  return { role, plan: state.plan, disabledApps, lockedApps, blockedApps, permissions };
 }
 
 export const isCompanyRole = (r: unknown): r is CompanyRole => (COMPANY_ROLES as readonly unknown[]).includes(r);
