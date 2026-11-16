@@ -739,7 +739,7 @@ docsRoutes.post("/docs/:id/ai", async (c) => {
   if (!(await aiEnabled(c.env, doc.company_id)))
     throw new HttpError(
       403,
-      "AI writing help is off for this company. A company owner or admin can turn it on in Company settings, on the Docs tab.",
+      "AI writing help is off for this company. A company owner or admin can turn it on in Company settings, under Docs.",
       "ai_off"
     );
   let req;

@@ -1,5 +1,9 @@
 {
   "$comment": "The OpenAct app directory. docs.openact.app/directory shows it, and `npm run openact -- add <id>` installs from it. To list your app, open a pull request that adds an entry with the status \"available\".",
+  "plans": {
+    "director": "Part of OpenAct Director, the paid plan for startups to midmarket companies",
+    "producer": "Part of OpenAct Producer, the paid plan for enterprise companies"
+  },
   "statuses": {
     "built-in": "Part of OpenAct",
     "available": "Ready to install",
@@ -41,9 +45,10 @@
     {
       "id": "docs",
       "name": "Docs",
-      "summary": "A company library of paper-size docs, with folders, categories and tags. Share a doc with a link, or print it to PDF.",
+      "summary": "A company library of paper-size docs, with folders, categories and tags. Live editing, comments and AI writing help. Share a doc with a link, or print it to PDF.",
       "category": "Work",
       "status": "built-in",
+      "plan": "director",
       "publisher": "MarketGrowth",
       "reserved": true,
       "source": "local",

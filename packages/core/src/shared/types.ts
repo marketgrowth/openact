@@ -44,4 +44,20 @@ export interface AppConfig {
   aiProvider: string;
   /** The installed apps, in order. */
   apps: Array<{ id: string; name: string }>;
+  /** What the sign-in page shows. A super admin sets it in Site settings. */
+  signIn: SignInPage;
+}
+
+/** The sign-in page settings. Empty values use the defaults. */
+export interface SignInPage {
+  /** The heading beside the form. */
+  heading: string;
+  /** Who said the heading, or "" for no credit line. */
+  credit: string;
+  /** A link to the Terms of Use, or null. */
+  termsUrl: string | null;
+  /** A link to the Privacy Policy, or null. */
+  privacyUrl: string | null;
+  /** A URL for the background image, or null for the default stage. */
+  backgroundUrl: string | null;
 }

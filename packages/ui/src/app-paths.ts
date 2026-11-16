@@ -6,6 +6,12 @@
 /** The shell's Apps page: the apps in this company, and apps from the directory. The rail's App directory icon opens it. */
 export const APPS_PATH = "/apps";
 
+/** The shell's Settings page: company settings and, for super admins, site settings. Each section has its own path under it. */
+export const SETTINGS_PATH = "/settings";
+
+/** True for the Settings page and its sections. No app owns these paths. */
+export const isSettingsPath = (path: string): boolean => path === SETTINGS_PATH || path.startsWith(`${SETTINGS_PATH}/`);
+
 /** The parts of an app that these rules read. ClientApp has all of them. */
 export interface AppPathInfo {
   id: string;
@@ -46,6 +52,20 @@ export function appHome(app: AppPathInfo, apps: readonly AppPathInfo[]): string 
   if (app.home) return app.home;
   if (app.Home && apps.find((a) => a.Home) === app) return "/";
   return `/a/${app.id}`;
+}
+
+/**
+ * An app's own path, `/a/<id>`, goes to its home. Apps use it in links and nav items,
+ * so the link works whether or not the app owns "/".
+ */
+export function resolveAppPath(app: AppPathInfo, apps: readonly AppPathInfo[], path: string): string {
+  return path === `/a/${app.id}` ? appHome(app, apps) : path;
+}
+
+/** The app with a home page whose own path is `path` (`/a/<id>`, with or without a final slash). */
+export function homeAppAt<A extends AppPathInfo>(apps: readonly A[], path: string): A | undefined {
+  const m = path.match(/^\/a\/([^/]+)\/?$/);
+  return m ? apps.find((a) => a.Home && a.id === m[1]) : undefined;
 }
 
 /** True when the path belongs to the app. */

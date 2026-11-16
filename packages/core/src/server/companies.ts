@@ -4,6 +4,7 @@ import { COMPANY_ROLES, COMPANY_ROLE_LABELS, type Company, type CompanyDetail, t
 import { emailDomainProblem } from "../shared/access";
 import { runHook } from "./apps";
 import { companyRole, deletePrefix, requireCompanyRole } from "./data";
+import { hasRenewingSubscription } from "./billing";
 import { companyInviteEmail, sendEmail } from "./email";
 import { HttpError, appUrl, isEmail, newId, normalizeEmail, nowIso, oneOf, readJson, requireUser, text } from "./util";
 
@@ -153,6 +154,8 @@ companyRoutes.delete("/:id", async (c) => {
   const user = requireUser(c);
   const id = c.req.param("id");
   await requireCompanyRole(c.env, id, user.id, ["owner"]);
+  if (await hasRenewingSubscription(c.env, id))
+    throw new HttpError(400, "This company pays for a plan that renews. Cancel it with Manage billing on the Plan page first. Then delete the company.", "has_plan");
   // Apps delete their data and files for the company first.
   await runHook("companyDeleting", c.env, id);
   await deletePrefix(c.env.FILES, `companies/${id}/`);

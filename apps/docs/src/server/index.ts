@@ -88,7 +88,7 @@ export default defineServerApp({
     if (cron === DAILY_CRON) await cleanOrphanFiles(env);
   },
   hooks: {
-    // Company settings, on the Docs tab.
+    // Company settings, Docs section.
     companyDetail: async (env, companyId) => ({ docsAi: await aiEnabled(env, companyId) }),
     companyUpdate: async (env, companyId, body) => {
       if (body.docsAi === undefined) return false;

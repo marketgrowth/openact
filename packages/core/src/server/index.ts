@@ -38,9 +38,13 @@ export {
   hasPermission,
   requireAppOn,
   appOffError,
+  planRequiredError,
+  appPlan,
   siteAppOff,
   companyAppState,
   getCatalog,
   type AppInfo,
   type CompanyAppState
 } from "./permissions.ts";
+export { companyPlan, type CompanyPlanState } from "./plans.ts";
+export { checkLicense, deployLicense, type LicenseCheck } from "./license.ts";

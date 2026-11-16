@@ -1,13 +1,17 @@
 ---
 title: Docs
-description: A company library of paper-size docs, with folders, categories and tags. Share a doc with a link, or print it to PDF.
+description: A company library of paper-size docs, with folders, categories and tags. Share a doc with a link, or print it to PDF. Part of OpenAct Director.
 ---
 
 # Docs
 
 Docs is a company library of rich text documents. Each doc is a page the size of paper. You can sort docs into folders, give each doc a category, and add tags. You can share a doc with a link, and anyone can print it or save it as a PDF. The pages on screen match the printed pages.
 
-Docs comes with OpenAct, next to Projects. It has its own icon in the app rail. It is on for every company unless an admin turns it off.
+::: tip Part of OpenAct Director
+Docs is a paid app. It needs a [Director or Producer plan](plans.md). Without a plan, Docs is locked: the Apps page shows it with a **Director** badge and an **Upgrade** button, and your docs stay saved.
+:::
+
+Docs comes with OpenAct, next to Projects. It has its own icon in the app rail. In a company with a plan, it is on unless an admin turns it off.
 
 ## Write a doc
 
@@ -59,9 +63,9 @@ Select text in a doc, then choose **AI** on the toolbar. Choose what the AI shou
 
 The answer streams into a preview. Your doc does not change until you choose **Replace selection**, **Insert below** or **Insert**. Choose **Try again** for another answer.
 
-AI writing help is off until a company owner or admin turns it on, because it sends doc text to the AI. To turn it on, open **Company settings**, then the **Docs** tab. It sends only the selected text and up to 1,500 characters before and after it. For Continue writing, it sends the text before the cursor.
+AI writing help is off until a company owner or admin turns it on, because it sends doc text to the AI. To turn it on, open **Company settings**, then **Docs** in the side panel. It sends only the selected text and up to 1,500 characters before and after it. For Continue writing, it sends the text before the cursor.
 
-Docs uses the company's AI provider: the company's own key when an owner set one on the AI provider tab, or the deploy default. Requests go through Cloudflare AI Gateway. For local tests without AI, set `AI_PROVIDER` to `dev-scripted`.
+Docs uses the company's AI provider: the company's own key when an owner set one in Company settings, under AI provider, or the deploy default. Requests go through Cloudflare AI Gateway. For local tests without AI, set `AI_PROVIDER` to `dev-scripted`.
 
 ## Organize the library
 
@@ -121,7 +125,7 @@ A table or image that is taller than one page gets a page of its own on screen, 
 ## Turn Docs off
 
 - **For one company:** a company owner or admin opens **App directory** on the app rail, then turns off Docs. The data stays.
-- **For the whole site:** a super admin opens **Site settings**, then turns off Docs under **Apps**. Companies cannot turn it on again until a super admin does. Read [Site name, logo and apps](getting-started.md#site-name-logo-and-apps).
+- **For the whole site:** a super admin opens **Site settings**, then turns off Docs under **Apps**. Companies cannot turn it on again until a super admin does. Read [Site name, logo, sign-in page and apps](getting-started.md#site-name-logo-sign-in-page-and-apps).
 
 ## How it works
 
