@@ -22,7 +22,7 @@ import { HttpError, appName, nowIso, readJson, requireUser } from "./util";
 import { setSiteState, siteState, type SiteState } from "./site-state";
 import { getCatalog } from "./permissions";
 import { cleanGrantEnd, grantActive, type GrantUser, type SiteGrants } from "../shared/grants";
-import { planIncludes, type PaidPlan } from "../shared/plans";
+import { PLAN_IDS, cleanPlanDescription, isPlanId, planDescriptionKey, planIncludes, type PaidPlan, type PlanId } from "../shared/plans";
 import { deployLicense } from "./license";
 import { grantCeiling } from "./plans";
 
@@ -53,6 +53,7 @@ export async function loadSite(env: Env, force = false): Promise<SiteState> {
     backgroundType: null,
     backgroundUpdatedAt: null,
     appsOff: [],
+    planDescriptions: {},
     at: now
   };
   try {
@@ -69,6 +70,9 @@ export async function loadSite(env: Env, force = false): Promise<SiteState> {
       backgroundType: m.get("background_type") ?? null,
       backgroundUpdatedAt: m.get("background_updated_at") ?? null,
       appsOff: parseAppsOff(m.get("apps_off")),
+      planDescriptions: Object.fromEntries(
+        PLAN_IDS.map((id) => [id, m.get(planDescriptionKey(id)) ?? ""]).filter(([, v]) => v)
+      ) as Partial<Record<PlanId, string>>,
       at: now
     };
   } catch (e) {
@@ -281,6 +285,22 @@ siteRoutes.delete("/logo", async (c) => {
   await write(c.env, [c.env.DB.prepare("DELETE FROM site_settings WHERE key IN ('logo_type', 'logo_updated_at')")]);
   await c.env.FILES.delete(LOGO_KEY);
   return c.json(settings(c, await loadSite(c.env, true)));
+});
+
+/**
+ * Saves the description under a plan name on the Plan page. Body: { description }
+ * An empty description brings back the default. Every company on the site sees the same text.
+ */
+siteRoutes.patch("/plans/:planId", async (c) => {
+  const user = requireSuperAdmin(c);
+  const planId = c.req.param("planId");
+  if (!isPlanId(planId)) throw new HttpError(404, "This plan does not exist. Use free, director or producer.");
+  const r = cleanPlanDescription((await readJson(c)).description);
+  if ("problem" in r) throw new HttpError(400, r.problem);
+  const key = planDescriptionKey(planId);
+  await write(c.env, [r.text ? upsert(c.env, key, r.text, user.id, nowIso()) : c.env.DB.prepare("DELETE FROM site_settings WHERE key = ?").bind(key)]);
+  const s = await loadSite(c.env, true);
+  return c.json({ plan: planId, description: s.planDescriptions[planId] ?? "" });
 });
 
 /*

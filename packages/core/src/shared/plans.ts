@@ -18,7 +18,7 @@ export type PaidPlan = (typeof PAID_PLANS)[number];
 
 export interface PlanInfo {
   id: PlanId;
-  /** The full name, such as "OpenAct Director". */
+  /** The name the app shows, such as "Director". */
   name: string;
   /** The short name for badges, such as "Director". */
   short: string;
@@ -27,9 +27,9 @@ export interface PlanInfo {
 }
 
 export const PLANS: Record<PlanId, PlanInfo> = {
-  free: { id: "free", name: "OpenAct", short: "Free", audience: "The open source core, the UI and the Projects app." },
-  director: { id: "director", name: "OpenAct Director", short: "Director", audience: "For startups to midmarket companies." },
-  producer: { id: "producer", name: "OpenAct Producer", short: "Producer", audience: "For enterprise companies. Includes everything in Director." }
+  free: { id: "free", name: "Free", short: "Free", audience: "The open source core, the UI and the Projects app." },
+  director: { id: "director", name: "Director", short: "Director", audience: "For startups to midmarket companies." },
+  producer: { id: "producer", name: "Producer", short: "Producer", audience: "For enterprise companies. Includes everything in Director." }
 };
 
 export const isPlanId = (v: unknown): v is PlanId => (PLAN_IDS as readonly unknown[]).includes(v);
@@ -44,8 +44,35 @@ export function planIncludes(have: PlanId, need: PlanId | null | undefined): boo
 /** The higher of two plans. */
 export const higherPlan = (a: PlanId, b: PlanId): PlanId => (PLAN_IDS.indexOf(a) >= PLAN_IDS.indexOf(b) ? a : b);
 
-/** The badge and the sentence for an app that needs a plan, such as "Part of OpenAct Director". */
-export const planPart = (plan: PaidPlan): string => `Part of ${PLANS[plan].name}`;
+/** The sentence for an app that needs a plan, such as "Part of the Director plan". */
+export const planPart = (plan: PaidPlan): string => `Part of the ${PLANS[plan].name} plan`;
+
+/* Plan descriptions. A super admin can change the sentence under each plan name on the Plan page. */
+
+/** The longest plan description. */
+export const PLAN_DESCRIPTION_MAX = 200;
+
+/** The site_settings key for the description of a plan. */
+export const planDescriptionKey = (plan: PlanId): string => `plan_desc_${plan}`;
+
+/** Cleans a plan description: one line, no extra spaces. An empty text brings back the default. */
+export function cleanPlanDescription(raw: unknown): { text: string } | { problem: string } {
+  if (raw === undefined || raw === null) return { text: "" };
+  if (typeof raw !== "string") return { problem: "Description must be text." };
+  const text = raw.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim();
+  if (text.length > PLAN_DESCRIPTION_MAX) return { problem: `Description is too long. Use ${PLAN_DESCRIPTION_MAX} characters or fewer.` };
+  return { text };
+}
+
+/** The description of each plan: the saved text, or the default when none is saved. */
+export function planDescriptions(saved: Partial<Record<PlanId, string>>): Record<PlanId, { text: string; custom: boolean }> {
+  const out = {} as Record<PlanId, { text: string; custom: boolean }>;
+  for (const id of PLAN_IDS) {
+    const t = saved[id]?.trim();
+    out[id] = t ? { text: t, custom: true } : { text: PLANS[id].audience, custom: false };
+  }
+  return out;
+}
 
 /* Subscriptions */
 
@@ -193,6 +220,10 @@ export interface CompanyPlan {
   offers: PlanOffer[];
   /** A page to ask about plans, such as for Producer. */
   contactUrl: string | null;
+  /** The sentence under each plan name. A super admin can change it. */
+  descriptions: Record<PlanId, { text: string; custom: boolean }>;
+  /** True when this person is a super admin, who can change the plan descriptions. */
+  canEditDescriptions: boolean;
   /** Installed apps that need a plan. */
   apps: Array<{ id: string; name: string; plan: PaidPlan; unlocked: boolean }>;
 }

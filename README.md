@@ -57,7 +57,7 @@ The screenshots use example data: a sample team and projects, seen by Lyra, a co
 | ![Projects home page that greets Lyra, with Pinned, Projects and Recent in the panel](docs/images/projects.png) | ![Company menu open from the app rail](docs/images/switcher.png) |
 | **Projects.** The company's projects, with Pinned, Projects and Recent tasks in the panel. | **Company menu.** Every app's panel names the current company. Select it, or the mark on the app rail, to change company. |
 | ![Apps page with the apps in this company and apps from the directory](docs/images/apps-page.png) | ![Apps page in dark theme](docs/images/apps-page-dark.png) |
-| **Apps.** The App directory icon, below the divider on the app rail, opens the apps in this company and apps from the directory. Owners turn apps on or off here. | **Directory.** Official apps that are not ready say "Under review". Apps you can add show their install command. |
+| **Apps.** The App directory icon, below the divider on the app rail, opens the apps in this company and apps from the directory. Only super admins see it. Company owners turn apps on or off in Company settings. | **Directory.** Official apps that are not ready say "Under review". Apps you can add show their install command. |
 | ![Gantt timeline with phases and today line](docs/images/timeline.png) | ![Month calendar with start cards and deadline pills](docs/images/calendar.png) |
 | **Timeline.** Drag bars to move tasks. Phases have summary bars. | **Calendar.** Cards show starts. Pills show deadlines. |
 | ![Task drawer with dates, assignee and files](docs/images/task.png) | ![Panel collapsed to the app rail](docs/images/collapsed.png) |
