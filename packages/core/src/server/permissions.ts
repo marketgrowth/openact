@@ -118,7 +118,7 @@ export function planRequiredError(appId: string): HttpError {
   const plan = appPlan(appId) ?? "director";
   return new HttpError(
     403,
-    `${appName(appId)} is part of the ${PLANS[plan].name} plan. A company owner can upgrade on the Plan page, in Company settings.`,
+    `${appName(appId)} is part of the ${PLANS[plan].name} plan. Ask the owner of this site to upgrade the plan in Site settings.`,
     "plan_required"
   );
 }

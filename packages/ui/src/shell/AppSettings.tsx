@@ -61,7 +61,7 @@ export function AppsTab({ companyId }: { companyId: string }) {
               </span>
               <span className="text-xs text-muted-foreground">
                 {a.locked && a.plan
-                  ? `${planPart(a.plan)}. A company owner can upgrade under Plan, in Company settings.`
+                  ? `${planPart(a.plan)}. Ask the owner of this site to upgrade the plan.`
                   : a.siteOff
                   ? "Off for this site. A super admin can turn it on in Site settings."
                   : `${a.permissions.length} ${a.permissions.length === 1 ? "permission" : "permissions"} · ${a.enabledByDefault ? "On" : "Off"} for new companies`}

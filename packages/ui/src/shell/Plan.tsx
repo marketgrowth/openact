@@ -4,7 +4,6 @@ import { api, errorText } from "../api";
 import { navigate } from "../router";
 import { Icon, Notice, useToast } from "../ui";
 import { useWorkspace } from "../workspace";
-import { PageBody, SiteHeader } from "./SiteHeader";
 import { Badge } from "@openact/ui/components/badge";
 import { Button } from "@openact/ui/components/button";
 import { Textarea } from "@openact/ui/components/textarea";
@@ -12,13 +11,14 @@ import { cn } from "@openact/ui/lib/utils";
 
 /*
  * Plans: Free (open source), Director and Producer.
- * The Plan page at /plan shows the company's plan, the plans for sale on this deploy and the apps that need a plan.
- * Company owners buy a plan with Stripe Checkout and manage it in the Stripe billing portal.
+ * The Plan section of Site settings shows the plan, the plans for sale on this deploy and the apps that need a plan.
+ * Only super admins see it. The super owner buys a plan with Stripe Checkout and manages it in the Stripe billing portal.
+ * That plan covers every company on the site.
  * A super admin can change the description under each plan name. Every company on the site sees the same text.
  */
 
-/** The page for plans. The shell shows it at /plan. */
-export const PLAN_PATH = "/plan";
+/** The Plan section of Site settings. */
+export const PLAN_PATH = "/settings/site/plan";
 
 /** A badge for an app that needs a plan, such as "Director", in the stage gold of the OpenAct brand. */
 export function PlanBadge({ plan, className }: { plan: PaidPlan; className?: string }) {
@@ -37,22 +37,31 @@ export function PlanBadge({ plan, className }: { plan: PaidPlan; className?: str
 const dateText = (iso: string | null) =>
   iso ? new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }) : "";
 
-/** The Plan page. */
-export function PlanPage() {
+/**
+ * The Plan section of Site settings, for super admins only.
+ * The super owner pays for the plan in a company they own: the current company when they own it, or else the first one.
+ * That plan is the site plan. Every company on the site gets it.
+ */
+export function SitePlan() {
   const ws = useWorkspace();
-  const current = ws.current;
+  if (ws.companies === null) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  const owned = ws.companies.filter((c) => c.role === "owner");
+  const company = owned.find((c) => c.id === ws.current?.id) ?? owned[0];
+  if (!company)
+    return (
+      <Notice tone="info">
+        You own no company on this site. Create one from the company menu at the top of the side panel. Then choose a plan here.
+      </Notice>
+    );
   return (
-    <>
-      <SiteHeader title={current?.name ?? "Plan"} />
-      <PageBody>
-        <h2 className="text-2xl font-semibold tracking-tight">Plan</h2>
-        {current ? <PlanPanel companyId={current.id} /> : <p className="text-sm text-muted-foreground">Make a company to choose a plan.</p>}
-      </PageBody>
-    </>
+    <div className="grid gap-3">
+      <p className="text-sm text-muted-foreground">{`The plan is paid by ${company.name}.`}</p>
+      <PlanPanel key={company.id} companyId={company.id} />
+    </div>
   );
 }
 
-/** The plan of one company, with the offers. The Plan page and the Plan section of Company settings show it. */
+/** The plan of one company, with the offers. The Plan section of Site settings shows it. */
 export function PlanPanel({ companyId }: { companyId: string }) {
   const ws = useWorkspace();
   const toast = useToast();
@@ -175,14 +184,14 @@ export function PlanPanel({ companyId }: { companyId: string }) {
       {!info.billing && info.plan === "free" && (
         <p className="text-sm text-muted-foreground">
           Plans are not for sale on this site. If you run it yourself, a license key from MarketGrowth unlocks the paid apps.{" "}
-          <a className="underline underline-offset-4" href="https://docs.openact.app/plans" target="_blank" rel="noreferrer">
+          <a className="underline underline-offset-4" href="https://docs.openact.ing/plans" target="_blank" rel="noreferrer">
             Read about plans
           </a>
           .
         </p>
       )}
       {info.billing && !info.canManage && info.plan === "free" && (
-        <p className="text-sm text-muted-foreground">Only a company owner can choose a plan. Ask an owner of this company.</p>
+        <p className="text-sm text-muted-foreground">Only a super admin who owns this company can choose a plan.</p>
       )}
     </div>
   );

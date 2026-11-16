@@ -3,7 +3,6 @@ import { APPS_PATH, SETTINGS_PATH, activeApp, appHome, isSettingsPath, railGroup
 import { ACCOUNT_SECTIONS, SITE_SECTIONS, companySections, parseSettingsPath, settingsPath, type SettingsSection } from "../settings-paths";
 import { canManageCompany } from "@openact/core/shared";
 import { Link, navigate, usePath } from "../router";
-import { PLAN_PATH } from "./Plan";
 import { Avatar, Icon } from "../ui";
 import { useWorkspace } from "../workspace";
 import { getTheme, setTheme, type ThemePref } from "../theme";
@@ -362,11 +361,6 @@ function CompanyMenu({ appName, onNewCompany, onPick, side, align }: SwitcherPro
           }}
         >
           <Icon name="gear" /> Company settings
-        </DropdownMenuItem>
-      )}
-      {current && current.role !== "guest" && (
-        <DropdownMenuItem onSelect={() => navigate(PLAN_PATH)}>
-          <Icon name="star" /> Plan
         </DropdownMenuItem>
       )}
       <DropdownMenuItem onSelect={onNewCompany}>

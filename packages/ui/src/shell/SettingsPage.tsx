@@ -11,7 +11,7 @@ import { CompanyMark } from "./Sidebar";
 import { GeneralTab, PeopleTab } from "./CompanyDialogs";
 import { AppsTab, PermissionsTab } from "./AppSettings";
 import { CompanyAiTab } from "./CompanyAi";
-import { PlanPanel } from "./Plan";
+import { SitePlan } from "./Plan";
 import { SiteSettingsSection, type SiteSection } from "./SiteSettings";
 import { SiteGrants } from "./SiteGrants";
 import { ProfileSection, SecuritySection } from "./AccountSettings";
@@ -28,12 +28,15 @@ type Detail = CompanyDetail & Record<string, unknown>;
 export function SettingsPage({
   me,
   apps,
+  superAdmin,
   onSite,
   onMe,
   onSignOut
 }: {
   me: User;
   apps: readonly ClientApp[];
+  /** True for super admins. Only they see Site settings. undefined while it loads. */
+  superAdmin?: boolean;
   onSite: (s: SiteSettings) => void;
   onMe: (u: User | null) => void;
   onSignOut: (everywhere: boolean) => void;
@@ -72,9 +75,16 @@ export function SettingsPage({
   if (scope === "site") {
     const section = SITE_SECTIONS.find((s) => s.id === id);
     if (!section) return <Missing />;
+    if (superAdmin === undefined) return <Loading title="Site settings" />;
+    if (!superAdmin)
+      return (
+        <Shell title="Site settings" section={section}>
+          <Notice tone="info">Only super admins can open Site settings. Ask the person who runs this site.</Notice>
+        </Shell>
+      );
     return (
       <Shell title="Site settings" section={section}>
-        {section.id === "grants" ? <SiteGrants /> : <SiteSettingsSection key={section.id} section={section.id as SiteSection} onSaved={onSite} />}
+        {section.id === "grants" ? <SiteGrants /> : section.id === "plan" ? <SitePlan /> : <SiteSettingsSection key={section.id} section={section.id as SiteSection} onSaved={onSite} />}
       </Shell>
     );
   }
@@ -129,7 +139,6 @@ function CompanySection({ companyId, me, apps, section }: { companyId: string; m
   else if (section.id === "apps") body = <AppsTab companyId={companyId} />;
   else if (section.id === "permissions") body = <PermissionsTab companyId={companyId} />;
   else if (section.id === "ai") body = <CompanyAiTab companyId={companyId} />;
-  else if (section.id === "plan") body = <PlanPanel companyId={companyId} />;
   else if (appTab) body = <appTab.Tab key={appTab.id} detail={detail} onChanged={changed} />;
 
   return (
