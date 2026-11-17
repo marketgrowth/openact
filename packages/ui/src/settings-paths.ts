@@ -43,6 +43,13 @@ export const SITE_SECTIONS: readonly SettingsSection[] = [
   },
   {
     scope: "site",
+    id: "companies",
+    label: "Duplicate a company",
+    icon: "copy",
+    description: "Make a new company with a copy of another company's projects and docs. Use it to start a company from a template."
+  },
+  {
+    scope: "site",
     id: "plan",
     label: "Plan",
     icon: "star",

@@ -18,10 +18,12 @@ import {
   siteLogoUrl,
   type SiteSettings
 } from "../shared/site";
-import { HttpError, appName, nowIso, readJson, requireUser } from "./util";
+import { HttpError, appName, nowIso, readJson, requireUser, text } from "./util";
+import { getApps } from "./apps";
+import { CopyError, MAX_COMPANIES_PER_PERSON, duplicateCompany } from "./company-copy";
 import { setSiteState, siteState, type SiteState } from "./site-state";
 import { getCatalog } from "./permissions";
-import type { SiteCompanies, SiteCompanyApps } from "../shared/site";
+import type { DuplicateCompanyResult, SiteCompanies, SiteCompanyApps } from "../shared/site";
 import { cleanGrantEnd, grantActive, type GrantUser, type SiteGrants } from "../shared/grants";
 import { PLAN_IDS, cleanPlanDescription, isPlanId, planDescriptionKey, planIncludes, type PaidPlan, type PlanId } from "../shared/plans";
 import { deployLicense } from "./license";
@@ -278,6 +280,29 @@ siteRoutes.put("/companies/:companyId/apps/:appId", async (c) => {
   }
   const row = await c.env.DB.prepare(`${COMPANY_SELECT} WHERE c.id = ?`).bind(companyId).first<CompanyRow>();
   return c.json(siteCompany(row!));
+});
+
+/**
+ * Duplicates a company. Body: { name }
+ * The new company gets a copy of the company's content, such as projects and docs. The super admin is its only owner.
+ * People, invitations, the plan, the AI key, the email domain, comments and share links are not copied.
+ */
+siteRoutes.post("/companies/:companyId/duplicate", async (c) => {
+  const user = requireSuperAdmin(c);
+  const name = text((await readJson(c)).name, "Company name", { max: 80, required: true });
+  const owned = await c.env.DB.prepare("SELECT COUNT(*) AS n FROM company_members WHERE user_id = ? AND role = 'owner'").bind(user.id).first<{ n: number }>();
+  if ((owned?.n ?? 0) >= MAX_COMPANIES_PER_PERSON)
+    throw new HttpError(
+      400,
+      `You own ${MAX_COMPANIES_PER_PERSON} companies, which is the limit. Make another person an owner of one and leave it, or delete one. Then try again.`
+    );
+  try {
+    const r = await duplicateCompany(c.env, { fromId: c.req.param("companyId"), name, userId: user.id }, getApps());
+    return c.json({ company: { id: r.id, name }, copied: r.copied } satisfies DuplicateCompanyResult, 201);
+  } catch (err) {
+    if (err instanceof CopyError) throw new HttpError(err.status, err.message);
+    throw err;
+  }
 });
 
 /**

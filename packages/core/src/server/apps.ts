@@ -4,6 +4,8 @@ import type { AppEnv, Env } from "./env";
 import type { User } from "../shared/types";
 import { COMPANY_ROLES } from "../shared/types";
 import { PERMISSION_ID, permissionApp, type PermissionDef } from "../shared/permissions";
+import type { CopyCount } from "../shared/site";
+import type { CompanyCopyContext } from "./company-copy";
 
 /*
  * Server side of an OpenAct app.
@@ -48,6 +50,13 @@ export interface AppHooks {
   companyUpdate?: (env: Env, companyId: string, body: Record<string, unknown>) => Promise<boolean>;
   /** Settings for a new company, such as defaults. Runs after the company row exists. */
   companyCreated?: (env: Env, companyId: string, userId: string) => Promise<void>;
+  /**
+   * Runs when a super admin duplicates a company, after the new company exists. Copy the app's data and files
+   * from ctx.fromId to ctx.toId with the tools in ctx. Leave out people, comments, share links and history.
+   * Return what you copied, for the summary. If the hook throws, the core deletes the new company.
+   * Without this hook, the new company starts with none of the app's data.
+   */
+  companyDuplicating?: (env: Env, ctx: CompanyCopyContext) => Promise<CopyCount[]>;
 }
 
 export function defineServerApp(app: ServerApp): ServerApp {
