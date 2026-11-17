@@ -158,11 +158,23 @@ export function ProjectPage({ projectId, view, me, config }: { projectId: string
   }, [loaded, projectId]);
 
   // Opening a project from another company makes that company current, so the side panel matches.
-  const projectCompany = data?.project.companyId ?? null;
+  // This runs once per project. After that, a switch to another company in the company menu
+  // leaves the project, because a project shows only in its own company.
+  const projectCompany = data?.project.id === projectId ? data.project.companyId : null;
   const { current: currentCompany, companies, switchTo } = ws;
+  const companySync = useRef<{ projectId: string; companyId: string } | null>(null);
   useEffect(() => {
-    if (projectCompany && currentCompany?.id !== projectCompany && companies?.some((c) => c.id === projectCompany)) switchTo(projectCompany);
-  }, [projectCompany, currentCompany?.id, companies, switchTo]);
+    if (!projectCompany || !companies || !currentCompany) return;
+    const synced = companySync.current;
+    if (!synced || synced.projectId !== projectId) {
+      const member = companies.some((c) => c.id === projectCompany);
+      const companyId = member ? projectCompany : currentCompany.id;
+      companySync.current = { projectId, companyId };
+      if (companyId !== currentCompany.id) switchTo(companyId);
+      return;
+    }
+    if (currentCompany.id !== synced.companyId) navigate(PROJECTS_HOME);
+  }, [projectId, projectCompany, currentCompany, companies, switchTo]);
 
   // Open a task that search asked for: when the project loads, or at once when it is already open.
   useEffect(() => {
