@@ -65,6 +65,24 @@ export interface SiteCompanies {
   companies: SiteCompanyApps[];
 }
 
+/** One line of the summary after a company is duplicated, such as { label: "Docs", count: 12 }. */
+export interface CopyCount {
+  label: string;
+  count: number;
+}
+
+/** POST /api/site/companies/:id/duplicate. Super admins only. */
+export interface DuplicateCompanyResult {
+  company: { id: string; name: string };
+  /** What each app copied, in app order. */
+  copied: CopyCount[];
+}
+
+/** A duplicate copies at most this many files (task files, doc images and PDFs). */
+export const DUPLICATE_MAX_FILES = 400;
+/** A duplicate copies at most this many bytes of files. */
+export const DUPLICATE_MAX_BYTES = 500 * 1024 * 1024;
+
 /** Reads the saved list of apps that are off for the site. Bad data counts as an empty list. */
 export function parseAppsOff(raw: string | undefined | null): string[] {
   if (!raw) return [];

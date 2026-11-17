@@ -127,6 +127,7 @@ export default defineServerApp({
 | `hooks.companyMemberRemoved` | Remove the person's access to your data in that company |
 | `hooks.companyDeleting` | Delete your data and files for that company |
 | `hooks.companyCreated` | Set up a new company |
+| `hooks.companyDuplicating` | Copy your data and files into a duplicate of a company. Read [Duplicate a company](companies.md#duplicate-a-company). |
 | `hooks.companyDetail`, `hooks.companyUpdate` | Read and save your app's company settings through `/api/companies/:id` |
 
 ### Permissions

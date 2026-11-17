@@ -21,6 +21,7 @@ export {
   type LiveMessage
 } from "./live.ts";
 export { defineServerApp, getApps, runHook, type ServerApp, type AppHooks } from "./apps.ts";
+export type { CompanyCopyContext } from "./company-copy.ts";
 export { createWorker, DAILY_CRON } from "./worker.ts";
 export { isSuperAdmin, requireSuperAdmin, loadSite } from "./site.ts";
 export { sealSecret, openSecret } from "./secret-box.ts";
