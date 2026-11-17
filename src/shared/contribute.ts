@@ -1,29 +1,15 @@
 /*
- * Contributions: rules shared by the Worker and the web app.
+ * Contributions: rules shared by the landing page Worker (landing/src/contribute.ts) and the tests.
  *
  * People pay by card through Stripe Checkout, or in USDC through x402 v2.
- * Contributions help build OpenAct.
+ * Contributions help build OpenAct. The page is https://openact.ing/contribute.
  */
 
-export interface SupportedProject {
-  name: string;
-  url?: string;
-  description: string;
-}
+/** The Contribute page. The heart icon on the app rail of every deploy opens it in a new browser tab. */
+export const CONTRIBUTE_URL = "https://openact.ing/contribute";
 
-/** Nonprofits, and projects that support nonprofits, that OpenAct helps build software for. */
-export const SUPPORTED_PROJECTS: SupportedProject[] = [
-  {
-    name: "Lyra Music Foundation",
-    description:
-      "A nonprofit. It uses OpenAct to build agentic software that teaches music and theater to young adults around the world. The Hack Foundation is its fiscal sponsor."
-  },
-  {
-    name: "Mission:Told",
-    url: "https://missiontold.com",
-    description: "A digital media publication. It tells the stories of mission-focused leaders, volunteers and impact builders."
-  }
-];
+/** The contribution routes on the landing page Worker. */
+export const CONTRIBUTE_API = "/api/contribute";
 
 /** The smallest and the largest contribution, in US dollars. */
 export const MIN_USD = 1;
@@ -34,7 +20,7 @@ export const PRESETS_USD = [10, 25, 50, 100] as const;
 
 export type Frequency = "once" | "monthly";
 
-/** What the page needs to know. The Worker sends it from GET /api/apps/site/contribute. */
+/** What the page needs to know. The landing page Worker sends it from GET /api/contribute. */
 export interface ContributeOptions {
   /** True when Stripe Checkout is set up. */
   card: boolean;
@@ -52,6 +38,9 @@ export interface ContributeOptions {
     assetName: string;
     assetVersion: string;
     payTo: string;
+    /** For the wallet: the network's RPC link and block explorer. */
+    rpcUrl: string;
+    explorer: string;
     /** The x402 resource. Agents and the page pay here. */
     endpoint: string;
   };

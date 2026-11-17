@@ -67,6 +67,7 @@ function readPanelOpen(): boolean {
 const DEFAULT_CONFIG: AppConfig = {
   appName: "OpenAct",
   logoUrl: null,
+  issuesUrl: null,
   emailEnabled: true,
   signupMode: "open",
   aiProvider: "workers-ai",
@@ -98,7 +99,7 @@ function Root({ apps, directory, primary }: { apps: ClientApp[]; directory: read
     (s: SiteSettings) =>
       setConfig((c) => {
         const { customHeading: _, ...signIn } = s.signIn;
-        return { ...c, appName: s.appName, logoUrl: s.logoUrl, signIn };
+        return { ...c, appName: s.appName, logoUrl: s.logoUrl, issuesUrl: s.issuesUrl, signIn };
       }),
     []
   );
@@ -286,6 +287,7 @@ function SignedIn({
       <AppSidebar
         me={me}
         appName={config.appName}
+        issuesUrl={config.issuesUrl}
         apps={onApps}
         primary={primary}
         onRunCommand={(id) => setDialog({ command: id })}

@@ -31,7 +31,7 @@ export const ACCOUNT_SECTIONS: readonly SettingsSection[] = [
 ];
 
 export const SITE_SECTIONS: readonly SettingsSection[] = [
-  { scope: "site", id: "general", label: "Name and logo", icon: "image", description: "The app name and logo that everyone on this site sees." },
+  { scope: "site", id: "general", label: "Branding", icon: "image", description: "The app name, the logo and the Submit issues link that everyone on this site sees." },
   { scope: "site", id: "sign-in", label: "Sign-in page", icon: "signin", description: "The heading, credit, legal links and background of the sign-in page." },
   {
     scope: "site",

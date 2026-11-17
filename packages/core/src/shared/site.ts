@@ -1,7 +1,7 @@
 import type { SignInPage } from "./types.ts";
 
 /*
- * Site settings: the name, the logo, the sign-in page and the apps of this deploy.
+ * Site settings: the name, the logo, the Submit issues link, the sign-in page and the apps of this deploy.
  * A super admin sets them. Super admins are the emails in SUPER_ADMIN_EMAILS.
  */
 
@@ -32,6 +32,8 @@ export interface SiteSettings {
   customName: boolean;
   /** A URL for the logo, or null for the OpenAct mark. */
   logoUrl: string | null;
+  /** The Submit issues link on the app rail, or null when a super admin did not set one. */
+  issuesUrl: string | null;
   /** True when this person is a super admin. */
   canEdit: boolean;
   /** The sign-in page as it shows now. */
@@ -112,7 +114,7 @@ export function cleanSignInText(raw: unknown, label: string, max: number): { tex
   return { text };
 }
 
-/** Cleans a link to a legal page. Only http and https links are allowed. Returns "" for no link. */
+/** Cleans a link that a super admin sets, such as a legal page or the Submit issues link. Only http and https links are allowed. Returns "" for no link. */
 export function cleanLegalUrl(raw: unknown, label: string): { url: string } | { problem: string } {
   if (raw === undefined || raw === null) return { url: "" };
   if (typeof raw !== "string") return { problem: `${label} link must be text.` };

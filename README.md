@@ -46,7 +46,8 @@ Read the documentation at [docs.openact.app](https://docs.openact.app).
 - **Apps.** OpenAct is a core plus apps. The core gives every app sign-in, people, companies, roles, live updates and the web shell. Project management is the first app. Add more from GitHub with one command: `npm run openact -- add github:owner/repo`. See [docs/apps.md](docs/apps.md).
 - **Built with shadcn/ui.** The web app uses [shadcn/ui](https://ui.shadcn.com) components, [Tailwind CSS](https://tailwindcss.com) and [Lucide](https://lucide.dev) icons, with the layout of shadcn's dashboard-01 block. Most React developers and coding agents already know these parts.
 - **Live updates.** When someone changes a project, every open page updates at once, including changes made by the AI agent. The header shows who else is viewing. Each project has a Durable Object that holds its WebSockets, and idle connections hibernate, so they cost almost nothing. If live updates are not available, pages check for changes every 5 seconds.
-- **Contributions.** A public page at `/contribute` lets people help pay for OpenAct, by card through Stripe Checkout or in USDC through [x402](https://www.x402.org). AI agents can pay the same x402 endpoint. The heart icon sits at the bottom of the app rail. See [docs/contribute.md](docs/contribute.md).
+- **Contributions.** The public page at [openact.ing/contribute](https://openact.ing/contribute) lets people help build OpenAct, by card through Stripe Checkout or in USDC through [x402](https://www.x402.org). AI agents can pay the same x402 endpoint. The heart icon at the bottom of the app rail opens the page in a new tab. See [docs/contribute.md](docs/contribute.md).
+- **Submit issues.** A super admin can add a Submit issues link in Site settings > Branding. A bug icon on the app rail, above the heart, opens it in a new tab.
 
 ## Screenshots
 
@@ -265,7 +266,8 @@ apps/projects/         The projects app
   src/shared/            Project types, access rules, agent policy, AG-UI types
   migrations/            New database changes for this app
 apps/docs/             The docs app: a library of paper-size docs with folders, categories and tags, share links, print to PDF
-src/                   The host: the Worker entry, the web app entry, the contribute page and the colophon
+src/                   The host: the Worker entry, the web app entry and the colophon
+landing/               The landing page at openact.ing and its Worker, with the Contribute page and its payment routes
 openact.apps.json      The installed apps, in order
 scripts/openact.mjs    Adds, updates and removes apps, and writes .openact/ (npm run sync)
 test/                  Unit tests and the search pipeline test
@@ -331,7 +333,7 @@ The check controls focus and cost. It is not a security control. Roles, the AI p
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md). To report a security problem, read [SECURITY.md](SECURITY.md).
 
-To help pay for OpenAct, open `/contribute` on any OpenAct deploy. See [docs/contribute.md](docs/contribute.md).
+To help build OpenAct, open [openact.ing/contribute](https://openact.ing/contribute). See [docs/contribute.md](docs/contribute.md).
 
 ## Plans
 

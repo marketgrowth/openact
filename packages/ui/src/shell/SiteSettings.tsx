@@ -39,6 +39,8 @@ export function SiteSettingsSection({ section, onSaved }: { section: SiteSection
   const bgFile = useRef<HTMLInputElement>(null);
   const [signIn, setSignIn] = useState({ heading: "", credit: "", termsUrl: "", privacyUrl: "" });
   const [signInBusy, setSignInBusy] = useState(false);
+  const [issuesUrl, setIssuesUrl] = useState("");
+  const [issuesBusy, setIssuesBusy] = useState(false);
 
   // The form holds what a super admin saved. Empty fields mean the defaults.
   const signInForm = (s: SiteSettings) => ({
@@ -54,6 +56,7 @@ export function SiteSettingsSection({ section, onSaved }: { section: SiteSection
         setSite(s);
         setName(s.customName ? s.appName : "");
         setSignIn(signInForm(s));
+        setIssuesUrl(s.issuesUrl ?? "");
       })
       .catch((err) => setLoadError(errorText(err)));
   }, []);
@@ -75,6 +78,21 @@ export function SiteSettingsSection({ section, onSaved }: { section: SiteSection
       toast(errorText(err));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const saveIssues = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIssuesBusy(true);
+    try {
+      const s = await api<SiteSettings>("/api/site/issues", { method: "PATCH", body: { issuesUrl } });
+      apply(s);
+      setIssuesUrl(s.issuesUrl ?? "");
+      toast(s.issuesUrl ? "The Submit issues link is saved." : "The Submit issues icon is hidden.");
+    } catch (err) {
+      toast(errorText(err));
+    } finally {
+      setIssuesBusy(false);
     }
   };
 
@@ -194,6 +212,29 @@ export function SiteSettingsSection({ section, onSaved }: { section: SiteSection
             )}
           </div>
         </Field>
+        <Separator />
+        <form className="grid gap-4" onSubmit={saveIssues} data-site-issues-form="">
+          <Field
+            label="Submit issues link"
+            htmlFor="site-issues"
+            help="A bug icon on the app rail opens this link in a new browser tab. Use it for your issue tracker or a feedback form. Leave it empty to hide the icon."
+          >
+            <Input
+              id="site-issues"
+              type="url"
+              inputMode="url"
+              value={issuesUrl}
+              maxLength={LEGAL_URL_MAX}
+              placeholder="https://github.com/your-org/your-repo/issues/new"
+              onChange={(e) => setIssuesUrl(e.target.value)}
+            />
+          </Field>
+          <div className="flex justify-end">
+            <Button type="submit" disabled={issuesBusy || issuesUrl.trim() === (site.issuesUrl ?? "")}>
+              Save link
+            </Button>
+          </div>
+        </form>
       </div>
     );
 
