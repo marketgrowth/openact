@@ -150,6 +150,7 @@
       .top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 60px; }
       .brand { display: inline-flex; align-items: center; gap: 10px; font-family: var(--display); font-weight: 700; font-size: 18px; letter-spacing: -0.01em; text-decoration: none; }
       .brand svg { width: 24px; height: 24px; }
+      .beta { font-family: var(--mono); font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; line-height: 1.4; padding: 2px 7px; border-radius: 999px; color: var(--warn); background: var(--warn-soft); border: 1px solid color-mix(in oklab, var(--warn) 40%, transparent); }
       .nav { display: flex; align-items: center; gap: 8px; font-size: 14px; }
       .nav a.pill { padding: 6px 13px; border: 1px solid var(--edge-strong); border-radius: 999px; color: var(--soft); text-decoration: none; }
       .nav a.pill:hover { color: var(--ink); border-color: var(--muted); }
@@ -329,9 +330,10 @@
     <a class="skip" href="#main">Skip to the content</a>
     <header class="top">
       <div class="wrap">
-        <a class="brand" href="/" aria-label="OpenAct home">
+        <a class="brand" href="/" aria-label="OpenAct home, beta">
           <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="currentColor" /><circle cx="16" cy="16" r="8" fill="none" stroke-width="4.5" style="stroke: var(--bg)" /></svg>
           OpenAct
+          <span class="beta" title="OpenAct is in beta. Expect bugs.">BETA</span>
         </a>
         <nav class="nav" aria-label="Main">
           <a class="pill" href="#features">Features</a>
