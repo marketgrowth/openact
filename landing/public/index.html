@@ -261,6 +261,20 @@
       .stack div { padding: 10px 12px; font-family: var(--mono); font-size: 12px; color: var(--soft); }
       .stack div span { display: block; font-size: 10.5px; color: var(--muted); }
 
+      /* Edge network */
+      .edge { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 32px; align-items: center; }
+      .edge .copy p + p { margin-top: 10px; }
+      .edge .viz { margin-top: 0; }
+      .pops { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+      .pop { padding: 12px; font-family: var(--mono); font-size: 12px; color: var(--soft); }
+      .pop b { display: block; margin-bottom: 4px; font-size: 18px; font-weight: 600; letter-spacing: 0.04em; color: var(--accent); }
+      .pop span { display: block; font-size: 10.5px; color: var(--muted); }
+      .link { height: 22px; margin: 0 12%; border: 1.5px dashed var(--edge-strong); border-top: 0; border-radius: 0 0 14px 14px; }
+      .home { display: flex; justify-content: space-between; align-items: center; gap: 12px; width: 62%; margin: 0 auto; padding: 11px 14px; font-family: var(--mono); font-size: 12px; color: var(--soft); }
+      .home span { display: block; font-size: 10.5px; color: var(--muted); }
+      @media (max-width: 860px) { .edge { grid-template-columns: 1fr; } }
+      @media (max-width: 520px) { .pops { grid-template-columns: repeat(2, minmax(0, 1fr)); } .link { display: none; } .home { width: auto; margin-top: 8px; } }
+
       /* Feature list */
       .feats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 32px; margin: 20px 0 0; }
       .feat { padding: 12px 0; border-top: 1px solid var(--edge); }
@@ -503,6 +517,24 @@
                 <div class="key">R2<span>files</span></div>
                 <div class="key">Workers<span>app and API</span></div>
                 <div class="key">Durable Objects<span>live rooms</span></div>
+              </div>
+            </article>
+            <article class="card s12 edge" id="edge">
+              <div class="copy">
+                <p class="eyebrow">Cloudflare's edge network</p>
+                <h3>Your app runs near each person.</h3>
+                <p>OpenAct runs on Cloudflare Workers. Each request runs in the Cloudflare data center closest to the person who sends it. You manage no servers and pick no region for the app.</p>
+                <p>Your data has one home. The D1 database and each live room stay in one place, so every person sees the same up-to-date work.</p>
+              </div>
+              <div class="viz" aria-hidden="true">
+                <div class="pops">
+                  <div class="key pop"><b>MNL</b>Manila<span>runs here</span></div>
+                  <div class="key pop"><b>SJC</b>San Jose<span>runs here</span></div>
+                  <div class="key pop"><b>LHR</b>London<span>runs here</span></div>
+                  <div class="key pop"><b>GRU</b>São Paulo<span>runs here</span></div>
+                </div>
+                <div class="link"></div>
+                <div class="key home"><div>D1 and live rooms<span>one home for your data</span></div><span class="chip ok">your account</span></div>
               </div>
             </article>
             <article class="card s12">
