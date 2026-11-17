@@ -16,6 +16,8 @@ export interface SiteState {
   signInCredit: string;
   termsUrl: string;
   privacyUrl: string;
+  /** The Submit issues link on the app rail, or "" to hide the icon. */
+  issuesUrl: string;
   backgroundType: string | null;
   backgroundUpdatedAt: string | null;
   /** Apps that a super admin turned off for the whole site. They are off in every company. */

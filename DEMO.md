@@ -11,6 +11,7 @@ This branch runs the public demo app at https://a.openact.ing and the landing pa
 - Docs Worker: `openact-docs-demo` at docs.openact.ing. A third Workers Builds project builds `docs/` from this branch with `npm run docs:build`, then runs `npx wrangler deploy --config wrangler.docs.jsonc`. On main, the same docs deploy to docs.openact.app through GitHub Actions. All three Workers use the build token "openact-demo build token".
 - D1 database: `openact-demo`. R2 bucket: `openact-demo-files`. Vectorize index: `openact-tasks`.
 - Secrets in the Worker settings: `AUTH_SECRET`, `OPENACT_LICENSE`, `RESEND_API_KEY`.
+- Contribution secrets (`STRIPE_SECRET_KEY`, `STRIPE_PORTAL_URL`, `X402_*`) belong on the landing Worker, `openact-site`, not on `openact-demo`. Read `docs/contribute.md`.
 
 ## What is different from main
 
@@ -20,7 +21,7 @@ This branch runs the public demo app at https://a.openact.ing and the landing pa
 4. `license-keys.ts` has the `demo-a-openact-ing` key id. It signs one Director license that works on `a.openact.ing` only and ends on 2027-11-14. Its private key was destroyed after issue. To renew, make a new key pair and license.
 
 5. `wrangler.docs.jsonc` and the sitemap host in `docs/.vitepress/config.mts` point at docs.openact.ing.
-6. `landing/` is the static landing page. Edit `landing/public/index.html`. It has no build step.
+6. `landing/` is the landing page and its Worker. Edit `landing/public/index.html` and `landing/public/contribute.html`. It has no build step. The Worker (`landing/src/`) runs the contribution routes at `/api/contribute`.
 
 ## Test a branch on the demo
 

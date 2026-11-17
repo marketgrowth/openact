@@ -1,16 +1,18 @@
 {
   // The OpenAct landing page at https://openact.ing. Static files in public/.
+  // The Worker also answers the contribution routes (/api/contribute) for openact.ing/contribute.
+  // Set the contribution settings as secrets: npx wrangler secret put STRIPE_SECRET_KEY --config landing/wrangler.jsonc
   // The demo app is a separate Worker (openact-demo) at https://a.openact.ing.
   // Workers Builds deploys this folder from the demo branch. See DEMO.md.
   "$schema": "../node_modules/wrangler/config-schema.json",
   "name": "openact-site",
-  "main": "src/index.js",
+  "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
   "observability": { "enabled": true },
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
-    // The script runs first, so it can send www.openact.ing to openact.ing.
+    // The script runs first, so it can send www.openact.ing to openact.ing and answer /api/contribute.
     "run_worker_first": true,
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "404-page"

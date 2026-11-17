@@ -3,6 +3,7 @@ import {
   ArrowLeft,
   Bot,
   BriefcaseBusiness,
+  Bug,
   Calendar,
   ChartGantt,
   Check,
@@ -149,6 +150,7 @@ const ICONS: Record<string, LucideIcon> = {
   mail: Mail,
   history: History,
   heart: Heart,
+  bug: Bug,
   card: CreditCard,
   wallet: Wallet,
   // Doc editor

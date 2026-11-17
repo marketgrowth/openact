@@ -71,6 +71,8 @@ export function CompanyMark({ company, size = 32, className }: { company: Pick<C
 export interface AppSidebarProps {
   me: User;
   appName: string;
+  /** The Submit issues link from Site settings > Branding. The rail shows its icon only when it is set. */
+  issuesUrl?: string | null;
   apps: readonly ClientApp[];
   /** The id of the deploy's primary app. It sits at the top of the rail, above a divider. */
   primary?: string | null;
@@ -80,6 +82,9 @@ export interface AppSidebarProps {
   superAdmin: boolean;
   onSignOut: (everywhere: boolean) => void;
 }
+
+/** True for a full web address. Nav items with one open in a new browser tab. */
+const isWebAddress = (path: string) => /^https?:\/\//i.test(path);
 
 const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
 
@@ -188,15 +193,35 @@ export function AppSidebar(p: AppSidebarProps) {
           </SidebarContent>
           <SidebarFooter className="px-2 pb-2">
             <SidebarMenu>
-              {footer.map((item) => (
-                <SidebarMenuItem key={item.path}>
-                  <SidebarMenuButton asChild tooltip={railTip(item.label)} isActive={path === item.path} className="justify-center p-0">
-                    <Link to={item.path} onClick={done} aria-label={item.label}>
-                      <Icon name={item.icon} />
-                    </Link>
+              {/* A super admin sets this link in Site settings > Branding. It sits above the app footer items. */}
+              {p.issuesUrl && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip={railTip("Submit issues")} className="justify-center p-0" data-issues-link="">
+                    <a href={p.issuesUrl} target="_blank" rel="noreferrer" onClick={done} aria-label="Submit issues (opens in a new tab)">
+                      <Icon name="bug" />
+                    </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              ))}
+              )}
+              {footer.map((item) =>
+                isWebAddress(item.path) ? (
+                  <SidebarMenuItem key={item.path}>
+                    <SidebarMenuButton asChild tooltip={railTip(item.label)} className="justify-center p-0">
+                      <a href={item.path} target="_blank" rel="noreferrer" onClick={done} aria-label={`${item.label} (opens in a new tab)`}>
+                        <Icon name={item.icon} />
+                      </a>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ) : (
+                  <SidebarMenuItem key={item.path}>
+                    <SidebarMenuButton asChild tooltip={railTip(item.label)} isActive={path === item.path} className="justify-center p-0">
+                      <Link to={item.path} onClick={done} aria-label={item.label}>
+                        <Icon name={item.icon} />
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
+              )}
               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip={railTip("Settings")} isActive={onSettings} className="justify-center p-0" data-settings-link="">
                   <Link to={SETTINGS_PATH} onClick={done} aria-label="Settings" aria-current={onSettings ? "true" : undefined}>
@@ -258,10 +283,18 @@ export function AppSidebar(p: AppSidebarProps) {
                     {main.map((item) => (
                       <SidebarMenuItem key={item.path}>
                         <SidebarMenuButton asChild isActive={path === item.path}>
-                          <Link to={item.path} onClick={done}>
-                            <Icon name={item.icon} />
-                            <span>{item.label}</span>
-                          </Link>
+                          {isWebAddress(item.path) ? (
+                            <a href={item.path} target="_blank" rel="noreferrer" onClick={done}>
+                              <Icon name={item.icon} />
+                              <span>{item.label}</span>
+                              <span className="sr-only"> (opens in a new tab)</span>
+                            </a>
+                          ) : (
+                            <Link to={item.path} onClick={done}>
+                              <Icon name={item.icon} />
+                              <span>{item.label}</span>
+                            </Link>
+                          )}
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                     ))}

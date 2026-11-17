@@ -11,6 +11,7 @@ import { companyAppRoutes } from "./company-apps";
 import { companyAiRoutes } from "./company-ai";
 import { getCatalog, setCatalog, type AppInfo } from "./permissions";
 import { loadSite, signInPage, siteLogo, siteMiddleware, siteRoutes } from "./site";
+import { siteState } from "./site-state";
 import { accountRoutes } from "./account";
 import { billingRoutes, companyPlanRoutes } from "./billing";
 
@@ -64,6 +65,7 @@ export function createWorker({ apps, catalog }: { apps: ServerApp[]; catalog?: A
     const config: AppConfig = {
       appName: appName(c.env),
       logoUrl: siteLogo(),
+      issuesUrl: siteState()?.issuesUrl || null,
       emailEnabled: !!c.env.RESEND_API_KEY,
       signupMode: (c.env.SIGNUP_MODE || "open").trim() === "invite" ? "invite" : "open",
       aiProvider: (c.env.AI_PROVIDER || "workers-ai").trim(),

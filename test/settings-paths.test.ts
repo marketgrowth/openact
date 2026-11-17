@@ -51,3 +51,18 @@ test("app sections are listed apart from the company sections", () => {
   assert.equal(COMPANY_SECTIONS.some(isAppSection), false);
   assert.equal(settingsPath(tabs[1].scope, tabs[1].id), "/settings/company/advisory");
 });
+
+test("the first site section is Branding, at the same path as before", async () => {
+  const { SITE_SECTIONS } = await import("../packages/ui/src/settings-paths.ts");
+  assert.equal(SITE_SECTIONS[0].id, "general");
+  assert.equal(SITE_SECTIONS[0].label, "Branding");
+  assert.equal(settingsPath("site", SITE_SECTIONS[0].id), "/settings/site/general");
+});
+
+test("the Submit issues link must be a full web link", async () => {
+  const { cleanLegalUrl } = await import("../packages/core/src/shared/site.ts");
+  assert.deepEqual(cleanLegalUrl("https://github.com/acme/app/issues/new", "Submit issues"), { url: "https://github.com/acme/app/issues/new" });
+  assert.deepEqual(cleanLegalUrl("  ", "Submit issues"), { url: "" });
+  assert.match((cleanLegalUrl("javascript:alert(1)", "Submit issues") as { problem: string }).problem, /Submit issues link must start with https/);
+  assert.match((cleanLegalUrl("github.com/issues", "Submit issues") as { problem: string }).problem, /full web address/);
+});

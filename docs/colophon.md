@@ -25,7 +25,7 @@ The app shows the same page at `/colophon`. It has no icon on the app rail, so o
 | Note search | Owners can let the agent search task notes. It gets only short parts, with email addresses and phone numbers hidden. |
 | Sign-in | No passwords. People sign in with a 6-digit email code. |
 | Themes and phones | Light, dark, or follow the system. On a phone, the rail and the panel open as one sheet. |
-| Contribute | A public page at /contribute. People help pay for OpenAct by card (Stripe) or in USDC (x402). |
+| Contribute | A public page at openact.ing/contribute. The heart on the app rail opens it in a new tab. People help build OpenAct by card (Stripe) or in USDC (x402). |
 | Keyboard | Ctrl+K or Cmd+K opens search. Ctrl+B or Cmd+B opens and closes the app panel. |
 
 ## Build log

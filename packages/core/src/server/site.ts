@@ -51,6 +51,7 @@ export async function loadSite(env: Env, force = false): Promise<SiteState> {
     signInCredit: "",
     termsUrl: "",
     privacyUrl: "",
+    issuesUrl: "",
     backgroundType: null,
     backgroundUpdatedAt: null,
     appsOff: [],
@@ -68,6 +69,7 @@ export async function loadSite(env: Env, force = false): Promise<SiteState> {
       signInCredit: m.get("signin_credit") ?? "",
       termsUrl: m.get("terms_url") ?? "",
       privacyUrl: m.get("privacy_url") ?? "",
+      issuesUrl: m.get("issues_url") ?? "",
       backgroundType: m.get("background_type") ?? null,
       backgroundUpdatedAt: m.get("background_updated_at") ?? null,
       appsOff: parseAppsOff(m.get("apps_off")),
@@ -125,6 +127,7 @@ function settings(c: Context<AppEnv>, s: SiteState): SiteSettings {
     defaultName: (c.env.APP_NAME || "OpenAct").trim(),
     customName: !!s.name,
     logoUrl: siteLogo(s),
+    issuesUrl: s.issuesUrl || null,
     canEdit,
     signIn: { ...signInPage(s), customHeading: !!s.signInHeading },
     // Only super admins need the app switches.
@@ -161,6 +164,20 @@ siteRoutes.patch("/", async (c) => {
   if ("problem" in r) throw new HttpError(400, r.problem);
   await write(c.env, [
     r.name ? upsert(c.env, "app_name", r.name, user.id, nowIso()) : c.env.DB.prepare("DELETE FROM site_settings WHERE key = 'app_name'")
+  ]);
+  return c.json(settings(c, await loadSite(c.env, true)));
+});
+
+/**
+ * Saves the Submit issues link. Body: { issuesUrl }
+ * The link opens in a new browser tab from an icon on the app rail. An empty link hides the icon.
+ */
+siteRoutes.patch("/issues", async (c) => {
+  const user = requireSuperAdmin(c);
+  const r = cleanLegalUrl((await readJson(c)).issuesUrl, "Submit issues");
+  if ("problem" in r) throw new HttpError(400, r.problem);
+  await write(c.env, [
+    r.url ? upsert(c.env, "issues_url", r.url, user.id, nowIso()) : c.env.DB.prepare("DELETE FROM site_settings WHERE key = 'issues_url'")
   ]);
   return c.json(settings(c, await loadSite(c.env, true)));
 });

@@ -35,6 +35,7 @@ OpenAct is a core plus apps. Read `docs/apps.md` before you add or move code.
 - Plans and billing: `packages/core/src/shared/plans.ts` (rules), `packages/core/src/server/plans.ts` (a company's plan), `license.ts` (license keys), `billing.ts` and `stripe.ts` (Stripe). The Plan page is `packages/ui/src/shell/Plan.tsx`. Read `docs/plans.md`.
 - Other apps: `apps/<id>/`, listed in `openact.apps.json`.
 - The host (this deploy): `src/worker.ts`, `src/client/main.tsx` and `src/client/site.tsx` (the colophon).
+- The landing page at openact.ing: `landing/`. Its Worker (`landing/src/`) also runs contributions at `/api/contribute`. The Contribute page is `landing/public/contribute.html` and `contribute.js`. Shared rules are in `src/shared/contribute.ts`. Read `docs/contribute.md`.
 - `.openact/` is written by `npm run sync`. Never edit it.
 
 The core must never import from an app. If the core needs something from apps, add a hook to `AppHooks` in `packages/core/src/server/apps.ts` or a slot to `ClientApp` in `packages/ui/src/apps.tsx`.
