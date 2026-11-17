@@ -178,6 +178,6 @@ Use these six steps when you start an OpenAct app with a coding agent. The perso
 | --- | --- |
 | `npm run design -- check` | Tests the script cues: tokens, contrast, literal colors, em dashes and app token names. |
 | `npm run design -- seed <app-id> <hue>` | Makes an app accent from one hue. |
-| `npm run design -- build` | Publishes the Promptbook to `landing/public/design` for openact.ing/design. |
+| `npm run design -- build` | Publishes the Promptbook to `www/public/design` and `www/src/pages/design.astro` for openact.ing/design. |
 
 `npm test` runs the check and fails if the published copy is out of date.

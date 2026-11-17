@@ -2,11 +2,11 @@
 
 The Contribute page is a public landing page at [openact.ing/contribute](https://openact.ing/contribute). People use it to help build OpenAct. The main menu of the openact.ing home page links to it.
 
-The page also lists the nonprofits, and the projects that support nonprofits, that OpenAct helps build software for. Edit the list in the "Who we build for" section of `landing/public/contribute.html`.
+The page also lists the nonprofits, and the projects that support nonprofits, that OpenAct helps build software for. Edit the list in the "Who we build for" section of `www/src/pages/contribute.astro`.
 
 The Contribute icon (a heart) sits at the bottom of the app rail of every OpenAct deploy. It opens the page in a new browser tab. The old address, `/contribute` on a deploy, sends people to the new page.
 
-The page and its payment routes run on the landing page Worker (`openact-site`), not on an OpenAct deploy. A deploy needs no contribution settings.
+The page and its payment routes run on the website Worker (`openact-site`), not on an OpenAct deploy. A deploy needs no contribution settings.
 
 People can pay in two ways:
 
@@ -21,10 +21,10 @@ Payments go to the account that owns `STRIPE_SECRET_KEY` and to the wallet in `X
 
 ## Settings
 
-Set each value as a secret on the landing page Worker, `openact-site`, so that a deploy does not replace it:
+Set each value as a secret on the website Worker, `openact-site`, so that a deploy does not replace it:
 
 ```sh
-npx wrangler secret put STRIPE_SECRET_KEY --config landing/wrangler.jsonc
+npx wrangler secret put STRIPE_SECRET_KEY --config www/wrangler.jsonc
 ```
 
 You can also add them in the Cloudflare dashboard: Workers and Pages, then `openact-site`, then Settings, then Variables and Secrets.
@@ -47,30 +47,30 @@ Do these steps in order. Test each payment method before you switch it to live.
 
 ### 1. Deploy
 
-Workers Builds deploys `landing/` to `openact-site` from the `demo` branch. Read `DEMO.md`. To deploy it by hand, run `npx wrangler deploy --config landing/wrangler.jsonc`.
+Workers Builds builds and deploys `www/` to `openact-site` from the `demo` branch. Read `DEMO.md` and `www/README.md`. To deploy it by hand, run `npm install` and then `npm run deploy` in `www/`.
 
 Open `https://openact.ing/contribute`. With no settings, the page says that contributions are not set up yet.
 
-Add `--config landing/wrangler.jsonc` to each `wrangler secret put` command below.
+Add `--config www/wrangler.jsonc` to each `wrangler secret put` command below.
 
 ### 2. Stripe
 
 1. Use the Stripe account of the business that receives the money. Finish its activation: business details and a bank account.
 2. In test mode, open Developers, then API keys. Make a restricted key with **Checkout Sessions: Write** only.
-3. Set it: `npx wrangler secret put STRIPE_SECRET_KEY --config landing/wrangler.jsonc`.
+3. Set it: `npx wrangler secret put STRIPE_SECRET_KEY --config www/wrangler.jsonc`.
 4. On the Contribute page, pay once and pay monthly with the test card `4242 4242 4242 4242`. If Stripe refuses a checkout, its error names the missing permission. Add only that permission.
 5. Make the same restricted key in live mode. Set it as `STRIPE_SECRET_KEY` again.
 6. In Settings, then Customer emails, turn on receipts for successful payments.
 7. In Settings, then Public details, set the statement descriptor, such as `OPENACT`.
 8. In Settings, then Billing, then Customer portal, turn on the portal. Let customers cancel subscriptions and update payment methods. Copy the login link.
-9. Set it: `npx wrangler secret put STRIPE_PORTAL_URL --config landing/wrangler.jsonc`. The page then links to it, so monthly supporters can change or stop their payments.
+9. Set it: `npx wrangler secret put STRIPE_PORTAL_URL --config www/wrangler.jsonc`. The page then links to it, so monthly supporters can change or stop their payments.
 
 With a test mode key (`sk_test_` or `rk_test_`), the page shows a "Test mode" badge and the test card number. No real money moves. A live key removes both.
 
 ### 3. USDC on Base (x402)
 
 1. Get a wallet that you control on Base, such as Coinbase Wallet or another EVM wallet. A payment to a wrong address usually cannot be recovered.
-2. Set it: `npx wrangler secret put X402_PAY_TO --config landing/wrangler.jsonc`. The address is public. The page shows it.
+2. Set it: `npx wrangler secret put X402_PAY_TO --config www/wrangler.jsonc`. The address is public. The page shows it.
 3. Test on Base Sepolia. This is the default, so set no other value. Get test USDC from the [Circle faucet](https://faucet.circle.com). Give $1 from the Contribute page with a browser wallet. Find the transaction on [Base Sepolia Basescan](https://sepolia.basescan.org).
 4. Set `X402_NETWORK` to `eip155:8453` (Base).
 5. Set `X402_FACILITATOR_URL` to a facilitator that settles on Base mainnet. The default facilitator works only on test networks.
@@ -125,7 +125,7 @@ All routes are on `https://openact.ing`.
 | `POST /api/contribute/checkout` | Starts Stripe Checkout. Body: `{ "amount": "25", "frequency": "once" }` or `"monthly"`. Returns `{ "url" }`. Only the Contribute page can call it. |
 | `GET` or `POST /api/contribute/x402?amount=5` | The x402 resource. |
 
-The code is in `landing/src/contribute.ts` (the Worker routes), `landing/public/contribute.html` and `contribute.js` (the page) and `src/shared/contribute.ts` (the shared rules).
+The code is in `www/worker/contribute.ts` (the Worker routes), `www/src/pages/contribute.astro` and `www/public/contribute.js` (the page) and `src/shared/contribute.ts` (the shared rules).
 
 ## Move from a deploy to openact.ing
 

@@ -2,7 +2,7 @@
 // The OpenAct Promptbook command. See docs/design-system.md.
 //   npm run design -- check              Test the cues that a script can test.
 //   npm run design -- seed <app-id> <hue> Make an app accent from one hue (0 to 360).
-//   npm run design -- build              Publish the Promptbook to landing/public/design.
+//   npm run design -- build              Publish the Promptbook to www/public/design and www/src/pages/design.astro.
 import { check, seed, build } from "./design-lib.mjs";
 
 const [cmd = "check", ...args] = process.argv.slice(2);

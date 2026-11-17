@@ -2,7 +2,7 @@ import { handleContribute, isContributeRoute, type ContributeEnv } from "./contr
 
 /*
  * The openact-site Worker at https://openact.ing.
- * It sends www.openact.ing to openact.ing, answers the contribution routes (/api/contribute) and serves the static files in public/.
+ * It sends www.openact.ing to openact.ing, answers the contribution routes (/api/contribute) and serves the files that Astro builds into dist/.
  */
 
 interface Env extends ContributeEnv {

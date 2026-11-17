@@ -268,7 +268,7 @@ apps/projects/         The projects app
   migrations/            New database changes for this app
 apps/docs/             The docs app: a library of paper-size docs with folders, categories and tags, share links, print to PDF
 src/                   The host: the Worker entry, the web app entry and the colophon
-landing/               The landing page at openact.ing and its Worker, with the Contribute page and its payment routes
+www/                   The website at openact.ing: Astro pages and their Worker, with the Contribute page and its payment routes
 openact.apps.json      The installed apps, in order
 scripts/openact.mjs    Adds, updates and removes apps, and writes .openact/ (npm run sync)
 test/                  Unit tests and the search pipeline test

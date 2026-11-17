@@ -36,7 +36,7 @@ OpenAct is a core plus apps. Read `docs/apps.md` before you add or move code.
 - Plans and billing: `packages/core/src/shared/plans.ts` (rules), `packages/core/src/server/plans.ts` (a company's plan), `license.ts` (license keys), `billing.ts` and `stripe.ts` (Stripe). The Plan page is `packages/ui/src/shell/Plan.tsx`. Read `docs/plans.md`.
 - Other apps: `apps/<id>/`, listed in `openact.apps.json`.
 - The host (this deploy): `src/worker.ts`, `src/client/main.tsx` and `src/client/site.tsx` (the colophon).
-- The landing page at openact.ing: `landing/`. Its Worker (`landing/src/`) also runs contributions at `/api/contribute`. The Contribute page is `landing/public/contribute.html` and `contribute.js`. Shared rules are in `src/shared/contribute.ts`. Read `docs/contribute.md`.
+- The website at openact.ing: `www/`, an Astro project with its own `package.json`. Read `www/README.md`. Pages are in `www/src/pages/`, the shared layout is `www/src/layouts/Site.astro` and the home page sections are in `www/src/components/home/`. Its Worker (`www/worker/`) also runs contributions at `/api/contribute`. The Contribute page is `www/src/pages/contribute.astro` and `www/public/contribute.js`. Shared rules are in `src/shared/contribute.ts`. Read `docs/contribute.md`.
 - `.openact/` is written by `npm run sync`. Never edit it.
 
 The core must never import from an app. If the core needs something from apps, add a hook to `AppHooks` in `packages/core/src/server/apps.ts` or a slot to `ClientApp` in `packages/ui/src/apps.tsx`.
@@ -65,7 +65,7 @@ The core must never import from an app. If the core needs something from apps, a
 15. **Apps stay in their lane.** Prefix an app's tables, routes, file keys, room kinds and command ids with its id. An app reads people and companies through the core. It cleans up its data in the `companyMemberRemoved` and `companyDeleting` hooks. It declares its permissions in `defineServerApp({ permissions })` and never hard-codes company roles in a route. App ids in `directory/apps.json` with `"reserved": true`, and the ids in `systemIds`, belong to official apps and to OpenAct. Never give a new app one of them.
 
 16. **Never weaken the plan gate.** A paid app is locked through `companyAppState`. Do not add a way around it, do not add keys to `license-keys.ts` and do not change an app's `plan` field unless MarketGrowth asks for it. Never add an Apache 2.0 notice to a file in a paid app folder.
-17. **Follow the Promptbook.** Read `docs/design-system.md` before you change UI. Pick tokens by intent. Show agent work with `AgentState` and its five states (think, act, wait, done, fail). When you change `theme.css` or `packages/ui/promptbook.json`, run `npm run design -- build` and commit the files in `landing/public/design`.
+17. **Follow the Promptbook.** Read `docs/design-system.md` before you change UI. Pick tokens by intent. Show agent work with `AgentState` and its five states (think, act, wait, done, fail). When you change `theme.css` or `packages/ui/promptbook.json`, run `npm run design -- build` and commit the files in `www/public/design` and `www/src/pages/design.astro`.
 
 ## Docs
 

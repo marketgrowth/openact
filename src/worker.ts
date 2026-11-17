@@ -6,5 +6,5 @@ export { ProjectRoom } from "@openact/core/server";
 export * from "../.openact/durable-objects";
 
 // The installed apps come from openact.apps.json. Run `npm run openact -- add github:owner/repo` to add one.
-// Contributions run on the landing page Worker at https://openact.ing/contribute (landing/), not here.
+// Contributions run on the landing page Worker at https://openact.ing/contribute (www/), not here.
 export default createWorker({ apps, catalog });
