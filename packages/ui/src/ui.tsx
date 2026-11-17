@@ -94,6 +94,21 @@ import {
   BadgeDollarSign,
   ReceiptText,
   Upload,
+  Signature,
+  FilePen,
+  LayoutTemplate,
+  CircleCheck,
+  Ban,
+  BellRing,
+  Type,
+  CalendarCheck,
+  SquareCheck,
+  AtSign,
+  ShieldCheck,
+  Archive,
+  ArchiveRestore,
+  Eraser,
+  ZoomOut,
   type LucideIcon
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@openact/ui/components/dialog";
@@ -202,7 +217,23 @@ const ICONS: Record<string, LucideIcon> = {
   "user-check": UserRoundCheck,
   earnings: BadgeDollarSign,
   receipt: ReceiptText,
-  upload: Upload
+  upload: Upload,
+  // eSign
+  signature: Signature,
+  "file-pen": FilePen,
+  template: LayoutTemplate,
+  "circle-check": CircleCheck,
+  ban: Ban,
+  bell: BellRing,
+  type: Type,
+  "calendar-check": CalendarCheck,
+  "square-check": SquareCheck,
+  at: AtSign,
+  "shield-check": ShieldCheck,
+  archive: Archive,
+  unarchive: ArchiveRestore,
+  eraser: Eraser,
+  "zoom-out": ZoomOut
 };
 
 export function Icon({ name, size = 16, className }: { name: keyof typeof ICONS | string; size?: number; className?: string }) {
