@@ -14,6 +14,7 @@ import { CompanyAiTab } from "./CompanyAi";
 import { SitePlan } from "./Plan";
 import { SiteSettingsSection, type SiteSection } from "./SiteSettings";
 import { SiteGrants } from "./SiteGrants";
+import { SiteDuplicate } from "./SiteDuplicate";
 import { ProfileSection, SecuritySection } from "./AccountSettings";
 
 /*
@@ -84,7 +85,15 @@ export function SettingsPage({
       );
     return (
       <Shell title="Site settings" section={section}>
-        {section.id === "grants" ? <SiteGrants /> : section.id === "plan" ? <SitePlan /> : <SiteSettingsSection key={section.id} section={section.id as SiteSection} onSaved={onSite} />}
+        {section.id === "grants" ? (
+          <SiteGrants />
+        ) : section.id === "plan" ? (
+          <SitePlan />
+        ) : section.id === "companies" ? (
+          <SiteDuplicate />
+        ) : (
+          <SiteSettingsSection key={section.id} section={section.id as SiteSection} onSaved={onSite} />
+        )}
       </Shell>
     );
   }

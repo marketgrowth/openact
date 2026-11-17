@@ -2,6 +2,7 @@ import { DAILY_CRON, HttpError, defineServerApp, deletePrefix, nowIso, registerR
 import { DOC_ROOM, LIBRARY_ROOM, aiEnabled, docsRoutes } from "./routes";
 import { shareImage, sharePage } from "./share";
 import { COMMENTS_ROOM, commentRoutes } from "./comments";
+import { duplicateDocs } from "./duplicate";
 
 // Durable Object classes must be exported from the app's server file. npm run sync exports them from the Worker.
 export { DocsRoom } from "./room";
@@ -120,6 +121,7 @@ export default defineServerApp({
         .run();
       return true;
     },
+    companyDuplicating: duplicateDocs,
     companyDeleting: async (env, companyId) => {
       await deletePrefix(env.FILES, `docs/${companyId}/`);
       await env.DB.batch([
