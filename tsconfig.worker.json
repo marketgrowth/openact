@@ -26,6 +26,6 @@
     "apps/*/src/server",
     "apps/*/src/shared",
     "examples/*/src/server",
-    "landing/src"
+    "www/worker"
   ]
 }

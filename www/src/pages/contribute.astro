@@ -1,0 +1,149 @@
+---
+// The Contribute page at https://openact.ing/contribute. Its one script is public/contribute.js.
+// The Worker routes it calls are in worker/contribute.ts.
+import Site from "../layouts/Site.astro";
+import "../styles/contribute.css";
+---
+<Site
+  page="contribute"
+  path="/contribute"
+  mainClass="wrap"
+  title="Contribute to OpenAct"
+  description="Help build OpenAct, the open source framework for business apps on Cloudflare. Contribute by card through Stripe or in USDC through x402."
+  ogDescription="Help build OpenAct by card or in USDC. AI agents can contribute through x402."
+>
+  <div class="intro">
+    <p class="eyebrow warm">Contribute</p>
+    <h1>Help build OpenAct</h1>
+    <p class="lead">OpenAct is free and open source. Your contribution helps us keep building it. Give once or each month, by card or in USDC.</p>
+  </div>
+
+  <div class="msg" data-thanks="card" hidden role="status">
+    <span class="heart" aria-hidden="true">&#9829;</span>
+    <div>
+      <strong>Thank you for your contribution</strong>
+      <p>Your card payment went through Stripe. It helps us keep building OpenAct.</p>
+    </div>
+  </div>
+  <div class="msg" data-thanks="crypto" hidden role="status">
+    <span class="heart" aria-hidden="true">&#9829;</span>
+    <div>
+      <strong>Thank you</strong>
+      <p data-receipt-message></p>
+      <p><a data-receipt-link href="#" target="_blank" rel="noreferrer">See the transaction</a></p>
+    </div>
+  </div>
+
+  <section class="row" aria-labelledby="who">
+    <div class="side">
+      <h2 id="who">Who we build for</h2>
+      <p>OpenAct helps build software for these nonprofits and for projects that support nonprofits.</p>
+    </div>
+    <dl class="orgs">
+      <div class="org">
+        <dt>Lyra Music Foundation</dt>
+        <dd>A nonprofit. It uses OpenAct to build agentic software that teaches music and theater to young adults around the world. The Hack Foundation is its fiscal sponsor.</dd>
+      </div>
+      <div class="org">
+        <dt>Mission:Told</dt>
+        <dd>A digital media publication. It tells the stories of mission-focused leaders, volunteers and impact builders.</dd>
+      </div>
+    </dl>
+  </section>
+
+  <section class="row" aria-labelledby="amount">
+    <div class="side">
+      <h2 id="amount">Your contribution</h2>
+      <p>From $1 to $10,000, in US dollars.</p>
+    </div>
+    <div>
+      <noscript>
+        <div class="msg info" style="margin-top: 0">
+          <div>
+            <strong>Turn on JavaScript to contribute</strong>
+            <p>The payment buttons need JavaScript. AI agents can pay the x402 endpoint below without it.</p>
+          </div>
+        </div>
+      </noscript>
+      <p class="hint" data-state="loading">Loading the payment options…</p>
+      <div class="msg bad" data-state="error" hidden role="alert" style="margin-top: 0">
+        <div>
+          <strong>The page cannot load the payment options</strong>
+          <p data-error-text>Reload the page to try again.</p>
+        </div>
+      </div>
+      <div class="msg info" data-state="none" hidden style="margin-top: 0">
+        <div>
+          <strong>Contributions are not set up yet</strong>
+          <p>Check back soon. You can also star the project on <a href="https://github.com/marketgrowth/openact">GitHub</a>.</p>
+        </div>
+      </div>
+
+      <form data-state="ready" hidden novalidate>
+        <div class="field">
+          <fieldset class="seg">
+            <legend>Amount</legend>
+            <input type="radio" name="amount" id="a10" value="10" /><label for="a10">$10</label>
+            <input type="radio" name="amount" id="a25" value="25" checked /><label for="a25">$25</label>
+            <input type="radio" name="amount" id="a50" value="50" /><label for="a50">$50</label>
+            <input type="radio" name="amount" id="a100" value="100" /><label for="a100">$100</label>
+            <input type="radio" name="amount" id="aother" value="other" /><label for="aother">Other</label>
+          </fieldset>
+          <div class="other" data-other hidden>
+            <label class="label" for="other-amount">Other amount in US dollars</label>
+            <input id="other-amount" inputmode="decimal" placeholder="40" autocomplete="off" aria-describedby="other-error" />
+            <p class="hint bad" id="other-error" data-other-error></p>
+          </div>
+        </div>
+
+        <div class="msg bad" data-pay-error hidden role="alert">
+          <div>
+            <strong>The payment did not start</strong>
+            <p data-pay-error-text></p>
+          </div>
+        </div>
+
+        <div class="pay">
+          <div class="card" data-method="card" hidden>
+            <h3>Pay by card <span class="chip wait" data-test-mode hidden>Test mode</span></h3>
+            <p>Stripe takes your card details. OpenAct never sees them.</p>
+            <div class="grow">
+              <fieldset class="seg">
+                <legend>How often</legend>
+                <input type="radio" name="frequency" id="f-once" value="once" checked /><label for="f-once">Once</label>
+                <input type="radio" name="frequency" id="f-monthly" value="monthly" /><label for="f-monthly">Monthly</label>
+              </fieldset>
+              <p class="hint" data-monthly-note hidden>Stripe charges your card on the same day each month.</p>
+              <p class="hint" data-test-card hidden>No real money moves. Use the test card 4242 4242 4242 4242 with any future date and any CVC.</p>
+            </div>
+            <button type="button" class="btn btn-accent" data-pay="card">Give $25</button>
+            <a class="manage" data-manage href="#" target="_blank" rel="noreferrer" hidden>Manage your monthly contribution</a>
+          </div>
+
+          <div class="card" data-method="crypto" hidden>
+            <h3>Pay with USDC <span class="chip wait" data-testnet hidden>Test network</span></h3>
+            <p data-crypto-intro>Sign one payment in your wallet. The payment uses the x402 protocol. You pay no network fee.</p>
+            <div class="grow">
+              <span class="hint">The receiving wallet:</span>
+              <code class="addr key" data-pay-to></code>
+            </div>
+            <button type="button" class="btn btn-ghost" data-pay="crypto">Give $25 in USDC</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <section class="row agents" aria-labelledby="for-agents" data-agents hidden>
+    <div class="side">
+      <h2 id="for-agents">For AI agents</h2>
+      <p>Any x402 v2 client can contribute.</p>
+    </div>
+    <div>
+      <p>Call the endpoint with an amount in US dollars. It answers 402 with the payment terms in the PAYMENT-REQUIRED header.</p>
+      <p>Send the signed payment in the PAYMENT-SIGNATURE header. A good payment gets 200 and a PAYMENT-RESPONSE header with the transaction.</p>
+      <pre class="key"><code data-agent-curl>curl -i "https://openact.ing/api/contribute/x402?amount=5"</code></pre>
+    </div>
+  </section>
+  <script is:inline slot="end" src="/contribute.js" type="module"></script>
+</Site>

@@ -6,7 +6,7 @@ This branch runs the public demo app at https://a.openact.ing and the landing pa
 
 - Cloudflare account: victor@marketgrowth.io.
 - App Worker: `openact-demo` at a.openact.ing. Workers Builds builds this branch on every push.
-- Landing Worker: `openact-site` at openact.ing and www.openact.ing (www redirects to openact.ing). Its files are in `landing/`. A second Workers Builds project deploys it from this branch, with `landing` as the root directory.
+- Landing Worker: `openact-site` at openact.ing and www.openact.ing (www redirects to openact.ing). Its files are in `www/`, an Astro project. A second Workers Builds project builds and deploys it from this branch, with `/www` as the root directory and `npm run build` as the build command. Read `www/README.md`.
 - Deploy command: `test "$WORKERS_CI_BRANCH" = demo && npm run deploy`. A build of another branch stops before it deploys.
 - Docs Worker: `openact-docs-demo` at docs.openact.ing. A third Workers Builds project builds `docs/` from this branch with `npm run docs:build`, then runs `npx wrangler deploy --config wrangler.docs.jsonc`. On main, the same docs deploy to docs.openact.app through GitHub Actions. All three Workers use the build token "openact-demo build token".
 - D1 database: `openact-demo`. R2 bucket: `openact-demo-files`. Vectorize index: `openact-tasks`.
@@ -21,7 +21,7 @@ This branch runs the public demo app at https://a.openact.ing and the landing pa
 4. `license-keys.ts` has the `demo-a-openact-ing` key id. It signs one Director license that works on `a.openact.ing` only and ends on 2027-11-14. Its private key was destroyed after issue. To renew, make a new key pair and license.
 
 5. `wrangler.docs.jsonc` and the sitemap host in `docs/.vitepress/config.mts` point at docs.openact.ing.
-6. `landing/` is the landing page and its Worker. Edit `landing/public/index.html` and `landing/public/contribute.html`. It has no build step. The Worker (`landing/src/`) runs the contribution routes at `/api/contribute`.
+6. `www/` is the website and its Worker. Edit the pages in `www/src/pages/` and the home page sections in `www/src/components/home/`. Astro builds them into `www/dist/`. The Worker (`www/worker/`) runs the contribution routes at `/api/contribute`.
 
 ## Test a branch on the demo
 
