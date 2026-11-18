@@ -29,7 +29,7 @@ Every app has a `package.json` with an `openact` field. The `openact` script rea
 | `plan` | No | `"director"` or `"producer"`. Makes the app a paid app. Only official MarketGrowth apps use it. See [Plans](../plans.md). |
 | `released` | For paid apps | The day this version was released, as `YYYY-MM-DD`. When a license key ends, versions released on or before its last day keep working. See [When a plan ends](../plans.md#when-a-plan-ends). |
 
-`npm run sync` also checks that `wrangler.jsonc` binds each class in `durableObjects`, with a migration. See [Durable Objects](../apps.md#durable-objects).
+`npm run sync` also checks the Durable Object bindings and migrations in `wrangler.jsonc`. See [Durable Objects](../apps.md#durable-objects).
 
 ### Install sources
 

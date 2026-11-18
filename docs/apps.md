@@ -231,7 +231,7 @@ Put numbered SQL files in `migrations/`, such as `0001_init.sql`. `npm run sync`
 
 ### Durable Objects
 
-List your Durable Object classes in `durableObjects` in the manifest, and export them from your server file. Each class also needs a binding and a migration in the deploy's `wrangler.jsonc`. `npm run sync` checks both and stops with the lines to add. Tell people the binding name in your app's README.
+List your Durable Object classes in `durableObjects` in the manifest, and export them from your server file. Each class also needs a binding and a migration in the deploy's `wrangler.jsonc`. `npm run sync` warns when a class has no binding, and stops when a binding has no migration. Both messages show the lines to add. Tell people the binding name in your app's docs.
 
 ```jsonc
 "durable_objects": { "bindings": [{ "name": "CRM_ROOMS", "class_name": "CrmRoom" }] },

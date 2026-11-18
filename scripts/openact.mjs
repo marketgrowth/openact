@@ -206,7 +206,8 @@ function stripJsonc(text) {
 
 /**
  * Checks that wrangler.jsonc binds every Durable Object class that the installed apps export, with a migration.
- * A missing binding breaks the app at run time, and a binding to a class that no app exports breaks the deploy.
+ * A missing binding is a warning: the deploy works, and the app runs without the class or says what it needs.
+ * A binding without a migration, or a binding to a class that no app exports, breaks the deploy, so sync stops.
  */
 function checkDurableObjects(loaded) {
   if (!existsSync(WRANGLER)) return;
@@ -226,15 +227,19 @@ function checkDurableObjects(loaded) {
   for (const a of loaded) {
     for (const cls of a.durableObjects) {
       exported.add(cls);
-      if (!bound.has(cls) || !migrated.has(cls))
-        fail(
-          `The app "${a.id}" needs the Durable Object class ${cls}, but wrangler.jsonc does not ${bound.has(cls) ? "create it in a migration" : "bind it"}.\n` +
+      // A class with no binding still deploys. The app works without it, or says what it needs.
+      if (!bound.has(cls))
+        console.warn(
+          `openact: warning: the app "${a.id}" has the Durable Object class ${cls}, but wrangler.jsonc does not bind it. Read the app's docs.\n` +
             `  Add to "durable_objects.bindings": { "name": "<binding from the app's docs>", "class_name": "${cls}" }\n` +
             `  Add to "migrations": { "tag": "<a new tag>", "new_sqlite_classes": ["${cls}"] }`
         );
     }
   }
   for (const cls of bound) {
+    // A binding with no migration fails the deploy.
+    if (!migrated.has(cls))
+      fail(`wrangler.jsonc binds the Durable Object class ${cls}, but no migration creates it.\n  Add to "migrations": { "tag": "<a new tag>", "new_sqlite_classes": ["${cls}"] }`);
     if (!exported.has(cls))
       fail(
         `wrangler.jsonc binds the Durable Object class ${cls}, but no installed app exports it, so the deploy would fail.\n` +
