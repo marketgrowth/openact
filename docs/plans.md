@@ -55,6 +55,31 @@ In the app, the plans are named **Director** and **Producer**, so the names fit 
 
 Only a super admin who owns the company can buy a plan. The server checks it on every checkout. Choose **Manage billing** to change the card, see invoices, switch between Director and Producer, or cancel. A canceled plan works until the end of the paid year.
 
+## When a plan ends
+
+What happens depends on who runs the site.
+
+| Where OpenAct runs | How you pay | When the plan ends |
+| --- | --- | --- |
+| A site that MarketGrowth or a brand runs, such as a hosted OpenAct | A yearly subscription through Stripe | The paid apps lock. Their data stays. They come back when the plan comes back. |
+| Your own deploy (self-hosted) | A license key for one year | **Perpetual fallback:** the paid app versions that you have keep working. You stop getting new versions and new paid apps until you renew. |
+
+### Perpetual fallback on your own deploy
+
+A license key buys one year of updates for the paid apps. Each paid app version has a release day (`"released"` in its manifest).
+
+- When the key ends, an app version released on or before the key's last day keeps working.
+- A newer version stays locked. If you install a newer version after your key ends, renew the key to unlock it.
+- A paid app that you install after your key ends stays locked.
+- Grants stop when the key ends. Read [Give one person a paid app](#give-one-person-a-paid-app).
+- The Plan page says that the license ended, and which apps still work.
+
+Renew the key to get updates again. A renewed key covers every version released up to its new last day.
+
+::: info Why it works this way
+On your own deploy, the code runs on your Cloudflare account. The fallback is fair to you: you keep what you paid for. Updates, new apps and support are what you renew for.
+:::
+
 ## What happens without a plan
 
 An app that needs a plan is **locked** in a company without that plan.
@@ -65,6 +90,8 @@ An app that needs a plan is **locked** in a company without that plan.
 - For Docs: share links stop working, and live editing closes.
 
 The app's data stays. When the company gets the plan again, the app comes back with all its data.
+
+On your own deploy, an ended license key keeps the paid app versions that you have. Read [Perpetual fallback](#perpetual-fallback-on-your-own-deploy).
 
 If a payment fails, the plan keeps working while Stripe tries the card again. After the paid year ends, the plan keeps working for 7 more days, in case a message from Stripe is late.
 
@@ -150,7 +177,7 @@ npx wrangler secret put OPENACT_LICENSE
 
 Set `APP_URL` too when the key names host names, so the core knows the host.
 
-After the last day, the key keeps working for 14 more days, and the Plan page asks for a new key. Then the paid apps lock.
+After the last day, the key keeps working for 14 more days, and the Plan page asks for a new key. Then the key ends. Read [When a plan ends](#when-a-plan-ends).
 
 ### Make keys (MarketGrowth)
 
@@ -189,8 +216,8 @@ An app asks for a plan with `"plan"` in the `openact` field of its `package.json
 
 ```json
 {
-  "openact": { "id": "docs", "name": "Docs", "plan": "director" }
+  "openact": { "id": "docs", "name": "Docs", "plan": "director", "released": "2026-11-18" }
 }
 ```
 
-Use `"director"` or `"producer"`. Only official MarketGrowth apps use it today. Apps from other publishers are free. The core checks the plan everywhere it checks that an app is on, so a paid app needs no plan code of its own. See [Build an app](apps.md).
+Use `"director"` or `"producer"`. Set `"released"` to the release day each time you release a new version. Without it, the app gets no [perpetual fallback](#perpetual-fallback-on-your-own-deploy). Only official MarketGrowth apps use it today. Apps from other publishers are free. The core checks the plan everywhere it checks that an app is on, so a paid app needs no plan code of its own. See [Build an app](apps.md).

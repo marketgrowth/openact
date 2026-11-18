@@ -22,6 +22,7 @@ Cloudflare Workers cannot load new code while they run. So apps are added when y
 npm run openact -- add contacts                   # an app from the app directory, by its id
 npm run openact -- add github:owner/repo          # the default branch
 npm run openact -- add github:owner/repo#v1.2.0   # a tag or branch
+npm run openact -- add github:owner/repo/apps/crm  # one app from a repository with several apps
 npm install
 npm run deploy                                     # or: npm run dev
 ```
@@ -227,6 +228,30 @@ Use `useShell()` for the person and the config, `useWorkspace()` for the current
 ### Migrations
 
 Put numbered SQL files in `migrations/`, such as `0001_init.sql`. `npm run sync` copies them as `<id>_0001_init.sql`. Wrangler applies new files in name order, after the core's files. Your tables may use core tables, such as `users` and `companies`. Core tables never use yours.
+
+### Durable Objects
+
+List your Durable Object classes in `durableObjects` in the manifest, and export them from your server file. Each class also needs a binding and a migration in the deploy's `wrangler.jsonc`. `npm run sync` checks both and stops with the lines to add. Tell people the binding name in your app's README.
+
+```jsonc
+"durable_objects": { "bindings": [{ "name": "CRM_ROOMS", "class_name": "CrmRoom" }] },
+"migrations": [{ "tag": "v3", "new_sqlite_classes": ["CrmRoom"] }]
+```
+
+Sync also stops when `wrangler.jsonc` binds a class that no installed app exports, because the deploy would fail. Remove that binding only when you no longer need its data: deleting a class needs a `deleted_classes` migration, which deletes the stored data.
+
+### Core versions
+
+Say which core versions your app works with, the way a WordPress plugin says "Requires at least" and "Tested up to":
+
+```json
+{ "openact": { "id": "crm", "requiresCore": "0.2.0", "testedCore": "0.3" } }
+```
+
+- `requiresCore`: the oldest core version that your app works with. `npm run sync` stops when the core is older.
+- `testedCore`: the newest core version that you tested. `npm run sync` warns when the core is newer. `"0.3"` covers every `0.3.x` release.
+
+Update `testedCore` each time you test with a new core release.
 
 ## Rules for apps
 

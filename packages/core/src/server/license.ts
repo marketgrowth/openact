@@ -12,7 +12,8 @@ import { licenseHostOk, licenseTime, parseLicense, type LicensePayload } from ".
 
 export type LicenseCheck =
   | { ok: true; payload: LicensePayload; inGrace: boolean }
-  | { ok: false; error: string };
+  /** `ended`: the key was valid, with a good signature and host, but its time is over. See fallbackCovers(). */
+  | { ok: false; error: string; ended?: LicensePayload };
 
 const fromB64Url = (s: string): Uint8Array => {
   const b = atob(s.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - (s.length % 4)) % 4));
@@ -40,9 +41,14 @@ export async function checkLicense(
     valid = false;
   }
   if (!valid) return { ok: false, error: "The license key signature is not valid. Copy the whole key again, or ask MarketGrowth for a new key." };
-  const time = licenseTime(payload, opts.now);
-  if (time === "expired") return { ok: false, error: `The license key for ${payload.licensee} expired on ${payload.expiresAt}. Renew it to keep the paid apps.` };
   if (!licenseHostOk(payload, opts.host)) return { ok: false, error: `The license key works only on ${payload.hosts!.join(", ")}.` };
+  const time = licenseTime(payload, opts.now);
+  if (time === "expired")
+    return {
+      ok: false,
+      error: `The license key for ${payload.licensee} expired on ${payload.expiresAt}. Paid app versions from before that day keep working. Renew the key to get updates.`,
+      ended: payload
+    };
   return { ok: true, payload, inGrace: time === "grace" };
 }
 

@@ -9,6 +9,7 @@ import {
   PLANS,
   PLAN_DESCRIPTION_MAX,
   cleanPlanDescription,
+  fallbackCovers,
   formatPrice,
   higherPlan,
   licenseHostOk,
@@ -139,9 +140,29 @@ test("a key from the license tool passes, and a changed key fails", async () => 
     // Inside the grace days, the key still works and says so.
     const grace = await checkLicense(key, { host: null, now: Date.parse("2027-11-15T00:00:00Z"), keys });
     assert.equal(grace.ok && grace.inGrace, true);
+
+    // After the grace days, the key gives the ended payload for the fallback. A key for another host gives none.
+    const ended = await checkLicense(key, { host: null, now: Date.parse("2028-01-01"), keys });
+    assert.equal(!ended.ok && ended.ended?.expiresAt, "2027-11-10");
+    const wrongHost = await checkLicense(hostKey, { host: "evil.example", now: Date.parse("2028-01-01"), keys });
+    assert.equal(!wrongHost.ok && wrongHost.ended, undefined);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test("an ended license key keeps app versions released before its last day", () => {
+  const ended = { plan: "director" as const, expiresAt: "2027-11-10" };
+  assert.equal(fallbackCovers(ended, { plan: "director", released: "2027-06-01" }), true);
+  assert.equal(fallbackCovers(ended, { plan: "director", released: "2027-11-10" }), true);
+  assert.equal(fallbackCovers(ended, { plan: "director", released: "2027-11-11" }), false);
+  // No release day, no fallback.
+  assert.equal(fallbackCovers(ended, { plan: "director" }), false);
+  assert.equal(fallbackCovers(ended, { plan: "director", released: "soon" }), false);
+  // A Director key never covers a Producer app. A grants key gives no fallback, as it gives no plan.
+  assert.equal(fallbackCovers(ended, { plan: "producer", released: "2027-01-01" }), false);
+  assert.equal(fallbackCovers({ ...ended, use: "grants" }, { plan: "director", released: "2027-01-01" }), false);
+  assert.equal(fallbackCovers(null, { plan: "director", released: "2027-01-01" }), false);
 });
 
 test("Stripe webhook signatures", async () => {

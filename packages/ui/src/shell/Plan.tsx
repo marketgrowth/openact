@@ -151,7 +151,10 @@ export function PlanPanel({ companyId }: { companyId: string }) {
           <p className="text-sm text-muted-foreground">This plan also unlocks its paid apps for every company on this site.</p>
         )}
         {info.license?.inGrace && (
-          <Notice tone="warn">The license key expired. Paid apps stop soon. Ask the person who runs this site to put in a new key.</Notice>
+          <Notice tone="warn">The license key expired. Paid apps stop getting updates soon. Ask the person who runs this site to put in a new key.</Notice>
+        )}
+        {info.licenseEnded && (
+          <Notice tone="warn">{`The license for ${info.licenseEnded.licensee} ended on ${dateText(info.licenseEnded.expiresAt)}. Paid app versions from before that day keep working. Newer versions stay locked until the key is renewed.`}</Notice>
         )}
         {sub && sub.status === "past_due" && <Notice tone="error">Stripe could not take the last payment. Update the card with Manage billing.</Notice>}
         {info.canManage && sub?.status && (

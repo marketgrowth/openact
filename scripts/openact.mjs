@@ -6,6 +6,7 @@
  *   npm run openact -- directory                     Shows the apps in the OpenAct app directory (directory/apps.json).
  *   npm run openact -- add <id>                      Installs an app from the directory by its id, such as "contacts".
  *   npm run openact -- add github:owner/repo[#ref]   Copies an app from GitHub into apps/<id> and installs it.
+ *   npm run openact -- add github:owner/repo/apps/x[#ref]  Copies one app from a repository that holds several apps.
  *   npm run openact -- add ./path/to/app            Copies an app from a folder on this computer, for example while you build it.
  *   npm run openact -- update <id>                   Copies the app again from where it came from.
  *   npm run openact -- remove <id>                   Removes the app from this OpenAct. Its tables stay in the database.
@@ -20,7 +21,11 @@
  * "enabledByDefault": false makes each company turn the app on in Company settings before it shows.
  * "requiresApps": ["projects"] lists apps that must be installed too. "optionalApps" lists apps the app uses when they are there.
  * "plan": "director" or "producer" makes the app a paid app. It is locked in companies without that plan.
- * Only official MarketGrowth apps use "plan". See https://docs.openact.app/plans.
+ * Only official MarketGrowth apps use "plan". See https://docs.openact.ing/plans.
+ * "released": "YYYY-MM-DD" is the day this version was released. A paid app needs it for the license fallback.
+ * "requiresCore": "0.2.0" is the oldest core version the app works with. Sync stops when the core is older.
+ * "testedCore": "0.3" is the newest core version the app was tested with. Sync warns when the core is newer.
+ * Each class in "durableObjects" needs a binding and a migration in wrangler.jsonc. Sync checks it.
  *
  * Like shadcn/ui, `add` copies the app's code into your repository. You own it, and you can read and change it.
  * `update` replaces the folder, so keep your own changes in git or send them to the app's authors.
@@ -35,6 +40,12 @@ const ROOT = resolve(import.meta.dirname, "..");
 const REGISTRY = join(ROOT, "openact.apps.json");
 const OUT = join(ROOT, ".openact");
 const CORE_MIGRATIONS = join(ROOT, "packages/core/migrations");
+const CORE_PACKAGE = join(ROOT, "packages/core/package.json");
+const WRANGLER = join(ROOT, "wrangler.jsonc");
+/** Durable Object classes that the core exports. The host exports them in src/worker.ts. */
+const CORE_DURABLE_OBJECTS = ["ProjectRoom"];
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+const VERSION = /^\d+\.\d+(\.\d+)?$/;
 const DIRECTORY = join(ROOT, "directory/apps.json");
 const ID = /^[a-z][a-z0-9-]{1,30}$/;
 const PAID_PLANS = ["director", "producer"];
@@ -107,6 +118,12 @@ function manifest(dir, label = relative(ROOT, dir)) {
   }
   if (m.enabledByDefault !== undefined && typeof m.enabledByDefault !== "boolean") fail(`The app "${m.id}" has "enabledByDefault": it must be true or false.`);
   if (m.plan !== undefined && !PAID_PLANS.includes(m.plan)) fail(`The app "${m.id}" has "plan": "${m.plan}". Use ${PAID_PLANS.join(" or ")}, or leave it out for a free app.`);
+  if (m.released !== undefined && (typeof m.released !== "string" || !DAY.test(m.released) || Number.isNaN(Date.parse(`${m.released}T00:00:00Z`))))
+    fail(`The app "${m.id}" has "released": "${m.released}". Use a day such as "2026-11-18".`);
+  for (const key of ["requiresCore", "testedCore"]) {
+    if (m[key] !== undefined && (typeof m[key] !== "string" || !VERSION.test(m[key])))
+      fail(`The app "${m.id}" has "${key}": "${m[key]}". Use a core version such as "0.2" or "0.2.0".`);
+  }
   for (const key of ["requiresApps", "optionalApps"]) {
     if (m[key] !== undefined && (!Array.isArray(m[key]) || m[key].some((x) => typeof x !== "string" || !ID.test(x))))
       fail(`The app "${m.id}" has "${key}": it must be a list of app ids, such as ["projects"].`);
@@ -119,6 +136,111 @@ function manifest(dir, label = relative(ROOT, dir)) {
     requiresApps: m.requiresApps ?? [],
     optionalApps: m.optionalApps ?? []
   };
+}
+
+/** Compares two versions such as "0.2" and "0.2.1". Missing parts count as 0. */
+function compareVersions(a, b) {
+  const pa = a.split(".").map(Number);
+  const pb = b.split(".").map(Number);
+  for (let i = 0; i < 3; i++) {
+    const d = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (d) return d;
+  }
+  return 0;
+}
+
+/** The core version, from packages/core/package.json. */
+const coreVersion = () => JSON.parse(readFileSync(CORE_PACKAGE, "utf8")).version;
+
+/** Stops when an app needs a newer core. Warns when the core is newer than the app was tested with. */
+function checkCore(loaded) {
+  const core = coreVersion();
+  for (const a of loaded) {
+    if (a.requiresCore && compareVersions(core, a.requiresCore) < 0)
+      fail(`The app "${a.id}" needs OpenAct core ${a.requiresCore} or newer. This core is ${core}. Update OpenAct first, then sync again.`);
+    // "Tested up to 0.3" covers 0.3.x. Compare only the parts that the app gives.
+    if (a.testedCore) {
+      const parts = a.testedCore.split(".").length;
+      const coreCut = core.split(".").slice(0, parts).join(".");
+      if (compareVersions(coreCut, a.testedCore) > 0)
+        console.warn(`openact: warning: "${a.id}" was tested up to core ${a.testedCore}. This core is ${core}. Test the app, or get a newer version.`);
+    }
+  }
+}
+
+/** Removes // and /* *\/ comments from JSONC, but not from inside strings, and trailing commas. */
+function stripJsonc(text) {
+  let out = "";
+  let i = 0;
+  let inString = false;
+  while (i < text.length) {
+    const ch = text[i];
+    if (inString) {
+      out += ch;
+      if (ch === "\\") {
+        out += text[i + 1] ?? "";
+        i += 2;
+        continue;
+      }
+      if (ch === '"') inString = false;
+      i++;
+      continue;
+    }
+    if (ch === '"') {
+      inString = true;
+      out += ch;
+      i++;
+    } else if (ch === "/" && text[i + 1] === "/") {
+      while (i < text.length && text[i] !== "\n") i++;
+    } else if (ch === "/" && text[i + 1] === "*") {
+      i += 2;
+      while (i < text.length && !(text[i] === "*" && text[i + 1] === "/")) i++;
+      i += 2;
+    } else {
+      out += ch;
+      i++;
+    }
+  }
+  return out.replace(/,(\s*[}\]])/g, "$1");
+}
+
+/**
+ * Checks that wrangler.jsonc binds every Durable Object class that the installed apps export, with a migration.
+ * A missing binding breaks the app at run time, and a binding to a class that no app exports breaks the deploy.
+ */
+function checkDurableObjects(loaded) {
+  if (!existsSync(WRANGLER)) return;
+  let config;
+  try {
+    config = JSON.parse(stripJsonc(readFileSync(WRANGLER, "utf8")));
+  } catch (e) {
+    console.warn(`openact: warning: could not read wrangler.jsonc to check Durable Objects (${e.message}).`);
+    return;
+  }
+  const bound = new Set((config.durable_objects?.bindings ?? []).map((b) => b.class_name));
+  const migrated = new Set(
+    (config.migrations ?? []).flatMap((m) => [...(m.new_sqlite_classes ?? []), ...(m.new_classes ?? []), ...(m.renamed_classes ?? []).map((r) => r.to)])
+  );
+  for (const m of config.migrations ?? []) for (const c of m.deleted_classes ?? []) migrated.delete(c);
+  const exported = new Set(CORE_DURABLE_OBJECTS);
+  for (const a of loaded) {
+    for (const cls of a.durableObjects) {
+      exported.add(cls);
+      if (!bound.has(cls) || !migrated.has(cls))
+        fail(
+          `The app "${a.id}" needs the Durable Object class ${cls}, but wrangler.jsonc does not ${bound.has(cls) ? "create it in a migration" : "bind it"}.\n` +
+            `  Add to "durable_objects.bindings": { "name": "<binding from the app's docs>", "class_name": "${cls}" }\n` +
+            `  Add to "migrations": { "tag": "<a new tag>", "new_sqlite_classes": ["${cls}"] }`
+        );
+    }
+  }
+  for (const cls of bound) {
+    if (!exported.has(cls))
+      fail(
+        `wrangler.jsonc binds the Durable Object class ${cls}, but no installed app exports it, so the deploy would fail.\n` +
+          `  Install the app that has it, or remove the binding. If the class was created before, removing it needs a "deleted_classes" migration, which deletes its stored data.`
+      );
+  }
 }
 
 /** A path for an import in a file inside .openact/. */
@@ -160,6 +282,8 @@ function sync() {
   }
 
   const primary = checkPrimary(reg, loaded);
+  checkCore(loaded);
+  checkDurableObjects(loaded);
 
   rmSync(OUT, { recursive: true, force: true });
   mkdirSync(join(OUT, "migrations"), { recursive: true });
@@ -173,7 +297,13 @@ function sync() {
       server.map((a, i) => `import app${i} from "${fromOut(join(a.dir, a.server))}";\n`).join("") +
       `\nexport const apps: ServerApp[] = [${server.map((_, i) => `app${i}`).join(", ")}];\n` +
       `\n/** Every installed app, also apps with only web code. */\nexport const catalog: AppInfo[] = ${JSON.stringify(
-        loaded.map((a) => ({ id: a.id, name: a.name, enabledByDefault: a.enabledByDefault, ...(a.plan ? { plan: a.plan } : {}) }))
+        loaded.map((a) => ({
+          id: a.id,
+          name: a.name,
+          enabledByDefault: a.enabledByDefault,
+          ...(a.plan ? { plan: a.plan } : {}),
+          ...(a.plan && a.released ? { released: a.released } : {})
+        }))
       )};\n`
   );
   writeFileSync(
@@ -226,23 +356,39 @@ function sync() {
   );
 }
 
-/** Copies an app from GitHub into a new temporary folder. Returns the folder. */
+/**
+ * Copies an app from GitHub into a new temporary folder. Returns the folder.
+ * github:owner/repo is an app at the top of the repository. github:owner/repo/apps/docs is one app in a repository with several.
+ */
 function fetchFromGitHub(source) {
-  const m = /^github:([\w.-]+)\/([\w.-]+?)(?:\.git)?(?:#(.+))?$/.exec(source);
-  if (!m) fail(`Use github:owner/repo or github:owner/repo#tag. "${source}" does not match.`);
-  const [, owner, repo, ref] = m;
+  const m = /^github:([\w.-]+)\/([\w.-]+?)(?:\.git)?((?:\/[\w.-]+)*)(?:#(.+))?$/.exec(source);
+  if (!m) fail(`Use github:owner/repo, github:owner/repo/path/to/app or add #tag. "${source}" does not match.`);
+  const [, owner, repo, sub, ref] = m;
+  if (sub.split("/").some((part) => part === "." || part === "..")) fail(`The path in "${source}" must stay inside the repository.`);
   const tmp = mkdtempSync(join(tmpdir(), "openact-app-"));
   temps.push(tmp);
   const args = ["clone", "--depth", "1", ...(ref ? ["--branch", ref] : []), `https://github.com/${owner}/${repo}.git`, tmp];
   try {
     execFileSync("git", args, { stdio: ["ignore", "inherit", "inherit"] });
   } catch {
+    const paid = readDirectory().apps.find((a) => a.plan && baseSource(a.source) === `github:${owner}/${repo}${sub}`);
     fail(
-      `git could not copy ${owner}/${repo}${ref ? ` at ${ref}` : ""}. Check the name and the tag, and that git can sign in to GitHub for private repositories.`
+      paid
+        ? `git could not copy ${owner}/${repo}. ${paid.name} is a paid app in a private repository. Ask MarketGrowth for access with your license, then make sure git can sign in to GitHub on this computer. See https://docs.openact.ing/plans#get-the-director-apps`
+        : `git could not copy ${owner}/${repo}${ref ? ` at ${ref}` : ""}. Check the name and the tag, and that git can sign in to GitHub for private repositories.`
     );
   }
   rmSync(join(tmp, ".git"), { recursive: true, force: true });
-  return { dir: tmp, source: `github:${owner}/${repo}`, ref: ref ?? null, label: `${owner}/${repo}${ref ? `#${ref}` : ""}` };
+  const label = `${owner}/${repo}${sub}${ref ? `#${ref}` : ""}`;
+  if (!sub) return { dir: tmp, source: `github:${owner}/${repo}`, ref: ref ?? null, label };
+  // Keep only the app's folder.
+  const from = join(tmp, sub);
+  if (!existsSync(join(from, "package.json"))) fail(`${label} is not an app folder. It needs a package.json with an "openact" field.`);
+  const only = mkdtempSync(join(tmpdir(), "openact-app-"));
+  temps.push(only);
+  cpSync(from, only, { recursive: true });
+  rmSync(tmp, { recursive: true, force: true });
+  return { dir: only, source: `github:${owner}/${repo}${sub}`, ref: ref ?? null, label };
 }
 
 /** Copies an app from a folder on this computer into a new temporary folder. */
@@ -358,6 +504,8 @@ switch (cmd) {
     break;
   }
   default:
-    console.log("Usage: npm run openact -- list | directory | add <id> | add github:owner/repo[#ref] | add ./folder | update <id> | remove <id> | primary <id|none> | sync");
+    console.log(
+      "Usage: npm run openact -- list | directory | add <id> | add github:owner/repo[/path][#ref] | add ./folder | update <id> | remove <id> | primary <id|none> | sync"
+    );
     if (cmd) process.exit(1);
 }
