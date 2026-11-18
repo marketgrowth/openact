@@ -32,7 +32,19 @@ export interface Env {
   AI_GATEWAY_ID?: string;
   CF_ACCOUNT_ID?: string;
 
+  /** Plans: the Stripe Price ids of the annual Director and Producer prices. A plan is for sale when its price is set. */
+  STRIPE_PRICE_DIRECTOR?: string;
+  STRIPE_PRICE_PRODUCER?: string;
+  /** Plans: an optional page or mailto link to ask about plans, such as for Producer. */
+  PLANS_CONTACT_URL?: string;
+
   // Secrets
+  /** A self-hosted deploy's license key from MarketGrowth. It gives every company on the deploy its plan. */
+  OPENACT_LICENSE?: string;
+  /** Stripe secret key. Plans use it, and so do contributions on the host. */
+  STRIPE_SECRET_KEY?: string;
+  /** The signing secret of the Stripe webhook for plans (whsec_...). */
+  STRIPE_WEBHOOK_SECRET?: string;
   RESEND_API_KEY?: string;
   AUTH_SECRET?: string;
   ANTHROPIC_API_KEY?: string;

@@ -123,24 +123,32 @@ The first person to sign in can always make an account, even in `invite` mode. A
 
 ## Site name, logo, sign-in page and apps
 
-A super admin sets the name, logo and sign-in page that everyone on the site sees, and can turn an app off for the whole site.
+A super admin sets the name, logo, Submit issues link and sign-in page that everyone on the site sees. A super admin also chooses which apps each company can use.
 
 1. Add your email to `SUPER_ADMIN_EMAILS` in `wrangler.jsonc`, then deploy.
-2. Sign in. Open your menu at the bottom of the app rail, then choose **Site settings**.
-3. Type the app name, then choose **Save name**. Leave it empty to use `APP_NAME` again.
+2. Sign in. Choose the gear at the bottom of the app rail to open **Settings**. Site settings lists its sections in the side panel, such as **Branding**, **Sign-in page** and **Apps**. You can also open your menu at the bottom of the app rail, then choose **Site settings**.
+3. In **Branding**, type the app name, then choose **Save name**. Leave it empty to use `APP_NAME` again.
 4. Choose **Upload logo**. Use a PNG, JPEG or WebP image, up to 1 MB. A square image looks best.
-5. Type the **Sign-in heading** and its **Credit**, then choose **Save sign-in page**. Leave the heading empty to use the default quote.
-6. Type the **Terms of Use link** and the **Privacy Policy link**, then choose **Save sign-in page**. Use full links that start with `https://`.
-7. Choose **Upload background** to show your own image on the sign-in page. Use a PNG, JPEG or WebP image, up to 3 MB. Choose **Use default** to show the default background again.
-8. Under **Apps**, turn an app off to hide it in every company. Its data stays. Companies cannot turn it on again until a super admin does.
+5. Type the **Submit issues link**, then choose **Save link**. Use a full link that starts with `https://`, such as your issue tracker or a feedback form. A bug icon then shows on the app rail, above the Contribute heart. It opens the link in a new browser tab. Leave the link empty to hide the icon.
+6. In **Sign-in page**, type the **Sign-in heading** and its **Credit**, then choose **Save sign-in page**. Leave the heading empty to use the default quote.
+7. Type the **Terms of Use link** and the **Privacy Policy link**, then choose **Save sign-in page**. Use full links that start with `https://`.
+8. Choose **Upload background** to show your own image on the sign-in page. Use a PNG, JPEG or WebP image, up to 3 MB. Choose **Use default** to show the default background again.
+9. In **Apps**, under **Every company**, turn an app off to hide it in every company. Its data stays. Companies cannot turn it on again until a super admin does.
+10. In **Apps**, under **One company**, find a company by name. Turn an app off to hide it in that company only. The other companies keep the app. The company's owners and admins cannot turn it on again until a super admin does.
 
 The name shows on the sign-in page, in the browser tab, in the company menu and in emails. The logo shows on the sign-in page and as the browser tab icon. Without a logo, the OpenAct mark shows.
 
 The sign-in page is one card. The form is on the left, and the heading, credit and background are on the right. On a phone, only the form shows. Soft emerald and rose glows fill the page around the card. The page also says that people agree to the Terms of Use and Privacy Policy when they sign in. Each name links to its page when you add the link. Without a link, the name shows as plain text.
 
+Super admins also see the **App directory** icon on the app rail, and they choose the plan for the site in **Site settings > Plan**. Read [Change the plan descriptions](plans.md#change-the-plan-descriptions).
+
 A super admin is not a company role. Super admins change only the site settings. They get no access to company data.
 
 An app that is off for the site is off in every company: its pages, its API and its public links stop working. You cannot turn every app off. Keep at least one on.
+
+An app that is off for one company works the same way, but only in that company. Its data stays, so the app comes back as it was when you make it available again. Company owners and admins see "Not available for this company" in **Company settings > Apps**.
+
+Company owners and admins can also turn an app off for their own company in **Company settings > Apps**. That switch never changes other companies.
 
 Each Worker keeps the settings for up to 30 seconds. After a change, other open pages show it when they load again.
 
@@ -156,7 +164,7 @@ If an app loads files from another site, add that site to the matching directive
 
 ## Delete an account
 
-A person can delete their own account. They open **Account** from their menu, choose **Delete account**, then type their email to confirm.
+A person can delete their own account. They open **Settings**, then **Sign-in and security** under Personal account. They choose **Delete account**, then type their email to confirm.
 
 - They leave every company, and their sessions end.
 - Projects, tasks and files that they made stay with the company. Their name leaves them: assignments and "created by" fields become empty.

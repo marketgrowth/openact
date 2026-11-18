@@ -4,7 +4,19 @@ import { Button } from "@openact/ui/components/button";
 import { Input } from "@openact/ui/components/input";
 import { NativeSelect, NativeSelectOption } from "@openact/ui/components/native-select";
 import { Badge } from "@openact/ui/components/badge";
-import { CATEGORY_COLORS, PAGE_SIZES, TITLE_MAX, type CategoryColor, type PageSize, type Tag } from "../shared/types";
+import {
+  CATEGORY_COLORS,
+  PAGE_SIZES,
+  PDF_MAX_BYTES,
+  PDF_MAX_LABEL,
+  PDF_UPLOAD_MAX_FILES,
+  TITLE_MAX,
+  fmtBytes,
+  titleFromFileName,
+  type CategoryColor,
+  type PageSize,
+  type Tag
+} from "../shared/types";
 import { NAME_MAX, TAGS_PER_DOC_MAX, folderPaths } from "../shared/library";
 import { PAGE_SIZE_LABELS } from "../shared/page";
 import { DOCS_HOME, useDocs } from "./state";
@@ -204,6 +216,180 @@ export function NewDocDialog({ folderId, categoryId, onClose }: { folderId?: str
           </Button>
           <Button type="submit" disabled={busy}>
             Make doc
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+/** True when a file from the browser looks like a PDF. The server checks the bytes again. */
+export const looksLikePdf = (f: File) => f.type === "application/pdf" || /\.pdf$/i.test(f.name);
+
+/** A problem with a file before upload, or null. */
+export function pdfFileProblem(f: File): string | null {
+  if (!looksLikePdf(f)) return `${f.name} is not a PDF.`;
+  if (f.size === 0) return `${f.name} is empty.`;
+  if (f.size > PDF_MAX_BYTES) return `${f.name} is too large. The limit is ${PDF_MAX_LABEL}.`;
+  return null;
+}
+
+/**
+ * Uploads one or more PDFs into the library, with a folder, a category and tags for all of them.
+ * One PDF opens when it is done. More than one stay in the list.
+ */
+export function UploadPdfDialog({
+  folderId,
+  categoryId,
+  tagName,
+  files: initialFiles,
+  onClose
+}: {
+  folderId?: string | null;
+  categoryId?: string | null;
+  /** A tag to start with, such as the tag of the page that is open. */
+  tagName?: string | null;
+  files?: File[];
+  onClose: () => void;
+}) {
+  const toast = useToast();
+  const { current } = useWorkspace();
+  const { library, reload } = useDocs();
+  const [files, setFiles] = useState<File[]>(() => (initialFiles ?? []).slice(0, PDF_UPLOAD_MAX_FILES));
+  const [title, setTitle] = useState("");
+  const [folder, setFolder] = useState<string | null>(folderId ?? null);
+  const [category, setCategory] = useState<string | null>(categoryId ?? null);
+  const [tags, setTags] = useState<string[]>(tagName ? [tagName] : []);
+  const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<string | null>(null);
+  const [problems, setProblems] = useState<string[]>(() => (initialFiles ?? []).map(pdfFileProblem).filter((p): p is string => !!p));
+  if (!current) return null;
+  if (library && !library.can.edit)
+    return (
+      <Modal title="Upload PDF" onClose={onClose}>
+        <Notice tone="info">Your role in this company cannot upload PDFs. Ask a company owner or admin for the Write docs permission.</Notice>
+      </Modal>
+    );
+
+  const good = files.filter((f) => !pdfFileProblem(f));
+
+  const pick = (list: FileList | null) => {
+    const picked = Array.from(list ?? []);
+    const all = [...files, ...picked].filter((f, i, a) => a.findIndex((g) => g.name === f.name && g.size === f.size) === i);
+    const p = picked.map(pdfFileProblem).filter((x): x is string => !!x);
+    if (all.length > PDF_UPLOAD_MAX_FILES) p.push(`You can upload up to ${PDF_UPLOAD_MAX_FILES} PDFs at a time.`);
+    setFiles(all.slice(0, PDF_UPLOAD_MAX_FILES));
+    setProblems(p);
+  };
+
+  const upload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!good.length) return;
+    setBusy(true);
+    setProblems([]);
+    const failed: string[] = [];
+    const left: File[] = [];
+    let lastId: string | null = null;
+    for (const [i, f] of good.entries()) {
+      setProgress(good.length > 1 ? `Uploading ${i + 1} of ${good.length}: ${f.name}` : `Uploading ${f.name}`);
+      const form = new FormData();
+      form.append("file", f);
+      if (good.length === 1 && title.trim()) form.append("title", title.trim());
+      if (folder) form.append("folderId", folder);
+      if (category) form.append("categoryId", category);
+      if (tags.length) form.append("tags", JSON.stringify(tags));
+      try {
+        lastId = (await api<{ id: string }>(`/api/apps/docs/companies/${current.id}/pdfs`, { method: "POST", form })).id;
+      } catch (err) {
+        failed.push(`${f.name}: ${errorText(err)}`);
+        left.push(f);
+      }
+    }
+    setProgress(null);
+    setBusy(false);
+    const done = good.length - failed.length;
+    if (done) await reload();
+    if (!failed.length) {
+      onClose();
+      if (good.length === 1 && lastId) navigate(`${DOCS_HOME}/p/${lastId}`);
+      else toast(`Uploaded ${done} PDFs.`);
+      return;
+    }
+    if (done) toast(`Uploaded ${done} of ${good.length} PDFs.`);
+    setFiles(left);
+    setProblems(failed);
+  };
+
+  return (
+    <Modal title="Upload PDF" description={`Add PDFs to the library. Each one can be up to ${PDF_MAX_LABEL}.`} onClose={() => !busy && onClose()}>
+      <form className="grid gap-4" onSubmit={upload} data-upload-pdf-form="">
+        <Field label="Files" htmlFor="upload-pdf-files" help="You can choose more than one PDF. They all get the folder, category and tags below.">
+          <Input id="upload-pdf-files" type="file" accept="application/pdf,.pdf" multiple disabled={busy} onChange={(e) => pick(e.target.files)} />
+        </Field>
+        {files.length > 0 && (
+          <ul className="grid max-h-40 gap-1 overflow-y-auto rounded-md border p-2 text-sm" data-upload-pdf-list="">
+            {files.map((f) => (
+              <li key={`${f.name}-${f.size}`} className="flex items-center gap-2">
+                <Icon name="pdf" className="shrink-0 text-muted-foreground" />
+                <span className="min-w-0 flex-1 truncate">{f.name}</span>
+                <span className="shrink-0 text-xs text-muted-foreground tabular">{fmtBytes(f.size)}</span>
+                {!busy && (
+                  <button
+                    type="button"
+                    className="rounded-sm text-muted-foreground hover:text-foreground"
+                    aria-label={`Remove ${f.name}`}
+                    onClick={() => setFiles(files.filter((g) => g !== f))}
+                  >
+                    <Icon name="x" size={14} />
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+        {good.length === 1 && (
+          <Field label="Title" htmlFor="upload-pdf-title" help="Leave it empty to use the file name.">
+            <Input
+              id="upload-pdf-title"
+              value={title}
+              maxLength={TITLE_MAX}
+              placeholder={titleFromFileName(good[0]!.name)}
+              onChange={(e) => setTitle(e.target.value)}
+              disabled={busy}
+            />
+          </Field>
+        )}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Folder" htmlFor="upload-pdf-folder">
+            <FolderSelect id="upload-pdf-folder" value={folder} onChange={setFolder} disabled={busy} />
+          </Field>
+          <Field label="Category" htmlFor="upload-pdf-category">
+            <CategorySelect id="upload-pdf-category" value={category} onChange={setCategory} disabled={busy} />
+          </Field>
+        </div>
+        <Field label="Tags" htmlFor="upload-pdf-tags">
+          <TagInput id="upload-pdf-tags" value={tags} onChange={setTags} disabled={busy} known={library?.tags ?? []} />
+        </Field>
+        {problems.length > 0 && (
+          <Notice tone="error">
+            <ul className="grid gap-1" data-upload-pdf-problems="">
+              {problems.map((p) => (
+                <li key={p}>{p}</li>
+              ))}
+            </ul>
+          </Notice>
+        )}
+        {progress && (
+          <p className="text-sm text-muted-foreground" role="status" data-upload-pdf-progress="">
+            {progress}
+          </p>
+        )}
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={busy || !good.length} data-upload-pdf-submit="">
+            <Icon name="upload" /> {good.length > 1 ? `Upload ${good.length} PDFs` : "Upload PDF"}
           </Button>
         </div>
       </form>

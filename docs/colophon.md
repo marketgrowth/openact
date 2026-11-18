@@ -2,7 +2,7 @@
 
 How OpenAct is made. OpenAct is an open source framework for agentic business apps on Cloudflare, with a Projects app for Kanban, Gantt and calendar views. MarketGrowth makes it and shares it under the Apache License 2.0.
 
-The app shows the same page at `/colophon`. Keep the two in step with `package.json` when versions change, and add a build log row for each new milestone.
+The app shows the same page at `/colophon`. It has no icon on the app rail, so open it by its address. Keep the two in step with `package.json` when versions change, and add a build log row for each new milestone.
 
 ## What it does
 
@@ -25,7 +25,7 @@ The app shows the same page at `/colophon`. Keep the two in step with `package.j
 | Note search | Owners can let the agent search task notes. It gets only short parts, with email addresses and phone numbers hidden. |
 | Sign-in | No passwords. People sign in with a 6-digit email code. |
 | Themes and phones | Light, dark, or follow the system. On a phone, the rail and the panel open as one sheet. |
-| Contribute | A public page at /contribute. People help pay for OpenAct by card (Stripe) or in USDC (x402). |
+| Contribute | A public page at openact.ing/contribute. The heart on the app rail opens it in a new tab. People help build OpenAct by card (Stripe) or in USDC (x402). |
 | Keyboard | Ctrl+K or Cmd+K opens search. Ctrl+B or Cmd+B opens and closes the app panel. |
 
 ## Build log
@@ -117,8 +117,8 @@ The shadcn/ui design system, with OpenAct's own colors for status, priority and 
 
 | Part | What it does |
 | --- | --- |
-| [Geist](https://fonts.google.com/specimen/Geist) | Text and headings |
-| [Geist Mono](https://fonts.google.com/specimen/Geist+Mono) | Dates and the sign-in code |
+| [IBM Plex Sans](https://fonts.google.com/specimen/IBM+Plex+Sans) | Text and headings |
+| [IBM Plex Mono](https://fonts.google.com/specimen/IBM+Plex+Mono) | Dates and the sign-in code |
 | [Lucide](https://lucide.dev) | Icons. Outline style with a 2 px stroke, at 16 px in most places. |
 | Layout | An app rail and an inset app panel, as in shadcn's sidebar-09 block, and a 48 px page header with the panel toggle, as in dashboard-01 |
 | Themes | Light, dark, or follow the system setting |

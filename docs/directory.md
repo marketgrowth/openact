@@ -9,7 +9,7 @@ import AppDirectory from "./.vitepress/theme/components/AppDirectory.vue";
 
 # App directory
 
-OpenAct starts with two apps: Projects and [Docs](docs-app.md). Add more apps from this directory, or [build your own](apps.md). Each app gets sign-in, companies, roles, [permissions](permissions.md) and the app shell from the core.
+OpenAct starts with three apps: Projects, which is free, and [Docs](docs-app.md) and [Advisory](advisory-app.md), which are part of [OpenAct Director](plans.md). Apps with a **★ Director** badge need a Director or Producer plan. Add more apps from this directory, or [build your own](apps.md). Each app gets sign-in, companies, roles, [permissions](permissions.md) and the app shell from the core.
 
 Install an app by its id:
 
@@ -21,7 +21,7 @@ npm run deploy
 
 Run `npm run openact -- directory` to see the same list in your terminal.
 
-In the app, select **App directory** below the divider on the app rail. The Apps page shows the apps in the current company and the apps from this directory that you can add. Owners and admins can turn apps on or off there. To show the directory on that page, the host passes it to `createClient`:
+In the app, select **App directory** below the last divider on the app rail. The Apps page shows the apps in the current company and the apps from this directory that you can add. Owners and admins can turn apps on or off there. To show the directory on that page, the host passes it to `createClient`:
 
 ```tsx
 import directory from "../../directory/apps.json";

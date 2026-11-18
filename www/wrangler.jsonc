@@ -1,0 +1,24 @@
+{
+  // The OpenAct website at https://openact.ing. Astro builds the pages in src/ and the files in public/ into dist/.
+  // The Worker also answers the contribution routes (/api/contribute) for openact.ing/contribute.
+  // Set the contribution settings as secrets: npx wrangler secret put STRIPE_SECRET_KEY --config www/wrangler.jsonc
+  // The demo app is a separate Worker (openact-demo) at https://a.openact.ing.
+  // Workers Builds deploys this folder from the demo branch. See DEMO.md and README.md.
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "openact-site",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-10-01",
+  "observability": { "enabled": true },
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    // The script runs first, so it can send www.openact.ing to openact.ing and answer /api/contribute.
+    "run_worker_first": true,
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  },
+  "routes": [
+    { "pattern": "openact.ing", "custom_domain": true },
+    { "pattern": "www.openact.ing", "custom_domain": true }
+  ]
+}

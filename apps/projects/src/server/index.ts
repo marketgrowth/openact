@@ -9,6 +9,7 @@ import { aguiRoutes } from "./agui";
 import { processVectorOutbox, searchRoutes, vectorsEnabled } from "./search";
 import { PROJECT_ROOM, markProjectChanged } from "./data";
 import { disconnectFromProject, liveRoutes, projectRevisions } from "./live";
+import { duplicateProjects } from "./duplicate";
 
 /*
  * The projects app: projects, tasks, the board, timeline and calendar, the AI agent and task search.
@@ -141,6 +142,7 @@ export default defineServerApp({
       for (const p of projects.results) markProjectChanged(p.id);
       await Promise.all(projects.results.map((p) => disconnectFromProject(env, p.id, userId)));
     },
+    companyDuplicating: duplicateProjects,
     companyDeleting: async (env, companyId) => {
       const projects = await env.DB.prepare("SELECT id FROM projects WHERE company_id = ?").bind(companyId).all<{ id: string }>();
       for (const p of projects.results) await deletePrefix(env.FILES, `projects/${p.id}/`);

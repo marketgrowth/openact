@@ -12,7 +12,7 @@ import { aiSetup, deployAi, type AiSetup } from "./agent/model";
  * so you get logs, caching, rate limits and spend controls in one place.
  *
  * The provider, model and key come from aiSetup (agent/model.ts):
- *   the company's own AI, when a company owner set one in Company settings, on the AI provider tab, or
+ *   the company's own AI, when a company owner set one in Company settings, under AI provider, or
  *   the deploy default from AI_PROVIDER:
  *     workers-ai (default) uses the Workers AI binding. No API key needed.
  *     anthropic            uses the Anthropic API through AI Gateway. Needs ANTHROPIC_API_KEY and CF_ACCOUNT_ID.
@@ -41,7 +41,7 @@ export async function runChat(env: Env, setup: AiSetup, messages: ChatMessage[],
   const m = setup.provider === "dev-scripted" ? deployAi({ ...env, AI_PROVIDER: "workers-ai" }).model : setup.model;
 
   if (p === "anthropic") {
-    if (!setup.apiKey) throw new HttpError(500, setup.source === "company" ? "Your company's AI key is missing. A company owner can add it in Company settings, on the AI provider tab." : "Set the ANTHROPIC_API_KEY secret to use Anthropic models.");
+    if (!setup.apiKey) throw new HttpError(500, setup.source === "company" ? "Your company's AI key is missing. A company owner can add it in Company settings, under AI provider." : "Set the ANTHROPIC_API_KEY secret to use Anthropic models.");
     const res = await fetch(gatewayUrl(env, "anthropic/v1/messages"), {
       method: "POST",
       headers: { "content-type": "application/json", "x-api-key": setup.apiKey, "anthropic-version": "2023-06-01", ...gatewayHeaders(env) },
@@ -107,7 +107,7 @@ async function providerError(res: Response, setup: AiSetup): Promise<HttpError> 
   const body = await res.text().catch(() => "");
   console.error(`[openact] AI provider returned ${res.status}: ${body.slice(0, 500)}`);
   if (setup.source === "company" && (res.status === 401 || res.status === 403)) {
-    return new HttpError(502, "The AI provider did not accept your company's API key. A company owner can check it in Company settings, on the AI provider tab.");
+    return new HttpError(502, "The AI provider did not accept your company's API key. A company owner can check it in Company settings, under AI provider.");
   }
   return new HttpError(502, "The AI service did not answer. Try again in a minute.");
 }

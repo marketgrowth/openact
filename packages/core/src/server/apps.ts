@@ -4,6 +4,8 @@ import type { AppEnv, Env } from "./env";
 import type { User } from "../shared/types";
 import { COMPANY_ROLES } from "../shared/types";
 import { PERMISSION_ID, permissionApp, type PermissionDef } from "../shared/permissions";
+import type { CopyCount } from "../shared/site";
+import type { CompanyCopyContext } from "./company-copy";
 
 /*
  * Server side of an OpenAct app.
@@ -29,6 +31,13 @@ export interface ServerApp {
   /** Runs on each cron trigger. `cron` is the schedule that fired. */
   scheduled?: (env: Env, cron: string) => Promise<void>;
   hooks?: AppHooks;
+  /**
+   * Server functions that other apps may call when this app is installed, by name.
+   * Another app reads one with appService(appId, name). Use it for an optional link between apps,
+   * where a static import would break the build when this app is not installed.
+   * A service does not check the caller's access. The calling app checks its own permissions first.
+   */
+  services?: Record<string, unknown>;
 }
 
 export interface AppHooks {
@@ -48,6 +57,13 @@ export interface AppHooks {
   companyUpdate?: (env: Env, companyId: string, body: Record<string, unknown>) => Promise<boolean>;
   /** Settings for a new company, such as defaults. Runs after the company row exists. */
   companyCreated?: (env: Env, companyId: string, userId: string) => Promise<void>;
+  /**
+   * Runs when a super admin duplicates a company, after the new company exists. Copy the app's data and files
+   * from ctx.fromId to ctx.toId with the tools in ctx. Leave out people, comments, share links and history.
+   * Return what you copied, for the summary. If the hook throws, the core deletes the new company.
+   * Without this hook, the new company starts with none of the app's data.
+   */
+  companyDuplicating?: (env: Env, ctx: CompanyCopyContext) => Promise<CopyCount[]>;
 }
 
 export function defineServerApp(app: ServerApp): ServerApp {
@@ -74,6 +90,14 @@ export function setApps(apps: ServerApp[]): void {
 }
 
 export const getApps = (): readonly ServerApp[] => installed;
+
+/**
+ * A service of another installed app, or undefined when that app is not installed or has no such service.
+ * The caller gives the type. Check that the app is on for the company with companyAppState before you use it.
+ */
+export function appService<T>(appId: string, name: string): T | undefined {
+  return installed.find((a) => a.id === appId)?.services?.[name] as T | undefined;
+}
 
 /** Runs a hook in every app that has it, in install order. */
 export async function runHook<K extends keyof AppHooks>(

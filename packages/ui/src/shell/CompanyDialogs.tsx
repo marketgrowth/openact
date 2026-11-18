@@ -1,21 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { COMPANY_ROLES, COMPANY_ROLE_HELP, COMPANY_ROLE_LABELS, type Company, type CompanyDetail, type CompanyRole, type User } from "@openact/core/shared";
-import type { ClientApp } from "../apps";
 import { api, errorText } from "../api";
 import { navigate } from "../router";
 import { Avatar, ConfirmButton, Field, Modal, Notice, useToast } from "../ui";
 import { useWorkspace } from "../workspace";
 import { CompanyMark } from "./Sidebar";
-import { AppsTab, PermissionsTab } from "./AppSettings";
-import { CompanyAiTab } from "./CompanyAi";
 import { Button } from "@openact/ui/components/button";
 import { Input } from "@openact/ui/components/input";
-import { Label } from "@openact/ui/components/label";
 import { Badge } from "@openact/ui/components/badge";
-import { Switch } from "@openact/ui/components/switch";
 import { Separator } from "@openact/ui/components/separator";
 import { NativeSelect, NativeSelectOption } from "@openact/ui/components/native-select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@openact/ui/components/tabs";
 
 export function NewCompanyDialog({ onClose }: { onClose: () => void }) {
   const ws = useWorkspace();
@@ -65,86 +59,8 @@ export function NewCompanyDialog({ onClose }: { onClose: () => void }) {
   );
 }
 
-type Tab = string;
-
-/** Company settings for owners and admins: name, logo, email domain, people, apps and the AI agent. */
-export function CompanySettings({ companyId, me, apps, onClose }: { companyId: string; me: User; apps: readonly ClientApp[]; onClose: () => void }) {
-  const appTabs = apps.flatMap((a) => a.companySettingsTabs ?? []);
-  const ws = useWorkspace();
-  const [tab, setTab] = useState<Tab>("general");
-  const [detail, setDetail] = useState<(CompanyDetail & Record<string, unknown>) | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    try {
-      setDetail(await api<CompanyDetail & Record<string, unknown>>(`/api/companies/${companyId}`));
-    } catch (e) {
-      setError(errorText(e));
-    }
-  }, [companyId]);
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  const changed = async () => {
-    await load();
-    await ws.reloadCompanies();
-  };
-
-  return (
-    <Modal title="Company settings" onClose={onClose} wide>
-      {error && <Notice tone="error">{error}</Notice>}
-      {!detail && !error && <p className="text-sm text-muted-foreground">Loading…</p>}
-      {detail && (
-        <div className="grid gap-4">
-          <div className="flex items-center gap-3" data-company-head="">
-            <CompanyMark company={detail} size={40} />
-            <div className="grid min-w-0 gap-0.5">
-              <span className="truncate font-semibold">{detail.name}</span>
-              <span className="text-xs text-muted-foreground">You are {detail.role === "admin" ? "an admin" : "the owner"} of this company.</span>
-            </div>
-          </div>
-          <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
-            <TabsList aria-label="Company settings" className="max-w-full justify-start overflow-x-auto">
-              <TabsTrigger value="general">General</TabsTrigger>
-              <TabsTrigger value="people">People ({detail.members.length})</TabsTrigger>
-              <TabsTrigger value="apps">Apps</TabsTrigger>
-              <TabsTrigger value="permissions">Permissions</TabsTrigger>
-              <TabsTrigger value="ai">AI provider</TabsTrigger>
-              {appTabs.map((t) => (
-                <TabsTrigger key={t.id} value={t.id}>
-                  {t.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-            <TabsContent value="general" className="pt-2">
-              <GeneralTab detail={detail} me={me} onChanged={changed} onDeleted={onClose} />
-            </TabsContent>
-            <TabsContent value="people" className="pt-2">
-              <PeopleTab detail={detail} me={me} onChanged={changed} />
-            </TabsContent>
-            <TabsContent value="apps" className="pt-2">
-              <AppsTab companyId={companyId} />
-            </TabsContent>
-            <TabsContent value="permissions" className="pt-2">
-              <PermissionsTab companyId={companyId} />
-            </TabsContent>
-            <TabsContent value="ai" className="pt-2">
-              <CompanyAiTab companyId={companyId} />
-            </TabsContent>
-            {appTabs.map((t) => (
-              <TabsContent key={t.id} value={t.id} className="pt-2">
-                <t.Tab detail={detail} onChanged={changed} />
-              </TabsContent>
-            ))}
-          </Tabs>
-        </div>
-      )}
-    </Modal>
-  );
-}
-
-function GeneralTab({ detail, me, onChanged, onDeleted }: { detail: CompanyDetail; me: User; onChanged: () => Promise<void>; onDeleted: () => void }) {
+/** Company settings, General section: the name, the logo, the email domain and, for owners, Delete company. */
+export function GeneralTab({ detail, me, onChanged }: { detail: CompanyDetail; me: User; onChanged: () => Promise<void> }) {
   const ws = useWorkspace();
   const toast = useToast();
   const [name, setName] = useState(detail.name);
@@ -198,7 +114,6 @@ function GeneralTab({ detail, me, onChanged, onDeleted }: { detail: CompanyDetai
       toast("Company deleted.");
       await ws.reloadCompanies();
       navigate("/");
-      onDeleted();
     } catch (err) {
       toast(errorText(err));
     }
@@ -262,7 +177,8 @@ function GeneralTab({ detail, me, onChanged, onDeleted }: { detail: CompanyDetai
   );
 }
 
-function PeopleTab({ detail, me, onChanged }: { detail: CompanyDetail; me: User; onChanged: () => Promise<void> }) {
+/** Company settings, People section: invite people, change roles and remove people. */
+export function PeopleTab({ detail, me, onChanged }: { detail: CompanyDetail; me: User; onChanged: () => Promise<void> }) {
   const toast = useToast();
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"member" | "admin">("member");

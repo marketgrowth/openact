@@ -70,7 +70,8 @@ const NODES: Record<string, { attrs?: Record<string, AttrRule>; inline?: boolean
   details: { attrs: { open: bool } },
   detailsSummary: { inline: true },
   detailsContent: {},
-  pageBreak: { leaf: true }
+  pageBreak: { leaf: true },
+  tableOfContents: { leaf: true }
 };
 
 const MARKS: Record<string, Record<string, AttrRule>> = {
@@ -140,10 +141,11 @@ export function sanitizeDoc(input: unknown): DocNode {
       for (const k of n.content) {
         const c = walk(k, depth + 1);
         if (!c) continue;
-        // Inline nodes hold only text and line breaks. Block nodes hold no text. Page breaks are top-level only.
+        // Inline nodes hold only text and line breaks. Block nodes hold no text.
+        // Page breaks and tables of contents are top-level only.
         const kidInline = c.type === "text" || c.type === "hardBreak";
         if (!!def.inline !== kidInline) continue;
-        if (c.type === "pageBreak" && n.type !== "doc") continue;
+        if ((c.type === "pageBreak" || c.type === "tableOfContents") && n.type !== "doc") continue;
         kids.push(c);
       }
       if (kids.length) node.content = kids;
@@ -198,6 +200,25 @@ export interface Rendered {
   breaks: number[];
   /** Headings for a table of contents. */
   outline: OutlineItem[];
+}
+
+/** Stands in for a table of contents until the outline is known. Text is escaped, so no text can make it. */
+const TOC_SLOT = "<!--toc-->";
+
+/**
+ * A table of contents: links to the headings, nested by level from the highest level used.
+ * Each entry has an empty page number. The share page fills it in after it splits the doc into sheets.
+ */
+export function tocHtml(outline: OutlineItem[]): string {
+  if (!outline.length) return "";
+  const top = Math.min(...outline.map((h) => h.level));
+  const items = outline
+    .map(
+      (h) =>
+        `<li class="l${h.level - top + 1}"><a href="#${escapeHtml(h.id)}"><span>${escapeHtml(h.text)}</span><span class="pg" data-toc-page="${escapeHtml(h.id)}"></span></a></li>`
+    )
+    .join("");
+  return `<nav class="doc-toc" data-toc="" aria-label="Contents"><p>Contents</p><ol>${items}</ol></nav>`;
 }
 
 /** Renders a cleaned doc to HTML. Call sanitizeDoc() first: this function trusts node types but still escapes all text. */
@@ -303,6 +324,8 @@ export function renderHtml(doc: DocNode, opts: RenderOptions = {}): Rendered {
         return `<div class="details-body">${kids(n)}</div>`;
       case "pageBreak":
         return `<div class="page-break" data-page-break="" aria-hidden="true"></div>`;
+      case "tableOfContents":
+        return TOC_SLOT;
       default:
         return "";
     }
@@ -313,6 +336,11 @@ export function renderHtml(doc: DocNode, opts: RenderOptions = {}): Rendered {
   for (const b of doc.content ?? []) {
     if (b.type === "pageBreak") breaks.push(blocks.length);
     blocks.push(node(b));
+  }
+  // A table of contents lists every heading, so it is filled in after the whole doc is rendered.
+  if (blocks.includes(TOC_SLOT)) {
+    const toc = tocHtml(outline);
+    for (let i = 0; i < blocks.length; i++) if (blocks[i] === TOC_SLOT) blocks[i] = toc;
   }
   return { blocks, breaks, outline };
 }

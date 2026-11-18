@@ -20,7 +20,7 @@ import {
   type Env
 } from "@openact/core/server";
 import { THREADS_MAX, cleanBody, cleanMentions, cleanQuote, isThreadId, type DocThread, type ThreadList } from "../shared/comments";
-import { loadDoc, type DocRow } from "./routes";
+import { loadDoc, requireTextDoc, type DocRow } from "./routes";
 
 /*
  * Comments on docs, under /api/apps/docs.
@@ -44,6 +44,7 @@ function bumpComments(env: Env, docId: string): D1PreparedStatement {
 async function docForComments(env: Env, docId: string, userId: string): Promise<DocRow> {
   const doc = await loadDoc(env, docId);
   await requirePermission(env, doc.company_id, userId, "docs.comment");
+  requireTextDoc(doc, "Comments");
   return doc;
 }
 

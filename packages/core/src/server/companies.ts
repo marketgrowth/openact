@@ -2,8 +2,10 @@ import { Hono } from "hono";
 import type { AppEnv, Env } from "./env";
 import { COMPANY_ROLES, COMPANY_ROLE_LABELS, type Company, type CompanyDetail, type CompanyRole, type User } from "../shared/types";
 import { emailDomainProblem } from "../shared/access";
-import { runHook } from "./apps";
-import { companyRole, deletePrefix, requireCompanyRole } from "./data";
+import { getApps, runHook } from "./apps";
+import { MAX_COMPANIES_PER_PERSON, deleteCompanyData } from "./company-copy";
+import { companyRole, requireCompanyRole } from "./data";
+import { hasRenewingSubscription } from "./billing";
 import { companyInviteEmail, sendEmail } from "./email";
 import { HttpError, appUrl, isEmail, newId, normalizeEmail, nowIso, oneOf, readJson, requireUser, text } from "./util";
 
@@ -11,7 +13,6 @@ export const companyRoutes = new Hono<AppEnv>();
 
 const LOGO_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;
 const MAX_LOGO_BYTES = 1024 * 1024;
-const MAX_COMPANIES_PER_PERSON = 20;
 
 type CompanyRow = { id: string; name: string; role: CompanyRole; logo_key: string | null; logo_updated_at: string | null };
 
@@ -153,13 +154,10 @@ companyRoutes.delete("/:id", async (c) => {
   const user = requireUser(c);
   const id = c.req.param("id");
   await requireCompanyRole(c.env, id, user.id, ["owner"]);
+  if (await hasRenewingSubscription(c.env, id))
+    throw new HttpError(400, "This company pays for a plan that renews. Cancel it with Manage billing on the Plan page first. Then delete the company.", "has_plan");
   // Apps delete their data and files for the company first.
-  await runHook("companyDeleting", c.env, id);
-  await deletePrefix(c.env.FILES, `companies/${id}/`);
-  await c.env.DB.batch([
-    c.env.DB.prepare("UPDATE users SET current_company_id = NULL WHERE current_company_id = ?").bind(id),
-    c.env.DB.prepare("DELETE FROM companies WHERE id = ?").bind(id)
-  ]);
+  await deleteCompanyData(c.env, id, getApps());
   return c.json({ ok: true });
 });
 

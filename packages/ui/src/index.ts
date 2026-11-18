@@ -13,5 +13,6 @@ export * from "./workspace.tsx";
 export * from "./apps.tsx";
 export { createClient, App } from "./shell/App.tsx";
 export { SiteHeader, PageBody } from "./shell/SiteHeader.tsx";
+export { PLAN_PATH, PlanBadge } from "./shell/Plan.tsx";
 export { CompanyMark, useCloseOnPhone } from "./shell/Sidebar.tsx";
 export { cn } from "./lib/utils.ts";

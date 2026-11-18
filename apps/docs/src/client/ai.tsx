@@ -68,7 +68,7 @@ export function AiMenu({ editor, status, onChoose }: { editor: Editor; status: S
       <DropdownMenuContent align="start" className="w-64">
         {status === "off" ? (
           <p className="p-2 text-sm text-muted-foreground" data-ai-off="">
-            AI writing help is off for this company. A company owner or admin can turn it on in Company settings, on the Docs tab.
+            AI writing help is off for this company. A company owner or admin can turn it on in Company settings, under Docs.
           </p>
         ) : (
           <>

@@ -17,14 +17,14 @@ export default defineConfig({
     ["link", { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" }],
     ["link", { rel: "preconnect", href: "https://fonts.googleapis.com" }],
     ["link", { rel: "preconnect", href: "https://fonts.gstatic.com", crossorigin: "" }],
-    ["link", { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,700;0,800;0,900;1,700&display=swap" }],
+    ["link", { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=IBM+Plex+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,700;0,800;0,900;1,700&display=swap" }],
     ["meta", { property: "og:site_name", content: "OpenAct docs" }]
   ],
   themeConfig: {
     logo: { light: "/logo.svg", dark: "/logo-dark.svg", alt: "OpenAct" },
     siteTitle: "OpenAct",
     nav: [
-      { text: "Guide", link: "/getting-started", activeMatch: "^/(getting-started|companies|apps|permissions|docs-app)" },
+      { text: "Guide", link: "/getting-started", activeMatch: "^/(getting-started|companies|apps|permissions|docs-app|advisory-app|design-system|plans)" },
       { text: "App directory", link: "/directory" },
       { text: "Reference", link: "/reference/sdk", activeMatch: "^/reference/" },
       { text: "Colophon", link: "/colophon" }
@@ -34,15 +34,19 @@ export default defineConfig({
         text: "Guide",
         items: [
           { text: "Get started", link: "/getting-started" },
-          { text: "Companies and access", link: "/companies" }
+          { text: "Companies and access", link: "/companies" },
+          { text: "Plans", link: "/plans" }
         ]
       },
       {
         text: "Apps",
         items: [
           { text: "App directory", link: "/directory" },
-          { text: "Docs", link: "/docs-app" },
+          { text: "Docs (Director)", link: "/docs-app" },
+          { text: "Advisory (Director)", link: "/advisory-app" },
+          { text: "eSign (Director)", link: "/esign-app" },
           { text: "Build an app", link: "/apps" },
+          { text: "Design system", link: "/design-system" },
           { text: "Permissions", link: "/permissions" }
         ]
       },
