@@ -277,7 +277,7 @@ const SECTIONS: Array<{ title: string; intro: string; rows: Row[] }> = [
     title: "Design",
     intro: "The shadcn/ui design system, with OpenAct's own colors for status, priority and projects.",
     rows: [
-      { name: "IBM Plex Sans", detail: "Text and headings.", href: "https://fonts.google.com/specimen/IBM+Plex+Sans" },
+      { name: "Open Sans", detail: "Text and headings in the app.", href: "https://fonts.google.com/specimen/Open+Sans" },
       { name: "IBM Plex Mono", detail: "Dates and the sign-in code.", href: "https://fonts.google.com/specimen/IBM+Plex+Mono" },
       { name: "Lucide", detail: "Icons. Outline style with a 2 px stroke, at 16 px in most places.", href: "https://lucide.dev" },
       {
