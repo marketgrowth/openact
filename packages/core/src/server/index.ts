@@ -20,7 +20,8 @@ export {
   type Viewer,
   type LiveMessage
 } from "./live.ts";
-export { defineServerApp, getApps, runHook, type ServerApp, type AppHooks } from "./apps.ts";
+export { defineServerApp, getApps, appService, runHook, type ServerApp, type AppHooks } from "./apps.ts";
+export type { CompanyCopyContext } from "./company-copy.ts";
 export { createWorker, DAILY_CRON } from "./worker.ts";
 export { isSuperAdmin, requireSuperAdmin, loadSite } from "./site.ts";
 export { sealSecret, openSecret } from "./secret-box.ts";
@@ -38,9 +39,14 @@ export {
   hasPermission,
   requireAppOn,
   appOffError,
+  planRequiredError,
+  appPlan,
   siteAppOff,
   companyAppState,
   getCatalog,
   type AppInfo,
   type CompanyAppState
 } from "./permissions.ts";
+export { companyPlan, type CompanyPlanState } from "./plans.ts";
+export { checkLicense, deployLicense, type LicenseCheck } from "./license.ts";
+export { verifyStripeSignature } from "./stripe.ts";

@@ -31,14 +31,36 @@ export const ACCOUNT_SECTIONS: readonly SettingsSection[] = [
 ];
 
 export const SITE_SECTIONS: readonly SettingsSection[] = [
-  { scope: "site", id: "general", label: "Name and logo", icon: "image", description: "The app name and logo that everyone on this site sees." },
+  { scope: "site", id: "general", label: "Branding", icon: "image", description: "The app name, the logo and the Submit issues link that everyone on this site sees." },
   { scope: "site", id: "sign-in", label: "Sign-in page", icon: "signin", description: "The heading, credit, legal links and background of the sign-in page." },
   {
     scope: "site",
     id: "apps",
     label: "Apps",
     icon: "apps",
-    description: "Turn an app off for every company on this site. An app that is off keeps its data. Companies cannot turn it on again until you do."
+    description: "Turn an app off for every company, or for one company. An app that is off keeps its data. Companies cannot turn it on again until you do."
+  },
+  {
+    scope: "site",
+    id: "companies",
+    label: "Duplicate a company",
+    icon: "copy",
+    description: "Make a new company with a copy of another company's projects and docs. Use it to start a company from a template."
+  },
+  {
+    scope: "site",
+    id: "plan",
+    label: "Plan",
+    icon: "star",
+    description: "The plan you pay for covers every company on this site."
+  },
+  {
+    scope: "site",
+    id: "grants",
+    label: "Paid app access",
+    icon: "card",
+    description:
+      "Give one person a paid app without a paid plan. The app unlocks in each company they own, for everyone in it. Leave the end day empty to keep it on."
   }
 ];
 

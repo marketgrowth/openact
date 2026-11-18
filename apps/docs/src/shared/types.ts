@@ -16,9 +16,17 @@ export interface PageSettings {
   pageSize: PageSize;
   orientation: Orientation;
   margin: Margin;
+  /** Header and footer text for each page. Plain text. {page}, {total} and {title} are filled in. Empty for none. */
+  header: string;
+  footer: string;
+  /** True to leave the header and footer off the first page. */
+  hideFirst: boolean;
 }
 
-export const DEFAULT_PAGE: PageSettings = { pageSize: "letter", orientation: "portrait", margin: "normal" };
+export const DEFAULT_PAGE: PageSettings = { pageSize: "letter", orientation: "portrait", margin: "normal", header: "", footer: "{page} / {total}", hideFirst: false };
+
+/** The longest header or footer. */
+export const HEADER_MAX = 200;
 
 /** The longest doc title. */
 export const TITLE_MAX = 200;
@@ -27,6 +35,18 @@ export const CONTENT_MAX_BYTES = 1_500_000;
 /** Image uploads. SVG is not allowed, because it can hold scripts. */
 export const IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"] as const;
 export const IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+
+/** What a library item is: a doc written in the editor, or an uploaded PDF. */
+export const DOC_KINDS = ["doc", "pdf"] as const;
+export type DocKind = (typeof DOC_KINDS)[number];
+
+/** The largest PDF upload. The Worker reads the whole file into memory, so keep it well under the 128 MB memory limit. */
+export const PDF_MAX_BYTES = 25 * 1024 * 1024;
+export const PDF_MAX_LABEL = "25 MB";
+/** The most PDFs one upload dialog sends. */
+export const PDF_UPLOAD_MAX_FILES = 20;
+/** The longest file name that Docs keeps. */
+export const FILE_NAME_MAX = 200;
 
 /** A node of the doc, in the Tiptap (ProseMirror) JSON format. */
 export interface DocNode {
@@ -39,7 +59,10 @@ export interface DocNode {
 
 export interface DocSummary {
   id: string;
+  kind: DocKind;
   title: string;
+  /** The size of a PDF's file in bytes. Null for a doc. */
+  size: number | null;
   folderId: string | null;
   categoryId: string | null;
   tagIds: string[];
@@ -49,9 +72,21 @@ export interface DocSummary {
   updatedByName: string | null;
 }
 
+/** The current file of a PDF. */
+export interface PdfFile {
+  /** Changes with each new upload. Add it to the file URL, so the browser never shows an old copy. */
+  fileId: string;
+  name: string;
+  size: number;
+  uploadedAt: string;
+}
+
 export interface DocDetail extends PageSettings {
   id: string;
   companyId: string;
+  kind: DocKind;
+  /** The current file when kind is "pdf". Null for a doc. */
+  pdf: PdfFile | null;
   title: string;
   folderId: string | null;
   categoryId: string | null;
@@ -123,6 +158,46 @@ export function sniffImage(b: Uint8Array): (typeof IMAGE_TYPES)[number] | null {
   if (at(0, 0x47, 0x49, 0x46, 0x38) && (b[4] === 0x37 || b[4] === 0x39) && b[5] === 0x61) return "image/gif";
   if (at(0, 0x52, 0x49, 0x46, 0x46) && at(8, 0x57, 0x45, 0x42, 0x50)) return "image/webp";
   return null;
+}
+
+/** True when the bytes are a PDF. The browser's type for an upload is not trusted. */
+export function sniffPdf(b: Uint8Array): boolean {
+  // The PDF header is "%PDF-". Some writers put a few bytes before it, and readers allow that in the first 1024 bytes.
+  const max = Math.min(b.length - 5, 1024);
+  for (let i = 0; i <= max; i++) {
+    if (b[i] === 0x25 && b[i + 1] === 0x50 && b[i + 2] === 0x44 && b[i + 3] === 0x46 && b[i + 4] === 0x2d) return true;
+  }
+  return false;
+}
+
+/** A safe file name for a PDF: no folders, no control characters, and it ends in .pdf. */
+export function cleanFileName(raw: unknown): string {
+  let name = typeof raw === "string" ? raw : "";
+  name = name
+    .replace(/^.*[\\/]/, "")
+    .replace(/[\u0000-\u001f\u007f"<>|*?:]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!/\.pdf$/i.test(name)) name = `${name || "document"}.pdf`;
+  if (name.length > FILE_NAME_MAX) name = `${name.slice(0, FILE_NAME_MAX - 4).trim()}.pdf`;
+  return name;
+}
+
+/** A title from a file name: the name without .pdf, with underscores as spaces. */
+export function titleFromFileName(name: string): string {
+  const t = name
+    .replace(/\.pdf$/i, "")
+    .replace(/[_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return t.slice(0, TITLE_MAX) || "Untitled PDF";
+}
+
+/** File sizes for people: 820 KB, 4.2 MB. */
+export function fmtBytes(n: number): string {
+  if (n < 1024) return `${n} bytes`;
+  if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 /** True when a share token has the shape that the server makes (32 random bytes, base64url). */

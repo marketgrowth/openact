@@ -1,0 +1,32 @@
+{
+  "name": "@openact/app-advisory",
+  "version": "0.1.0",
+  "description": "The OpenAct Advisory app, part of OpenAct Director: a company marketplace where members hire approved advisors and pay through Stripe Connect. A paid engagement opens a project.",
+  "license": "SEE LICENSE IN LICENSE",
+  "type": "module",
+  "exports": {
+    "./server": "./src/server/index.ts",
+    "./client": "./src/client/index.tsx"
+  },
+  "openact": {
+    "id": "advisory",
+    "name": "Advisory",
+    "plan": "director",
+    "server": "./src/server/index.ts",
+    "client": "./src/client/index.tsx",
+    "migrations": "./migrations",
+    "requiresApps": [
+      "projects"
+    ],
+    "optionalApps": [
+      "booking"
+    ]
+  },
+  "dependencies": {
+    "@openact/app-projects": "0.2.0",
+    "@openact/core": "0.2.0",
+    "@openact/ui": "0.2.0",
+    "hono": "^4.13.16",
+    "react": "^19.3.1"
+  }
+}

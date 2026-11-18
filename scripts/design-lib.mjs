@@ -8,8 +8,8 @@ export const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const THEME = "packages/ui/src/theme.css";
 const BOOK = "packages/ui/promptbook.json";
 const DOC = "docs/design-system.md";
-const OUT_DIR = "landing/public/design";
-const PAGE = "landing/public/design.html";
+const OUT_DIR = "www/public/design";
+const PAGE = "www/src/pages/design.astro";
 
 const read = (p) => readFileSync(join(ROOT, p), "utf8");
 
@@ -222,7 +222,7 @@ export function check({ book = loadBook(), theme = loadTheme() } = {}) {
       if (pc) add("C01", `${file}:${i + 1} uses the palette class ${pc[0]}. Use a token class such as bg-muted.`);
     });
   }
-  const textFiles = [...clientFiles(), ...walk("docs", [".md"]), ...walk("landing/public", [".html", ".md"]), BOOK];
+  const textFiles = [...clientFiles(), ...walk("docs", [".md"]), ...walk("www/src", [".astro", ".md"]), ...walk("www/public", [".html", ".md"]), BOOK];
   for (const file of textFiles) {
     read(file).split("\n").forEach((line, i) => {
       if (line.includes("—") && !line.includes(ALLOW)) add("C13", `${file}:${i + 1} has an em dash. Use a period, a comma or a colon.`);
@@ -364,7 +364,7 @@ function pageVars(data) {
     groups
       .flatMap((g) => Object.entries(data.tokens[g].items).map(([name, t]) => `--pb-${name}: ${t[mode]};`))
       .join(" ");
-  return `<style>
+  return `<style is:inline>
       :root { ${decl("dark")} }
       @media (prefers-color-scheme: light) { :root { ${decl("light")} } }
     </style>`;

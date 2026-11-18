@@ -6,8 +6,10 @@ import { Link, navigate, usePath } from "../router";
 import { ToastProvider } from "../ui";
 import { WorkspaceProvider, useWorkspace } from "../workspace";
 import { settingsPath } from "../settings-paths";
-import { APPS_PATH, ShellContext, appHome, isSettingsPath, railApps, type ClientApp, type DirectoryApp, type Shell } from "../apps";
+import { iconLinks, setFavicon } from "../favicon";
+import { APPS_PATH, ShellContext, appHome, homeAppAt, isSettingsPath, railOrder, type ClientApp, type DirectoryApp, type Shell } from "../apps";
 import { SignIn } from "./SignIn";
+import { PLAN_PATH } from "./Plan";
 import { AppSidebar } from "./Sidebar";
 import { PageBody, SiteHeader } from "./SiteHeader";
 import { SidebarInset, SidebarProvider } from "@openact/ui/components/sidebar";
@@ -22,28 +24,31 @@ const AppsPage = lazy(() => import("./AppsPage").then((m) => ({ default: m.AppsP
 /**
  * Starts the web app with the installed apps. The host's main.tsx calls it.
  * Pass `directory` (the apps from directory/apps.json) to list apps that a company can add on the Apps page.
+ * Pass `primary` (the id from "primary" in openact.apps.json) to put that app at the top of the app rail, above a divider.
  */
 export function createClient({
   apps,
   directory = [],
+  primary = null,
   root = document.getElementById("root")!
 }: {
   apps: ClientApp[];
   directory?: readonly DirectoryApp[];
+  primary?: string | null;
   root?: HTMLElement;
 }) {
   createRoot(root).render(
     <StrictMode>
-      <App apps={apps} directory={directory} />
+      <App apps={apps} directory={directory} primary={primary} />
     </StrictMode>
   );
 }
 
-export function App({ apps, directory = [] }: { apps: ClientApp[]; directory?: readonly DirectoryApp[] }) {
+export function App({ apps, directory = [], primary = null }: { apps: ClientApp[]; directory?: readonly DirectoryApp[]; primary?: string | null }) {
   return (
     <TooltipProvider delayDuration={200}>
       <ToastProvider>
-        <Root apps={apps} directory={directory} />
+        <Root apps={apps} directory={directory} primary={primary} />
       </ToastProvider>
     </TooltipProvider>
   );
@@ -63,6 +68,7 @@ function readPanelOpen(): boolean {
 const DEFAULT_CONFIG: AppConfig = {
   appName: "OpenAct",
   logoUrl: null,
+  issuesUrl: null,
   emailEnabled: true,
   signupMode: "open",
   aiProvider: "workers-ai",
@@ -70,7 +76,7 @@ const DEFAULT_CONFIG: AppConfig = {
   signIn: { heading: "", credit: "", termsUrl: null, privacyUrl: null, backgroundUrl: null }
 };
 
-function Root({ apps, directory }: { apps: ClientApp[]; directory: readonly DirectoryApp[] }) {
+function Root({ apps, directory, primary }: { apps: ClientApp[]; directory: readonly DirectoryApp[]; primary: string | null }) {
   const path = usePath();
   const [me, setMe] = useState<User | null | undefined>(undefined);
   const [config, setConfig] = useState<AppConfig>(DEFAULT_CONFIG);
@@ -87,20 +93,23 @@ function Root({ apps, directory }: { apps: ClientApp[]; directory: readonly Dire
   // The browser tab follows the site settings.
   useEffect(() => {
     document.title = config.appName;
-    setFavicon(config.logoUrl);
+    setFavicon(config.logoUrl, iconLinks(document));
   }, [config.appName, config.logoUrl]);
 
   const onSite = useCallback(
     (s: SiteSettings) =>
       setConfig((c) => {
         const { customHeading: _, ...signIn } = s.signIn;
-        return { ...c, appName: s.appName, logoUrl: s.logoUrl, signIn };
+        return { ...c, appName: s.appName, logoUrl: s.logoUrl, issuesUrl: s.issuesUrl, signIn };
       }),
     []
   );
 
   const noop = useCallback(() => {}, []);
-  const publicShell = useMemo<Shell>(() => ({ me: me ?? null, config, apps, directory, open: noop, runCommand: noop }), [me, config, apps, directory, noop]);
+  const publicShell = useMemo<Shell>(
+    () => ({ me: me ?? null, config, apps, primary, directory, open: noop, runCommand: noop }),
+    [me, config, apps, primary, directory, noop]
+  );
 
   // Pages that work without sign-in, such as the colophon.
   for (const app of apps) {
@@ -118,30 +127,18 @@ function Root({ apps, directory }: { apps: ClientApp[]; directory: readonly Dire
   if (!me) return <SignIn config={config} onSignedIn={setMe} />;
   return (
     <WorkspaceProvider key={me.id}>
-      <SignedIn me={me} config={config} apps={apps} directory={directory} onMe={setMe} onSite={onSite} />
+      <SignedIn me={me} config={config} apps={apps} primary={primary} directory={directory} onMe={setMe} onSite={onSite} />
     </WorkspaceProvider>
   );
 }
 
 type Dialog = null | "newCompany" | { command: string };
 
-/** Shows the site logo as the tab icon, or the default icon from index.html. */
-function setFavicon(url: string | null) {
-  const link = document.querySelector<HTMLLinkElement>('link[rel~="icon"]');
-  if (!link) return;
-  if (link.dataset.defaultHref === undefined) {
-    link.dataset.defaultHref = link.getAttribute("href") ?? "";
-    link.dataset.defaultType = link.getAttribute("type") ?? "";
-  }
-  link.href = url ?? link.dataset.defaultHref;
-  if (url) link.removeAttribute("type");
-  else if (link.dataset.defaultType) link.type = link.dataset.defaultType;
-}
-
 function SignedIn({
   me,
   config,
   apps,
+  primary,
   directory,
   onMe,
   onSite
@@ -149,6 +146,7 @@ function SignedIn({
   me: User;
   config: AppConfig;
   apps: ClientApp[];
+  primary: string | null;
   directory: readonly DirectoryApp[];
   onMe: (u: User | null) => void;
   onSite: (s: SiteSettings) => void;
@@ -158,7 +156,7 @@ function SignedIn({
   const [open, setOpen] = useState(readPanelOpen);
   const [dialog, setDialog] = useState<Dialog>(null);
   const close = useCallback(() => setDialog(null), []);
-  // Super admins see Site settings on the Settings page. The server checks again on every change. undefined while it loads.
+  // Super admins see Site settings on the Settings page and the App directory. The server checks again on every change. undefined while it loads.
   const [superAdmin, setSuperAdmin] = useState<boolean | undefined>(undefined);
   useEffect(() => {
     api<SiteSettings>("/api/site")
@@ -207,31 +205,62 @@ function SignedIn({
       me,
       config,
       apps,
+      primary,
       directory,
       // Company settings and the account are pages now. Apps that still ask for the dialogs go to the pages.
       open: (d) =>
         d === "companySettings" ? navigate(settingsPath("company", "general")) : d === "account" ? navigate(settingsPath("account", "profile")) : setDialog(d),
       runCommand: (id) => setDialog({ command: id })
     }),
-    [me, config, apps, directory]
+    [me, config, apps, primary, directory]
   );
 
   // The page: the first app route that matches, or the first app's home page at "/".
   let page: ReactNode =
-    path === APPS_PATH ? <AppsPage /> : isSettingsPath(path) ? <SettingsPage me={me} apps={onApps} onSite={onSite} onMe={onMe} onSignOut={signOut} /> : null;
+    path === APPS_PATH ? (
+      // Only super admins, the owners of the brand, see the App directory. Others go to the home page.
+      superAdmin === true ? (
+        <AppsPage />
+      ) : superAdmin === false ? (
+        <Redirect to="/" />
+      ) : (
+        <PageBody>
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        </PageBody>
+      )
+    ) : path === "/plan" ? (
+      // The old Plan page. Plans are in Site settings now.
+      superAdmin === undefined ? (
+        <PageBody>
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        </PageBody>
+      ) : (
+        <Redirect to={superAdmin ? PLAN_PATH : "/"} />
+      )
+    ) : isSettingsPath(path) ? (
+      <SettingsPage me={me} apps={onApps} superAdmin={superAdmin} onSite={onSite} onMe={onMe} onSignOut={signOut} />
+    ) : null;
   for (const app of page ? [] : apps) {
     for (const r of app.routes ?? []) {
       const m = path.match(r.pattern);
       if (m) {
-        page = onApps.includes(app) ? r.render(m) : <AppOff name={app.name} />;
+        page = onApps.includes(app) ? r.render(m) : <AppOff name={app.name} locked={!!ws.access?.lockedApps.includes(app.id)} blocked={!!ws.access?.blockedApps?.includes(app.id)} superAdmin={superAdmin === true} />;
         break;
       }
     }
     if (page) break;
   }
+  // An app's own path, /a/<id>, shows its home page. When the app owns "/", it goes there instead.
+  const homeApp = page ? undefined : homeAppAt(apps, path);
+  if (homeApp && homeApp.Home) {
+    const HomeAt = homeApp.Home;
+    if (!onApps.includes(homeApp)) page = <AppOff name={homeApp.name} locked={!!ws.access?.lockedApps.includes(homeApp.id)} blocked={!!ws.access?.blockedApps?.includes(homeApp.id)} superAdmin={superAdmin === true} />;
+    else if (appHome(homeApp, onApps) === "/") page = <Redirect to="/" />;
+    else page = <HomeAt />;
+  }
   if (!page && path === "/") {
     const Home = onApps.find((a) => a.Home)?.Home;
-    const first = railApps(onApps)[0];
+    const first = railOrder(onApps, primary)[0];
     if (Home) page = <Home />;
     else if (first && ws.access) page = <Redirect to={appHome(first, onApps)} />;
     else if (ws.access) page = <AppOff name="" />;
@@ -246,7 +275,9 @@ function SignedIn({
       <AppSidebar
         me={me}
         appName={config.appName}
+        issuesUrl={config.issuesUrl}
         apps={onApps}
+        primary={primary}
         onRunCommand={(id) => setDialog({ command: id })}
         onNewCompany={() => setDialog("newCompany")}
         superAdmin={superAdmin === true}
@@ -279,7 +310,46 @@ function Redirect({ to }: { to: string }) {
 }
 
 /** An app that is off in this company. An empty name means that every app is off. */
-function AppOff({ name }: { name: string }) {
+function AppOff({ name, locked = false, blocked = false, superAdmin = false }: { name: string; locked?: boolean; blocked?: boolean; superAdmin?: boolean }) {
+  if (blocked)
+    return (
+      <>
+        <SiteHeader title={name} />
+        <PageBody>
+          <div className="mx-auto flex w-full max-w-lg flex-col items-center gap-3 rounded-xl border border-dashed p-8 text-center" data-app-blocked="">
+            <h2 className="text-lg font-semibold">{name} is not available for this company</h2>
+            <p className="text-sm text-muted-foreground">
+              {superAdmin ? "Make it available in Site settings, under Apps." : "Ask the owner of this site to make it available."} Your data in {name} stays.
+            </p>
+            {superAdmin && (
+              <Button asChild>
+                <Link to={settingsPath("site", "apps")}>Open Site settings</Link>
+              </Button>
+            )}
+          </div>
+        </PageBody>
+      </>
+    );
+  if (locked)
+    return (
+      <>
+        <SiteHeader title={name} />
+        <PageBody>
+          <div className="mx-auto flex w-full max-w-lg flex-col items-center gap-3 rounded-xl border border-dashed p-8 text-center" data-app-locked="">
+            <h2 className="text-lg font-semibold">{name} is part of a paid plan</h2>
+            <p className="text-sm text-muted-foreground">
+              {superAdmin ? "Choose a plan in Site settings." : "Ask the owner of this site to upgrade the plan."} Your data in {name} stays while it
+              is locked.
+            </p>
+            {superAdmin && (
+              <Button asChild>
+                <Link to={PLAN_PATH}>See plans</Link>
+              </Button>
+            )}
+          </div>
+        </PageBody>
+      </>
+    );
   return (
     <>
       <SiteHeader title={name || "No apps"} />

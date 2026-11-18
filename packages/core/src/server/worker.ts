@@ -11,14 +11,17 @@ import { companyAppRoutes } from "./company-apps";
 import { companyAiRoutes } from "./company-ai";
 import { getCatalog, setCatalog, type AppInfo } from "./permissions";
 import { loadSite, signInPage, siteLogo, siteMiddleware, siteRoutes } from "./site";
+import { siteState } from "./site-state";
 import { accountRoutes } from "./account";
+import { billingRoutes, companyPlanRoutes } from "./billing";
 
 const securityHeaders: MiddlewareHandler<AppEnv> = async (c, next) => {
   await next();
   if (c.res.status === 101) return; // A WebSocket upgrade. Its headers cannot change.
   c.header("X-Content-Type-Options", "nosniff");
   c.header("Referrer-Policy", "same-origin");
-  c.header("X-Frame-Options", "DENY");
+  // A route can allow its own page to frame a response (the Docs PDF viewer sets SAMEORIGIN). Everything else is DENY.
+  if (!c.res.headers.has("X-Frame-Options")) c.header("X-Frame-Options", "DENY");
   if (!c.res.headers.has("Cache-Control")) c.header("Cache-Control", "no-store");
 };
 
@@ -63,6 +66,7 @@ export function createWorker({ apps, catalog }: { apps: ServerApp[]; catalog?: A
     const config: AppConfig = {
       appName: appName(c.env),
       logoUrl: siteLogo(),
+      issuesUrl: siteState()?.issuesUrl || null,
       emailEnabled: !!c.env.RESEND_API_KEY,
       signupMode: (c.env.SIGNUP_MODE || "open").trim() === "invite" ? "invite" : "open",
       aiProvider: (c.env.AI_PROVIDER || "workers-ai").trim(),
@@ -79,6 +83,8 @@ export function createWorker({ apps, catalog }: { apps: ServerApp[]; catalog?: A
   app.route("/api/companies", companyRoutes);
   app.route("/api/companies", companyAppRoutes);
   app.route("/api/companies", companyAiRoutes);
+  app.route("/api/companies", companyPlanRoutes);
+  app.route("/api/billing", billingRoutes);
   for (const a of apps) a.routes?.(app);
 
   app.get("/api/health", (c) => c.json({ ok: true }));

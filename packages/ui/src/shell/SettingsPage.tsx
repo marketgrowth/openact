@@ -11,7 +11,10 @@ import { CompanyMark } from "./Sidebar";
 import { GeneralTab, PeopleTab } from "./CompanyDialogs";
 import { AppsTab, PermissionsTab } from "./AppSettings";
 import { CompanyAiTab } from "./CompanyAi";
+import { SitePlan } from "./Plan";
 import { SiteSettingsSection, type SiteSection } from "./SiteSettings";
+import { SiteGrants } from "./SiteGrants";
+import { SiteDuplicate } from "./SiteDuplicate";
 import { ProfileSection, SecuritySection } from "./AccountSettings";
 
 /*
@@ -26,12 +29,15 @@ type Detail = CompanyDetail & Record<string, unknown>;
 export function SettingsPage({
   me,
   apps,
+  superAdmin,
   onSite,
   onMe,
   onSignOut
 }: {
   me: User;
   apps: readonly ClientApp[];
+  /** True for super admins. Only they see Site settings. undefined while it loads. */
+  superAdmin?: boolean;
   onSite: (s: SiteSettings) => void;
   onMe: (u: User | null) => void;
   onSignOut: (everywhere: boolean) => void;
@@ -70,9 +76,24 @@ export function SettingsPage({
   if (scope === "site") {
     const section = SITE_SECTIONS.find((s) => s.id === id);
     if (!section) return <Missing />;
+    if (superAdmin === undefined) return <Loading title="Site settings" />;
+    if (!superAdmin)
+      return (
+        <Shell title="Site settings" section={section}>
+          <Notice tone="info">Only super admins can open Site settings. Ask the person who runs this site.</Notice>
+        </Shell>
+      );
     return (
       <Shell title="Site settings" section={section}>
-        <SiteSettingsSection key={section.id} section={section.id as SiteSection} onSaved={onSite} />
+        {section.id === "grants" ? (
+          <SiteGrants />
+        ) : section.id === "plan" ? (
+          <SitePlan />
+        ) : section.id === "companies" ? (
+          <SiteDuplicate />
+        ) : (
+          <SiteSettingsSection key={section.id} section={section.id as SiteSection} onSaved={onSite} />
+        )}
       </Shell>
     );
   }

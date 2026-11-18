@@ -11,3 +11,6 @@ worker-configuration.d.ts
 # Docs site build
 docs/.vitepress/dist/
 docs/.vitepress/cache/
+
+# Astro
+.astro/

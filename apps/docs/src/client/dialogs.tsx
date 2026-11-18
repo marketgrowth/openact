@@ -9,12 +9,15 @@ export function ShareDialog({
   docId,
   url,
   onChanged,
-  onClose
+  onClose,
+  pdf = false
 }: {
   docId: string;
   url: string | null;
   onChanged: (url: string | null) => void;
   onClose: () => void;
+  /** True for an uploaded PDF. */
+  pdf?: boolean;
 }) {
   const toast = useToast();
   const [busy, setBusy] = useState(false);
@@ -57,13 +60,17 @@ export function ShareDialog({
 
   return (
     <Modal
-      title="Share this doc"
-      description="Anyone with the link can read the doc and print it. They cannot change it, and they do not need an account."
+      title={pdf ? "Share this PDF" : "Share this doc"}
+      description={
+        pdf
+          ? "Anyone with the link can open, print and download the PDF. They cannot change it, and they do not need an account."
+          : "Anyone with the link can read the doc and print it. They cannot change it, and they do not need an account."
+      }
       onClose={onClose}
     >
       {url ? (
         <>
-          <Field label="Share link" htmlFor="doc-share-url" help="The link always shows the latest saved version.">
+          <Field label="Share link" htmlFor="doc-share-url" help={pdf ? "The link always opens the latest uploaded file." : "The link always shows the latest saved version."}>
             <div className="flex gap-2">
               <Input id="doc-share-url" readOnly value={url} onFocus={(e) => e.currentTarget.select()} className="font-mono text-xs" data-share-url="" />
               <Button type="button" variant="outline" onClick={copy} aria-label="Copy the link">
@@ -91,7 +98,7 @@ export function ShareDialog({
         </>
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-muted-foreground">This doc has no share link. Only people in the project can open it.</p>
+          <p className="text-sm text-muted-foreground">{pdf ? "This PDF" : "This doc"} has no share link. Only people in the company can open it.</p>
           <Button type="button" disabled={busy} onClick={() => make(false)} data-share-make="">
             <Icon name="share" /> Make share link
           </Button>
@@ -150,12 +157,23 @@ export function LinkDialog({
 }
 
 /** Asks before a doc is deleted. */
-export function DeleteDialog({ title, onDelete, onClose }: { title: string; onDelete: () => Promise<void>; onClose: () => void }) {
+export function DeleteDialog({
+  title,
+  onDelete,
+  onClose,
+  pdf = false
+}: {
+  title: string;
+  onDelete: () => Promise<void>;
+  onClose: () => void;
+  /** True for an uploaded PDF. */
+  pdf?: boolean;
+}) {
   const [busy, setBusy] = useState(false);
   return (
     <Modal
-      title="Delete this doc?"
-      description={`"${title}" and its images are deleted for everyone. Its share link stops working. You cannot undo this.`}
+      title={pdf ? "Delete this PDF?" : "Delete this doc?"}
+      description={`"${title}" and its ${pdf ? "file are" : "images are"} deleted for everyone. Its share link stops working. You cannot undo this.`}
       onClose={onClose}
     >
       <div className="flex justify-end gap-2">
@@ -173,7 +191,7 @@ export function DeleteDialog({ title, onDelete, onClose }: { title: string; onDe
           }}
           data-delete-doc=""
         >
-          Delete doc
+          {pdf ? "Delete PDF" : "Delete doc"}
         </Button>
       </div>
     </Modal>

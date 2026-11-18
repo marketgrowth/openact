@@ -9,6 +9,7 @@ import { Badge } from "@openact/ui/components/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@openact/ui/components/card";
 import { NativeSelect, NativeSelectOption } from "@openact/ui/components/native-select";
 import type { ReactNode } from "react";
+import { PROJECTS_HOME } from "../paths";
 
 const ROLE_HELP: Record<Role, string> = {
   owner: "Manages people and settings. Can delete the project.",
@@ -53,7 +54,7 @@ export function Members({ data, me, isOwner, onChanged }: { data: ProjectDetail;
       await api(`/api/projects/${pid}/members/${userId}`, { method: "DELETE" });
       if (userId === me.id) {
         toast("You left the project.");
-        navigate("/");
+        navigate(PROJECTS_HOME);
         return;
       }
       toast("Removed from the project.");

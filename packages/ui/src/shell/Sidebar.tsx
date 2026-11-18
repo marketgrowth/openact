@@ -1,5 +1,5 @@
 import { COMPANY_ROLE_LABELS, type Company, type User } from "@openact/core/shared";
-import { APPS_PATH, SETTINGS_PATH, activeApp, appHome, isSettingsPath, railApps, type ClientApp } from "../apps";
+import { APPS_PATH, SETTINGS_PATH, activeApp, appHome, isSettingsPath, railGroups, railOrder, resolveAppPath, type ClientApp } from "../apps";
 import { ACCOUNT_SECTIONS, SITE_SECTIONS, companySections, parseSettingsPath, settingsPath, type SettingsSection } from "../settings-paths";
 import { canManageCompany } from "@openact/core/shared";
 import { Link, navigate, usePath } from "../router";
@@ -71,13 +71,20 @@ export function CompanyMark({ company, size = 32, className }: { company: Pick<C
 export interface AppSidebarProps {
   me: User;
   appName: string;
+  /** The Submit issues link from Site settings > Branding. The rail shows its icon only when it is set. */
+  issuesUrl?: string | null;
   apps: readonly ClientApp[];
+  /** The id of the deploy's primary app. It sits at the top of the rail, above a divider. */
+  primary?: string | null;
   onRunCommand: (id: string) => void;
   onNewCompany: () => void;
-  /** True for super admins. They see Site settings on the Settings page. */
+  /** True for super admins. They see Site settings on the Settings page and the App directory on the rail. */
   superAdmin: boolean;
   onSignOut: (everywhere: boolean) => void;
 }
+
+/** True for a full web address. Nav items with one open in a new browser tab. */
+const isWebAddress = (path: string) => /^https?:\/\//i.test(path);
 
 const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
 
@@ -92,9 +99,26 @@ export function useCloseOnPhone(): () => void {
 /** A rail tooltip shows in both states, because the rail always shows only icons. */
 const railTip = (children: string) => ({ children, hidden: false });
 
+/** One app icon in the rail. */
+function RailApp({ app, apps, active, onPick }: { app: ClientApp; apps: readonly ClientApp[]; active: boolean; onPick: () => void }) {
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton asChild tooltip={railTip(app.name)} isActive={active} className="justify-center p-0" data-app={app.id}>
+        <Link to={appHome(app, apps)} onClick={onPick} aria-label={app.name} aria-current={active ? "true" : undefined}>
+          {app.Mark ? <app.Mark className="size-4" /> : <Icon name={app.icon!} />}
+        </Link>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+}
+
+/** A divider between groups of rail icons. */
+const RailDivider = () => <SidebarSeparator className="mx-auto my-2 data-[orientation=horizontal]:w-5" data-rail-divider="" />;
+
 /*
  * The left side panel has two columns.
- * The app rail: the company, one icon per app, Settings, and the person's menu.
+ * The app rail: the company, the primary app (if the deploy has one), a divider, the other apps,
+ * a divider and the App directory (super admins only), then Settings and the person's menu.
  * The app panel: the active app's name, commands, items and groups. On the Settings page, it lists the settings sections.
  * Collapsing the panel (Ctrl+B or Cmd+B) leaves only the rail.
  */
@@ -104,7 +128,8 @@ export function AppSidebar(p: AppSidebarProps) {
   const done = useCloseOnPhone();
   const current = ws.current;
   const canManage = canManageCompany(current?.role ?? null);
-  const rail = railApps(p.apps);
+  const groups = railGroups(p.apps, p.primary);
+  const rail = railOrder(p.apps, p.primary);
   // The Apps and Settings pages belong to the shell, not to an app, so no app is active there.
   const onDirectory = path === APPS_PATH;
   const onSettings = isSettingsPath(path);
@@ -112,8 +137,10 @@ export function AppSidebar(p: AppSidebarProps) {
   const shellPage = onDirectory ? "apps" : onSettings ? "settings" : undefined;
   const panelTitle = onDirectory ? "Apps" : onSettings ? "Settings" : (active?.name ?? p.appName);
   const commands = current && active ? (active.commands ?? []).filter((c) => c.inSidebar) : [];
-  const main = (active?.nav ?? []).filter((n) => (n.placement ?? "main") === "main");
-  const footer = p.apps.flatMap((a) => a.nav ?? []).filter((n) => n.placement === "footer");
+  // Nav items that point at an app's own path (/a/<id>) go to the app's home, which can be "/".
+  const navOf = (app: ClientApp) => (app.nav ?? []).map((n) => ({ ...n, path: resolveAppPath(app, p.apps, n.path) }));
+  const main = (active ? navOf(active) : []).filter((n) => (n.placement ?? "main") === "main");
+  const footer = p.apps.flatMap(navOf).filter((n) => n.placement === "footer");
   const Section = current ? active?.SidebarSection : undefined;
 
   return (
@@ -131,41 +158,70 @@ export function AppSidebar(p: AppSidebarProps) {
           <SidebarContent>
             <SidebarGroup>
               <SidebarGroupContent>
-                <SidebarMenu aria-label="Apps">
-                  {rail.map((app) => (
-                    <SidebarMenuItem key={app.id}>
-                      <SidebarMenuButton asChild tooltip={railTip(app.name)} isActive={app === active} className="justify-center p-0" data-app={app.id}>
-                        <Link to={appHome(app, p.apps)} onClick={done} aria-label={app.name} aria-current={app === active ? "true" : undefined}>
-                          {app.Mark ? <app.Mark className="size-4" /> : <Icon name={app.icon!} />}
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-                <SidebarSeparator className="mx-1.5 my-2 w-auto" data-rail-divider="" />
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild tooltip={railTip("App directory")} isActive={onDirectory} className="justify-center p-0" data-app-directory="">
-                      <Link to={APPS_PATH} onClick={done} aria-label="App directory" aria-current={onDirectory ? "page" : undefined}>
-                        <Icon name="apps" />
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </SidebarMenu>
+                {groups.primary && (
+                  <>
+                    <SidebarMenu aria-label="Primary app" data-rail-primary="">
+                      <RailApp app={groups.primary} apps={p.apps} active={groups.primary === active} onPick={done} />
+                    </SidebarMenu>
+                    {groups.others.length > 0 && <RailDivider />}
+                  </>
+                )}
+                {groups.others.length > 0 && (
+                  <SidebarMenu aria-label={groups.primary ? "Other apps" : "Apps"}>
+                    {groups.others.map((app) => (
+                      <RailApp key={app.id} app={app} apps={p.apps} active={app === active} onPick={done} />
+                    ))}
+                  </SidebarMenu>
+                )}
+                {/* The App directory belongs to the owner of the brand (the super admin). Others do not see it. */}
+                {p.superAdmin && (
+                  <>
+                    {rail.length > 0 && <RailDivider />}
+                    <SidebarMenu>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild tooltip={railTip("App directory")} isActive={onDirectory} className="justify-center p-0" data-app-directory="">
+                          <Link to={APPS_PATH} onClick={done} aria-label="App directory" aria-current={onDirectory ? "page" : undefined}>
+                            <Icon name="apps" />
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    </SidebarMenu>
+                  </>
+                )}
               </SidebarGroupContent>
             </SidebarGroup>
           </SidebarContent>
           <SidebarFooter className="px-2 pb-2">
             <SidebarMenu>
-              {footer.map((item) => (
-                <SidebarMenuItem key={item.path}>
-                  <SidebarMenuButton asChild tooltip={railTip(item.label)} isActive={path === item.path} className="justify-center p-0">
-                    <Link to={item.path} onClick={done} aria-label={item.label}>
-                      <Icon name={item.icon} />
-                    </Link>
+              {/* A super admin sets this link in Site settings > Branding. It sits above the app footer items. */}
+              {p.issuesUrl && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip={railTip("Submit issues")} className="justify-center p-0" data-issues-link="">
+                    <a href={p.issuesUrl} target="_blank" rel="noreferrer" onClick={done} aria-label="Submit issues (opens in a new tab)">
+                      <Icon name="bug" />
+                    </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              ))}
+              )}
+              {footer.map((item) =>
+                isWebAddress(item.path) ? (
+                  <SidebarMenuItem key={item.path}>
+                    <SidebarMenuButton asChild tooltip={railTip(item.label)} className="justify-center p-0">
+                      <a href={item.path} target="_blank" rel="noreferrer" onClick={done} aria-label={`${item.label} (opens in a new tab)`}>
+                        <Icon name={item.icon} />
+                      </a>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ) : (
+                  <SidebarMenuItem key={item.path}>
+                    <SidebarMenuButton asChild tooltip={railTip(item.label)} isActive={path === item.path} className="justify-center p-0">
+                      <Link to={item.path} onClick={done} aria-label={item.label}>
+                        <Icon name={item.icon} />
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
+              )}
               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip={railTip("Settings")} isActive={onSettings} className="justify-center p-0" data-settings-link="">
                   <Link to={SETTINGS_PATH} onClick={done} aria-label="Settings" aria-current={onSettings ? "true" : undefined}>
@@ -227,10 +283,18 @@ export function AppSidebar(p: AppSidebarProps) {
                     {main.map((item) => (
                       <SidebarMenuItem key={item.path}>
                         <SidebarMenuButton asChild isActive={path === item.path}>
-                          <Link to={item.path} onClick={done}>
-                            <Icon name={item.icon} />
-                            <span>{item.label}</span>
-                          </Link>
+                          {isWebAddress(item.path) ? (
+                            <a href={item.path} target="_blank" rel="noreferrer" onClick={done}>
+                              <Icon name={item.icon} />
+                              <span>{item.label}</span>
+                              <span className="sr-only"> (opens in a new tab)</span>
+                            </a>
+                          ) : (
+                            <Link to={item.path} onClick={done}>
+                              <Icon name={item.icon} />
+                              <span>{item.label}</span>
+                            </Link>
+                          )}
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                     ))}

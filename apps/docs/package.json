@@ -1,8 +1,8 @@
 {
   "name": "@openact/app-docs",
   "version": "0.1.0",
-  "description": "The OpenAct docs app: paper-size documents in folders, with categories, tags, a share link and print to PDF.",
-  "license": "Apache-2.0",
+  "description": "The OpenAct Docs app, part of OpenAct Director: paper-size documents in folders, with categories, tags, a share link and print to PDF.",
+  "license": "SEE LICENSE IN LICENSE",
   "type": "module",
   "exports": {
     "./server": "./src/server/index.ts",
@@ -11,6 +11,7 @@
   "openact": {
     "id": "docs",
     "name": "Docs",
+    "plan": "director",
     "server": "./src/server/index.ts",
     "client": "./src/client/index.tsx",
     "migrations": "./migrations",

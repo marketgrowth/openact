@@ -1,0 +1,29 @@
+---
+import Logo from "./Logo.astro";
+import { DEMO_URL, DOCS_URL, GITHUB_URL } from "../site";
+
+interface Props {
+  /** The page that shows the header. "home" links to sections on the same page. */
+  page: "home" | "contribute" | "other";
+}
+const { page } = Astro.props;
+const home = page === "home" ? "" : "/";
+const current = (name: Props["page"]) => (page === name ? "page" : undefined);
+---
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="/" aria-label="OpenAct home">
+      <Logo />
+      OpenAct
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a class="pill" href={`${home}#features`}>Features</a>
+      <a class="pill" href={`${home}#plans`}>Plans</a>
+      <a class="pill" href="/design">Design</a>
+      <a class="pill" href={DOCS_URL}>Docs</a>
+      <a class="pill" href={GITHUB_URL}>GitHub</a>
+      <a class="pill" href="/contribute" aria-current={current("contribute")}>Contribute</a>
+      <a class="btn btn-accent btn-sm" href={DEMO_URL}>Try the demo</a>
+    </nav>
+  </div>
+</header>
