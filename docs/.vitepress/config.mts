@@ -44,6 +44,7 @@ export default defineConfig({
           { text: "App directory", link: "/directory" },
           { text: "Docs (Director)", link: "/docs-app" },
           { text: "Advisory (Director)", link: "/advisory-app" },
+          { text: "eSign (Director)", link: "/esign-app" },
           { text: "Build an app", link: "/apps" },
           { text: "Design system", link: "/design-system" },
           { text: "Permissions", link: "/permissions" }

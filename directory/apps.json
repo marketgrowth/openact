@@ -67,6 +67,18 @@
       "repo": "https://github.com/marketgrowth/openact/tree/main/apps/advisory"
     },
     {
+      "id": "esign",
+      "name": "eSign",
+      "summary": "Send PDFs for signature. Make templates with signer roles and fields, send signing links that need no account, and get a signed PDF with a signing certificate.",
+      "category": "Work",
+      "status": "built-in",
+      "plan": "director",
+      "publisher": "MarketGrowth",
+      "reserved": true,
+      "source": "local",
+      "repo": "https://github.com/marketgrowth/openact/tree/main/apps/esign"
+    },
+    {
       "id": "timetrack",
       "name": "TimeTrack",
       "summary": "Track time on projects and tasks. Timesheets, approvals and reports.",

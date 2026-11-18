@@ -125,7 +125,7 @@ export function requireTextDoc(doc: DocRow, what: string): void {
 }
 
 /** A statement that raises the library's revision, so open pages load the lists again. */
-function bumpLibrary(env: Env, companyId: string): D1PreparedStatement {
+export function bumpLibrary(env: Env, companyId: string): D1PreparedStatement {
   markChanged(LIBRARY_ROOM, companyId);
   return env.DB.prepare("INSERT INTO docs_library (company_id, rev) VALUES (?, 1) ON CONFLICT (company_id) DO UPDATE SET rev = rev + 1").bind(companyId);
 }
