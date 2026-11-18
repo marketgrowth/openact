@@ -4,6 +4,7 @@ import type { AppEnv, Env } from "./env";
 import type { AppConfig } from "../shared/types";
 import { authRoutes, meRoutes, sessionMiddleware } from "./auth";
 import { companyRoutes } from "./companies";
+import { workspaceRoutes } from "./workspaces";
 import { liveChanges } from "./live";
 import { HttpError, appName } from "./util";
 import { setApps, type ServerApp } from "./apps";
@@ -70,7 +71,7 @@ export function createWorker({ apps, catalog }: { apps: ServerApp[]; catalog?: A
       emailEnabled: !!c.env.RESEND_API_KEY,
       signupMode: (c.env.SIGNUP_MODE || "open").trim() === "invite" ? "invite" : "open",
       aiProvider: (c.env.AI_PROVIDER || "workers-ai").trim(),
-      apps: getCatalog().map((a) => ({ id: a.id, name: a.name })),
+      apps: getCatalog().map((a) => ({ id: a.id, name: a.name, scope: a.scope ?? "company" })),
       signIn: signInPage()
     };
     return c.json(config);
@@ -81,6 +82,7 @@ export function createWorker({ apps, catalog }: { apps: ServerApp[]; catalog?: A
   app.route("/api/me", accountRoutes);
   app.route("/api/site", siteRoutes);
   app.route("/api/companies", companyRoutes);
+  app.route("/api/companies", workspaceRoutes);
   app.route("/api/companies", companyAppRoutes);
   app.route("/api/companies", companyAiRoutes);
   app.route("/api/companies", companyPlanRoutes);

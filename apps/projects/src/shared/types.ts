@@ -121,6 +121,8 @@ export interface ProjectInfo {
   description: string;
   color: ProjectColor;
   companyId: string | null;
+  /** The workspace of the company that holds the project. Null only for old projects without a company. */
+  workspaceId: string | null;
   visibility: Visibility;
   rev: number;
   createdAt: string;
@@ -143,6 +145,8 @@ export interface ProjectSummary {
   updatedAt: string;
   /** When the person pinned the project to the top of the side panel. null when it is not pinned. */
   pinnedAt: string | null;
+  /** The workspace that holds the project. The list shows it in the All workspaces view. */
+  workspaceId: string | null;
 }
 
 /** A task the person opened lately, for the Recent list in the side panel. */

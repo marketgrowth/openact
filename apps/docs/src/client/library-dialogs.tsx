@@ -25,6 +25,9 @@ import { DOCS_HOME, useDocs } from "./state";
 
 const COLOR_LABELS: Record<CategoryColor, string> = { indigo: "Indigo", teal: "Teal", amber: "Amber", rose: "Rose", violet: "Violet", slate: "Slate" };
 
+
+/** The workspace query for a new doc, PDF or folder, so it goes in the workspace the person has open. */
+const wsQuery = (param: string) => (param ? `?${param}` : "");
 export function ColorDot({ color, className }: { color: CategoryColor; className?: string }) {
   return <span className={`inline-block size-2.5 shrink-0 rounded-full ${className ?? ""}`} style={{ background: `var(--pc-${color})` }} aria-hidden="true" />;
 }
@@ -161,7 +164,7 @@ export function TagInput({
 /** Makes a doc, then opens it. */
 export function NewDocDialog({ folderId, categoryId, onClose }: { folderId?: string | null; categoryId?: string | null; onClose: () => void }) {
   const toast = useToast();
-  const { current } = useWorkspace();
+  const { current, workspaceParam } = useWorkspace();
   const [title, setTitle] = useState("");
   const [folder, setFolder] = useState<string | null>(folderId ?? null);
   const [category, setCategory] = useState<string | null>(categoryId ?? null);
@@ -179,7 +182,7 @@ export function NewDocDialog({ folderId, categoryId, onClose }: { folderId?: str
     e.preventDefault();
     setBusy(true);
     try {
-      const r = await api<{ id: string }>(`/api/apps/docs/companies/${current.id}/docs`, { body: { title, folderId: folder, categoryId: category, pageSize } });
+      const r = await api<{ id: string }>(`/api/apps/docs/companies/${current.id}/docs${wsQuery(workspaceParam)}`, { body: { title, folderId: folder, categoryId: category, pageSize } });
       onClose();
       navigate(`${DOCS_HOME}/d/${r.id}`);
     } catch (err) {
@@ -253,7 +256,7 @@ export function UploadPdfDialog({
   onClose: () => void;
 }) {
   const toast = useToast();
-  const { current } = useWorkspace();
+  const { current, workspaceParam } = useWorkspace();
   const { library, reload } = useDocs();
   const [files, setFiles] = useState<File[]>(() => (initialFiles ?? []).slice(0, PDF_UPLOAD_MAX_FILES));
   const [title, setTitle] = useState("");
@@ -299,7 +302,7 @@ export function UploadPdfDialog({
       if (category) form.append("categoryId", category);
       if (tags.length) form.append("tags", JSON.stringify(tags));
       try {
-        lastId = (await api<{ id: string }>(`/api/apps/docs/companies/${current.id}/pdfs`, { method: "POST", form })).id;
+        lastId = (await api<{ id: string }>(`/api/apps/docs/companies/${current.id}/pdfs${wsQuery(workspaceParam)}`, { method: "POST", form })).id;
       } catch (err) {
         failed.push(`${f.name}: ${errorText(err)}`);
         left.push(f);
@@ -400,7 +403,7 @@ export function UploadPdfDialog({
 /** Makes a folder, or renames and moves one. */
 export function FolderDialog({ folderId, parentId, onClose }: { folderId?: string; parentId?: string | null; onClose: () => void }) {
   const toast = useToast();
-  const { current } = useWorkspace();
+  const { current, workspaceParam } = useWorkspace();
   const { folder, reload } = useDocs();
   const existing = folder(folderId);
   const [name, setName] = useState(existing?.name ?? "");
@@ -417,7 +420,7 @@ export function FolderDialog({ folderId, parentId, onClose }: { folderId?: strin
         await api(`/api/apps/docs/folders/${existing.id}`, { method: "PATCH", body: { name, parentId: parent } });
         toast("The folder is saved.");
       } else {
-        const r = await api<{ id: string }>(`/api/apps/docs/companies/${current.id}/folders`, { body: { name, parentId: parent } });
+        const r = await api<{ id: string }>(`/api/apps/docs/companies/${current.id}/folders${wsQuery(workspaceParam)}`, { body: { name, parentId: parent } });
         navigate(`${DOCS_HOME}/f/${r.id}`);
       }
       await reload();
@@ -453,7 +456,7 @@ export function FolderDialog({ folderId, parentId, onClose }: { folderId?: strin
 /** Adds, renames, recolors and deletes categories. */
 export function CategoriesDialog({ onClose }: { onClose: () => void }) {
   const toast = useToast();
-  const { current } = useWorkspace();
+  const { current, workspaceParam } = useWorkspace();
   const { library, reload } = useDocs();
   const [name, setName] = useState("");
   const [color, setColor] = useState<CategoryColor>("indigo");

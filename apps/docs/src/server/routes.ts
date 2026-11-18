@@ -15,9 +15,12 @@ import {
   openSecret,
   randomToken,
   readJson,
+  requireActiveWorkspace,
   requirePermission,
   requireUser,
   sealSecret,
+  workspaceForNew,
+  workspaceScope,
   sha256Hex,
   text,
   type AppEnv,
@@ -146,10 +149,22 @@ function problem(r: { name: string } | { problem: string }): string {
 }
 
 async function loadFolders(env: Env, companyId: string): Promise<Folder[]> {
-  const rows = await env.DB.prepare("SELECT id, parent_id, name FROM docs_folders WHERE company_id = ?")
+  const rows = await env.DB.prepare("SELECT id, parent_id, name, workspace_id FROM docs_folders WHERE company_id = ?")
     .bind(companyId)
-    .all<{ id: string; parent_id: string | null; name: string }>();
-  return rows.results.map((r) => ({ id: r.id, parentId: r.parent_id, name: r.name }));
+    .all<{ id: string; parent_id: string | null; name: string; workspace_id: string | null }>();
+  return rows.results.map((r) => ({ id: r.id, parentId: r.parent_id, name: r.name, workspaceId: r.workspace_id }));
+}
+
+/** The workspace of a folder. A doc or subfolder in a folder is always in the folder's workspace. */
+async function folderWorkspace(env: Env, folderId: string): Promise<string | null> {
+  const row = await env.DB.prepare("SELECT workspace_id FROM docs_folders WHERE id = ?").bind(folderId).first<{ workspace_id: string | null }>();
+  return row?.workspace_id ?? null;
+}
+
+/** The workspace for a new doc or folder: its folder's workspace, or the workspace the person works in. */
+async function newRowWorkspace(c: Context<AppEnv>, companyId: string, folderId: string | null, wanted: unknown): Promise<string | null> {
+  if (folderId) return folderWorkspace(c.env, folderId);
+  return workspaceForNew(c, "docs", companyId, wanted);
 }
 
 /** Checks that a folder id belongs to the company. null stays null (no folder). */
@@ -222,22 +237,25 @@ docsRoutes.get("/companies/:companyId/library", async (c) => {
   const user = requireUser(c);
   const companyId = c.req.param("companyId");
   await requirePermission(c.env, companyId, user.id, "docs.view");
-  const [rev, folders, cats, tags, docs, docTags, can] = await Promise.all([
+  // Docs is workspace-aware: ?workspace=ID or "all" (owners and admins), or the person's saved workspace. Null: every workspace.
+  // Categories and tags stay company-wide.
+  const ws = await workspaceScope(c, "docs", companyId);
+  const [rev, allFolders, cats, tags, docs, docTags, can] = await Promise.all([
     c.env.DB.prepare("SELECT rev FROM docs_library WHERE company_id = ?").bind(companyId).first<{ rev: number }>(),
     loadFolders(c.env, companyId),
     c.env.DB.prepare("SELECT id, name, color FROM docs_categories WHERE company_id = ? ORDER BY position, name").bind(companyId).all<Category>(),
     c.env.DB.prepare("SELECT id, name FROM docs_tags WHERE company_id = ? ORDER BY name COLLATE NOCASE").bind(companyId).all<Tag>(),
     c.env.DB.prepare(
-      `SELECT d.id, d.kind, d.title, d.folder_id, d.category_id, d.page_size, d.updated_at, u.name AS u_name, u.email AS u_email,
+      `SELECT d.id, d.kind, d.title, d.folder_id, d.category_id, d.page_size, d.updated_at, d.workspace_id, u.name AS u_name, u.email AS u_email,
          s.doc_id IS NOT NULL AS shared, f.size AS file_size
        FROM docs_docs d
        LEFT JOIN users u ON u.id = d.updated_by
        LEFT JOIN docs_shares s ON s.doc_id = d.id
        LEFT JOIN docs_files f ON f.id = d.file_id
-       WHERE d.company_id = ?
+       WHERE d.company_id = ? AND (? IS NULL OR d.workspace_id = ?)
        ORDER BY d.updated_at DESC`
     )
-      .bind(companyId)
+      .bind(companyId, ws, ws)
       .all<{
         id: string;
         kind: DocKind;
@@ -246,13 +264,16 @@ docsRoutes.get("/companies/:companyId/library", async (c) => {
         category_id: string | null;
         page_size: PageSize;
         updated_at: string;
+        workspace_id: string | null;
         u_name: string | null;
         u_email: string | null;
         shared: number;
         file_size: number | null;
       }>(),
-    c.env.DB.prepare("SELECT dt.doc_id, dt.tag_id FROM docs_doc_tags dt JOIN docs_docs d ON d.id = dt.doc_id WHERE d.company_id = ?")
-      .bind(companyId)
+    c.env.DB.prepare(
+      "SELECT dt.doc_id, dt.tag_id FROM docs_doc_tags dt JOIN docs_docs d ON d.id = dt.doc_id WHERE d.company_id = ? AND (? IS NULL OR d.workspace_id = ?)"
+    )
+      .bind(companyId, ws, ws)
       .all<{ doc_id: string; tag_id: string }>(),
     Promise.all(["docs.edit", "docs.organize", "docs.share"].map((p) => hasPermission(c.env, companyId, user.id, p)))
   ]);
@@ -269,8 +290,10 @@ docsRoutes.get("/companies/:companyId/library", async (c) => {
     pageSize: r.page_size,
     shared: !!r.shared,
     updatedAt: r.updated_at,
-    updatedByName: displayName(r.u_name, r.u_email)
+    updatedByName: displayName(r.u_name, r.u_email),
+    workspaceId: r.workspace_id
   }));
+  const folders = ws ? allFolders.filter((f) => f.workspaceId === ws) : allFolders;
   const library: Library = {
     rev: rev?.rev ?? 0,
     folders,
@@ -301,13 +324,14 @@ docsRoutes.post("/companies/:companyId/docs", async (c) => {
   const title = text(body.title, "Title", { max: TITLE_MAX }) || "Untitled doc";
   const pageSize = body.pageSize === undefined ? "letter" : oneOf(body.pageSize, "Page size", PAGE_SIZES);
   const [folderId, categoryId] = await Promise.all([companyFolder(c.env, companyId, body.folderId), companyCategory(c.env, companyId, body.categoryId)]);
+  const workspaceId = await newRowWorkspace(c, companyId, folderId, body.workspaceId);
   const id = newId();
   const iso = nowIso();
   await c.env.DB.batch([
     c.env.DB.prepare(
-      `INSERT INTO docs_docs (id, company_id, folder_id, category_id, title, content, page_size, orientation, margin, rev, created_by, updated_by, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'portrait', 'normal', 1, ?, ?, ?, ?)`
-    ).bind(id, companyId, folderId, categoryId, title, JSON.stringify(EMPTY_DOC), pageSize, user.id, user.id, iso, iso),
+      `INSERT INTO docs_docs (id, company_id, workspace_id, folder_id, category_id, title, content, page_size, orientation, margin, rev, created_by, updated_by, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'portrait', 'normal', 1, ?, ?, ?, ?)`
+    ).bind(id, companyId, workspaceId, folderId, categoryId, title, JSON.stringify(EMPTY_DOC), pageSize, user.id, user.id, iso, iso),
     bumpLibrary(c.env, companyId)
   ]);
   return c.json({ id }, 201);
@@ -441,8 +465,20 @@ docsRoutes.patch("/docs/:id/meta", async (c) => {
   await requirePermission(c.env, doc.company_id, user.id, "docs.edit");
   const body = await readJson(c);
   const stmts: D1PreparedStatement[] = [];
-  if (body.folderId !== undefined)
-    stmts.push(c.env.DB.prepare("UPDATE docs_docs SET folder_id = ? WHERE id = ?").bind(await companyFolder(c.env, doc.company_id, body.folderId), doc.id));
+  if (body.workspaceId !== undefined && body.folderId === undefined) {
+    // Moving a doc to another workspace takes it out of its folder, because folders belong to one workspace.
+    const ws = await requireActiveWorkspace(c.env, doc.company_id, body.workspaceId);
+    stmts.push(c.env.DB.prepare("UPDATE docs_docs SET workspace_id = ?, folder_id = CASE WHEN workspace_id = ? THEN folder_id ELSE NULL END WHERE id = ?").bind(ws, ws, doc.id));
+  }
+  if (body.folderId !== undefined) {
+    const folderId = await companyFolder(c.env, doc.company_id, body.folderId);
+    // A doc in a folder is in the folder's workspace. Out of a folder, it stays in its workspace.
+    stmts.push(
+      folderId
+        ? c.env.DB.prepare("UPDATE docs_docs SET folder_id = ?, workspace_id = ? WHERE id = ?").bind(folderId, await folderWorkspace(c.env, folderId), doc.id)
+        : c.env.DB.prepare("UPDATE docs_docs SET folder_id = NULL WHERE id = ?").bind(doc.id)
+    );
+  }
   if (body.categoryId !== undefined)
     stmts.push(
       c.env.DB.prepare("UPDATE docs_docs SET category_id = ? WHERE id = ?").bind(await companyCategory(c.env, doc.company_id, body.categoryId), doc.id)
@@ -486,12 +522,15 @@ docsRoutes.post("/companies/:companyId/folders", async (c) => {
   const parentId = typeof body.parentId === "string" && body.parentId ? body.parentId : null;
   const p = folderMoveProblem(folders, null, parentId);
   if (p) throw new HttpError(400, p);
+  // A subfolder is in its parent's workspace. A top-level folder is in the workspace the person works in.
+  const workspaceId = parentId ? (folders.find((f) => f.id === parentId)?.workspaceId ?? null) : await workspaceForNew(c, "docs", companyId, body.workspaceId);
   const id = newId();
   const iso = nowIso();
   await c.env.DB.batch([
-    c.env.DB.prepare("INSERT INTO docs_folders (id, company_id, parent_id, name, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)").bind(
+    c.env.DB.prepare("INSERT INTO docs_folders (id, company_id, workspace_id, parent_id, name, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").bind(
       id,
       companyId,
+      workspaceId,
       parentId,
       name,
       user.id,
@@ -522,8 +561,13 @@ docsRoutes.patch("/folders/:id", async (c) => {
   if (body.name !== undefined) (sets.push("name = ?"), binds.push(problem(cleanName(body.name, "Folder"))));
   if (body.parentId !== undefined) {
     const parentId = typeof body.parentId === "string" && body.parentId ? body.parentId : null;
-    const p = folderMoveProblem(await loadFolders(c.env, folder.company_id), folder.id, parentId);
+    const all = await loadFolders(c.env, folder.company_id);
+    const p = folderMoveProblem(all, folder.id, parentId);
     if (p) throw new HttpError(400, p);
+    const parent = parentId ? all.find((f) => f.id === parentId) : undefined;
+    const self = all.find((f) => f.id === folder.id);
+    if (parent && parent.workspaceId !== self?.workspaceId)
+      throw new HttpError(400, "A folder can move only inside its own workspace. Move its docs to the other workspace instead.");
     (sets.push("parent_id = ?"), binds.push(parentId));
   }
   if (!sets.length) return c.json({ ok: true });
@@ -843,6 +887,7 @@ docsRoutes.post("/companies/:companyId/pdfs", async (c) => {
   const title = text(typeof form.title === "string" ? form.title : "", "Title", { max: TITLE_MAX }) || titleFromFileName(name);
   const [folderId, categoryId] = await Promise.all([companyFolder(c.env, companyId, form.folderId), companyCategory(c.env, companyId, form.categoryId)]);
   const tags = formTags(form.tags);
+  const workspaceId = await newRowWorkspace(c, companyId, folderId, form.workspaceId);
   const id = newId();
   const fileId = newId();
   const key = `docs/${companyId}/${id}/${fileId}`;
@@ -851,9 +896,9 @@ docsRoutes.post("/companies/:companyId/pdfs", async (c) => {
   try {
     await c.env.DB.batch([
       c.env.DB.prepare(
-        `INSERT INTO docs_docs (id, company_id, kind, file_id, folder_id, category_id, title, content, page_size, orientation, margin, rev, created_by, updated_by, created_at, updated_at)
-         VALUES (?, ?, 'pdf', ?, ?, ?, ?, ?, 'letter', 'portrait', 'normal', 1, ?, ?, ?, ?)`
-      ).bind(id, companyId, fileId, folderId, categoryId, title, JSON.stringify(EMPTY_DOC), user.id, user.id, iso, iso),
+        `INSERT INTO docs_docs (id, company_id, workspace_id, kind, file_id, folder_id, category_id, title, content, page_size, orientation, margin, rev, created_by, updated_by, created_at, updated_at)
+         VALUES (?, ?, ?, 'pdf', ?, ?, ?, ?, ?, 'letter', 'portrait', 'normal', 1, ?, ?, ?, ?)`
+      ).bind(id, companyId, workspaceId, fileId, folderId, categoryId, title, JSON.stringify(EMPTY_DOC), user.id, user.id, iso, iso),
       c.env.DB.prepare(
         "INSERT INTO docs_files (id, company_id, doc_id, r2_key, content_type, size, name, uploaded_by, created_at) VALUES (?, ?, ?, ?, 'application/pdf', ?, ?, ?, ?)"
       ).bind(fileId, companyId, id, key, bytes.length, name, user.id, iso),

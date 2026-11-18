@@ -1,4 +1,4 @@
-import { COMPANY_ROLE_LABELS, type Company, type User } from "@openact/core/shared";
+import { ALL_WORKSPACES, COMPANY_ROLE_LABELS, WORKSPACE_KIND_LABELS, type Company, type User } from "@openact/core/shared";
 import { APPS_PATH, SETTINGS_PATH, activeApp, appHome, isSettingsPath, railGroups, railOrder, resolveAppPath, type ClientApp } from "../apps";
 import { ACCOUNT_SECTIONS, SITE_SECTIONS, companySections, parseSettingsPath, settingsPath, type SettingsSection } from "../settings-paths";
 import { canManageCompany } from "@openact/core/shared";
@@ -373,6 +373,39 @@ function CompanyMenu({ appName, onNewCompany, onPick, side, align }: SwitcherPro
           <DropdownMenuSeparator />
         </>
       )}
+      {/* Workspaces show only when the company has more than one. Guests never see them. */}
+      {current && ws.workspaces.length > 1 && (
+        <>
+          <DropdownMenuLabel className="text-xs text-muted-foreground">Workspaces</DropdownMenuLabel>
+          <DropdownMenuRadioGroup
+            value={ws.workspaceId ?? ""}
+            onValueChange={(id) => {
+              onPick();
+              if (id !== ws.workspaceId) void ws.switchWorkspace(id);
+            }}
+            data-workspace-switch=""
+          >
+            {ws.workspaces.map((w) => (
+              <DropdownMenuRadioItem key={w.id} value={w.id} className="gap-2 py-1.5" data-workspace={w.slug}>
+                <CompanyMark company={{ id: w.id, name: w.name, logoUrl: w.logoUrl ?? current.logoUrl }} size={24} className="rounded-md" />
+                <span className="grid min-w-0 flex-1 leading-tight">
+                  <span className="truncate">{w.name}</span>
+                  <span className="truncate text-xs text-muted-foreground">{w.isDefault ? `${WORKSPACE_KIND_LABELS[w.kind]}, default` : WORKSPACE_KIND_LABELS[w.kind]}</span>
+                </span>
+              </DropdownMenuRadioItem>
+            ))}
+            {canManageCompany(current.role) && (
+              <DropdownMenuRadioItem value={ALL_WORKSPACES} className="gap-2 py-1.5" data-workspace="all">
+                <span className="flex size-6 shrink-0 items-center justify-center rounded-md border">
+                  <Icon name="layers" />
+                </span>
+                <span className="truncate">All workspaces</span>
+              </DropdownMenuRadioItem>
+            )}
+          </DropdownMenuRadioGroup>
+          <DropdownMenuSeparator />
+        </>
+      )}
       <DropdownMenuLabel className="text-xs text-muted-foreground">Your companies</DropdownMenuLabel>
       <DropdownMenuRadioGroup value={current?.id ?? ""} onValueChange={pick}>
         {(ws.companies ?? []).map((co) => (
@@ -396,11 +429,31 @@ function CompanyMenu({ appName, onNewCompany, onPick, side, align }: SwitcherPro
           <Icon name="gear" /> Company settings
         </DropdownMenuItem>
       )}
+      {current && canManageCompany(current.role) && (
+        <DropdownMenuItem
+          onSelect={() => {
+            onPick();
+            navigate(settingsPath("company", "workspaces"));
+          }}
+          data-manage-workspaces=""
+        >
+          <Icon name="layers" /> {ws.workspaces.length > 1 ? "Manage workspaces" : "Add a workspace"}
+        </DropdownMenuItem>
+      )}
       <DropdownMenuItem onSelect={onNewCompany}>
         <Icon name="plus" /> Create a company
       </DropdownMenuItem>
     </DropdownMenuContent>
   );
+}
+
+/**
+ * The mark at the top of the rail: the company, or the open workspace when the company has several.
+ * A workspace without its own logo shows the company logo.
+ */
+function railMark(company: Company, workspace: Pick<NonNullable<ReturnType<typeof useWorkspace>["currentWorkspace"]>, "id" | "name" | "logoUrl" | "isDefault"> | null) {
+  if (!workspace || workspace.isDefault) return company;
+  return { id: workspace.id, name: workspace.name, logoUrl: workspace.logoUrl ?? company.logoUrl };
 }
 
 /** The company mark at the top of the rail. */
@@ -415,11 +468,15 @@ function CompanySwitcher(p: SwitcherProps) {
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               className="justify-center p-0 data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-              aria-label={current ? `Company: ${current.name}. Change company` : "Choose a company"}
+              aria-label={
+                current
+                  ? `Company: ${current.name}${ws.workspaces.length > 1 ? `, ${ws.currentWorkspace?.name ?? "all workspaces"}` : ""}. Change company or workspace`
+                  : "Choose a company"
+              }
               data-company-switch=""
             >
               {current ? (
-                <CompanyMark company={current} />
+                <CompanyMark company={railMark(current, ws.currentWorkspace)} />
               ) : (
                 <span className="flex size-8 items-center justify-center rounded-lg border border-dashed">
                   <Icon name="plus" />
@@ -455,7 +512,11 @@ function PanelSwitcher({ title, ...p }: SwitcherProps & { title: string }) {
               <span className="grid min-w-0 flex-1 text-left leading-tight">
                 <span className="truncate text-base font-semibold" data-panel-title="">{title}</span>
                 <span className="truncate text-xs font-normal text-muted-foreground" data-company-name="">
-                  {current?.name ?? "No company yet"}
+                  {current
+                    ? ws.workspaces.length > 1 && ws.currentWorkspace?.name !== current.name
+                      ? `${current.name} · ${ws.currentWorkspace?.name ?? "All workspaces"}`
+                      : current.name
+                    : "No company yet"}
                 </span>
               </span>
               <Icon name="updown" className="ml-auto shrink-0 text-muted-foreground" />

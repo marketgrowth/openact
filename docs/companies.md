@@ -2,6 +2,8 @@
 
 Every project belongs to one company. A person can be in many companies and switch between them with the company mark at the top of the app rail.
 
+A company can split its work into [workspaces](workspaces.md), such as brands, business units, locations or regions. Use a workspace when the same team does the work. Use a separate company when the people, billing or legal entity are different.
+
 | Company role | What they can do |
 | --- | --- |
 | Owner | Manage the company, its people, its owners and every company project. Delete the company. |
@@ -11,7 +13,7 @@ Every project belongs to one company. A person can be in many companies and swit
 
 The gear at the bottom of the app rail opens **Settings** as a page. The side panel lists its sections in three groups:
 
-- **Company settings**, for owners and admins: **General**, **People**, **Apps**, **Permissions**, **AI provider**, and a section for each app that adds one.
+- **Company settings**, for owners and admins: **General**, **People**, **Workspaces**, **Apps**, **Permissions**, **AI provider**, and a section for each app that adds one.
 - **Personal account**, for everyone: **Profile** (name, email and theme) and **Sign-in and security** (sign out, delete account).
 - **Site settings**, for super admins only.
 

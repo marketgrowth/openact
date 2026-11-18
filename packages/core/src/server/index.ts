@@ -9,6 +9,16 @@ export { SESSION_COOKIE, sessionMiddleware, authSecret } from "./auth.ts";
 export { listCompanies, currentCompanyId, removeFromCompany } from "./companies.ts";
 export { companyRole, requireCompanyRole, deletePrefix } from "./data.ts";
 export {
+  workspaceScope,
+  workspaceForNew,
+  requireActiveWorkspace,
+  resolveWorkspace,
+  defaultWorkspaceId,
+  getWorkspace,
+  listWorkspaces,
+  isWorkspaceApp
+} from "./workspaces.ts";
+export {
   ProjectRoom,
   registerRoomKind,
   markChanged,

@@ -29,7 +29,8 @@ export function useDocs(): DocsState {
 }
 
 export function DocsProvider({ children }: { children: ReactNode }) {
-  const { current } = useWorkspace();
+  // Docs is workspace-aware: the library shows the open workspace, or every workspace in All workspaces.
+  const { current, workspaceParam } = useWorkspace();
   const on = useAppOn("docs");
   const path = usePath();
   const active = on && !!current && (path === DOCS_HOME || path.startsWith(`${DOCS_HOME}/`));
@@ -43,7 +44,7 @@ export function DocsProvider({ children }: { children: ReactNode }) {
     if (!companyId) return;
     const n = ++seq.current;
     try {
-      const lib = await api<Library>(`/api/apps/docs/companies/${companyId}/library`);
+      const lib = await api<Library>(`/api/apps/docs/companies/${companyId}/library${workspaceParam ? `?${workspaceParam}` : ""}`);
       if (n !== seq.current) return;
       revRef.current = lib.rev;
       setLibrary(lib);
@@ -52,14 +53,14 @@ export function DocsProvider({ children }: { children: ReactNode }) {
       if (n !== seq.current) return;
       setError(e instanceof ApiError && e.status === 403 ? e.message : errorText(e));
     }
-  }, [companyId]);
+  }, [companyId, workspaceParam]);
 
-  // A new company shows its own library.
+  // A new company or workspace shows its own library.
   useEffect(() => {
     setLibrary(null);
     setError(null);
     revRef.current = -1;
-  }, [companyId]);
+  }, [companyId, workspaceParam]);
 
   useEffect(() => {
     if (active) void reload();

@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { api, errorText, usePath, useToast, useWorkspace } from "@openact/ui";
 import type { ProjectSummary, RecentTask } from "../shared/types";
 
-/** The projects of the current company, for the side panel and the projects page. */
+/** The projects of the current company and workspace, for the side panel and the projects page. */
 export interface ProjectsState {
   projects: ProjectSummary[] | null;
   /** Tasks the person opened lately in this company, newest first. */
@@ -26,7 +26,7 @@ export function useProjects(): ProjectsState {
 }
 
 export function ProjectsProvider({ children, onNewProject }: { children: ReactNode; onNewProject: () => void }) {
-  const { current } = useWorkspace();
+  const { current, workspaceParam } = useWorkspace();
   const path = usePath();
   const toast = useToast();
   const [projects, setProjects] = useState<ProjectSummary[] | null>(null);
@@ -34,6 +34,9 @@ export function ProjectsProvider({ children, onNewProject }: { children: ReactNo
   const seq = useRef(0);
   const companyId = current?.id ?? null;
 
+  // Projects is workspace-aware: the list shows the open workspace, or every workspace in All workspaces.
+  const wsRef = useRef(workspaceParam);
+  wsRef.current = workspaceParam;
   const load = useCallback((id: string | null) => {
     const n = ++seq.current;
     if (!id) {
@@ -41,7 +44,8 @@ export function ProjectsProvider({ children, onNewProject }: { children: ReactNo
       setRecentTasks([]);
       return;
     }
-    api<{ projects: ProjectSummary[]; recentTasks: RecentTask[] }>(`/api/projects?company=${encodeURIComponent(id)}`)
+    const ws = wsRef.current ? `&${wsRef.current}` : "";
+    api<{ projects: ProjectSummary[]; recentTasks: RecentTask[] }>(`/api/projects?company=${encodeURIComponent(id)}${ws}`)
       .then((r) => {
         if (n !== seq.current) return;
         setProjects(r.projects);
@@ -50,12 +54,12 @@ export function ProjectsProvider({ children, onNewProject }: { children: ReactNo
       .catch(() => n === seq.current && setProjects([]));
   }, []);
 
-  // A new company shows its own projects at once.
+  // A new company or workspace shows its own projects at once.
   useEffect(() => {
     setProjects(null);
     setRecentTasks([]);
     load(companyId);
-  }, [companyId, load]);
+  }, [companyId, workspaceParam, load]);
 
   // Keep the list fresh when the person moves around.
   const first = useRef(true);

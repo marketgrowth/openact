@@ -14,6 +14,8 @@ import { HttpError, newId, nowIso } from "./util";
 
 export interface NewProject {
   companyId: string;
+  /** A workspace of the company. Default: the company's default workspace. */
+  workspaceId?: string;
   name: string;
   description?: string;
   color?: ProjectColor;
@@ -33,8 +35,21 @@ export function newProjectStatements(env: Env, p: NewProject & { id: string; aiD
   const iso = nowIso();
   const stmts: D1PreparedStatement[] = [
     env.DB.prepare(
-      "INSERT INTO projects (id, name, description, color, company_id, visibility, ai_policy, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-    ).bind(p.id, p.name, p.description ?? "", p.color ?? "indigo", p.companyId, p.visibility ?? "secret", JSON.stringify(parsePolicy(p.aiDefaults)), p.createdBy, iso, iso),
+      // Without a workspace, a trigger puts the project in the company's default workspace.
+      "INSERT INTO projects (id, name, description, color, company_id, workspace_id, visibility, ai_policy, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    ).bind(
+      p.id,
+      p.name,
+      p.description ?? "",
+      p.color ?? "indigo",
+      p.companyId,
+      p.workspaceId ?? null,
+      p.visibility ?? "secret",
+      JSON.stringify(parsePolicy(p.aiDefaults)),
+      p.createdBy,
+      iso,
+      iso
+    ),
     env.DB.prepare("INSERT INTO project_members (project_id, user_id, role, created_at) VALUES (?, ?, 'owner', ?)").bind(p.id, p.ownerId, iso)
   ];
   for (const m of p.members ?? []) {
@@ -63,6 +78,10 @@ export async function createProject(env: Env, p: NewProject): Promise<{ id: stri
   for (const m of p.members ?? []) if (!ROLES.includes(m.role)) throw new HttpError(400, "A project role is not valid.");
   const co = await env.DB.prepare("SELECT ai_defaults FROM companies WHERE id = ?").bind(p.companyId).first<{ ai_defaults: string }>();
   if (!co) throw new HttpError(404, "This company does not exist.");
+  if (p.workspaceId) {
+    const ws = await env.DB.prepare("SELECT id FROM workspaces WHERE id = ? AND company_id = ? AND archived_at IS NULL").bind(p.workspaceId, p.companyId).first();
+    if (!ws) throw new HttpError(400, "This workspace does not exist in the company, or it was archived.");
+  }
   const id = newId();
   const { stmts } = newProjectStatements(env, { ...p, name, description: (p.description ?? "").slice(0, 500), id, aiDefaults: co.ai_defaults, createdBy: p.ownerId });
   await env.DB.batch(stmts);

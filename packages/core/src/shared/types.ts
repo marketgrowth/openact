@@ -20,7 +20,73 @@ export interface Company {
   role: CompanyRole;
   /** A URL for the logo, or null. */
   logoUrl: string | null;
+  /** The company's active workspaces, the default one first. GET /api/companies fills it. Every company has at least one. */
+  workspaces?: Workspace[];
 }
+
+/*
+ * Workspaces: named slices of a company's work. They are flat, and they use the company roles.
+ * The kind changes only the label. Every company has one default workspace, which cannot be archived.
+ */
+export const WORKSPACE_KINDS = ["brand", "business_unit", "location", "region"] as const;
+export type WorkspaceKind = (typeof WORKSPACE_KINDS)[number];
+export const WORKSPACE_KIND_LABELS: Record<WorkspaceKind, string> = { brand: "Brand", business_unit: "Business unit", location: "Location", region: "Region" };
+
+/** The most workspaces one company can have, archived ones included. */
+export const MAX_WORKSPACES_PER_COMPANY = 50;
+
+/** The value of the workspace switcher that shows every workspace. Only owners and admins can pick it. */
+export const ALL_WORKSPACES = "all";
+
+export interface WorkspaceColors {
+  /** A hex color, such as "#1f2937". */
+  primary?: string;
+  accent?: string;
+}
+
+export interface Workspace {
+  id: string;
+  companyId: string;
+  name: string;
+  /** Unique in the company. Lowercase letters, numbers and dashes. */
+  slug: string;
+  kind: WorkspaceKind;
+  isDefault: boolean;
+  /** The workspace's own logo, or null. Show the company logo when it is null. */
+  logoUrl: string | null;
+  colors: WorkspaceColors;
+  /** The brand's website, such as "https://example.com", or null. */
+  website: string | null;
+  archived: boolean;
+}
+
+/** Makes a slug from a name: "Acme Health (West)" gives "acme-health-west". */
+export function workspaceSlug(name: string): string {
+  const s = name
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40)
+    .replace(/-+$/g, "");
+  return s || "workspace";
+}
+
+/**
+ * The workspace to show in a company, from the saved choice: a workspace id, "all", or null.
+ * "all" is for owners and admins. A choice that is not an active workspace of the company gives its default workspace.
+ * Returns "all", a workspace id, or null when the company has no workspaces (guests).
+ */
+export function pickWorkspace(company: Pick<Company, "role" | "workspaces">, saved: string | null | undefined): string | null {
+  const list = company.workspaces ?? [];
+  if (!list.length) return null;
+  if (saved === ALL_WORKSPACES && (company.role === "owner" || company.role === "admin")) return ALL_WORKSPACES;
+  return list.find((w) => w.id === saved)?.id ?? (list.find((w) => w.isDefault) ?? list[0]!).id;
+}
+
+/** True for a hex color such as "#1f2937" or "#fff". */
+export const isHexColor = (v: string): boolean => /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(v);
 
 /** GET /api/companies/:id. Apps can add fields, such as their company settings. */
 export interface CompanyDetail extends Company {
@@ -35,6 +101,9 @@ export interface User {
   name: string;
 }
 
+/** Where an app keeps its data: for the whole company, or per workspace. From "scope" in the app's package.json. */
+export type AppScope = "company" | "workspace";
+
 export interface AppConfig {
   appName: string;
   /** The site logo that a super admin uploaded, or null for the OpenAct mark. */
@@ -44,8 +113,8 @@ export interface AppConfig {
   emailEnabled: boolean;
   signupMode: "open" | "invite";
   aiProvider: string;
-  /** The installed apps, in order. */
-  apps: Array<{ id: string; name: string }>;
+  /** The installed apps, in order. "workspace" apps keep their data per workspace. Others are company-wide. */
+  apps: Array<{ id: string; name: string; scope?: AppScope }>;
   /** What the sign-in page shows. A super admin sets it in Site settings. */
   signIn: SignInPage;
 }

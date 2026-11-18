@@ -11,6 +11,7 @@
   "openact": {
     "id": "docs",
     "name": "Docs",
+    "scope": "workspace",
     "plan": "director",
     "server": "./src/server/index.ts",
     "client": "./src/client/index.tsx",

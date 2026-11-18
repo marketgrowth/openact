@@ -70,6 +70,8 @@ export interface DocSummary {
   shared: boolean;
   updatedAt: string;
   updatedByName: string | null;
+  /** The workspace that holds the doc. The library shows it in the All workspaces view. */
+  workspaceId: string | null;
 }
 
 /** The current file of a PDF. */
@@ -115,6 +117,8 @@ export interface Folder {
   id: string;
   parentId: string | null;
   name: string;
+  /** The workspace that holds the folder. Its subfolders and docs are in the same workspace. */
+  workspaceId?: string | null;
 }
 
 /** Colors for categories. They are the project color tokens of the theme (--pc-<color>). */

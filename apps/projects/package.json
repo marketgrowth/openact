@@ -12,6 +12,7 @@
   "openact": {
     "id": "projects",
     "name": "Projects",
+    "scope": "workspace",
     "server": "./src/server/index.ts",
     "client": "./src/client/index.tsx",
     "migrations": "./migrations"

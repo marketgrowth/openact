@@ -19,6 +19,7 @@
  *
  * "enabledByDefault": false makes each company turn the app on in Company settings before it shows.
  * "requiresApps": ["projects"] lists apps that must be installed too. "optionalApps" lists apps the app uses when they are there.
+ * "scope": "workspace" makes the app workspace-aware: it keeps its rows per workspace. Default: "company" (company-wide).
  * "plan": "director" or "producer" makes the app a paid app. It is locked in companies without that plan.
  * Only official MarketGrowth apps use "plan". See https://docs.openact.app/plans.
  *
@@ -38,6 +39,7 @@ const CORE_MIGRATIONS = join(ROOT, "packages/core/migrations");
 const DIRECTORY = join(ROOT, "directory/apps.json");
 const ID = /^[a-z][a-z0-9-]{1,30}$/;
 const PAID_PLANS = ["director", "producer"];
+const SCOPES = ["company", "workspace"];
 const PLAN_NAMES = { director: "Director", producer: "Producer" };
 
 const temps = [];
@@ -106,6 +108,7 @@ function manifest(dir, label = relative(ROOT, dir)) {
     if (m[key] && !existsSync(join(dir, m[key]))) fail(`The app "${m.id}" lists ${key}: ${m[key]}, but that file does not exist.`);
   }
   if (m.enabledByDefault !== undefined && typeof m.enabledByDefault !== "boolean") fail(`The app "${m.id}" has "enabledByDefault": it must be true or false.`);
+  if (m.scope !== undefined && !SCOPES.includes(m.scope)) fail(`The app "${m.id}" has "scope": "${m.scope}". Use ${SCOPES.join(" or ")}.`);
   if (m.plan !== undefined && !PAID_PLANS.includes(m.plan)) fail(`The app "${m.id}" has "plan": "${m.plan}". Use ${PAID_PLANS.join(" or ")}, or leave it out for a free app.`);
   for (const key of ["requiresApps", "optionalApps"]) {
     if (m[key] !== undefined && (!Array.isArray(m[key]) || m[key].some((x) => typeof x !== "string" || !ID.test(x))))
@@ -116,6 +119,7 @@ function manifest(dir, label = relative(ROOT, dir)) {
     name: m.name ?? m.id,
     durableObjects: m.durableObjects ?? [],
     enabledByDefault: m.enabledByDefault ?? true,
+    scope: m.scope ?? "company",
     requiresApps: m.requiresApps ?? [],
     optionalApps: m.optionalApps ?? []
   };
@@ -173,7 +177,7 @@ function sync() {
       server.map((a, i) => `import app${i} from "${fromOut(join(a.dir, a.server))}";\n`).join("") +
       `\nexport const apps: ServerApp[] = [${server.map((_, i) => `app${i}`).join(", ")}];\n` +
       `\n/** Every installed app, also apps with only web code. */\nexport const catalog: AppInfo[] = ${JSON.stringify(
-        loaded.map((a) => ({ id: a.id, name: a.name, enabledByDefault: a.enabledByDefault, ...(a.plan ? { plan: a.plan } : {}) }))
+        loaded.map((a) => ({ id: a.id, name: a.name, enabledByDefault: a.enabledByDefault, scope: a.scope, ...(a.plan ? { plan: a.plan } : {}) }))
       )};\n`
   );
   writeFileSync(

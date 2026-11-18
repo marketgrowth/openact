@@ -24,24 +24,52 @@ import { reindexProjectStatement } from "./search";
 import { markProjectChanged } from "./live";
 import { changeMemberRole, inviteMember, removeMember } from "./services";
 import { newProjectStatements } from "./api";
-import { HttpError, addDays, appUrl, companyAiChoice, newId, nowIso, oneOf, readJson, requireAppOn, requirePermission, requireUser, text, todayIso } from "./util";
+import {
+  HttpError,
+  addDays,
+  appUrl,
+  companyAiChoice,
+  companyRole,
+  newId,
+  nowIso,
+  oneOf,
+  readJson,
+  requireActiveWorkspace,
+  requireAppOn,
+  requirePermission,
+  requireUser,
+  text,
+  todayIso,
+  workspaceForNew,
+  workspaceScope
+} from "./util";
 import { aiModelLabel } from "@openact/core/shared";
 
 export const projectRoutes = new Hono<AppEnv>();
 
-/** Projects the person can see in one company. ?company=ID, or their current company. */
+/**
+ * Projects the person can see in one company. ?company=ID, or their current company.
+ * Projects is workspace-aware: ?workspace=ID or "all" (owners and admins), or the person's saved workspace.
+ */
 projectRoutes.get("/", async (c) => {
   const user = requireUser(c);
   const companyId = c.req.query("company") || (await currentCompanyId(c.env, user.id));
   if (!companyId) return c.json({ companyId: null, projects: [], recentTasks: [] });
   await requireCompanyRole(c.env, companyId, user.id, [...COMPANY_ROLES]);
   await requireAppOn(c.env, companyId, "projects");
-  const visible = await visibleProjectIds(c.env, companyId, user.id);
-  if (!visible.length) return c.json({ companyId, projects: [], recentTasks: [] });
+  const workspaceId = await workspaceScope(c, "projects", companyId);
+  let visible = await visibleProjectIds(c.env, companyId, user.id);
+  if (workspaceId && visible.length) {
+    // Workspaces organize the list. Access still comes from visibleProjectIds.
+    const inWs = await c.env.DB.prepare("SELECT id FROM projects WHERE company_id = ? AND workspace_id = ?").bind(companyId, workspaceId).all<{ id: string }>();
+    const keep = new Set(inWs.results.map((r) => r.id));
+    visible = visible.filter((v) => keep.has(v.id));
+  }
+  if (!visible.length) return c.json({ companyId, workspaceId, projects: [], recentTasks: [] });
   const byId = new Map(visible.map((v) => [v.id, v]));
   const marks = visible.map(() => "?").join(", ");
   const rows = await c.env.DB.prepare(
-    `SELECT p.id, p.name, p.description, p.color, p.visibility, p.updated_at,
+    `SELECT p.id, p.name, p.description, p.color, p.visibility, p.updated_at, p.workspace_id,
        (SELECT COUNT(*) FROM tasks t WHERE t.project_id = p.id) AS task_count,
        (SELECT COUNT(*) FROM tasks t WHERE t.project_id = p.id AND t.status = 'done') AS done_count,
        (SELECT COUNT(*) FROM tasks t WHERE t.project_id = p.id AND t.status != 'done' AND t.end_date < ?) AS late_count,
@@ -50,7 +78,7 @@ projectRoutes.get("/", async (c) => {
      ORDER BY p.updated_at DESC`
   )
     .bind(todayIso(), ...visible.map((v) => v.id))
-    .all<{ id: string; name: string; description: string; color: ProjectColor; visibility: Visibility; updated_at: string; task_count: number; done_count: number; late_count: number; member_count: number }>();
+    .all<{ id: string; name: string; description: string; color: ProjectColor; visibility: Visibility; updated_at: string; workspace_id: string | null; task_count: number; done_count: number; late_count: number; member_count: number }>();
   // The person's own pins and recent tasks, only for projects they can still see.
   const ids = visible.map((v) => v.id);
   const [pinRows, recentRows] = await Promise.all([
@@ -79,9 +107,10 @@ projectRoutes.get("/", async (c) => {
     lateCount: r.late_count,
     memberCount: r.member_count,
     updatedAt: r.updated_at,
-    pinnedAt: pins.get(r.id) ?? null
+    pinnedAt: pins.get(r.id) ?? null,
+    workspaceId: r.workspace_id
   }));
-  return c.json({ companyId, projects, recentTasks });
+  return c.json({ companyId, workspaceId, projects, recentTasks });
 });
 
 /** How many recent tasks the side panel shows, and how many the server keeps per person. */
@@ -155,7 +184,20 @@ projectRoutes.post("/", async (c) => {
   const co = await c.env.DB.prepare("SELECT ai_defaults FROM companies WHERE id = ?").bind(companyId).first<{ ai_defaults: string }>();
   const id = newId();
   const iso = nowIso();
-  const made = newProjectStatements(c.env, { id, companyId, name, description, color, visibility, ownerId: user.id, createdBy: user.id, aiDefaults: co?.ai_defaults });
+  // The project goes in the workspace the person works in. In the All workspaces view, it goes in the default one.
+  const workspaceId = (await workspaceForNew(c, "projects", companyId, body.workspaceId)) ?? undefined;
+  const made = newProjectStatements(c.env, {
+    id,
+    companyId,
+    workspaceId,
+    name,
+    description,
+    color,
+    visibility,
+    ownerId: user.id,
+    createdBy: user.id,
+    aiDefaults: co?.ai_defaults
+  });
   const stmts: D1PreparedStatement[] = made.stmts;
   const cols = { ids: made.columnIds };
   if (template === "example") {
@@ -180,7 +222,9 @@ projectRoutes.post("/", async (c) => {
 
 export async function loadProject(env: Env, projectId: string, role: Role): Promise<ProjectDetail> {
   const [p, members, invitations, tasks, attachments, columns, requests] = await env.DB.batch([
-    env.DB.prepare("SELECT id, name, description, color, company_id, visibility, rev, ai_policy, created_at, updated_at FROM projects WHERE id = ?").bind(projectId),
+    env.DB.prepare("SELECT id, name, description, color, company_id, workspace_id, visibility, rev, ai_policy, created_at, updated_at FROM projects WHERE id = ?").bind(
+      projectId
+    ),
     env.DB.prepare(
       "SELECT u.id AS user_id, u.email, u.name, m.role FROM project_members m JOIN users u ON u.id = m.user_id WHERE m.project_id = ? ORDER BY u.name COLLATE NOCASE"
     ).bind(projectId),
@@ -193,13 +237,25 @@ export async function loadProject(env: Env, projectId: string, role: Role): Prom
     ).bind(projectId)
   ]);
   const pr = p.results[0] as
-    | { id: string; name: string; description: string; color: ProjectColor; company_id: string | null; visibility: Visibility; rev: number; ai_policy: string; created_at: string; updated_at: string }
+    | {
+        id: string;
+        name: string;
+        description: string;
+        color: ProjectColor;
+        company_id: string | null;
+        workspace_id: string | null;
+        visibility: Visibility;
+        rev: number;
+        ai_policy: string;
+        created_at: string;
+        updated_at: string;
+      }
     | undefined;
   if (!pr) throw new HttpError(404, "This project does not exist.");
   const aiPolicy = parsePolicy(pr.ai_policy);
   const ai = await companyAiChoice(env, pr.company_id);
   return {
-    project: { id: pr.id, name: pr.name, description: pr.description, color: pr.color, companyId: pr.company_id, visibility: pr.visibility, rev: pr.rev, createdAt: pr.created_at, updatedAt: pr.updated_at },
+    project: { id: pr.id, name: pr.name, description: pr.description, color: pr.color, companyId: pr.company_id, workspaceId: pr.workspace_id, visibility: pr.visibility, rev: pr.rev, createdAt: pr.created_at, updatedAt: pr.updated_at },
     role,
     columns: (columns.results as unknown as Parameters<typeof toColumn>[0][]).map(toColumn),
     aiPolicy,
@@ -246,10 +302,19 @@ projectRoutes.patch("/:id", async (c) => {
   const user = requireUser(c);
   const id = c.req.param("id");
   const body = await readJson(c);
-  // Visibility decides who can see the project, so only owners change it.
-  await requireRole(c.env, id, user.id, body.visibility !== undefined ? "owner" : "editor");
+  // Visibility decides who can see the project, so only owners change it. Moving it to another workspace needs an owner too.
+  await requireRole(c.env, id, user.id, body.visibility !== undefined || body.workspaceId !== undefined ? "owner" : "editor");
   const sets: string[] = [];
   const vals: unknown[] = [];
+  if (body.workspaceId !== undefined) {
+    const row = await c.env.DB.prepare("SELECT company_id FROM projects WHERE id = ?").bind(id).first<{ company_id: string | null }>();
+    if (!row?.company_id) throw new HttpError(400, "This project has no company, so it has no workspaces.");
+    // Moving work between workspaces is a company decision: project owners who are company members, owners or admins.
+    const role = await companyRole(c.env, row.company_id, user.id);
+    if (!role || role === "guest") throw new HttpError(403, "Guests cannot move a project to another workspace.");
+    sets.push("workspace_id = ?");
+    vals.push(await requireActiveWorkspace(c.env, row.company_id, body.workspaceId));
+  }
   if (body.visibility !== undefined) {
     sets.push("visibility = ?");
     vals.push(oneOf(body.visibility, "Visibility", VISIBILITIES));

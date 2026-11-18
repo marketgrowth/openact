@@ -53,7 +53,8 @@ An app is a folder with a `package.json` that has an `openact` field:
     "client": "./src/client/index.tsx",
     "migrations": "./migrations",
     "durableObjects": [],
-    "enabledByDefault": true
+    "enabledByDefault": true,
+    "scope": "workspace"
   },
   "dependencies": { "@openact/core": "^0.2.0", "@openact/ui": "^0.2.0", "hono": "^4.13.16", "react": "^19.3.1" }
 }
@@ -63,9 +64,30 @@ The `id` is 2 to 31 lowercase letters, numbers or dashes. It must be unique in a
 
 `enabledByDefault` is optional. Set it to `false` when each company must turn the app on first.
 
+`scope` is optional. Use `"workspace"` to make the app workspace-aware, or `"company"` (the default) to keep its data company-wide. Read [Workspace-aware apps](#workspace-aware-apps).
+
 `plan` is optional, and only official MarketGrowth apps use it. Set it to `"director"` or `"producer"` to make a paid app. The core locks the app in companies without that plan. See [Plans](plans.md).
 
 `requiresApps` is optional. List the apps that must be installed too, such as `["projects"]`. `npm run sync` stops with a clear message when one is missing. `optionalApps` lists apps that your app uses when they are there.
+
+### Workspace-aware apps
+
+A company can split its work into [workspaces](workspaces.md), such as brands or locations. An app opts in with `"scope": "workspace"` in its manifest. An app without it stays company-wide and never sees a workspace.
+
+A workspace-aware app:
+
+1. Adds a `workspace_id` column to its main tables, in a migration. Point it at `workspaces (id)`.
+2. Puts existing rows in the company's default workspace, in the same migration:
+   `UPDATE <table> SET workspace_id = (SELECT id FROM workspaces w WHERE w.company_id = <table>.company_id AND w.is_default = 1);`
+3. Adds a trigger that does the same for rows inserted without a workspace, such as rows from **Duplicate a company**. See `apps/projects/migrations/0002_workspaces.sql`.
+4. Reads the workspace in list routes with `workspaceScope(c, "<app id>", companyId)` from `@openact/core/server`. It returns a workspace id, or `null` for every workspace (All workspaces, or a guest). Filter by `workspace_id` only when it is not null.
+5. Picks the workspace of a new row with `workspaceForNew(c, "<app id>", companyId, body.workspaceId)`.
+6. Checks a move with `requireActiveWorkspace(env, companyId, workspaceId)`.
+7. In the web app, adds `useWorkspace().workspaceParam` to its API calls, and loads again when it changes.
+
+Workspaces organize work. They never decide access. Check the company role, the app permission and the row's own access first, as before.
+
+For an app with `"scope": "company"`, `workspaceScope` always returns `null`, so the same code stays company-wide.
 
 ### Use another app
 
