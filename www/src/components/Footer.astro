@@ -1,0 +1,53 @@
+---
+import Logo from "./Logo.astro";
+import { DEMO_URL, DEPLOY_URL, DOCS_URL, GITHUB_URL, LICENSE_URL } from "../site";
+
+interface Props {
+  page: "home" | "contribute" | "other";
+}
+const { page } = Astro.props;
+const home = page === "home" ? "" : "/";
+// The second Developers link points to the docs page that fits the page.
+const guide =
+  page === "contribute"
+    ? { href: `${DOCS_URL}/contribute`, label: "Contributions in the docs" }
+    : { href: `${DOCS_URL}/getting-started`, label: "Getting started" };
+---
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <a class="brand" href="/" aria-label="OpenAct home">
+          <Logo />
+          OpenAct
+        </a>
+        <p>Open source business apps on Cloudflare. OpenAct is made by MarketGrowth.</p>
+      </div>
+      <nav aria-labelledby="f-product">
+        <h3 id="f-product">Product</h3>
+        <ul>
+          <li><a href={DEMO_URL}>Demo</a></li>
+          <li><a href={`${home}#plans`}>Plans</a></li>
+          <li><a href="/contribute" aria-current={page === "contribute" ? "page" : undefined}>Contribute</a></li>
+        </ul>
+      </nav>
+      <nav aria-labelledby="f-dev">
+        <h3 id="f-dev">Developers</h3>
+        <ul>
+          <li><a href={DOCS_URL}>Docs</a></li>
+          <li><a href={guide.href}>{guide.label}</a></li>
+          <li><a href="/design">Design system</a></li>
+          <li><a href={GITHUB_URL}>GitHub</a></li>
+        </ul>
+      </nav>
+      <nav aria-labelledby="f-deploy">
+        <h3 id="f-deploy">Deploy</h3>
+        <ul>
+          <li><a href={DEPLOY_URL}>Deploy to Cloudflare</a></li>
+          <li><a href={LICENSE_URL}>Apache License 2.0</a></li>
+        </ul>
+      </nav>
+    </div>
+    <p class="legal">Copyright 2026 MarketGrowth. OpenAct is open source under the Apache License 2.0.</p>
+  </div>
+</footer>

@@ -1,3 +1,7 @@
+---
+// The Promptbook page at https://openact.ing/design. `npm run design -- build` writes the parts between the promptbook markers.
+// It has its own look, so it does not use the Site layout. Keep its styles inline (is:inline).
+---
 <!doctype html>
 <html lang="en">
   <head>
@@ -23,12 +27,12 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wdth,wght@75..100,500..800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" />
     <!-- The token values below come from packages/ui/src/theme.css. `npm run design -- build` writes them. -->
     <!-- promptbook:vars -->
-<style>
+<style is:inline>
       :root { --pb-background: oklch(0.145 0 0); --pb-foreground: oklch(0.985 0 0); --pb-card: oklch(0.205 0 0); --pb-card-foreground: oklch(0.985 0 0); --pb-popover: oklch(0.205 0 0); --pb-popover-foreground: oklch(0.985 0 0); --pb-muted: oklch(0.269 0 0); --pb-muted-foreground: oklch(0.708 0 0); --pb-border: oklch(1 0 0 / 10%); --pb-input: oklch(1 0 0 / 15%); --pb-ring: oklch(0.556 0 0); --pb-scrim: oklch(0 0 0 / 65%); --pb-primary: oklch(0.922 0 0); --pb-primary-foreground: oklch(0.205 0 0); --pb-secondary: oklch(0.269 0 0); --pb-secondary-foreground: oklch(0.985 0 0); --pb-accent: oklch(0.269 0 0); --pb-accent-foreground: oklch(0.985 0 0); --pb-destructive: oklch(0.704 0.191 22.216); --pb-destructive-foreground: #ffffff; --pb-s-backlog: #7c899d; --pb-s-todo: #6c9ae9; --pb-s-doing: #e8a138; --pb-s-review: #a886e6; --pb-s-done: #4abc82; --pb-p-high: #f37b63; --pb-p-med: #e1aa4c; --pb-p-low: #a3a3a3; --pb-live: #4abc82; --pb-today: #fe6a54; --pb-warn: oklch(0.27 0.04 75); --pb-warn-foreground: oklch(0.86 0.1 85); --pb-warn-border: oklch(0.42 0.07 75); --pb-agent-think: #a3adbb; --pb-agent-act: #8aabff; --pb-agent-wait: #cf9cff; --pb-agent-done: #56c98f; --pb-agent-fail: #f37b63; --pb-brand: #ece7f2; --pb-brand-foreground: #1c1824; --pb-brand-gold: #e3b85c; --pb-stage: #0f0d14; --pb-stage-foreground: #ffffff; --pb-paper: #fbfafc; --pb-paper-foreground: #1c1824; --pb-desk: #1b191f; }
       @media (prefers-color-scheme: light) { :root { --pb-background: oklch(1 0 0); --pb-foreground: oklch(0.145 0 0); --pb-card: oklch(1 0 0); --pb-card-foreground: oklch(0.145 0 0); --pb-popover: oklch(1 0 0); --pb-popover-foreground: oklch(0.145 0 0); --pb-muted: oklch(0.97 0 0); --pb-muted-foreground: oklch(0.535 0 0); --pb-border: oklch(0.922 0 0); --pb-input: oklch(0.922 0 0); --pb-ring: oklch(0.708 0 0); --pb-scrim: oklch(0 0 0 / 50%); --pb-primary: oklch(0.205 0 0); --pb-primary-foreground: oklch(0.985 0 0); --pb-secondary: oklch(0.97 0 0); --pb-secondary-foreground: oklch(0.205 0 0); --pb-accent: oklch(0.97 0 0); --pb-accent-foreground: oklch(0.205 0 0); --pb-destructive: oklch(0.577 0.245 27.325); --pb-destructive-foreground: #ffffff; --pb-s-backlog: #8d99a9; --pb-s-todo: #4a78c7; --pb-s-doing: #c47b10; --pb-s-review: #8658c4; --pb-s-done: #2c9662; --pb-p-high: #c0402b; --pb-p-med: #a8711a; --pb-p-low: #737373; --pb-live: #2c9662; --pb-today: #d53f2c; --pb-warn: oklch(0.97 0.04 85); --pb-warn-foreground: oklch(0.42 0.09 70); --pb-warn-border: oklch(0.86 0.09 85); --pb-agent-think: #5d6675; --pb-agent-act: #2f5bd3; --pb-agent-wait: #8a35c9; --pb-agent-done: #1b7a4b; --pb-agent-fail: #c0392b; --pb-brand: #1c1824; --pb-brand-foreground: #ffffff; --pb-brand-gold: #8a6420; --pb-stage: #15121c; --pb-stage-foreground: #ffffff; --pb-paper: #ffffff; --pb-paper-foreground: #1c1824; --pb-desk: #ebe9ee; } }
     </style>
 <!-- /promptbook:vars -->
-    <style>
+    <style is:inline>
       /* This page draws itself with the Promptbook tokens (--pb-*). Only the layout is local. */
       :root {
         --max: 1200px;

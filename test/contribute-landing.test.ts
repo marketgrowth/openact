@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { handleContribute, isContributeRoute } from "../landing/src/contribute.ts";
+import { handleContribute, isContributeRoute } from "../www/worker/contribute.ts";
 import { CONTRIBUTE_URL } from "../src/shared/contribute.ts";
 
 const ORIGIN = "https://openact.ing";

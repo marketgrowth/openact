@@ -1,5 +1,5 @@
 /*
- * Contributions: rules shared by the landing page Worker (landing/src/contribute.ts) and the tests.
+ * Contributions: rules shared by the website Worker (www/worker/contribute.ts) and the tests.
  *
  * People pay by card through Stripe Checkout, or in USDC through x402 v2.
  * Contributions help build OpenAct. The page is https://openact.ing/contribute.
@@ -8,7 +8,7 @@
 /** The Contribute page. The heart icon on the app rail of every deploy opens it in a new browser tab. */
 export const CONTRIBUTE_URL = "https://openact.ing/contribute";
 
-/** The contribution routes on the landing page Worker. */
+/** The contribution routes on the website Worker. */
 export const CONTRIBUTE_API = "/api/contribute";
 
 /** The smallest and the largest contribution, in US dollars. */
@@ -20,7 +20,7 @@ export const PRESETS_USD = [10, 25, 50, 100] as const;
 
 export type Frequency = "once" | "monthly";
 
-/** What the page needs to know. The landing page Worker sends it from GET /api/contribute. */
+/** What the page needs to know. The website Worker sends it from GET /api/contribute. */
 export interface ContributeOptions {
   /** True when Stripe Checkout is set up. */
   card: boolean;
