@@ -25,6 +25,7 @@
     "packages/core/src",
     "apps/*/src/server",
     "apps/*/src/shared",
-    "examples/*/src/server"
+    "examples/*/src/server",
+    "www/worker"
   ]
 }

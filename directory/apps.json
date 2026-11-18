@@ -1,5 +1,9 @@
 {
   "$comment": "The OpenAct app directory. docs.openact.app/directory shows it, and `npm run openact -- add <id>` installs from it. To list your app, open a pull request that adds an entry with the status \"available\".",
+  "plans": {
+    "director": "Part of OpenAct Director, the paid plan for startups to midmarket companies",
+    "producer": "Part of OpenAct Producer, the paid plan for enterprise companies"
+  },
   "statuses": {
     "built-in": "Part of OpenAct",
     "available": "Ready to install",
@@ -41,13 +45,38 @@
     {
       "id": "docs",
       "name": "Docs",
-      "summary": "A company library of paper-size docs, with folders, categories and tags. Share a doc with a link, or print it to PDF.",
+      "summary": "A company library of paper-size docs, with folders, categories and tags. Live editing, comments and AI writing help. Share a doc with a link, or print it to PDF.",
       "category": "Work",
       "status": "built-in",
+      "plan": "director",
       "publisher": "MarketGrowth",
       "reserved": true,
       "source": "local",
       "repo": "https://github.com/marketgrowth/openact/tree/main/apps/docs"
+    },
+    {
+      "id": "advisory",
+      "name": "Advisory",
+      "summary": "Run a marketplace of approved advisors. Members book consults or pay in advance through Stripe Connect, and the company keeps a fee. Each paid engagement opens a project.",
+      "category": "Sales",
+      "status": "built-in",
+      "plan": "director",
+      "publisher": "MarketGrowth",
+      "reserved": true,
+      "source": "local",
+      "repo": "https://github.com/marketgrowth/openact/tree/main/apps/advisory"
+    },
+    {
+      "id": "esign",
+      "name": "eSign",
+      "summary": "Send PDFs for signature. Make templates with signer roles and fields, send signing links that need no account, and get a signed PDF with a signing certificate.",
+      "category": "Work",
+      "status": "built-in",
+      "plan": "director",
+      "publisher": "MarketGrowth",
+      "reserved": true,
+      "source": "local",
+      "repo": "https://github.com/marketgrowth/openact/tree/main/apps/esign"
     },
     {
       "id": "timetrack",
@@ -125,6 +154,17 @@
       "reserved": true,
       "source": "github:marketgrowth/openact-events",
       "repo": "https://github.com/marketgrowth/openact-events"
+    },
+    {
+      "id": "booking",
+      "name": "Booking",
+      "summary": "Weekly availability, Google and Microsoft calendar busy times, and booking links. Other apps, such as Advisory, add a Pick a time step.",
+      "category": "Work",
+      "status": "planned",
+      "publisher": "MarketGrowth",
+      "reserved": true,
+      "source": "github:marketgrowth/openact-booking",
+      "repo": "https://github.com/marketgrowth/openact-booking"
     },
     {
       "id": "learn",

@@ -1,0 +1,30 @@
+---
+// The home page at https://openact.ing. Each section is a component in src/components/home/.
+import Site from "../layouts/Site.astro";
+import "../styles/home.css";
+import Hero from "../components/home/Hero.astro";
+import Tour from "../components/home/Tour.astro";
+import Audience from "../components/home/Audience.astro";
+import Features from "../components/home/Features.astro";
+import Director from "../components/home/Director.astro";
+import Plans from "../components/home/Plans.astro";
+import Closer from "../components/home/Closer.astro";
+---
+<Site
+  page="home"
+  path="/"
+  title="OpenAct: open source business apps on Cloudflare"
+  description="OpenAct is an open source framework for business apps on Cloudflare. It comes with a Projects app and runs in your own Cloudflare account. Try the free demo."
+  ogTitle="Build the apps that run your company"
+  ogDescription="OpenAct is an open source framework for business apps on Cloudflare. Try the free demo."
+>
+  <Hero />
+  <div class="wrap">
+    <Tour />
+    <Audience />
+    <Features />
+    <Director />
+    <Plans />
+    <Closer />
+  </div>
+</Site>

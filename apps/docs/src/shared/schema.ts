@@ -6,6 +6,7 @@ import { Details, DetailsContent, DetailsSummary } from "@tiptap/extension-detai
 import Image from "@tiptap/extension-image";
 import TextAlign from "@tiptap/extension-text-align";
 import { PageBreak } from "./page-break.ts";
+import { TableOfContents } from "./toc.ts";
 import { CommentMark } from "./comment-mark.ts";
 
 /*
@@ -29,6 +30,7 @@ export function docExtensions({ collab = false }: { collab?: boolean } = {}): An
     Image.configure({ allowBase64: false }),
     TextAlign.configure({ types: ["heading", "paragraph"] }),
     PageBreak,
+    TableOfContents,
     CommentMark
   ];
 }

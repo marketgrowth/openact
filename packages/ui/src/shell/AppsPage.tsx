@@ -1,11 +1,12 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { canManageCompany } from "@openact/core/shared";
-import { railApps, useShell, type ClientApp, type DirectoryApp } from "../apps";
+import { canManageCompany, planPart, type PaidPlan } from "@openact/core/shared";
+import { railOrder, useShell, type ClientApp, type DirectoryApp } from "../apps";
 import { Link } from "../router";
 import { Icon, Notice, useToast } from "../ui";
 import { useWorkspace } from "../workspace";
 import { PageBody, SiteHeader } from "./SiteHeader";
 import { useCompanyApps } from "./AppSettings";
+import { PLAN_PATH, PlanBadge } from "./Plan";
 import { appHome } from "../app-paths";
 import { Badge } from "@openact/ui/components/badge";
 import { Button } from "@openact/ui/components/button";
@@ -18,7 +19,7 @@ import { cn } from "@openact/ui/lib/utils";
  * Owners and admins turn installed apps on or off here. Adding an app from the directory is a code change, so the page shows the command.
  */
 
-const DIRECTORY_URL = "https://docs.openact.app/directory";
+const DIRECTORY_URL = "https://docs.openact.ing/directory";
 
 const STATUS: Record<DirectoryApp["status"], string> = {
   "built-in": "Built in",
@@ -28,11 +29,11 @@ const STATUS: Record<DirectoryApp["status"], string> = {
 };
 
 export function AppsPage() {
-  const { apps, directory } = useShell();
+  const { apps, primary, directory } = useShell();
   const ws = useWorkspace();
   const current = ws.current;
   const manager = canManageCompany(current?.role ?? null);
-  const installed = railApps(apps);
+  const installed = railOrder(apps, primary);
   const installedIds = new Set(apps.map((a) => a.id));
   const more = directory.filter((d) => !installedIds.has(d.id) && d.status !== "built-in");
   const info = (id: string) => directory.find((d) => d.id === id);
@@ -74,7 +75,7 @@ export function AppsPage() {
 /** Owners and admins see every installed app, with its switch. */
 function ManagedApps({ companyId, installed, info }: { companyId: string; installed: ClientApp[]; info: (id: string) => DirectoryApp | undefined }) {
   const { apps: settings, error, busy, save } = useCompanyApps(companyId);
-  const { apps } = useShell();
+  const { apps, primary } = useShell();
   if (error) return <Notice tone="error">{error}</Notice>;
   if (!settings) return <p className="text-sm text-muted-foreground">Loading…</p>;
   return (
@@ -82,15 +83,44 @@ function ManagedApps({ companyId, installed, info }: { companyId: string; instal
       {installed.map((app) => {
         const s = settings.find((x) => x.id === app.id);
         const on = s?.enabled ?? false;
+        const plan = s?.plan ?? null;
+        if (s?.locked && plan && !s.blocked)
+          return (
+            <AppCard
+              key={app.id}
+              app={app}
+              summary={info(app.id)?.summary}
+              on={false}
+              primary={app.id === primary}
+              plan={plan}
+              locked
+              action={
+                <>
+                  <span className="mr-auto text-xs text-muted-foreground">{planPart(plan)}</span>
+                  <Button asChild size="sm">
+                    <Link to={PLAN_PATH}>Upgrade</Link>
+                  </Button>
+                </>
+              }
+            />
+          );
         return (
           <AppCard
             key={app.id}
             app={app}
             summary={info(app.id)?.summary}
             on={on}
+            primary={app.id === primary}
+            plan={plan}
             action={
               <>
-                {s?.siteOff && <span className="mr-auto text-xs text-muted-foreground">Off for this site</span>}
+                {s?.siteOff ? (
+                  <span className="mr-auto text-xs text-muted-foreground">Off for this site</span>
+                ) : s?.blocked ? (
+                  <span className="mr-auto text-xs text-muted-foreground">Not available for this company</span>
+                ) : (
+                  s?.granted && <span className="mr-auto text-xs text-muted-foreground">Given by a site admin</span>
+                )}
                 {on && (
                   <Button asChild size="sm" variant="outline">
                     <Link to={appHome(app, apps)}>Open</Link>
@@ -98,7 +128,7 @@ function ManagedApps({ companyId, installed, info }: { companyId: string; instal
                 )}
                 <Switch
                   checked={on}
-                  disabled={busy || !s || s.siteOff}
+                  disabled={busy || !s || s.siteOff || s.blocked}
                   onCheckedChange={(next) => save(app.id, { enabled: next }, `${app.name} is ${next ? "on" : "off"}.`)}
                   aria-label={`${app.name} app`}
                 />
@@ -114,10 +144,13 @@ function ManagedApps({ companyId, installed, info }: { companyId: string; instal
 /** Members see the apps that are on. */
 function MemberApps({ installed, info }: { installed: ClientApp[]; info: (id: string) => DirectoryApp | undefined }) {
   const ws = useWorkspace();
-  const { apps } = useShell();
+  const { apps, primary } = useShell();
   const off = ws.access?.disabledApps ?? [];
+  const blockedIds = ws.access?.blockedApps ?? [];
+  const lockedIds = (ws.access?.lockedApps ?? []).filter((id) => !blockedIds.includes(id));
   const shown = installed.filter((a) => !off.includes(a.id));
-  if (!shown.length) return <p className="text-sm text-muted-foreground">No apps are on for this company. Ask an owner or admin.</p>;
+  const locked = installed.filter((a) => lockedIds.includes(a.id));
+  if (!shown.length && !locked.length) return <p className="text-sm text-muted-foreground">No apps are on for this company. Ask an owner or admin.</p>;
   return (
     <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {shown.map((app) => (
@@ -126,6 +159,8 @@ function MemberApps({ installed, info }: { installed: ClientApp[]; info: (id: st
           app={app}
           summary={info(app.id)?.summary}
           on
+          primary={app.id === primary}
+          plan={info(app.id)?.plan ?? null}
           action={
             <Button asChild size="sm" variant="outline">
               <Link to={appHome(app, apps)}>Open</Link>
@@ -133,19 +168,69 @@ function MemberApps({ installed, info }: { installed: ClientApp[]; info: (id: st
           }
         />
       ))}
+      {locked.map((app) => {
+        const plan = info(app.id)?.plan ?? "director";
+        return (
+          <AppCard
+            key={app.id}
+            app={app}
+            summary={info(app.id)?.summary}
+            on={false}
+            primary={app.id === primary}
+            plan={plan}
+            locked
+            action={
+              <Button asChild size="sm" variant="outline">
+                <Link to={PLAN_PATH}>See plans</Link>
+              </Button>
+            }
+          />
+        );
+      })}
     </ul>
   );
 }
 
-function AppCard({ app, summary, on, action }: { app: ClientApp; summary?: string; on: boolean; action: ReactNode }) {
+function AppCard({
+  app,
+  summary,
+  on,
+  primary = false,
+  plan = null,
+  locked = false,
+  action
+}: {
+  app: ClientApp;
+  summary?: string;
+  on: boolean;
+  /** True for the deploy's primary app, for the badge. */
+  primary?: boolean;
+  /** The plan the app needs, for the badge. */
+  plan?: PaidPlan | null;
+  /** True when the company does not have that plan. */
+  locked?: boolean;
+  action: ReactNode;
+}) {
   return (
-    <li className="flex flex-col gap-3 rounded-xl border bg-card p-4" data-installed-app={app.id}>
+    <li className="flex flex-col gap-3 rounded-xl border bg-card p-4" data-installed-app={app.id} data-locked={locked ? "" : undefined}>
       <div className="flex items-center gap-3">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground" aria-hidden="true">
+        <span
+          className={cn(
+            "flex size-9 shrink-0 items-center justify-center rounded-lg",
+            locked ? "border border-dashed text-muted-foreground" : "bg-primary text-primary-foreground"
+          )}
+          aria-hidden="true"
+        >
           {app.Mark ? <app.Mark className="size-4" /> : <Icon name={app.icon!} />}
         </span>
         <span className="min-w-0 flex-1 truncate font-medium">{app.name}</span>
-        <Badge variant={on ? "secondary" : "outline"}>{on ? "On" : "Off"}</Badge>
+        {primary && (
+          <Badge variant="outline" data-primary-app="">
+            Primary
+          </Badge>
+        )}
+        {plan && <PlanBadge plan={plan} />}
+        <Badge variant={on ? "secondary" : "outline"}>{locked ? "Locked" : on ? "On" : "Off"}</Badge>
       </div>
       {summary && <p className="flex-1 text-sm text-muted-foreground">{summary}</p>}
       <div className="flex items-center justify-end gap-2">{action}</div>
@@ -204,7 +289,7 @@ function DirectorySection({ apps }: { apps: readonly DirectoryApp[] }) {
                     {a.category} · {a.publisher}
                   </span>
                 </span>
-                <Badge variant="outline">{STATUS[a.status]}</Badge>
+                {a.plan ? <PlanBadge plan={a.plan} /> : <Badge variant="outline">{STATUS[a.status]}</Badge>}
               </div>
               <p className="flex-1 text-sm text-muted-foreground">{a.summary}</p>
               <div className="flex items-center justify-between gap-2">

@@ -18,6 +18,7 @@ import { Switch } from "@openact/ui/components/switch";
 import { Button } from "@openact/ui/components/button";
 import { Input } from "@openact/ui/components/input";
 import { Separator } from "@openact/ui/components/separator";
+import { SiteCompanyApps } from "./SiteCompanyApps";
 
 /** Which part of Site settings to show. Each one is a section of the Settings page. */
 export type SiteSection = "general" | "sign-in" | "apps";
@@ -38,6 +39,8 @@ export function SiteSettingsSection({ section, onSaved }: { section: SiteSection
   const bgFile = useRef<HTMLInputElement>(null);
   const [signIn, setSignIn] = useState({ heading: "", credit: "", termsUrl: "", privacyUrl: "" });
   const [signInBusy, setSignInBusy] = useState(false);
+  const [issuesUrl, setIssuesUrl] = useState("");
+  const [issuesBusy, setIssuesBusy] = useState(false);
 
   // The form holds what a super admin saved. Empty fields mean the defaults.
   const signInForm = (s: SiteSettings) => ({
@@ -53,6 +56,7 @@ export function SiteSettingsSection({ section, onSaved }: { section: SiteSection
         setSite(s);
         setName(s.customName ? s.appName : "");
         setSignIn(signInForm(s));
+        setIssuesUrl(s.issuesUrl ?? "");
       })
       .catch((err) => setLoadError(errorText(err)));
   }, []);
@@ -74,6 +78,21 @@ export function SiteSettingsSection({ section, onSaved }: { section: SiteSection
       toast(errorText(err));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const saveIssues = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIssuesBusy(true);
+    try {
+      const s = await api<SiteSettings>("/api/site/issues", { method: "PATCH", body: { issuesUrl } });
+      apply(s);
+      setIssuesUrl(s.issuesUrl ?? "");
+      toast(s.issuesUrl ? "The Submit issues link is saved." : "The Submit issues icon is hidden.");
+    } catch (err) {
+      toast(errorText(err));
+    } finally {
+      setIssuesBusy(false);
     }
   };
 
@@ -138,7 +157,7 @@ export function SiteSettingsSection({ section, onSaved }: { section: SiteSection
     try {
       apply(await api<SiteSettings>(`/api/site/apps/${encodeURIComponent(id)}`, { method: "PATCH", body: { enabled } }));
       await ws.reloadAccess();
-      toast(enabled ? `${name} is on for the site.` : `${name} is off for the site. Other people see the change within a minute.`);
+      toast(enabled ? `${name} is on for the site.` : `${name} is off in every company. Other people see the change within a minute.`);
     } catch (err) {
       toast(errorText(err));
     } finally {
@@ -193,23 +212,67 @@ export function SiteSettingsSection({ section, onSaved }: { section: SiteSection
             )}
           </div>
         </Field>
+        <Separator />
+        <form className="grid gap-4" onSubmit={saveIssues} data-site-issues-form="">
+          <Field
+            label="Submit issues link"
+            htmlFor="site-issues"
+            help="A bug icon on the app rail opens this link in a new browser tab. Use it for your issue tracker or a feedback form. Leave it empty to hide the icon."
+          >
+            <Input
+              id="site-issues"
+              type="url"
+              inputMode="url"
+              value={issuesUrl}
+              maxLength={LEGAL_URL_MAX}
+              placeholder="https://github.com/your-org/your-repo/issues/new"
+              onChange={(e) => setIssuesUrl(e.target.value)}
+            />
+          </Field>
+          <div className="flex justify-end">
+            <Button type="submit" disabled={issuesBusy || issuesUrl.trim() === (site.issuesUrl ?? "")}>
+              Save link
+            </Button>
+          </div>
+        </form>
       </div>
     );
 
-  if (section === "apps")
-    return site.apps && site.apps.length > 0 ? (
-      <ul className="grid gap-2" data-site-apps="">
-        {site.apps.map((a) => (
-          <li key={a.id} className="flex items-center gap-3 rounded-lg border p-3" data-site-app={a.id}>
-            <span className="min-w-0 flex-1 truncate text-sm font-medium">{a.name}</span>
-            <span className="text-xs text-muted-foreground">{a.enabled ? "On" : "Off"}</span>
-            <Switch checked={a.enabled} disabled={appBusy} onCheckedChange={(on) => setAppOn(a.id, a.name, on)} aria-label={`${a.name} app for the whole site`} />
-          </li>
-        ))}
-      </ul>
-    ) : (
-      <p className="text-sm text-muted-foreground">This site has no apps to turn off.</p>
+  if (section === "apps") {
+    const apps = site.apps ?? [];
+    if (!apps.length) return <p className="text-sm text-muted-foreground">This site has no apps to turn off.</p>;
+    return (
+      <div className="grid gap-6">
+        <section className="grid gap-3" aria-labelledby="site-apps-all">
+          <div className="grid gap-1">
+            <h3 id="site-apps-all" className="text-sm font-medium">
+              Every company
+            </h3>
+            <p className="text-sm text-muted-foreground">An app that is off here is off in every company on this site.</p>
+          </div>
+          <ul className="grid gap-2" data-site-apps="">
+            {apps.map((a) => (
+              <li key={a.id} className="flex items-center gap-3 rounded-lg border p-3" data-site-app={a.id}>
+                <span className="min-w-0 flex-1 truncate text-sm font-medium">{a.name}</span>
+                <span className="text-xs text-muted-foreground">{a.enabled ? "On" : "Off"}</span>
+                <Switch checked={a.enabled} disabled={appBusy} onCheckedChange={(on) => setAppOn(a.id, a.name, on)} aria-label={`${a.name} app for the whole site`} />
+              </li>
+            ))}
+          </ul>
+        </section>
+        <Separator />
+        <section className="grid gap-3" aria-labelledby="site-apps-company">
+          <div className="grid gap-1">
+            <h3 id="site-apps-company" className="text-sm font-medium">
+              One company
+            </h3>
+            <p className="text-sm text-muted-foreground">Choose which apps each company can use. A change here does not touch the other companies.</p>
+          </div>
+          <SiteCompanyApps siteOff={apps.filter((a) => !a.enabled).map((a) => a.id)} />
+        </section>
+      </div>
     );
+  }
 
   return (
     <div className="grid gap-6">

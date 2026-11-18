@@ -1,13 +1,17 @@
 ---
 title: Docs
-description: A company library of paper-size docs, with folders, categories and tags. Share a doc with a link, or print it to PDF.
+description: A company library of paper-size docs and uploaded PDFs, with folders, categories and tags. Share a doc with a link, or print it to PDF. Part of OpenAct Director.
 ---
 
 # Docs
 
-Docs is a company library of rich text documents. Each doc is a page the size of paper. You can sort docs into folders, give each doc a category, and add tags. You can share a doc with a link, and anyone can print it or save it as a PDF. The pages on screen match the printed pages.
+Docs is a company library of rich text documents and uploaded PDFs. Each doc is a page the size of paper. You can sort docs and PDFs into folders, give each one a category, and add tags. You can share a doc with a link, and anyone can print it or save it as a PDF. The pages on screen match the printed pages.
 
-Docs comes with OpenAct, next to Projects. It has its own icon in the app rail. It is on for every company unless an admin turns it off.
+::: tip Part of OpenAct Director
+Docs is a paid app. It needs a [Director or Producer plan](plans.md). Without a plan, Docs is locked: the Apps page shows it with a **Director** badge and an **Upgrade** button, and your docs stay saved.
+:::
+
+Docs comes with OpenAct, next to Projects. It has its own icon in the app rail. In a company with a plan, it is on unless an admin turns it off.
 
 ## Write a doc
 
@@ -15,9 +19,20 @@ Docs comes with OpenAct, next to Projects. It has its own icon in the app rail. 
 2. Choose **New doc**. Type a title, and choose a folder, a category and a paper size if you want them.
 3. Write. Your changes save on their own after a short pause.
 
-The toolbar has headings, bold, italic, underline, strikethrough, links, lists, checklists, quotes, code blocks, sections that open and close, text alignment, images, tables, lines and page breaks. Press Ctrl+Enter (Cmd+Enter on a Mac) to start a new page.
+The toolbar has headings, bold, italic, underline, strikethrough, links, lists, checklists, quotes, code blocks, sections that open and close, text alignment, images, tables, lines, page breaks and a table of contents.
 
-Choose **Page** to set the paper size (Letter, A4 or Legal), the orientation and the margins. Dashed lines on the sheet show where each printed page starts.
+### Pages
+
+The editor shows each printed page as its own sheet of paper. A page can end between two blocks, between two list items or between two table rows. A heading at the bottom of a page moves to the next page with the text under it. A single block that is taller than a page, such as a large image, gets a page of its own.
+
+- **Page breaks.** Press Ctrl+Enter (Cmd+Enter on a Mac) to start a new page. In a list, the page break splits the list after the current item, and a numbered list goes on with the right number on the next page. When you paste from Google Docs or Word, their page breaks stay.
+- **Paper.** Choose **Page** to set the paper size (Letter, A4 or Legal), the orientation and the margins.
+- **Header and footer.** Choose **Page**, then **Header and footer**. Write `{page}` for the page number, `{total}` for the number of pages and `{title}` for the doc title. For example, `Page {page} of {total}`. You can leave them off the first page, for a cover page. New docs start with page numbers in the footer.
+- **Zoom.** Choose the zoom button to see the pages larger or smaller, or to fit them to the width of the window. Zoom changes only what you see. It does not change the pages or the print, and other people keep their own zoom.
+
+### Table of contents
+
+Choose **Table of contents** in the toolbar to add one where the cursor is. It lists the doc's headings with their page numbers and updates as you write. Click an entry to go to that heading. On a share page, the entries are links. In print and in a PDF, each entry shows its page number.
 
 Images must be PNG, JPEG, WebP or GIF files, up to 5 MB.
 
@@ -63,9 +78,29 @@ AI writing help is off until a company owner or admin turns it on, because it se
 
 Docs uses the company's AI provider: the company's own key when an owner set one in Company settings, under AI provider, or the deploy default. Requests go through Cloudflare AI Gateway. For local tests without AI, set `AI_PROVIDER` to `dev-scripted`.
 
+## Upload PDFs
+
+You can keep PDFs in the library next to your docs. A PDF has a folder, a category, tags and a share link, like a doc.
+
+1. Open a folder, a category, a tag or **All docs**.
+2. Choose **Upload PDF**. You can also drop PDF files on the list.
+3. Choose one or more PDFs. You can upload up to 20 at a time, and each one can be up to 25 MB.
+4. Choose the folder, the category and the tags. They apply to every PDF in the upload. The folder, category or tag of the page that is open is chosen for you.
+5. Choose **Upload PDF**.
+
+The title comes from the file name. With one PDF, you can type a title before you upload. You can change the title later on the PDF's page.
+
+The PDF's page shows the file in the browser's own PDF viewer, with its folder, category and tags above it. Choose **Download** to save the file, or **Open** to show it in a new tab. Some phone browsers cannot show a PDF inside a page. There, use **Open** or **Download**.
+
+### Replace a PDF
+
+Choose **Replace file** on the PDF's page, then choose the new file. Docs keeps only the latest file: the old file is deleted. The title, folder, category, tags and share link stay. The share link opens the new file at once.
+
+A PDF has no text to edit in Docs. Comments, live editing, AI writing help, page settings and headers and footers are only for docs that you write in Docs.
+
 ## Organize the library
 
-Docs gives you three ways to sort docs. Use them together.
+Docs gives you three ways to sort docs and PDFs. Use them together.
 
 | Tool | What it is for | Rules |
 | --- | --- | --- |
@@ -75,7 +110,7 @@ Docs gives you three ways to sort docs. Use them together.
 
 The side panel shows the folder tree, the categories and the tags, with the number of docs in each. Choose one to see its docs. **All docs** shows every doc, and **Not in a folder** shows docs that have no folder. On each list, you can find a doc by its title and filter by category and tag.
 
-To file a doc, open it and choose its folder, category and tags in the bar above the toolbar. These save at once. They do not change the doc's content, so they never clash with someone who is writing in it.
+To file a doc or a PDF, open it and choose its folder, category and tags in the bar at the top. These save at once. They do not change the doc's content, so they never clash with someone who is writing in it.
 
 - **Folders:** choose **+** next to Folders to make a top-level folder. Open the menu of a folder to make a folder inside it, to rename or move it, or to delete it. You can delete a folder only when it is empty, so no doc is lost by mistake.
 - **Categories:** choose the pencil next to Categories to add, rename, recolor or delete them. When you delete a category, its docs stay, with no category.
@@ -88,7 +123,7 @@ Docs belong to the company. Docs has six permissions. A company owner or admin c
 | Permission | What it allows | Default roles |
 | --- | --- | --- |
 | See docs | Open and print every doc in the library | Owner, admin, member |
-| Write docs | Make, change and delete docs, add images, file docs in folders and categories, and tag them | Owner, admin, member |
+| Write docs | Make, change and delete docs, upload and replace PDFs, add images, file docs in folders and categories, and tag them | Owner, admin, member |
 | Organize the library | Make, rename, move and delete folders and categories, and rename or delete tags | Owner, admin |
 | Share docs with a link | Make a share link, or turn it off | Owner, admin, member |
 | Comment on docs | Read comments, start threads, reply, and resolve. Starting a thread on text also needs Write docs. | Owner, admin, member |
@@ -103,6 +138,8 @@ Guests do not see Docs. Every member who can see docs sees every doc in the comp
 
 Anyone with the link can read the doc and print it. They cannot change it, and they do not need an account. The link always shows the latest saved version. The page has a table of contents when the doc has two or more headings.
 
+The link of a PDF opens the latest file in the browser's PDF viewer. Add `?download=1` to the link to save the file.
+
 - **Make a new link** replaces the link. The old link stops working at once.
 - **Turn off link** stops all access through the link.
 - Deleting the doc also stops the link.
@@ -114,14 +151,15 @@ Share pages ask search engines not to list them, and they send no referrer to ot
 
 Choose **Print or PDF** in the editor, or **Print or save as PDF** on a share page. In the print dialog, choose **Save as PDF** as the printer.
 
-The share page splits the doc into sheets of the page size, and each sheet prints as one page. Page numbers show at the bottom of each page. Sections that open and close print open.
+The share page splits the doc into the same pages as the editor, and each page prints as one page. The header and footer print at the top and bottom of each page. Sections that open and close print open.
 
-A table or image that is taller than one page gets a page of its own on screen, but the browser splits it in print. Keep long tables short, or split them, when the page count matters.
+A single block that is taller than one page, such as a large image or a very long paragraph, gets a page of its own on screen, but the browser splits it in print. Then the printed page count can differ from the editor.
 
 ## Turn Docs off
 
-- **For one company:** a company owner or admin opens **App directory** on the app rail, then turns off Docs. The data stays.
+- **For one company:** a company owner or admin opens **Company settings > Apps**, then turns off Docs. The data stays.
 - **For the whole site:** a super admin opens **Site settings**, then turns off Docs under **Apps**. Companies cannot turn it on again until a super admin does. Read [Site name, logo, sign-in page and apps](getting-started.md#site-name-logo-sign-in-page-and-apps).
+- **For one company, by a super admin:** a super admin opens **Site settings > Apps**, finds the company under **One company**, then turns off Docs. The company cannot turn it on again until a super admin does.
 
 ## How it works
 
@@ -129,6 +167,8 @@ A table or image that is taller than one page gets a page of its own on screen, 
 - The share page and the print page build their HTML on the server from the cleaned doc. They escape all text, and a strict Content-Security-Policy lets only the page's own script and style run.
 - The database keeps a SHA-256 hash of each share token to find the doc, and a copy encrypted with `AUTH_SECRET` so people can copy the link again. It never keeps the token in plain text.
 - Images live in R2 under `docs/<company id>/<doc id>/`. Uploads are checked by their first bytes, not their file name.
+- A PDF is a row in `docs_docs` with `kind` set to `pdf`, so it uses the same folders, categories, tags, share links and permissions as a doc. Its file is one row in `docs_files` and one object in R2, under the same path as images. A PDF upload must start with the PDF header (`%PDF-`). The Worker sends PDFs as `application/pdf` with `nosniff`. Only the Docs page can show a PDF in a frame (`frame-ancestors 'self'`), and a share link cannot be framed.
+- A new file for a PDF replaces the old one. The Worker switches the PDF to the new file only when nobody else replaced it at the same moment, then deletes the old file. A daily job deletes any old file that a stopped upload left behind.
 - Live editing follows the y-websocket protocol with Yjs. The browser connects to `/api/apps/docs/collab/<doc id>`. The Worker checks the session, the Origin and the Docs permissions, then passes the connection to the doc's Durable Object. The Durable Object also checks once a minute that each person is still in the company.
 - The library has a revision number. A live room per company tells open Docs pages to load the lists again when someone changes a doc, a folder, a category or a tag.
 - Share links live at `/docs/s/<token>`. `wrangler.jsonc` sends these paths to the Worker before the web app (`run_worker_first`).

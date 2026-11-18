@@ -2,11 +2,12 @@ import type { Context } from "hono";
 import { HttpError, appName, companyAppState, loadSite, randomToken, sha256Hex, type AppEnv } from "@openact/core/server";
 import { FILE_SRC, SHARE_PREFIX, isShareToken } from "../shared/types";
 import { linkProblemHtml, paperHeaders, paperPageHtml } from "./page-html";
-import { parseContent, sendImage, type DocRow, type FileRow } from "./routes";
+import { DOC_COLUMNS, currentPdf, pageSettings, parseContent, sendImage, sendPdf, type DocRow, type FileRow } from "./routes";
 
 /*
  * Public share links: /docs/s/<token> and the images in that doc.
  * Anyone with the link can read the doc without signing in. Nobody can change it.
+ * The link of an uploaded PDF opens the latest file in the browser's PDF viewer. ?download=1 saves it.
  * The link stops working when an editor turns it off, makes a new link, or deletes the doc,
  * and while Docs is off for the company or the site.
  */
@@ -23,7 +24,7 @@ async function sharedDoc(c: Context<AppEnv>, token: string): Promise<DocRow | nu
   // Routes outside /api/ do not run the site middleware, so load the site switches here.
   await loadSite(c.env);
   const doc = await c.env.DB.prepare(
-    `SELECT d.id, d.company_id, d.folder_id, d.category_id, d.title, d.content, d.page_size, d.orientation, d.margin, d.rev, d.updated_by, d.updated_at
+    `SELECT ${DOC_COLUMNS.split(", ").map((k) => `d.${k}`).join(", ")}
      FROM docs_shares s JOIN docs_docs d ON d.id = s.doc_id
      WHERE s.token_hash = ?`
   )
@@ -39,12 +40,17 @@ export async function sharePage(c: Context<AppEnv>): Promise<Response> {
   const token = c.req.param("token") ?? "";
   const doc = await sharedDoc(c, token);
   if (!doc) return NOT_FOUND();
+  if (doc.kind === "pdf") {
+    const file = await currentPdf(c.env, doc);
+    if (!file) return NOT_FOUND();
+    return sendPdf(c.env, file, { download: c.req.query("download") === "1", frame: "none", cache: false, share: true });
+  }
   const nonce = randomToken(16);
   const html = paperPageHtml({
     title: doc.title,
     siteName: appName(c.env),
     doc: parseContent(doc.content),
-    settings: { pageSize: doc.page_size, orientation: doc.orientation, margin: doc.margin },
+    settings: pageSettings(doc),
     updatedAt: doc.updated_at,
     // In-app image paths become paths under this link, so a reader needs no account.
     imageUrl: (src) => {

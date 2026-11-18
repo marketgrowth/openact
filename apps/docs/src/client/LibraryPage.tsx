@@ -1,13 +1,13 @@
-import { useMemo, useState } from "react";
-import { fmtDateTime, Icon, Link, Notice, PageBody, SiteHeader } from "@openact/ui";
+import { useMemo, useRef, useState, type DragEvent } from "react";
+import { fmtDateTime, Icon, Link, Notice, PageBody, SiteHeader, useToast } from "@openact/ui";
 import { Badge } from "@openact/ui/components/badge";
 import { Button } from "@openact/ui/components/button";
 import { Input } from "@openact/ui/components/input";
 import { NativeSelect, NativeSelectOption } from "@openact/ui/components/native-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@openact/ui/components/table";
-import type { DocSummary } from "../shared/types";
+import { fmtBytes, type DocSummary } from "../shared/types";
 import { FOLDER_DEPTH_MAX } from "../shared/library";
-import { ColorDot, FolderDialog, NewDocDialog } from "./library-dialogs";
+import { ColorDot, FolderDialog, NewDocDialog, UploadPdfDialog } from "./library-dialogs";
 import { DOCS_HOME, useDocs } from "./state";
 
 /** Which docs a library page shows. */
@@ -18,7 +18,11 @@ export function LibraryPage({ view }: { view: View }) {
   const [q, setQ] = useState("");
   const [catFilter, setCatFilter] = useState("");
   const [tagFilter, setTagFilter] = useState("");
-  const [dialog, setDialog] = useState<null | "doc" | "folder">(null);
+  const [dialog, setDialog] = useState<null | "doc" | "folder" | "pdf">(null);
+  const [dropped, setDropped] = useState<File[]>([]);
+  const [dragging, setDragging] = useState(false);
+  const toast = useToast();
+  const dragDepth = useRef(0);
 
   const current = view.kind === "folder" ? folder(view.id) : view.kind === "category" ? category(view.id) : view.kind === "tag" ? tag(view.id) : undefined;
   const missing = (view.kind === "folder" || view.kind === "category" || view.kind === "tag") && library && !current;
@@ -54,6 +58,39 @@ export function LibraryPage({ view }: { view: View }) {
   const trail = view.kind === "folder" ? folderTrail(view.id) : [];
   const can = library?.can;
 
+  // Drop PDFs on the page to upload them here, with this folder, category or tag.
+  // A file drop is always caught, so the browser never leaves the page to open the file.
+  const hasFiles = (e: DragEvent) => Array.from(e.dataTransfer.types).includes("Files");
+  const drag = {
+    onDragEnter: (e: DragEvent) => {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      dragDepth.current++;
+      if (can?.edit) setDragging(true);
+    },
+    onDragOver: (e: DragEvent) => {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = can?.edit ? "copy" : "none";
+    },
+    onDragLeave: (e: DragEvent) => {
+      if (!hasFiles(e)) return;
+      dragDepth.current = Math.max(0, dragDepth.current - 1);
+      if (!dragDepth.current) setDragging(false);
+    },
+    onDrop: (e: DragEvent) => {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      dragDepth.current = 0;
+      setDragging(false);
+      const files = Array.from(e.dataTransfer.files);
+      if (!files.length || !library) return;
+      if (!can?.edit) return toast("Your role in this company cannot upload PDFs. Ask a company owner or admin for the Write docs permission.");
+      setDropped(files);
+      setDialog("pdf");
+    }
+  };
+
   return (
     <>
       <SiteHeader
@@ -72,12 +109,29 @@ export function LibraryPage({ view }: { view: View }) {
           </Button>
         )}
         {can?.edit && (
+          <Button variant="outline" size="sm" onClick={() => (setDropped([]), setDialog("pdf"))} data-upload-pdf="">
+            <Icon name="upload" /> <span className="hidden sm:inline">Upload PDF</span>
+          </Button>
+        )}
+        {can?.edit && (
           <Button size="sm" onClick={() => setDialog("doc")} data-new-doc="">
             <Icon name="plus" /> <span className="hidden sm:inline">New doc</span>
           </Button>
         )}
       </SiteHeader>
       <PageBody>
+        <div
+          {...drag}
+          className={`relative flex min-h-[60dvh] flex-1 flex-col gap-4 rounded-xl md:gap-6 ${dragging ? "outline-2 outline-offset-4 outline-ring outline-dashed" : ""}`}
+          data-docs-drop=""
+        >
+        {dragging && (
+          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-background/80 text-sm font-medium">
+            <span className="flex items-center gap-2">
+              <Icon name="upload" /> Drop PDFs to upload them here
+            </span>
+          </div>
+        )}
         {error && <Notice tone="error">{error}</Notice>}
         {missing && <Notice tone="error">This {view.kind} does not exist. Someone may have deleted it.</Notice>}
 
@@ -162,20 +216,26 @@ export function LibraryPage({ view }: { view: View }) {
             <h3 className="text-lg font-semibold">{library.docs.length === 0 ? "No docs yet" : "No docs here"}</h3>
             <p className="text-sm text-muted-foreground">
               {library.docs.length === 0
-                ? "Write briefs, proposals, policies and notes on pages the size of paper. Share them with a link, or print them to PDF."
+                ? "Write briefs, proposals, policies and notes on pages the size of paper, or upload PDFs. Share them with a link, or print them to PDF."
                 : q || catFilter || tagFilter
                   ? "No docs match. Clear the search or the filters."
-                  : "Put a doc here when you make it, or move one here from its page."}
+                  : "Put a doc here when you make it, move one here from its page, or drop PDFs here."}
             </p>
             {can?.edit && (
-              <Button onClick={() => setDialog("doc")}>
-                <Icon name="plus" /> New doc
-              </Button>
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button onClick={() => setDialog("doc")}>
+                  <Icon name="plus" /> New doc
+                </Button>
+                <Button variant="outline" onClick={() => (setDropped([]), setDialog("pdf"))}>
+                  <Icon name="upload" /> Upload PDF
+                </Button>
+              </div>
             )}
           </div>
         ) : (
           <DocTable docs={docs} showFolder={view.kind !== "folder" && view.kind !== "unfiled"} />
         )}
+        </div>
       </PageBody>
 
       {dialog === "doc" && (
@@ -186,6 +246,15 @@ export function LibraryPage({ view }: { view: View }) {
         />
       )}
       {dialog === "folder" && view.kind === "folder" && <FolderDialog parentId={view.id} onClose={() => setDialog(null)} />}
+      {dialog === "pdf" && (
+        <UploadPdfDialog
+          folderId={view.kind === "folder" ? view.id : null}
+          categoryId={view.kind === "category" ? view.id : null}
+          tagName={view.kind === "tag" ? (tag(view.id)?.name ?? null) : null}
+          files={dropped}
+          onClose={() => setDialog(null)}
+        />
+      )}
     </>
   );
 }
@@ -211,9 +280,14 @@ function DocTable({ docs, showFolder }: { docs: DocSummary[]; showFolder: boolea
             return (
               <TableRow key={d.id} data-doc={d.id}>
                 <TableCell className="max-w-0 min-w-48">
-                  <Link to={`${DOCS_HOME}/d/${d.id}`} className="flex items-center gap-2 font-medium hover:underline">
-                    <Icon name="doc" className="shrink-0 text-muted-foreground" />
+                  <Link to={`${DOCS_HOME}/${d.kind === "pdf" ? "p" : "d"}/${d.id}`} className="flex items-center gap-2 font-medium hover:underline">
+                    <Icon name={d.kind === "pdf" ? "pdf" : "doc"} className="shrink-0 text-muted-foreground" />
                     <span className="truncate">{d.title}</span>
+                    {d.kind === "pdf" && (
+                      <Badge variant="outline" className="shrink-0 font-normal" title={d.size ? fmtBytes(d.size) : undefined}>
+                        PDF
+                      </Badge>
+                    )}
                     {d.shared && (
                       <span className="shrink-0 text-muted-foreground" title="Shared with a link">
                         <Icon name="share" size={13} />

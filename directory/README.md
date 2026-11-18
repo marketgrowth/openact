@@ -16,6 +16,10 @@ npm run openact -- add contacts   # Installs an app by its id
 | `planned` | The id is reserved for an official app that is not ready yet |
 | `example` | An example app in this repository |
 
+## Plans
+
+An entry with `"plan": "director"` or `"plan": "producer"` is a paid app. The directory shows a badge, and the app needs that plan to work. Only official MarketGrowth apps have a plan. Read [Plans](../docs/plans.md).
+
 ## Reserved ids
 
 Apps with `"reserved": true` are official apps from MarketGrowth. The app tool installs an app with one of these ids only from its official source. The ids in `systemIds` are reserved for OpenAct itself, because app ids become table, route and file prefixes.

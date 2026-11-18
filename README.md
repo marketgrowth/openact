@@ -2,14 +2,14 @@
 
 **All The World's A Stage**
 
-OpenAct is an open source framework for agentic business apps on Cloudflare. It comes with a Projects app and a Docs app. Add more apps from the app directory, or build your own.
+OpenAct is an open source framework for agentic business apps on Cloudflare. The core, the UI and the Projects app are free and open source. Paid apps, Docs, Advisory and eSign, come with OpenAct Director. Add more apps from the app directory, or build your own.
 
-- **A suite of apps.** Projects is ready now, with Kanban, Gantt and calendar views, an AI agent and search. Docs is a company library of paper-size documents. Official apps for time tracking, contacts, events, support and more are under review in the [app directory](https://docs.openact.app/directory).
+- **A suite of apps.** Projects is ready now, with Kanban, Gantt and calendar views, an AI agent and search. Docs is a company library of paper-size documents, Advisory is a marketplace of approved advisors, and eSign sends PDFs for signature. All three are in the OpenAct Director plan. Official apps for time tracking, contacts, events, support and more are under review in the [app directory](https://docs.openact.app/directory).
 - **A framework for your own apps.** Sign-in, companies, roles, permissions, live updates, email, files and the app shell are ready. Your app adds only its own features.
 - **Agents that know their limits.** The Projects agent acts for a person and never does more than their role allows. Risky changes wait for approval.
 - **Cloudflare from end to end.** Workers, D1, R2, Durable Objects, Vectorize and Workers AI, on your own account.
 
-MarketGrowth makes OpenAct and shares it under the Apache License 2.0.
+MarketGrowth makes OpenAct and shares the core, the UI and the Projects app under the Apache License 2.0. Docs, Advisory and eSign are under the OpenAct Director License ([Docs](apps/docs/LICENSE), [Advisory](apps/advisory/LICENSE), [eSign](apps/esign/LICENSE)). Read about [plans](https://docs.openact.app/plans).
 
 Read the documentation at [docs.openact.app](https://docs.openact.app).
 
@@ -33,7 +33,9 @@ Read the documentation at [docs.openact.app](https://docs.openact.app).
 - **Roles.** In a project, owners manage people and settings, editors change tasks, and viewers only look. In a company, owners and admins manage the company, members see company projects, and guests see only the projects they are invited to.
 - **Sign-in without passwords.** People type their email and get a 6-digit code. [Resend](https://resend.com) sends the email.
 - **File attachments.** Attach files up to 25 MB to a task. Files go to R2.
-- **Docs.** A company library of rich text docs on pages the size of Letter, A4 or Legal paper. Sort docs into folders up to 5 levels deep, give each a category, and add tags. Share a doc with a link that needs no account, or print it to PDF. The pages on screen match the printed pages. Live editing with cursors for each person, and offline changes that sync later. Comment threads on text or on the whole doc, with replies, resolve and @mentions by email. AI writing help improves, shortens, translates or continues selected text, when a company turns it on. A super admin can turn Docs off for the whole site. Read [docs/docs-app.md](docs/docs-app.md).
+- **Docs (OpenAct Director).** A company library of rich text docs on pages the size of Letter, A4 or Legal paper. Sort docs into folders up to 5 levels deep, give each a category, and add tags. Share a doc with a link that needs no account, or print it to PDF. The pages on screen match the printed pages. Live editing with cursors for each person, and offline changes that sync later. Comment threads on text or on the whole doc, with replies, resolve and @mentions by email. AI writing help improves, shortens, translates or continues selected text, when a company turns it on. Docs needs a Director or Producer plan. A super admin can turn Docs off for the whole site. Read [docs/docs-app.md](docs/docs-app.md).
+- **Advisory (OpenAct Director).** A company marketplace of approved advisors. Members book a consult or pay for an offer in advance. Members can also apply to sell their own services. Offers are one-time or monthly retainers. Clients pay through Stripe Connect, and the company keeps a fee that it sets for each advisor. A paid engagement opens a secret project for the advisor and the client. Each company sets its own label, such as Consultant or Coach. Read [docs/advisory-app.md](docs/advisory-app.md).
+- **eSign (OpenAct Director).** Send PDFs for signature. Make a template with signer roles and fields, or start from a PDF in Docs. Each signer gets a link by email and needs no account. When everyone signs, eSign makes the signed PDF with a signing certificate and an audit log, and saves a copy to Docs. Read [docs/esign-app.md](docs/esign-app.md).
 - **AI agent with role-based access.** Tell the agent what to do in plain words: "Move the late tasks to next week" or "Rename Review to QA". The agent acts for you and never has more power than your role. Owners choose how much each role may hand to the agent. Deletes, people changes and large batches wait for your approval, and every agent action is logged. Read [docs/reference/ag-ui.md](docs/reference/ag-ui.md).
 - **Search by words and by meaning.** Press Ctrl+K or Cmd+K to search every project you can see in the company. Search finds "Book the gala hall" when you type "venue". It uses [Vectorize](https://developers.cloudflare.com/vectorize/) and Workers AI embeddings, and falls back to words only when Vectorize is not set up. The task panel shows related tasks, and the agent can search big projects.
 - **Clickable links.** Web addresses in a project description or in task notes show as links that open in a new tab. OpenAct never fetches them. Only `http` and `https` links work.
@@ -45,7 +47,8 @@ Read the documentation at [docs.openact.app](https://docs.openact.app).
 - **Apps.** OpenAct is a core plus apps. The core gives every app sign-in, people, companies, roles, live updates and the web shell. Project management is the first app. Add more from GitHub with one command: `npm run openact -- add github:owner/repo`. See [docs/apps.md](docs/apps.md).
 - **Built with shadcn/ui.** The web app uses [shadcn/ui](https://ui.shadcn.com) components, [Tailwind CSS](https://tailwindcss.com) and [Lucide](https://lucide.dev) icons, with the layout of shadcn's dashboard-01 block. Most React developers and coding agents already know these parts.
 - **Live updates.** When someone changes a project, every open page updates at once, including changes made by the AI agent. The header shows who else is viewing. Each project has a Durable Object that holds its WebSockets, and idle connections hibernate, so they cost almost nothing. If live updates are not available, pages check for changes every 5 seconds.
-- **Contributions.** A public page at `/contribute` lets people help pay for OpenAct, by card through Stripe Checkout or in USDC through [x402](https://www.x402.org). AI agents can pay the same x402 endpoint. The heart icon sits on top of the Colophon icon in the app rail. See [docs/contribute.md](docs/contribute.md).
+- **Contributions.** The public page at [openact.ing/contribute](https://openact.ing/contribute) lets people help build OpenAct, by card through Stripe Checkout or in USDC through [x402](https://www.x402.org). AI agents can pay the same x402 endpoint. The heart icon at the bottom of the app rail opens the page in a new tab. See [docs/contribute.md](docs/contribute.md).
+- **Submit issues.** A super admin can add a Submit issues link in Site settings > Branding. A bug icon on the app rail, above the heart, opens it in a new tab.
 
 ## Screenshots
 
@@ -56,7 +59,7 @@ The screenshots use example data: a sample team and projects, seen by Lyra, a co
 | ![Projects home page that greets Lyra, with Pinned, Projects and Recent in the panel](docs/images/projects.png) | ![Company menu open from the app rail](docs/images/switcher.png) |
 | **Projects.** The company's projects, with Pinned, Projects and Recent tasks in the panel. | **Company menu.** Every app's panel names the current company. Select it, or the mark on the app rail, to change company. |
 | ![Apps page with the apps in this company and apps from the directory](docs/images/apps-page.png) | ![Apps page in dark theme](docs/images/apps-page-dark.png) |
-| **Apps.** The App directory icon, below the divider on the app rail, opens the apps in this company and apps from the directory. Owners turn apps on or off here. | **Directory.** Official apps that are not ready say "Under review". Apps you can add show their install command. |
+| **Apps.** The App directory icon, below the divider on the app rail, opens the apps in this company and apps from the directory. Only super admins see it. Company owners turn apps on or off in Company settings. | **Directory.** Official apps that are not ready say "Under review". Apps you can add show their install command. |
 | ![Gantt timeline with phases and today line](docs/images/timeline.png) | ![Month calendar with start cards and deadline pills](docs/images/calendar.png) |
 | **Timeline.** Drag bars to move tasks. Phases have summary bars. | **Calendar.** Cards show starts. Pills show deadlines. |
 | ![Task drawer with dates, assignee and files](docs/images/task.png) | ![Panel collapsed to the app rail](docs/images/collapsed.png) |
@@ -202,6 +205,9 @@ Set these under `vars` in `wrangler.jsonc`, or in the Cloudflare dashboard.
 | `CF_ACCOUNT_ID` | empty | Your account ID. Needed for `anthropic` and `openai`. |
 | `TYPESAFE_MODEL` | `jev-1.14.0` | The Jev release for the topic check. Pinned, because the thresholds are set for it. |
 | `TYPESAFE_BASE_URL` | `https://api.typesafe.ai` | Another URL for the TypeSafe API, such as a gateway |
+| `STRIPE_PRICE_DIRECTOR` | empty | Plans: the Stripe Price id of the annual Director price. Director is for sale when it and `STRIPE_SECRET_KEY` are set. |
+| `STRIPE_PRICE_PRODUCER` | empty | Plans: the Stripe Price id of the annual Producer price |
+| `PLANS_CONTACT_URL` | empty | Plans: a `https://` or `mailto:` link for questions, such as about Producer |
 
 Set these secrets with `npx wrangler secret put NAME`:
 
@@ -213,6 +219,11 @@ Set these secrets with `npx wrangler secret put NAME`:
 | `OPENAI_API_KEY` | For `openai` | OpenAI API key, sent through AI Gateway |
 | `AI_GATEWAY_TOKEN` | No | Needed only if your AI Gateway uses authentication |
 | `TYPESAFE_API_KEY` | No | Turns on Jev for the topic check. Get a key from TypeSafe. |
+| `OPENACT_LICENSE` | No | A license key from MarketGrowth. It gives every company on a self-hosted deploy its paid plan. |
+| `STRIPE_SECRET_KEY` | No | Sells plans with Stripe, and takes card contributions |
+| `STRIPE_WEBHOOK_SECRET` | With plans | The signing secret of the Stripe webhook at `/api/billing/stripe-webhook` |
+| `ADVISORY_STRIPE_SECRET_KEY` | For Advisory payments | The Stripe secret key of the Connect platform that takes payments for advisors. Separate from `STRIPE_SECRET_KEY`. |
+| `ADVISORY_STRIPE_WEBHOOK_SECRET` | For Advisory payments | The signing secret of the Stripe webhook at `/api/apps/advisory/stripe-webhook` |
 
 The first person to sign in can always make an account, even in `invite` mode. An invitation always lets that email sign up, even when `ALLOWED_EMAIL_DOMAINS` does not include its domain.
 
@@ -227,7 +238,7 @@ OpenAct stores only SHA-256 hashes of codes and session tokens. It limits code r
 
 ## How it is built
 
-For the full list of tools, services, fonts and versions, read the [Colophon](docs/colophon.md). The app shows it at `/colophon`.
+For the full list of tools, services, fonts and versions, read the [Colophon](docs/colophon.md). The app shows it at `/colophon`. The page has no icon on the app rail.
 
 | Part | Choice |
 | --- | --- |
@@ -256,7 +267,8 @@ apps/projects/         The projects app
   src/shared/            Project types, access rules, agent policy, AG-UI types
   migrations/            New database changes for this app
 apps/docs/             The docs app: a library of paper-size docs with folders, categories and tags, share links, print to PDF
-src/                   The host: the Worker entry, the web app entry, the contribute page and the colophon
+src/                   The host: the Worker entry, the web app entry and the colophon
+www/                   The website at openact.ing: Astro pages and their Worker, with the Contribute page and its payment routes
 openact.apps.json      The installed apps, in order
 scripts/openact.mjs    Adds, updates and removes apps, and writes .openact/ (npm run sync)
 test/                  Unit tests and the search pipeline test
@@ -322,8 +334,22 @@ The check controls focus and cost. It is not a security control. Roles, the AI p
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md). To report a security problem, read [SECURITY.md](SECURITY.md).
 
-To help pay for OpenAct, open `/contribute` on any OpenAct deploy. See [docs/contribute.md](docs/contribute.md).
+To help build OpenAct, open [openact.ing/contribute](https://openact.ing/contribute). See [docs/contribute.md](docs/contribute.md).
+
+## Plans
+
+| Plan | For | What you get |
+| --- | --- | --- |
+| Free | Everyone | The core, the UI and the Projects app. Open source. |
+| Director | Startups to midmarket companies | Everything in Free, plus Docs, Advisory and eSign. More paid apps will join it. |
+| Producer | Enterprise companies | Everything in Director. |
+
+Each paid plan has one annual price per company. A company owner buys a plan on the **Plan** page. A self-hosted deploy gets its plan from a license key in the `OPENACT_LICENSE` secret. Read [docs/plans.md](docs/plans.md).
 
 ## License
 
-Apache License 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE). Copyright 2026 MarketGrowth.
+The core (`packages/core`), the UI kit (`packages/ui`), the Projects app (`apps/projects`) and the examples are under the Apache License 2.0. See [LICENSE](LICENSE).
+
+The Docs app (`apps/docs`) is under the [OpenAct Director License](apps/docs/LICENSE). You can read and change it, and run it for development and testing. Production use needs a Director or Producer plan. Versions of Docs released before November 10, 2026 stay under the Apache License 2.0.
+
+See [NOTICE](NOTICE). Copyright 2026 MarketGrowth.

@@ -1,0 +1,85 @@
+OpenAct Director License 1.0
+
+Copyright (c) 2026 MarketGrowth (https://marketgrowth.io)
+
+This license applies to the files in this folder (apps/advisory), "the Software".
+The Software is part of OpenAct Director, a paid plan of OpenAct.
+
+The rest of OpenAct (the core, the UI kit, the Projects app and the other files
+outside this folder) is under the Apache License 2.0. See the LICENSE file at the
+top of the repository.
+
+
+1. What you may do
+
+1.1 You may read, copy and change the Software.
+
+1.2 You may run the Software, with or without changes, for development and
+    testing. This needs no plan.
+
+1.3 You may use the Software in production only for a company that has a valid
+    OpenAct Director or OpenAct Producer plan. A company has a valid plan when
+    one of these is true:
+    a. The company has a paid subscription to the plan from MarketGrowth, and
+       the subscription is active.
+    b. The OpenAct deploy has a license key that MarketGrowth issued, and the
+       key is valid for that plan, that deploy and that date.
+
+1.4 You may keep the Software in an OpenAct deploy where companies without a
+    valid plan cannot use it. The Software locks itself for those companies.
+    Keeping it locked is not production use.
+
+1.5 You may send changes to MarketGrowth, for example as a pull request.
+
+
+2. What you must not do
+
+2.1 You must not remove, change, disable or work around the plan check, the
+    license key check or the billing code to use the Software without a valid
+    plan. This includes, but is not limited to:
+    a. changing the "plan" field in this folder's package.json;
+    b. adding public keys to, or changing, license-keys.ts in the core;
+    c. setting up your own billing account to sell plans to yourself or to others;
+    d. changing the core so that a locked app does not lock.
+
+2.2 You must not sell, rent, sublicense or give the Software, or changes to it,
+    to other people, except as a full copy of the OpenAct repository that
+    includes this file.
+
+2.3 You must not offer the Software to other people as a hosted service, unless
+    MarketGrowth agrees in writing.
+
+2.4 You must not remove or change copyright, license or other notices in the
+    Software.
+
+
+3. Contributions
+
+If you send a change to MarketGrowth, you give MarketGrowth the right to use,
+change and share that change under any license, without payment.
+
+
+4. Other software
+
+The Software uses open source parts, such as Tiptap and Yjs, under their own
+licenses. This license does not change those licenses. See the NOTICE file.
+
+
+5. End of the license
+
+If you break this license, your rights under it end at once. If you fix the
+problem within 30 days after MarketGrowth tells you about it, your rights start
+again, unless you broke the license before.
+
+
+6. No warranty and no liability
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL MARKETGROWTH OR
+ITS CONTRIBUTORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+The terms of a separate written agreement between you and MarketGrowth come
+before this license where they differ.

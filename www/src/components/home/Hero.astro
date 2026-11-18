@@ -1,0 +1,30 @@
+---
+import { DEMO_URL, DEPLOY_URL } from "../../site";
+---
+<div class="wrap hero">
+  <div>
+    <p class="eyebrow">Open source · Runs on Cloudflare</p>
+    <h1>All the world's<br /><em>a stage.</em></h1>
+    <p class="lead">OpenAct is a framework for the apps that run your company. It comes with Projects, a working app for project management. Build more apps with help from AI coding agents. You own the code and the data.</p>
+    <div class="actions">
+      <a class="btn btn-accent" href={DEPLOY_URL}>Deploy to Cloudflare</a>
+      <a class="btn btn-ghost arrow" href={DEMO_URL}>Try the demo</a>
+    </div>
+    <p class="note">Apache License 2.0. The demo is free. You do not need a password.</p>
+  </div>
+  <div class="stage-key">
+    <div class="card terminal" aria-label="Deploy OpenAct from a terminal">
+      <div class="head"><span>~/openact</span><i></i></div>
+      <pre><span class="p">$</span> git clone github.com/marketgrowth/openact
+<span class="p">$</span> npm install
+<span class="p">$</span> npm run deploy
+<span class="c">  migrations applied · worker live</span>
+<span class="p">$</span> <span class="cursor" aria-hidden="true"></span></pre>
+      <div class="done">
+        <span class="chip ok">Projects · on</span>
+        <span class="chip">D1 · R2 · Workers</span>
+        <span class="chip">your account</span>
+      </div>
+    </div>
+  </div>
+</div>

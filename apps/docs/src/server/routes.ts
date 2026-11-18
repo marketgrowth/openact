@@ -28,24 +28,33 @@ import { CATEGORIES_MAX, FOLDERS_MAX, cleanName, cleanTagNames, folderMoveProble
 import {
   CATEGORY_COLORS,
   CONTENT_MAX_BYTES,
+  HEADER_MAX,
   IMAGE_MAX_BYTES,
   MARGINS,
+  PDF_MAX_BYTES,
+  PDF_MAX_LABEL,
   ORIENTATIONS,
   PAGE_SIZES,
   SHARE_PREFIX,
   TITLE_MAX,
+  cleanFileName,
   fileSrc,
   sniffImage,
+  sniffPdf,
+  titleFromFileName,
   type Category,
   type CategoryColor,
   type DocDetail,
+  type DocKind,
   type DocNode,
   type DocSummary,
   type Folder,
   type Library,
   type Margin,
   type Orientation,
+  type PageSettings,
   type PageSize,
+  type PdfFile,
   type Tag
 } from "../shared/types";
 import { paperHeaders, paperPageHtml } from "./page-html";
@@ -58,7 +67,7 @@ import type { DocsEnv } from "./room";
  * Docs belong to a company. Every route checks a Docs permission with requirePermission(),
  * which also checks that the person is in the company and that Docs is on for the company and the site.
  *   docs.view      read docs and print them
- *   docs.edit      make, change and delete docs, and tag them
+ *   docs.edit      make, change and delete docs, upload PDFs, and tag them
  *   docs.organize  make, rename, move and delete folders, categories and tags
  *   docs.share     make and turn off share links
  *   docs.ai        use AI writing help, when the company turned it on
@@ -71,6 +80,9 @@ export const SHARE_PURPOSE = "docs-share";
 export interface DocRow {
   id: string;
   company_id: string;
+  kind: DocKind;
+  /** The current file of a PDF. Null for a doc. */
+  file_id: string | null;
   folder_id: string | null;
   category_id: string | null;
   title: string;
@@ -78,12 +90,28 @@ export interface DocRow {
   page_size: PageSize;
   orientation: Orientation;
   margin: Margin;
+  header: string;
+  footer: string;
+  hide_first: number;
   rev: number;
   updated_by: string | null;
   updated_at: string;
 }
 
-const DOC_COLUMNS = "id, company_id, folder_id, category_id, title, content, page_size, orientation, margin, rev, updated_by, updated_at";
+export const DOC_COLUMNS = "id, company_id, kind, file_id, folder_id, category_id, title, content, page_size, orientation, margin, header, footer, hide_first, rev, updated_by, updated_at";
+
+/** The page settings of a doc row. */
+export const pageSettings = (doc: DocRow): PageSettings => ({
+  pageSize: doc.page_size,
+  orientation: doc.orientation,
+  margin: doc.margin,
+  header: doc.header ?? "",
+  footer: doc.footer ?? "",
+  hideFirst: !!doc.hide_first
+});
+
+/** A header or footer from the editor: one line of plain text. */
+const headerText = (v: unknown, label: string) => text(v, label, { max: HEADER_MAX }).replace(/[\r\n\t]+/g, " ");
 
 export async function loadDoc(env: Env, id: string): Promise<DocRow> {
   const row = await env.DB.prepare(`SELECT ${DOC_COLUMNS} FROM docs_docs WHERE id = ?`).bind(id).first<DocRow>();
@@ -91,8 +119,13 @@ export async function loadDoc(env: Env, id: string): Promise<DocRow> {
   return row;
 }
 
+/** Stops a route that works only on docs written in the editor. A PDF has no text to change. */
+export function requireTextDoc(doc: DocRow, what: string): void {
+  if (doc.kind === "pdf") throw new HttpError(400, `${what} works only in docs written in Docs. This is an uploaded PDF.`, "pdf");
+}
+
 /** A statement that raises the library's revision, so open pages load the lists again. */
-function bumpLibrary(env: Env, companyId: string): D1PreparedStatement {
+export function bumpLibrary(env: Env, companyId: string): D1PreparedStatement {
   markChanged(LIBRARY_ROOM, companyId);
   return env.DB.prepare("INSERT INTO docs_library (company_id, rev) VALUES (?, 1) ON CONFLICT (company_id) DO UPDATE SET rev = rev + 1").bind(companyId);
 }
@@ -195,16 +228,19 @@ docsRoutes.get("/companies/:companyId/library", async (c) => {
     c.env.DB.prepare("SELECT id, name, color FROM docs_categories WHERE company_id = ? ORDER BY position, name").bind(companyId).all<Category>(),
     c.env.DB.prepare("SELECT id, name FROM docs_tags WHERE company_id = ? ORDER BY name COLLATE NOCASE").bind(companyId).all<Tag>(),
     c.env.DB.prepare(
-      `SELECT d.id, d.title, d.folder_id, d.category_id, d.page_size, d.updated_at, u.name AS u_name, u.email AS u_email, s.doc_id IS NOT NULL AS shared
+      `SELECT d.id, d.kind, d.title, d.folder_id, d.category_id, d.page_size, d.updated_at, u.name AS u_name, u.email AS u_email,
+         s.doc_id IS NOT NULL AS shared, f.size AS file_size
        FROM docs_docs d
        LEFT JOIN users u ON u.id = d.updated_by
        LEFT JOIN docs_shares s ON s.doc_id = d.id
+       LEFT JOIN docs_files f ON f.id = d.file_id
        WHERE d.company_id = ?
        ORDER BY d.updated_at DESC`
     )
       .bind(companyId)
       .all<{
         id: string;
+        kind: DocKind;
         title: string;
         folder_id: string | null;
         category_id: string | null;
@@ -213,6 +249,7 @@ docsRoutes.get("/companies/:companyId/library", async (c) => {
         u_name: string | null;
         u_email: string | null;
         shared: number;
+        file_size: number | null;
       }>(),
     c.env.DB.prepare("SELECT dt.doc_id, dt.tag_id FROM docs_doc_tags dt JOIN docs_docs d ON d.id = dt.doc_id WHERE d.company_id = ?")
       .bind(companyId)
@@ -223,7 +260,9 @@ docsRoutes.get("/companies/:companyId/library", async (c) => {
   for (const r of docTags.results) tagsByDoc.set(r.doc_id, [...(tagsByDoc.get(r.doc_id) ?? []), r.tag_id]);
   const summaries: DocSummary[] = docs.results.map((r) => ({
     id: r.id,
+    kind: r.kind === "pdf" ? "pdf" : "doc",
     title: r.title,
+    size: r.kind === "pdf" ? (r.file_size ?? 0) : null,
     folderId: r.folder_id,
     categoryId: r.category_id,
     tagIds: tagsByDoc.get(r.id) ?? [],
@@ -278,7 +317,8 @@ docsRoutes.get("/docs/:id", async (c) => {
   const user = requireUser(c);
   const doc = await loadDoc(c.env, c.req.param("id"));
   await requirePermission(c.env, doc.company_id, user.id, "docs.view");
-  const [who, canEdit, canShare, shared, tagIds, canAi, aiOn, canComment] = await Promise.all([
+  const pdf = doc.kind === "pdf";
+  const [who, canEdit, canShare, shared, tagIds, canAi, aiOn, canComment, file] = await Promise.all([
     doc.updated_by ? c.env.DB.prepare("SELECT name, email FROM users WHERE id = ?").bind(doc.updated_by).first<{ name: string; email: string }>() : null,
     hasPermission(c.env, doc.company_id, user.id, "docs.edit"),
     hasPermission(c.env, doc.company_id, user.id, "docs.share"),
@@ -286,19 +326,20 @@ docsRoutes.get("/docs/:id", async (c) => {
     docTagIds(c.env, doc.id),
     hasPermission(c.env, doc.company_id, user.id, "docs.ai"),
     aiEnabled(c.env, doc.company_id),
-    hasPermission(c.env, doc.company_id, user.id, "docs.comment")
+    hasPermission(c.env, doc.company_id, user.id, "docs.comment"),
+    pdf ? currentPdf(c.env, doc) : null
   ]);
   const detail: DocDetail = {
     id: doc.id,
     companyId: doc.company_id,
+    kind: pdf ? "pdf" : "doc",
+    pdf: file ? pdfInfo(file) : null,
     title: doc.title,
     folderId: doc.folder_id,
     categoryId: doc.category_id,
     tagIds,
     content: parseContent(doc.content),
-    pageSize: doc.page_size,
-    orientation: doc.orientation,
-    margin: doc.margin,
+    ...pageSettings(doc),
     rev: doc.rev,
     updatedAt: doc.updated_at,
     updatedByName: who ? displayName(who.name, who.email) : null,
@@ -306,9 +347,10 @@ docsRoutes.get("/docs/:id", async (c) => {
     canShare,
     shareUrl: canShare && shared ? await shareUrl(c, doc.id) : null,
     shared: !!shared,
-    canComment,
-    collab: !!(c.env as DocsEnv).DOCS_ROOMS,
-    ai: !aiOn ? "off" : canEdit && canAi ? "on" : "no_permission"
+    // A PDF has no text, so comments, live editing and AI writing help do not apply to it.
+    canComment: canComment && !pdf,
+    collab: !!(c.env as DocsEnv).DOCS_ROOMS && !pdf,
+    ai: !aiOn || pdf ? "off" : canEdit && canAi ? "on" : "no_permission"
   };
   return c.json(detail);
 });
@@ -322,7 +364,7 @@ docsRoutes.get("/docs/:id/rev", async (c) => {
 });
 
 /**
- * Saves a doc. Body: { baseRev, title?, content?, pageSize?, orientation?, margin? }
+ * Saves a doc. Body: { baseRev, title?, content?, pageSize?, orientation?, margin?, header?, footer?, hideFirst? }
  * baseRev is the rev the editor loaded. When someone else saved first, the save is refused with 409 and code "conflict".
  */
 docsRoutes.patch("/docs/:id", async (c) => {
@@ -330,6 +372,8 @@ docsRoutes.patch("/docs/:id", async (c) => {
   const doc = await loadDoc(c.env, c.req.param("id"));
   await requirePermission(c.env, doc.company_id, user.id, "docs.edit");
   const body = await readJson(c);
+  if (doc.kind === "pdf" && ["content", "pageSize", "orientation", "margin", "header", "footer", "hideFirst"].some((k) => body[k] !== undefined))
+    throw new HttpError(400, "You can change only the title of a PDF here. To change its pages, upload a new PDF.", "pdf");
   // Only content needs the rev check. The title and page settings can change while someone writes, for example in live editing.
   const checkRev = body.content !== undefined;
   if (checkRev && typeof body.baseRev !== "number") throw new HttpError(400, "baseRev is required. Load the doc again, then save.");
@@ -339,7 +383,7 @@ docsRoutes.patch("/docs/:id", async (c) => {
   const sets: string[] = [];
   const binds: unknown[] = [];
   if (body.title !== undefined) {
-    const title = text(body.title, "Title", { max: TITLE_MAX }) || "Untitled doc";
+    const title = text(body.title, "Title", { max: TITLE_MAX }) || (doc.kind === "pdf" ? "Untitled PDF" : "Untitled doc");
     sets.push("title = ?");
     binds.push(title);
   }
@@ -359,6 +403,9 @@ docsRoutes.patch("/docs/:id", async (c) => {
   if (body.pageSize !== undefined) (sets.push("page_size = ?"), binds.push(oneOf(body.pageSize, "Page size", PAGE_SIZES)));
   if (body.orientation !== undefined) (sets.push("orientation = ?"), binds.push(oneOf(body.orientation, "Orientation", ORIENTATIONS)));
   if (body.margin !== undefined) (sets.push("margin = ?"), binds.push(oneOf(body.margin, "Margins", MARGINS)));
+  if (body.header !== undefined) (sets.push("header = ?"), binds.push(headerText(body.header, "Header")));
+  if (body.footer !== undefined) (sets.push("footer = ?"), binds.push(headerText(body.footer, "Footer")));
+  if (body.hideFirst !== undefined) (sets.push("hide_first = ?"), binds.push(body.hideFirst === true ? 1 : 0));
   if (!sets.length) return c.json({ rev: doc.rev, updatedAt: doc.updated_at });
 
   const iso = nowIso();
@@ -643,6 +690,7 @@ docsRoutes.post("/docs/:id/files", async (c) => {
   const user = requireUser(c);
   const doc = await loadDoc(c.env, c.req.param("id"));
   await requirePermission(c.env, doc.company_id, user.id, "docs.edit");
+  requireTextDoc(doc, "Adding images");
   const form = await c.req.parseBody();
   const file = form.file;
   if (!(file instanceof File)) throw new HttpError(400, "Choose an image to upload.");
@@ -670,6 +718,8 @@ export interface FileRow {
 
 /** Sends an image. Images never run code: a strict CSP, a checked type and nosniff. */
 export async function sendImage(env: Env, file: FileRow): Promise<Response> {
+  // The file of a PDF is never sent as an image. It has its own route and headers.
+  if (file.content_type === "application/pdf") throw new HttpError(404, "This image does not exist.");
   const obj = await env.FILES.get(file.r2_key);
   if (!obj) throw new HttpError(404, "The image is missing from storage.");
   return new Response(obj.body, {
@@ -695,6 +745,195 @@ docsRoutes.get("/files/:fileId", async (c) => {
   return sendImage(c.env, file);
 });
 
+/* PDFs */
+
+export interface PdfRow extends FileRow {
+  name: string | null;
+  created_at: string;
+}
+
+/** The current file of a PDF, or null when the row is missing. */
+export async function currentPdf(env: Env, doc: DocRow): Promise<PdfRow | null> {
+  if (doc.kind !== "pdf" || !doc.file_id) return null;
+  return env.DB.prepare("SELECT id, doc_id, r2_key, content_type, size, name, created_at FROM docs_files WHERE id = ? AND doc_id = ?")
+    .bind(doc.file_id, doc.id)
+    .first<PdfRow>();
+}
+
+const pdfInfo = (f: PdfRow): PdfFile => ({ fileId: f.id, name: f.name || "document.pdf", size: f.size, uploadedAt: f.created_at });
+
+/** A Content-Disposition value with a plain ASCII name and the full UTF-8 name. */
+function disposition(kind: "inline" | "attachment", name: string): string {
+  const ascii = name.replace(/[^\x20-\x7e]/g, "_").replace(/["\\]/g, "_");
+  return `${kind}; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(name).replace(/['()*]/g, (ch) => `%${ch.charCodeAt(0).toString(16).toUpperCase()}`)}`;
+}
+
+/**
+ * Sends the file of a PDF. The type is checked at upload and sent as application/pdf with nosniff,
+ * so a browser never reads it as a page. The browser's own PDF viewer shows it.
+ *   frame "self": the Docs page can show it in a frame. "none": nobody can frame it (share links).
+ */
+export async function sendPdf(
+  env: Env,
+  file: PdfRow,
+  opts: { download: boolean; frame: "self" | "none"; cache: boolean; share?: boolean }
+): Promise<Response> {
+  const obj = await env.FILES.get(file.r2_key);
+  if (!obj) throw new HttpError(404, "The PDF is missing from storage. Upload it again.");
+  const headers: Record<string, string> = {
+    "Content-Type": "application/pdf",
+    "Content-Length": String(file.size),
+    "Content-Disposition": disposition(opts.download ? "attachment" : "inline", file.name || "document.pdf"),
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": opts.frame === "self" ? "SAMEORIGIN" : "DENY",
+    "Content-Security-Policy": `frame-ancestors ${opts.frame === "self" ? "'self'" : "'none'"}`,
+    // A file id never changes its bytes. The URL has the file id, so a new upload gets a new URL.
+    "Cache-Control": opts.cache ? "private, max-age=300" : "private, no-store"
+  };
+  if (opts.share) {
+    headers["X-Robots-Tag"] = "noindex, nofollow";
+    headers["Referrer-Policy"] = "no-referrer";
+  }
+  return new Response(obj.body, { headers });
+}
+
+/** Reads a PDF from a form upload (field "file") and checks it. */
+async function readPdfUpload(c: Context<AppEnv>): Promise<{ form: Record<string, unknown>; bytes: Uint8Array; name: string }> {
+  // Stop a large upload before the Worker reads it into memory.
+  const length = Number(c.req.header("content-length") || 0);
+  if (length > PDF_MAX_BYTES + 1024 * 1024) throw new HttpError(413, `The PDF is too large. The limit is ${PDF_MAX_LABEL}.`);
+  let form: Record<string, unknown>;
+  try {
+    form = await c.req.parseBody();
+  } catch {
+    throw new HttpError(400, "Send the PDF as a form upload, in a field named file.");
+  }
+  const file = form.file;
+  if (!(file instanceof File)) throw new HttpError(400, "Choose a PDF to upload.");
+  if (file.size === 0) throw new HttpError(400, "The PDF is empty. Choose another file.");
+  if (file.size > PDF_MAX_BYTES) throw new HttpError(413, `The PDF is too large. The limit is ${PDF_MAX_LABEL}.`);
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  if (!sniffPdf(bytes)) throw new HttpError(400, "This file is not a PDF. Choose a PDF file.", "not_pdf");
+  return { form, bytes, name: cleanFileName(file.name) };
+}
+
+/** Tag names from a form field: a JSON list of names. Empty for none. */
+function formTags(v: unknown): string[] {
+  if (v === undefined || v === "") return [];
+  let raw: unknown;
+  try {
+    raw = typeof v === "string" ? JSON.parse(v) : null;
+  } catch {
+    raw = null;
+  }
+  const r = cleanTagNames(raw);
+  if ("problem" in r) throw new HttpError(400, r.problem);
+  return r.names;
+}
+
+/**
+ * Uploads a PDF into the library. Form fields: file, and title?, folderId?, categoryId?, tags? (a JSON list of names).
+ * The PDF gets the same folder, category, tags, share link and permissions as a doc.
+ */
+docsRoutes.post("/companies/:companyId/pdfs", async (c) => {
+  const user = requireUser(c);
+  const companyId = c.req.param("companyId");
+  await requirePermission(c.env, companyId, user.id, "docs.edit");
+  const { form, bytes, name } = await readPdfUpload(c);
+  const title = text(typeof form.title === "string" ? form.title : "", "Title", { max: TITLE_MAX }) || titleFromFileName(name);
+  const [folderId, categoryId] = await Promise.all([companyFolder(c.env, companyId, form.folderId), companyCategory(c.env, companyId, form.categoryId)]);
+  const tags = formTags(form.tags);
+  const id = newId();
+  const fileId = newId();
+  const key = `docs/${companyId}/${id}/${fileId}`;
+  const iso = nowIso();
+  await c.env.FILES.put(key, bytes, { httpMetadata: { contentType: "application/pdf" } });
+  try {
+    await c.env.DB.batch([
+      c.env.DB.prepare(
+        `INSERT INTO docs_docs (id, company_id, kind, file_id, folder_id, category_id, title, content, page_size, orientation, margin, rev, created_by, updated_by, created_at, updated_at)
+         VALUES (?, ?, 'pdf', ?, ?, ?, ?, ?, 'letter', 'portrait', 'normal', 1, ?, ?, ?, ?)`
+      ).bind(id, companyId, fileId, folderId, categoryId, title, JSON.stringify(EMPTY_DOC), user.id, user.id, iso, iso),
+      c.env.DB.prepare(
+        "INSERT INTO docs_files (id, company_id, doc_id, r2_key, content_type, size, name, uploaded_by, created_at) VALUES (?, ?, ?, ?, 'application/pdf', ?, ?, ?, ?)"
+      ).bind(fileId, companyId, id, key, bytes.length, name, user.id, iso),
+      ...setTagStatements(c.env, companyId, id, tags),
+      bumpLibrary(c.env, companyId)
+    ]);
+  } catch (e) {
+    await c.env.FILES.delete(key);
+    throw e;
+  }
+  return c.json({ id }, 201);
+});
+
+/**
+ * Replaces the file of a PDF with a new upload (form field: file). Docs keeps only the latest file:
+ * the old file is deleted. The title, folder, category, tags and share link stay.
+ */
+docsRoutes.post("/docs/:id/pdf", async (c) => {
+  const user = requireUser(c);
+  const doc = await loadDoc(c.env, c.req.param("id"));
+  await requirePermission(c.env, doc.company_id, user.id, "docs.edit");
+  if (doc.kind !== "pdf") throw new HttpError(400, "This doc is not a PDF. Upload a PDF as a new item in the library.");
+  const { bytes, name } = await readPdfUpload(c);
+  const fileId = newId();
+  const key = `docs/${doc.company_id}/${doc.id}/${fileId}`;
+  const iso = nowIso();
+  await c.env.FILES.put(key, bytes, { httpMetadata: { contentType: "application/pdf" } });
+  const dropNew = async () => {
+    await c.env.FILES.delete(key);
+    await c.env.DB.prepare("DELETE FROM docs_files WHERE id = ?").bind(fileId).run();
+  };
+  let changed = 0;
+  try {
+    // Add the new file row first, so the doc never points at a row that does not exist.
+    await c.env.DB.prepare(
+      "INSERT INTO docs_files (id, company_id, doc_id, r2_key, content_type, size, name, uploaded_by, created_at) VALUES (?, ?, ?, ?, 'application/pdf', ?, ?, ?, ?)"
+    )
+      .bind(fileId, doc.company_id, doc.id, key, bytes.length, name, user.id, iso)
+      .run();
+    // Switch only from the file this request saw, so two uploads at the same moment do not lose a file without notice.
+    const res = await c.env.DB.batch([
+      c.env.DB.prepare("UPDATE docs_docs SET file_id = ?, rev = rev + 1, updated_by = ?, updated_at = ? WHERE id = ? AND kind = 'pdf' AND file_id IS ?").bind(
+        fileId,
+        user.id,
+        iso,
+        doc.id,
+        doc.file_id
+      ),
+      bumpLibrary(c.env, doc.company_id)
+    ]);
+    changed = res[0]!.meta.changes;
+  } catch (e) {
+    await dropNew();
+    throw e;
+  }
+  if (!changed) {
+    await dropNew();
+    throw new HttpError(409, "Someone else changed this PDF at the same moment. Load the page again, then upload your file again.", "conflict");
+  }
+  // Keep only the latest file.
+  if (doc.file_id) {
+    const old = await c.env.DB.prepare("SELECT r2_key FROM docs_files WHERE id = ? AND doc_id = ?").bind(doc.file_id, doc.id).first<{ r2_key: string }>();
+    if (old) await c.env.FILES.delete(old.r2_key);
+    await c.env.DB.prepare("DELETE FROM docs_files WHERE id = ? AND doc_id = ?").bind(doc.file_id, doc.id).run();
+  }
+  markChanged(DOC_ROOM, doc.id);
+  return c.json({ rev: doc.rev + 1, pdf: { fileId, name, size: bytes.length, uploadedAt: iso } satisfies PdfFile });
+});
+
+/** The current file of a PDF. ?download=1 saves it. ?v=<file id> lets the browser keep it for a short time. */
+docsRoutes.get("/docs/:id/pdf", async (c) => {
+  const user = requireUser(c);
+  const doc = await loadDoc(c.env, c.req.param("id"));
+  await requirePermission(c.env, doc.company_id, user.id, "docs.view");
+  if (doc.kind !== "pdf") throw new HttpError(404, "This doc is not a PDF.");
+  const file = await currentPdf(c.env, doc);
+  if (!file) throw new HttpError(404, "The PDF file is missing. Upload it again.");
+  return sendPdf(c.env, file, { download: c.req.query("download") === "1", frame: "self", cache: c.req.query("v") === file.id });
+});
+
 /* Print and live updates */
 
 /** The doc on paper, for printing or saving as PDF. Opens the print dialog when it is ready. */
@@ -702,12 +941,14 @@ docsRoutes.get("/docs/:id/print", async (c) => {
   const user = requireUser(c);
   const doc = await loadDoc(c.env, c.req.param("id"));
   await requirePermission(c.env, doc.company_id, user.id, "docs.view");
+  // A PDF prints from the browser's PDF viewer.
+  if (doc.kind === "pdf") return c.redirect(`/api/apps/docs/docs/${doc.id}/pdf`);
   const nonce = randomToken(16);
   const html = paperPageHtml({
     title: doc.title,
     siteName: appName(c.env),
     doc: parseContent(doc.content),
-    settings: { pageSize: doc.page_size, orientation: doc.orientation, margin: doc.margin },
+    settings: pageSettings(doc),
     updatedAt: doc.updated_at,
     imageUrl: (src) => src,
     nonce,
@@ -736,6 +977,7 @@ docsRoutes.post("/docs/:id/ai", async (c) => {
   const doc = await loadDoc(c.env, c.req.param("id"));
   await requirePermission(c.env, doc.company_id, user.id, "docs.edit");
   await requirePermission(c.env, doc.company_id, user.id, "docs.ai");
+  requireTextDoc(doc, "AI writing help");
   if (!(await aiEnabled(c.env, doc.company_id)))
     throw new HttpError(
       403,
@@ -786,6 +1028,7 @@ docsRoutes.get("/collab/:id", async (c) => {
   if (!rooms) throw new HttpError(501, "Live editing is not set up on this deploy. Docs saves changes the usual way.");
   const doc = await loadDoc(c.env, c.req.param("id"));
   await requirePermission(c.env, doc.company_id, user.id, "docs.view");
+  requireTextDoc(doc, "Live editing");
   const canEdit = await hasPermission(c.env, doc.company_id, user.id, "docs.edit");
   const headers = new Headers(c.req.raw.headers);
   headers.set("x-openact-user", user.id);

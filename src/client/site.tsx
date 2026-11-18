@@ -1,18 +1,30 @@
-import { lazy } from "react";
+import { lazy, useEffect } from "react";
 import { defineClientApp } from "@openact/ui";
+import { CONTRIBUTE_URL } from "../shared/contribute";
 
-/* This deploy's own pages, outside any app: contributions and the colophon. */
+/* This deploy's own pages, outside any app: the colophon, and the old /contribute address. */
 
-const Contribute = lazy(() => import("./Contribute").then((m) => ({ default: m.Contribute })));
 const Colophon = lazy(() => import("./Colophon").then((m) => ({ default: m.Colophon })));
+
+/** The Contribute page moved to openact.ing. Old links to /contribute go there. */
+function ContributeMoved() {
+  useEffect(() => {
+    window.location.replace(`${CONTRIBUTE_URL}${window.location.search}`);
+  }, []);
+  return (
+    <main className="grid min-h-dvh place-items-center bg-background p-6 text-sm text-muted-foreground">
+      <p>
+        The Contribute page moved. <a href={CONTRIBUTE_URL} className="underline underline-offset-4">Open it on openact.ing</a>.
+      </p>
+    </main>
+  );
+}
 
 export const site = defineClientApp({
   id: "site",
   name: "OpenAct",
-  publicRoutes: { "/contribute": Contribute, "/colophon": Colophon },
-  // Footer items show at the bottom of the app rail, in this order. Contribute sits on top of the colophon.
-  nav: [
-    { label: "Contribute", icon: "heart", path: "/contribute", placement: "footer" },
-    { label: "Colophon", icon: "doc", path: "/colophon", placement: "footer" }
-  ]
+  publicRoutes: { "/contribute": ContributeMoved, "/colophon": Colophon },
+  // Footer items show at the bottom of the app rail. The colophon has no icon there. Its page still works at /colophon.
+  // The heart opens the Contribute page on openact.ing in a new browser tab.
+  nav: [{ label: "Contribute", icon: "heart", path: CONTRIBUTE_URL, placement: "footer" }]
 });

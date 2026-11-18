@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { EMPTY_DOC, ContentError, headingId, renderHtml, safeHref, sanitizeDoc, wordCount } from "../apps/docs/src/shared/content.ts";
-import { pageBox, paginate, printCss } from "../apps/docs/src/shared/page.ts";
+import { EMPTY_DOC, ContentError, headingId, renderHtml, safeHref, sanitizeDoc, tocHtml, wordCount } from "../apps/docs/src/shared/content.ts";
+import { fillHeader, headerContent, pageBox, pageUnits, paginate, printCss, showsHeader, splitAt } from "../apps/docs/src/shared/page.ts";
 import { FILE_SRC, fileSrc, isShareToken, sniffImage } from "../apps/docs/src/shared/types.ts";
 import { parseAppsOff } from "../packages/core/src/shared/site.ts";
 import { cleanName, cleanTagNames, folderDepth, folderMoveProblem, folderPaths, isInside } from "../apps/docs/src/shared/library.ts";
@@ -195,6 +195,55 @@ test("the splitter source runs on its own, as the share page sends it", () => {
     ),
     [0, 1]
   );
+});
+
+test("a heading moves to the next page with the block under it", () => {
+  const b = (top: number, h: number, keep = false) => ({ top, bottom: top + h, keep });
+  // The heading at 60 would end page 1 alone. It starts page 2 with the list under it.
+  assert.deepEqual(paginate([b(0, 50), b(60, 20, true), b(85, 40)], 100), [0, 1]);
+  // A heading that starts its page stays. A heading and block too tall for one page split as before.
+  assert.deepEqual(paginate([b(0, 20, true), b(25, 40), b(70, 40)], 100), [0, 2]);
+  assert.deepEqual(paginate([b(0, 50), b(60, 20, true), b(85, 90)], 100), [0, 2]);
+});
+
+test("the unit and split sources run on their own, as the share page sends them", () => {
+  for (const f of [pageUnits, splitAt]) {
+    const src = f.toString();
+    // No helpers from the bundle, such as __name, and no inner functions that a bundler could wrap.
+    assert.ok(!/__name|=>|function\s*\(/.test(src.slice(src.indexOf("{"))), `${f.name} has an inner function`);
+    assert.equal(typeof new Function(`return (${src})`)(), "function");
+  }
+});
+
+test("headers and footers fill in the page, the total and the title", () => {
+  assert.equal(fillHeader("Page {page} of {total}", 2, 5, "Plan"), "Page 2 of 5");
+  assert.equal(fillHeader("{title} · {page}", 1, 1, "A {page} title"), "A {page} title · 1");
+  assert.equal(showsHeader({ hideFirst: true }, 1), false);
+  assert.equal(showsHeader({ hideFirst: true }, 2), true);
+  assert.equal(headerContent("Page {page} of {total}", "x"), '"Page " counter(page) " of " counter(pages)');
+  // Text can never end the style element or the CSS string.
+  const evil = headerContent('</style><script>"\\', "t");
+  assert.ok(!evil.includes("<") && !/[^\\]"[^ ]/.test(evil.slice(1, -1)), evil);
+  const css = printCss({ pageSize: "letter", orientation: "portrait", margin: "normal", header: "{title}", footer: "{page}", hideFirst: true }, "My doc");
+  assert.ok(css.includes('@top-right{content:"My doc"'));
+  assert.ok(css.includes("@bottom-right{content:counter(page)"));
+  assert.ok(css.includes("@page :first{@top-right{content:none}@bottom-right{content:none}}"));
+  assert.ok(!printCss({ pageSize: "letter", orientation: "portrait", margin: "normal", header: "", footer: "" }).includes("@bottom-right"));
+});
+
+test("a table of contents is top-level only and lists the headings with links", () => {
+  const h = (level: number, text: string) => ({ type: "heading", attrs: { level }, content: [t(text)] });
+  const toc = { type: "tableOfContents" };
+  const clean = sanitizeDoc(doc(toc, h(2, "Goals <b>"), p(t("x")), h(3, "Steps"), { type: "blockquote", content: [toc, p(t("y"))] }));
+  assert.deepEqual(clean.content!.map((n) => n.type), ["tableOfContents", "heading", "paragraph", "heading", "blockquote"]);
+  assert.deepEqual(clean.content![4]!.content!.map((n) => n.type), ["paragraph"]);
+  const r = renderHtml(clean);
+  assert.ok(r.blocks[0]!.startsWith('<nav class="doc-toc" data-toc=""'));
+  // Levels start from the highest one used, and text is escaped.
+  assert.ok(r.blocks[0]!.includes('<li class="l1"><a href="#h1-goals-b"><span>Goals &lt;b&gt;</span>'));
+  assert.ok(r.blocks[0]!.includes('<li class="l2"><a href="#h2-steps">'));
+  assert.ok(r.blocks[0]!.includes('data-toc-page="h2-steps"'));
+  assert.equal(tocHtml([]), "");
 });
 
 test("uploads are checked by their bytes, not their name", () => {
