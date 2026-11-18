@@ -85,6 +85,23 @@ const { id, path } = await createProject(env, {
 
 `createProject` does not check the caller's access. Check your own permission first. A member who is not in the company joins it as a guest. [Advisory](advisory-app.md) uses it.
 
+### Use another app when it is there
+
+A static import breaks the build when the other app is not installed. For an optional link, the other app lists functions in `services`, and your app reads them with `appService`. List the other app in `optionalApps`.
+
+```ts
+// In the Docs app
+export default defineServerApp({ id: "docs", services: { library: docsLibrary } /* ... */ });
+
+// In your app
+import { appService, companyAppState } from "@openact/core/server";
+
+const lib = appService<DocsLibraryService>("docs", "library");
+const on = lib && (await companyAppState(env, companyId)).enabled("docs");
+```
+
+`appService` returns `undefined` when the app is not installed. Check that the app is on for the company, and check your own permissions, before you use a service. A service does not check access. [eSign](esign-app.md) reads and saves PDFs in Docs this way.
+
 ### Server side
 
 ```ts
@@ -127,6 +144,7 @@ export default defineServerApp({
 | `hooks.companyMemberRemoved` | Remove the person's access to your data in that company |
 | `hooks.companyDeleting` | Delete your data and files for that company |
 | `hooks.companyCreated` | Set up a new company |
+| `hooks.companyDuplicating` | Copy your data and files into a duplicate of a company. Read [Duplicate a company](companies.md#duplicate-a-company). |
 | `hooks.companyDetail`, `hooks.companyUpdate` | Read and save your app's company settings through `/api/companies/:id` |
 
 ### Permissions

@@ -34,6 +34,33 @@ Each section has its own address, such as `/settings/company/people`, so you can
 
 Company owners and admins can also turn apps on or off and choose what each role can do in each app. Read [Permissions](permissions.md).
 
+## Duplicate a company
+
+A super admin can make a new company with a copy of another company's content. Use it to start a new company from a template, such as a company that holds the projects and policies for one kind of client.
+
+1. Open **Settings > Site settings > Duplicate a company**.
+2. Find the company, then click **Duplicate**.
+3. Type a name for the new company, then click **Duplicate company**.
+4. When the copy is ready, the page shows what was copied. Click **Open the company** to go to it.
+
+You are the only owner of the new company. Invite people to it in **Company settings > People**.
+
+| Copied | Not copied |
+| --- | --- |
+| The logo, the app settings, the permissions, the app blocks and the AI defaults | People, invitations and the email domain |
+| Projects with their columns, tasks, phases, dates, notes and task files | Task assignees, project members, access requests and AI agent history |
+| The Docs library: folders, categories, tags, docs, images and PDFs, and the AI writing help setting | Comments, share links and old PDF files that a new upload replaced |
+| | The plan and the company's AI provider key |
+
+Notes:
+
+- You own each copied project, so secret projects stay open to you.
+- Each image and file gets its own copy. The new company never points at the files of the original.
+- A duplicate copies up to 400 files and 500 MB. For a larger company, delete some files first.
+- If a step fails, OpenAct deletes the new company and its files. The original does not change.
+- Each app copies its own data with the `companyDuplicating` hook. An app without the hook starts empty in the copy. Advisory has no hook, so its advisors, offers and engagements are not copied.
+- A person can own up to 20 companies. Make another person an owner of a company and leave it, or delete one, to make room.
+
 ## The AI provider of a company
 
 Each deploy has a default AI. The person who runs the deploy sets it with `AI_PROVIDER` and `AI_MODEL`. Read [Settings](getting-started.md#settings).

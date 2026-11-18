@@ -39,6 +39,8 @@ export interface AppConfig {
   appName: string;
   /** The site logo that a super admin uploaded, or null for the OpenAct mark. */
   logoUrl: string | null;
+  /** The Submit issues link that a super admin set, or null. The app rail shows its icon only when it is set. */
+  issuesUrl: string | null;
   emailEnabled: boolean;
   signupMode: "open" | "invite";
   aiProvider: string;

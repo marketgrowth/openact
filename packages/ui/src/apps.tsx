@@ -15,7 +15,10 @@ export interface NavItem {
   label: string;
   /** A Lucide icon name from the Icon component, such as "projects" or "users". */
   icon: string;
-  /** Where the item goes. The app's own path, /a/<id>, goes to the app's home, which can be "/". */
+  /**
+   * Where the item goes. The app's own path, /a/<id>, goes to the app's home, which can be "/".
+   * A full web address (https://...) opens in a new browser tab.
+   */
   path: string;
   /**
    * "main" shows the item at the top of the app's panel, when the app is active.

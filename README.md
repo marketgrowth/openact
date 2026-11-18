@@ -2,14 +2,14 @@
 
 **All The World's A Stage**
 
-OpenAct is an open source framework for agentic business apps on Cloudflare. The core, the UI and the Projects app are free and open source. Paid apps, Docs and Advisory, come with OpenAct Director. Add more apps from the app directory, or build your own.
+OpenAct is an open source framework for agentic business apps on Cloudflare. The core, the UI and the Projects app are free and open source. Paid apps, Docs, Advisory and eSign, come with OpenAct Director. Add more apps from the app directory, or build your own.
 
-- **A suite of apps.** Projects is ready now, with Kanban, Gantt and calendar views, an AI agent and search. Docs is a company library of paper-size documents, and Advisory is a marketplace of approved advisors. Both are in the OpenAct Director plan. Official apps for time tracking, contacts, events, support and more are under review in the [app directory](https://docs.openact.app/directory).
+- **A suite of apps.** Projects is ready now, with Kanban, Gantt and calendar views, an AI agent and search. Docs is a company library of paper-size documents, Advisory is a marketplace of approved advisors, and eSign sends PDFs for signature. All three are in the OpenAct Director plan. Official apps for time tracking, contacts, events, support and more are under review in the [app directory](https://docs.openact.app/directory).
 - **A framework for your own apps.** Sign-in, companies, roles, permissions, live updates, email, files and the app shell are ready. Your app adds only its own features.
 - **Agents that know their limits.** The Projects agent acts for a person and never does more than their role allows. Risky changes wait for approval.
 - **Cloudflare from end to end.** Workers, D1, R2, Durable Objects, Vectorize and Workers AI, on your own account.
 
-MarketGrowth makes OpenAct and shares the core, the UI and the Projects app under the Apache License 2.0. Docs and Advisory are under the OpenAct Director License ([Docs](apps/docs/LICENSE), [Advisory](apps/advisory/LICENSE)). Read about [plans](https://docs.openact.app/plans).
+MarketGrowth makes OpenAct and shares the core, the UI and the Projects app under the Apache License 2.0. Docs, Advisory and eSign are under the OpenAct Director License ([Docs](apps/docs/LICENSE), [Advisory](apps/advisory/LICENSE), [eSign](apps/esign/LICENSE)). Read about [plans](https://docs.openact.app/plans).
 
 Read the documentation at [docs.openact.app](https://docs.openact.app).
 
@@ -35,6 +35,7 @@ Read the documentation at [docs.openact.app](https://docs.openact.app).
 - **File attachments.** Attach files up to 25 MB to a task. Files go to R2.
 - **Docs (OpenAct Director).** A company library of rich text docs on pages the size of Letter, A4 or Legal paper. Sort docs into folders up to 5 levels deep, give each a category, and add tags. Share a doc with a link that needs no account, or print it to PDF. The pages on screen match the printed pages. Live editing with cursors for each person, and offline changes that sync later. Comment threads on text or on the whole doc, with replies, resolve and @mentions by email. AI writing help improves, shortens, translates or continues selected text, when a company turns it on. Docs needs a Director or Producer plan. A super admin can turn Docs off for the whole site. Read [docs/docs-app.md](docs/docs-app.md).
 - **Advisory (OpenAct Director).** A company marketplace of approved advisors. Members book a consult or pay for an offer in advance. Members can also apply to sell their own services. Offers are one-time or monthly retainers. Clients pay through Stripe Connect, and the company keeps a fee that it sets for each advisor. A paid engagement opens a secret project for the advisor and the client. Each company sets its own label, such as Consultant or Coach. Read [docs/advisory-app.md](docs/advisory-app.md).
+- **eSign (OpenAct Director).** Send PDFs for signature. Make a template with signer roles and fields, or start from a PDF in Docs. Each signer gets a link by email and needs no account. When everyone signs, eSign makes the signed PDF with a signing certificate and an audit log, and saves a copy to Docs. Read [docs/esign-app.md](docs/esign-app.md).
 - **AI agent with role-based access.** Tell the agent what to do in plain words: "Move the late tasks to next week" or "Rename Review to QA". The agent acts for you and never has more power than your role. Owners choose how much each role may hand to the agent. Deletes, people changes and large batches wait for your approval, and every agent action is logged. Read [docs/reference/ag-ui.md](docs/reference/ag-ui.md).
 - **Search by words and by meaning.** Press Ctrl+K or Cmd+K to search every project you can see in the company. Search finds "Book the gala hall" when you type "venue". It uses [Vectorize](https://developers.cloudflare.com/vectorize/) and Workers AI embeddings, and falls back to words only when Vectorize is not set up. The task panel shows related tasks, and the agent can search big projects.
 - **Clickable links.** Web addresses in a project description or in task notes show as links that open in a new tab. OpenAct never fetches them. Only `http` and `https` links work.
@@ -46,7 +47,8 @@ Read the documentation at [docs.openact.app](https://docs.openact.app).
 - **Apps.** OpenAct is a core plus apps. The core gives every app sign-in, people, companies, roles, live updates and the web shell. Project management is the first app. Add more from GitHub with one command: `npm run openact -- add github:owner/repo`. See [docs/apps.md](docs/apps.md).
 - **Built with shadcn/ui.** The web app uses [shadcn/ui](https://ui.shadcn.com) components, [Tailwind CSS](https://tailwindcss.com) and [Lucide](https://lucide.dev) icons, with the layout of shadcn's dashboard-01 block. Most React developers and coding agents already know these parts.
 - **Live updates.** When someone changes a project, every open page updates at once, including changes made by the AI agent. The header shows who else is viewing. Each project has a Durable Object that holds its WebSockets, and idle connections hibernate, so they cost almost nothing. If live updates are not available, pages check for changes every 5 seconds.
-- **Contributions.** A public page at `/contribute` lets people help pay for OpenAct, by card through Stripe Checkout or in USDC through [x402](https://www.x402.org). AI agents can pay the same x402 endpoint. The heart icon sits at the bottom of the app rail. See [docs/contribute.md](docs/contribute.md).
+- **Contributions.** The public page at [openact.ing/contribute](https://openact.ing/contribute) lets people help build OpenAct, by card through Stripe Checkout or in USDC through [x402](https://www.x402.org). AI agents can pay the same x402 endpoint. The heart icon at the bottom of the app rail opens the page in a new tab. See [docs/contribute.md](docs/contribute.md).
+- **Submit issues.** A super admin can add a Submit issues link in Site settings > Branding. A bug icon on the app rail, above the heart, opens it in a new tab.
 
 ## Screenshots
 
@@ -265,7 +267,8 @@ apps/projects/         The projects app
   src/shared/            Project types, access rules, agent policy, AG-UI types
   migrations/            New database changes for this app
 apps/docs/             The docs app: a library of paper-size docs with folders, categories and tags, share links, print to PDF
-src/                   The host: the Worker entry, the web app entry, the contribute page and the colophon
+src/                   The host: the Worker entry, the web app entry and the colophon
+www/                   The website at openact.ing: Astro pages and their Worker, with the Contribute page and its payment routes
 openact.apps.json      The installed apps, in order
 scripts/openact.mjs    Adds, updates and removes apps, and writes .openact/ (npm run sync)
 test/                  Unit tests and the search pipeline test
@@ -331,14 +334,14 @@ The check controls focus and cost. It is not a security control. Roles, the AI p
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md). To report a security problem, read [SECURITY.md](SECURITY.md).
 
-To help pay for OpenAct, open `/contribute` on any OpenAct deploy. See [docs/contribute.md](docs/contribute.md).
+To help build OpenAct, open [openact.ing/contribute](https://openact.ing/contribute). See [docs/contribute.md](docs/contribute.md).
 
 ## Plans
 
 | Plan | For | What you get |
 | --- | --- | --- |
 | Free | Everyone | The core, the UI and the Projects app. Open source. |
-| Director | Startups to midmarket companies | Everything in Free, plus Docs and Advisory. More paid apps will join it. |
+| Director | Startups to midmarket companies | Everything in Free, plus Docs, Advisory and eSign. More paid apps will join it. |
 | Producer | Enterprise companies | Everything in Director. |
 
 Each paid plan has one annual price per company. A company owner buys a plan on the **Plan** page. A self-hosted deploy gets its plan from a license key in the `OPENACT_LICENSE` secret. Read [docs/plans.md](docs/plans.md).

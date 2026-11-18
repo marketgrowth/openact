@@ -25,7 +25,7 @@ The app shows the same page at `/colophon`. It has no icon on the app rail, so o
 | Note search | Owners can let the agent search task notes. It gets only short parts, with email addresses and phone numbers hidden. |
 | Sign-in | No passwords. People sign in with a 6-digit email code. |
 | Themes and phones | Light, dark, or follow the system. On a phone, the rail and the panel open as one sheet. |
-| Contribute | A public page at /contribute. People help pay for OpenAct by card (Stripe) or in USDC (x402). |
+| Contribute | A public page at openact.ing/contribute. The heart on the app rail opens it in a new tab. People help build OpenAct by card (Stripe) or in USDC (x402). |
 | Keyboard | Ctrl+K or Cmd+K opens search. Ctrl+B or Cmd+B opens and closes the app panel. |
 
 ## Build log
@@ -117,7 +117,8 @@ The shadcn/ui design system, with OpenAct's own colors for status, priority and 
 
 | Part | What it does |
 | --- | --- |
-| [IBM Plex Sans](https://fonts.google.com/specimen/IBM+Plex+Sans) | Text and headings |
+| [Open Sans](https://fonts.google.com/specimen/Open+Sans) | Text and headings in the app |
+| [IBM Plex Sans](https://fonts.google.com/specimen/IBM+Plex+Sans) | Text and headings on openact.ing and this docs site |
 | [IBM Plex Mono](https://fonts.google.com/specimen/IBM+Plex+Mono) | Dates and the sign-in code |
 | [Lucide](https://lucide.dev) | Icons. Outline style with a 2 px stroke, at 16 px in most places. |
 | Layout | An app rail and an inset app panel, as in shadcn's sidebar-09 block, and a 48 px page header with the panel toggle, as in dashboard-01 |

@@ -15,6 +15,11 @@
       "id": "advisory",
       "path": "apps/advisory",
       "source": "local"
+    },
+    {
+      "id": "esign",
+      "path": "apps/esign",
+      "source": "local"
     }
   ]
 }

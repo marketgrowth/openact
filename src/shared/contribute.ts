@@ -1,29 +1,15 @@
 /*
- * Contributions: rules shared by the Worker and the web app.
+ * Contributions: rules shared by the website Worker (www/worker/contribute.ts) and the tests.
  *
  * People pay by card through Stripe Checkout, or in USDC through x402 v2.
- * Contributions help build OpenAct.
+ * Contributions help build OpenAct. The page is https://openact.ing/contribute.
  */
 
-export interface SupportedProject {
-  name: string;
-  url?: string;
-  description: string;
-}
+/** The Contribute page. The heart icon on the app rail of every deploy opens it in a new browser tab. */
+export const CONTRIBUTE_URL = "https://openact.ing/contribute";
 
-/** Nonprofits, and projects that support nonprofits, that OpenAct helps build software for. */
-export const SUPPORTED_PROJECTS: SupportedProject[] = [
-  {
-    name: "Lyra Music Foundation",
-    description:
-      "A nonprofit. It uses OpenAct to build agentic software that teaches music and theater to young adults around the world. The Hack Foundation is its fiscal sponsor."
-  },
-  {
-    name: "Mission:Told",
-    url: "https://missiontold.com",
-    description: "A digital media publication. It tells the stories of mission-focused leaders, volunteers and impact builders."
-  }
-];
+/** The contribution routes on the website Worker. */
+export const CONTRIBUTE_API = "/api/contribute";
 
 /** The smallest and the largest contribution, in US dollars. */
 export const MIN_USD = 1;
@@ -34,10 +20,14 @@ export const PRESETS_USD = [10, 25, 50, 100] as const;
 
 export type Frequency = "once" | "monthly";
 
-/** What the page needs to know. The Worker sends it from GET /api/apps/site/contribute. */
+/** What the page needs to know. The website Worker sends it from GET /api/contribute. */
 export interface ContributeOptions {
   /** True when Stripe Checkout is set up. */
   card: boolean;
+  /** True when the Stripe key is a test mode key. No real money moves. */
+  cardTestMode: boolean;
+  /** The Stripe customer portal login link, where monthly supporters change or stop their payments. Empty when not set. */
+  manageUrl: string;
   /** Set when x402 payments are set up. */
   crypto: null | {
     network: string;
@@ -48,6 +38,9 @@ export interface ContributeOptions {
     assetName: string;
     assetVersion: string;
     payTo: string;
+    /** For the wallet: the network's RPC link and block explorer. */
+    rpcUrl: string;
+    explorer: string;
     /** The x402 resource. Agents and the page pay here. */
     endpoint: string;
   };
@@ -226,5 +219,24 @@ export function decodeHeader(value: string): unknown {
     return JSON.parse(new TextDecoder().decode(bytes));
   } catch {
     return null;
+  }
+}
+
+/** True for a Stripe test mode key (sk_test_ or rk_test_). */
+export function isStripeTestKey(key: string): boolean {
+  return /^(sk|rk)_test_/.test(key.trim());
+}
+
+/** The customer portal link, only when it is an https link on a Stripe host. Otherwise empty. */
+export function stripePortalUrl(raw: string | undefined): string {
+  const value = (raw || "").trim();
+  if (!value) return "";
+  try {
+    const u = new URL(value);
+    if (u.protocol !== "https:") return "";
+    if (u.hostname !== "billing.stripe.com" && !u.hostname.endsWith(".stripe.com")) return "";
+    return u.toString();
+  } catch {
+    return "";
   }
 }

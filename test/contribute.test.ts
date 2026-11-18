@@ -6,9 +6,11 @@ import {
   decodeHeader,
   encodeHeader,
   formatUsd,
+  isStripeTestKey,
   parseUsd,
   paymentProblem,
   paymentRequirements,
+  stripePortalUrl,
   transferTypedData
 } from "../src/shared/contribute.ts";
 
@@ -96,4 +98,22 @@ test("typed data uses the USDC domain of the network", () => {
   assert.deepEqual(td.domain, { name: "USDC", version: "2", chainId: 84532, verifyingContract: "0x036CbD53842c5426634e7929541eC2318f3dCF7e" });
   assert.equal(td.primaryType, "TransferWithAuthorization");
   assert.deepEqual(td.message, auth);
+});
+
+test("stripe: test mode keys", () => {
+  assert.equal(isStripeTestKey("sk_test_abc"), true);
+  assert.equal(isStripeTestKey(" rk_test_abc "), true);
+  assert.equal(isStripeTestKey("sk_live_abc"), false);
+  assert.equal(isStripeTestKey("rk_live_abc"), false);
+  assert.equal(isStripeTestKey(""), false);
+});
+
+test("stripe: the customer portal link must be https on a Stripe host", () => {
+  assert.equal(stripePortalUrl("https://billing.stripe.com/p/login/abc123"), "https://billing.stripe.com/p/login/abc123");
+  assert.equal(stripePortalUrl(" https://billing.stripe.com/p/login/test_abc "), "https://billing.stripe.com/p/login/test_abc");
+  assert.equal(stripePortalUrl("http://billing.stripe.com/p/login/abc"), "");
+  assert.equal(stripePortalUrl("https://billing.stripe.com.evil.example/p/login/abc"), "");
+  assert.equal(stripePortalUrl("https://evilstripe.com/p"), "");
+  assert.equal(stripePortalUrl("javascript:alert(1)"), "");
+  assert.equal(stripePortalUrl(undefined), "");
 });

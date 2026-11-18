@@ -18,10 +18,12 @@ import {
   siteLogoUrl,
   type SiteSettings
 } from "../shared/site";
-import { HttpError, appName, nowIso, readJson, requireUser } from "./util";
+import { HttpError, appName, nowIso, readJson, requireUser, text } from "./util";
+import { getApps } from "./apps";
+import { CopyError, MAX_COMPANIES_PER_PERSON, duplicateCompany } from "./company-copy";
 import { setSiteState, siteState, type SiteState } from "./site-state";
 import { getCatalog } from "./permissions";
-import type { SiteCompanies, SiteCompanyApps } from "../shared/site";
+import type { DuplicateCompanyResult, SiteCompanies, SiteCompanyApps } from "../shared/site";
 import { cleanGrantEnd, grantActive, type GrantUser, type SiteGrants } from "../shared/grants";
 import { PLAN_IDS, cleanPlanDescription, isPlanId, planDescriptionKey, planIncludes, type PaidPlan, type PlanId } from "../shared/plans";
 import { deployLicense } from "./license";
@@ -51,6 +53,7 @@ export async function loadSite(env: Env, force = false): Promise<SiteState> {
     signInCredit: "",
     termsUrl: "",
     privacyUrl: "",
+    issuesUrl: "",
     backgroundType: null,
     backgroundUpdatedAt: null,
     appsOff: [],
@@ -68,6 +71,7 @@ export async function loadSite(env: Env, force = false): Promise<SiteState> {
       signInCredit: m.get("signin_credit") ?? "",
       termsUrl: m.get("terms_url") ?? "",
       privacyUrl: m.get("privacy_url") ?? "",
+      issuesUrl: m.get("issues_url") ?? "",
       backgroundType: m.get("background_type") ?? null,
       backgroundUpdatedAt: m.get("background_updated_at") ?? null,
       appsOff: parseAppsOff(m.get("apps_off")),
@@ -125,6 +129,7 @@ function settings(c: Context<AppEnv>, s: SiteState): SiteSettings {
     defaultName: (c.env.APP_NAME || "OpenAct").trim(),
     customName: !!s.name,
     logoUrl: siteLogo(s),
+    issuesUrl: s.issuesUrl || null,
     canEdit,
     signIn: { ...signInPage(s), customHeading: !!s.signInHeading },
     // Only super admins need the app switches.
@@ -161,6 +166,20 @@ siteRoutes.patch("/", async (c) => {
   if ("problem" in r) throw new HttpError(400, r.problem);
   await write(c.env, [
     r.name ? upsert(c.env, "app_name", r.name, user.id, nowIso()) : c.env.DB.prepare("DELETE FROM site_settings WHERE key = 'app_name'")
+  ]);
+  return c.json(settings(c, await loadSite(c.env, true)));
+});
+
+/**
+ * Saves the Submit issues link. Body: { issuesUrl }
+ * The link opens in a new browser tab from an icon on the app rail. An empty link hides the icon.
+ */
+siteRoutes.patch("/issues", async (c) => {
+  const user = requireSuperAdmin(c);
+  const r = cleanLegalUrl((await readJson(c)).issuesUrl, "Submit issues");
+  if ("problem" in r) throw new HttpError(400, r.problem);
+  await write(c.env, [
+    r.url ? upsert(c.env, "issues_url", r.url, user.id, nowIso()) : c.env.DB.prepare("DELETE FROM site_settings WHERE key = 'issues_url'")
   ]);
   return c.json(settings(c, await loadSite(c.env, true)));
 });
@@ -261,6 +280,29 @@ siteRoutes.put("/companies/:companyId/apps/:appId", async (c) => {
   }
   const row = await c.env.DB.prepare(`${COMPANY_SELECT} WHERE c.id = ?`).bind(companyId).first<CompanyRow>();
   return c.json(siteCompany(row!));
+});
+
+/**
+ * Duplicates a company. Body: { name }
+ * The new company gets a copy of the company's content, such as projects and docs. The super admin is its only owner.
+ * People, invitations, the plan, the AI key, the email domain, comments and share links are not copied.
+ */
+siteRoutes.post("/companies/:companyId/duplicate", async (c) => {
+  const user = requireSuperAdmin(c);
+  const name = text((await readJson(c)).name, "Company name", { max: 80, required: true });
+  const owned = await c.env.DB.prepare("SELECT COUNT(*) AS n FROM company_members WHERE user_id = ? AND role = 'owner'").bind(user.id).first<{ n: number }>();
+  if ((owned?.n ?? 0) >= MAX_COMPANIES_PER_PERSON)
+    throw new HttpError(
+      400,
+      `You own ${MAX_COMPANIES_PER_PERSON} companies, which is the limit. Make another person an owner of one and leave it, or delete one. Then try again.`
+    );
+  try {
+    const r = await duplicateCompany(c.env, { fromId: c.req.param("companyId"), name, userId: user.id }, getApps());
+    return c.json({ company: { id: r.id, name }, copied: r.copied } satisfies DuplicateCompanyResult, 201);
+  } catch (err) {
+    if (err instanceof CopyError) throw new HttpError(err.status, err.message);
+    throw err;
+  }
 });
 
 /**
