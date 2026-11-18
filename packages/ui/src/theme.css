@@ -276,6 +276,9 @@
   --color-agent-done: var(--agent-done);
   --color-agent-fail: var(--agent-fail);
   --color-scrim: var(--scrim);
+  --color-glow-a: var(--glow-a);
+  --color-glow-b: var(--glow-b);
+  --color-glow-c: var(--glow-c);
 
   /* Motion curves: ease-enter, ease-exit and ease-move classes */
   --ease-enter: cubic-bezier(0.22, 1, 0.36, 1);
