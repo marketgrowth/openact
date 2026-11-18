@@ -79,3 +79,27 @@ test("the primary app does not change which app owns a path", () => {
   assert.equal(activeApp(apps, "/")?.id, "projects");
   assert.equal(appHome(projects, apps), "/");
 });
+
+// An outside tool, such as EmDash, sits in its own group at the end of the app list.
+const emdash = { id: "emdash", Mark: () => null, home: "/a/emdash", railPlacement: "end" as const };
+const withEnd = [projects, emdash, orbytt, hello, site];
+
+test("apps with railPlacement end go last, in their own group", () => {
+  const g = railGroups(withEnd, null);
+  assert.deepEqual(g.others.map((a) => a.id), ["projects", "orbytt", "hello"]);
+  assert.deepEqual(g.end.map((a) => a.id), ["emdash"]);
+  assert.deepEqual(railOrder(withEnd).map((a) => a.id), ["projects", "orbytt", "hello", "emdash"]);
+  assert.deepEqual(railGroups(apps, null).end, []);
+});
+
+test("the primary app stays first, even with railPlacement end", () => {
+  const g = railGroups(withEnd, "emdash");
+  assert.equal(g.primary?.id, "emdash");
+  assert.deepEqual(g.end, []);
+  assert.deepEqual(railOrder(withEnd, "hello").map((a) => a.id), ["hello", "projects", "orbytt", "emdash"]);
+});
+
+test("an end app owns its own paths", () => {
+  assert.equal(activeApp(withEnd, "/a/emdash")?.id, "emdash");
+  assert.equal(activeApp(withEnd, "/")?.id, "projects");
+});

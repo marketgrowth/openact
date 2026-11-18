@@ -7,7 +7,7 @@ import { ToastProvider } from "../ui";
 import { WorkspaceProvider, useWorkspace } from "../workspace";
 import { settingsPath } from "../settings-paths";
 import { iconLinks, setFavicon } from "../favicon";
-import { APPS_PATH, ShellContext, appHome, homeAppAt, isSettingsPath, railOrder, type ClientApp, type DirectoryApp, type Shell } from "../apps";
+import { APPS_PATH, ShellContext, appHome, appOwnsPath, homeAppAt, isSettingsPath, railOrder, type ClientApp, type DirectoryApp, type Shell } from "../apps";
 import { SignIn } from "./SignIn";
 import { PLAN_PATH } from "./Plan";
 import { AppSidebar } from "./Sidebar";
@@ -182,7 +182,21 @@ function SignedIn({
     return () => document.removeEventListener("keydown", onKey);
   }, [commands]);
 
+  // An app with collapsePanel, such as EmDash, closes the panel on its pages. The saved choice stays as it is.
+  const collapsed = useMemo(
+    () => path !== APPS_PATH && !isSettingsPath(path) && onApps.some((a) => a.collapsePanel && appOwnsPath(a, onApps, path)),
+    [onApps, path]
+  );
+  // On those pages, Ctrl+B or Cmd+B opens the panel for now only.
+  const [peek, setPeek] = useState(false);
+  useEffect(() => setPeek(false), [collapsed]);
+  const panelOpen = collapsed ? peek : open;
+
   const onOpenChange = (next: boolean) => {
+    if (collapsed) {
+      setPeek(next);
+      return;
+    }
     setOpen(next);
     try {
       localStorage.setItem(PANEL_KEY, next ? "open" : "collapsed");
@@ -271,7 +285,7 @@ function SignedIn({
 
   // App providers wrap the shell, in install order.
   let body: ReactNode = (
-    <SidebarProvider open={open} onOpenChange={onOpenChange} style={{ "--header-height": "calc(var(--spacing) * 12)", "--sidebar-width": "19rem" } as CSSProperties}>
+    <SidebarProvider open={panelOpen} onOpenChange={onOpenChange} style={{ "--header-height": "calc(var(--spacing) * 12)", "--sidebar-width": "19rem" } as CSSProperties}>
       <AppSidebar
         me={me}
         appName={config.appName}

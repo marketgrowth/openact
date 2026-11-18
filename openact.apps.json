@@ -20,6 +20,11 @@
       "id": "esign",
       "path": "apps/esign",
       "source": "local"
+    },
+    {
+      "id": "emdash",
+      "path": "apps/emdash",
+      "source": "local"
     }
   ]
 }

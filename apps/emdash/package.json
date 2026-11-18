@@ -1,0 +1,25 @@
+{
+  "name": "@openact/app-emdash",
+  "version": "0.1.0",
+  "description": "The OpenAct EmDash app: opens a company's EmDash CMS admin inside OpenAct, next to the app rail.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    "./server": "./src/server/index.ts",
+    "./client": "./src/client/index.tsx"
+  },
+  "openact": {
+    "id": "emdash",
+    "name": "EmDash",
+    "server": "./src/server/index.ts",
+    "client": "./src/client/index.tsx",
+    "migrations": "./migrations",
+    "enabledByDefault": false
+  },
+  "dependencies": {
+    "@openact/core": "0.2.0",
+    "@openact/ui": "0.2.0",
+    "hono": "^4.13.16",
+    "react": "^19.3.1"
+  }
+}
