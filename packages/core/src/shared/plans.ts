@@ -3,8 +3,8 @@
  *
  * The core, the UI kit and the Projects app are free and open source. Paid apps need a plan:
  *   - Free: the open source core with the apps that need no plan.
- *   - Director: paid apps for startups to midmarket companies: Docs and Advisory.
- *   - Producer: everything in Director, for enterprise companies.
+ *   - Director: paid apps for growing organizations: Docs and Advisory.
+ *   - Producer: everything in Director, as a done-for-you service (custom apps as a service).
  *
  * A company gets a plan from an annual subscription on this deploy, from the site plan, or from the deploy's license key.
  * The site plan is the plan that a super owner (a super admin who owns a company) pays for. Every company on the deploy gets it.
@@ -29,8 +29,8 @@ export interface PlanInfo {
 
 export const PLANS: Record<PlanId, PlanInfo> = {
   free: { id: "free", name: "Free", short: "Free", audience: "The open source core, the UI and the Projects app." },
-  director: { id: "director", name: "Director", short: "Director", audience: "For startups to midmarket companies." },
-  producer: { id: "producer", name: "Producer", short: "Producer", audience: "For enterprise companies. Includes everything in Director." }
+  director: { id: "director", name: "Director", short: "Director", audience: "For growing organizations." },
+  producer: { id: "producer", name: "Producer", short: "Producer", audience: "Custom apps as a service. We install and manage OpenAct and help build your primary custom app. Includes everything in Director." }
 };
 
 export const isPlanId = (v: unknown): v is PlanId => (PLAN_IDS as readonly unknown[]).includes(v);

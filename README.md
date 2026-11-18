@@ -341,8 +341,8 @@ To help build OpenAct, open [openact.ing/contribute](https://openact.ing/contrib
 | Plan | For | What you get |
 | --- | --- | --- |
 | Free | Everyone | The core, the UI and the Projects app. Open source. |
-| Director | Startups to midmarket companies | Everything in Free, plus Docs, Advisory and eSign. More paid apps will join it. |
-| Producer | Enterprise companies | Everything in Director. |
+| Director | Growing organizations | Everything in Free, plus Docs, Advisory and eSign. More paid apps will join it. |
+| Producer | Custom apps as a service | Everything in Director. We install and manage OpenAct, and we work with you to build your primary custom app. |
 
 Each paid plan has one annual price per company. A company owner buys a plan on the **Plan** page. A self-hosted deploy gets its plan from a license key in the `OPENACT_LICENSE` secret. Read [docs/plans.md](docs/plans.md).
 
