@@ -12,9 +12,10 @@ const current = (name: Props["page"]) => (page === name ? "page" : undefined);
 ---
 <header class="top">
   <div class="wrap">
-    <a class="brand" href="/" aria-label="OpenAct home">
+    <a class="brand" href="/" aria-label="OpenAct home, beta">
       <Logo />
       OpenAct
+      <span class="beta" title="OpenAct is in beta. Expect bugs.">BETA</span>
     </a>
     <nav class="nav" aria-label="Main">
       <a class="pill" href={`${home}#features`}>Features</a>
