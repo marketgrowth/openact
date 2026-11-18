@@ -173,7 +173,7 @@ export function AppSidebar(p: AppSidebarProps) {
                     ))}
                   </SidebarMenu>
                 )}
-                {/* Apps with railPlacement "end", such as EmDash, sit last, below their own divider. */}
+                {/* Apps with railPlacement "end", such as the CMS app, sit last, below their own divider. */}
                 {groups.end.length > 0 && (
                   <>
                     {(groups.primary || groups.others.length > 0) && <RailDivider />}

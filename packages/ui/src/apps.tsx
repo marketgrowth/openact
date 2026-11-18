@@ -65,7 +65,7 @@ export interface ClientApp {
   home?: string;
   /**
    * Where the app sits in the rail. "apps" (the default) puts it with the other apps, in install order.
-   * "end" puts it in its own group at the end of the app list, below a divider. Use it for an outside tool, such as EmDash.
+   * "end" puts it in its own group at the end of the app list, below a divider. Use it for an outside tool, such as the CMS app.
    * The primary app stays at the top either way.
    */
   railPlacement?: "apps" | "end";

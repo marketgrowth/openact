@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { adminUrl, cleanSiteUrl } from "../apps/emdash/src/shared/rules.ts";
+import { adminUrl, cleanSiteUrl } from "../apps/cms/src/shared/rules.ts";
 
 const ok = (raw: unknown) => {
   const r = cleanSiteUrl(raw);

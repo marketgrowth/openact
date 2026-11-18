@@ -1,15 +1,15 @@
 /*
- * Rules for the EmDash app. Pure functions, so the server, the web app and the tests share them.
+ * Rules for the CMS app. Pure functions, so the server, the web app and the tests share them.
  */
 
 /** Where the app's API lives. */
-export const API = "/api/apps/emdash";
+export const API = "/api/apps/cms";
 
 /** The app's page in OpenAct. */
-export const EMDASH_HOME = "/a/emdash";
+export const CMS_HOME = "/a/cms";
 
 /** The Company settings section for the app. */
-export const EMDASH_SETTINGS = "/settings/company/emdash";
+export const CMS_SETTINGS = "/settings/company/cms";
 
 /** EmDash mounts its admin at this path on the site. */
 export const ADMIN_PATH = "/_emdash/admin/";
@@ -17,7 +17,7 @@ export const ADMIN_PATH = "/_emdash/admin/";
 export const SITE_URL_MAX = 300;
 
 /** What the page and the settings tab read. */
-export interface EmdashSite {
+export interface CmsSite {
   /** The EmDash site address, such as https://cms.example.com. Null until an owner or admin sets it. */
   siteUrl: string | null;
   /** True for company owners and admins. They can change the address in Company settings. */

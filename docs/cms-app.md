@@ -1,11 +1,11 @@
 ---
-title: EmDash
+title: CMS
 description: Open your EmDash CMS admin inside OpenAct, next to the app rail.
 ---
 
-# EmDash
+# CMS
 
-The EmDash app opens your [EmDash](https://github.com/emdash-cms/emdash) CMS admin inside OpenAct. The admin fills the page to the right of the app rail. EmDash is a free app.
+The CMS app (id `cms`) opens your [EmDash](https://github.com/emdash-cms/emdash) CMS admin inside OpenAct. The admin fills the page to the right of the app rail. CMS is a free app.
 
 EmDash keeps its own content, people and sign-in. OpenAct stores only the address of your EmDash site.
 
@@ -13,8 +13,8 @@ EmDash keeps its own content, people and sign-in. OpenAct stores only the addres
 
 The app is off in each company until an owner or admin turns it on.
 
-1. Go to **Company settings > Apps** and turn on **EmDash**.
-2. Go to **Company settings > EmDash**.
+1. Go to **Company settings > Apps** and turn on **CMS**.
+2. Go to **Company settings > CMS**.
 3. Type the address of your EmDash site, such as `https://cms.example.com`, and select **Save**.
 
 You can also paste the admin address, such as `https://cms.example.com/_emdash/admin/`. OpenAct keeps the site part. The address must start with `https://`. For a site on your computer, `http://localhost` works too.
@@ -23,9 +23,9 @@ To disconnect the site, select **Remove**.
 
 ## Use it
 
-The EmDash icon (a long dash) is the last app on the rail, below its own divider. Select it to open the EmDash admin at `<your site>/_emdash/admin/`.
+The CMS icon (a long dash) is the last app on the rail, below its own divider. Select it to open the EmDash admin at `<your site>/_emdash/admin/`.
 
-- The app panel closes while the EmDash page is open, so the admin sits right of the rail. It opens again when you leave the page. Press Ctrl+B or Cmd+B to open it on the EmDash page.
+- The app panel closes while the CMS page is open, so the admin sits right of the rail. It opens again when you leave the page. Press Ctrl+B or Cmd+B to open it on the CMS page.
 - **Reload** loads the admin again.
 - **Open in new tab** opens the admin outside OpenAct.
 
@@ -35,13 +35,13 @@ Sign in to EmDash with your EmDash account. EmDash uses passkeys, and they work 
 
 | Permission | Default roles | What it allows |
 | --- | --- | --- |
-| `emdash.use` | Owners, admins | See the EmDash page |
+| `cms.use` | Owners, admins | See the CMS page |
 
 Give members the page in **Company settings > Permissions**. Only owners and admins can change the site address.
 
 ## Let the EmDash site show in OpenAct
 
-A browser shows a page in a frame only when that page allows it. If the EmDash page stays blank, or says that the site refused to connect, the EmDash site does not allow your OpenAct site to frame it.
+A browser shows a page in a frame only when that page allows it. If the CMS page stays blank, or says that the site refused to connect, the EmDash site does not allow your OpenAct site to frame it.
 
 Allow it on the EmDash site with this response header on `/_emdash/`:
 
@@ -55,9 +55,9 @@ Sign-in cookies matter too. When EmDash and OpenAct share a domain, such as `cms
 
 ## For developers
 
-- Code: `apps/emdash/`. The rules for the address are in `src/shared/rules.ts`.
-- Table: `emdash_settings`, one row per company.
-- Routes: `GET /api/apps/emdash/companies/:id/site` checks `emdash.use`. The address is saved through `PATCH /api/companies/:id` with `{ "emdash": { "siteUrl": "..." } }`.
+- Code: `apps/cms/`. The rules for the address are in `src/shared/rules.ts`.
+- Table: `cms_settings`, one row per company.
+- Routes: `GET /api/apps/cms/companies/:id/site` checks `cms.use`. The address is saved through `PATCH /api/companies/:id` with `{ "emdash": { "siteUrl": "..." } }`.
 - The app sets `railPlacement: "end"` and `collapsePanel: true` in its client app. See [The app rail and the app panel](apps.md#the-app-rail-and-the-app-panel).
 - The web app's Content-Security-Policy (`public/_headers`) has `frame-src 'self' https:`, because each company frames its own site.
 - The frame has a `sandbox`, so the EmDash page cannot navigate the OpenAct page.

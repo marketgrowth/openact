@@ -22,8 +22,8 @@
       "source": "local"
     },
     {
-      "id": "emdash",
-      "path": "apps/emdash",
+      "id": "cms",
+      "path": "apps/cms",
       "source": "local"
     }
   ]

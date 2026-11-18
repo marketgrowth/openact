@@ -176,7 +176,7 @@ export default defineClientApp({
 
 The side panel has two columns, like a desktop chat app:
 
-- **The app rail** on the left. It shows the company, the primary app if the deploy has one, one icon for each other app, the end apps (such as [EmDash](emdash-app.md)), the App directory (super admins only), the footer items, Settings and the person's menu. Projects is first, because it is installed first.
+- **The app rail** on the left. It shows the company, the primary app if the deploy has one, one icon for each other app, the end apps (such as [CMS](cms-app.md)), the App directory (super admins only), the footer items, Settings and the person's menu. Projects is first, because it is installed first.
 - **The app panel** beside it. It shows the active app's name, its commands, its `nav` items and its `SidebarSection`. The projects app shows Pinned, Projects and Recent here. On the Settings page, it lists the settings sections.
 
 Ctrl+B or Cmd+B collapses the panel and leaves only the rail. On a phone, both columns open as one sheet.
@@ -191,9 +191,9 @@ A deploy can have one primary app. Use it for the app that the deploy is for, su
 | --- | --- |
 | None | Projects, Docs, divider, App directory (super admins) |
 | `orbytt` | Orbytt, divider, Projects, Docs, divider, App directory (super admins) |
-| None, with EmDash on | Projects, Docs, divider, EmDash, divider, App directory (super admins) |
+| None, with CMS on | Projects, Docs, divider, CMS, divider, App directory (super admins) |
 
-An app with `railPlacement: "end"` sits in its own group at the end of the app list, below a divider. Use it for an app that opens an outside tool, such as [EmDash](emdash-app.md). The primary app stays at the top, whatever its placement.
+An app with `railPlacement: "end"` sits in its own group at the end of the app list, below a divider. Use it for an app that opens an outside tool, such as [CMS](cms-app.md), which opens EmDash. The primary app stays at the top, whatever its placement.
 
 Set it with the app tool. The command writes `"primary"` in `openact.apps.json`:
 

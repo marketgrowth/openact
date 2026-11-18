@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Icon, Link, Notice, PageBody, SiteHeader, api, errorText, useWorkspace } from "@openact/ui";
 import { Button } from "@openact/ui/components/button";
-import { API, EMDASH_SETTINGS, adminUrl, type EmdashSite } from "../shared/rules";
+import { API, CMS_SETTINGS, adminUrl, type CmsSite } from "../shared/rules";
 
 /*
  * What the framed EmDash admin may do. It runs scripts and keeps its own sign-in (same-origin to itself),
@@ -12,17 +12,17 @@ const SANDBOX = "allow-scripts allow-same-origin allow-forms allow-popups allow-
 /** EmDash signs in with passkeys. The frame needs these to use them, and the clipboard for copy buttons. */
 const ALLOW = "publickey-credentials-get *; publickey-credentials-create *; clipboard-write";
 
-/** The EmDash page: the company's EmDash admin in a frame. */
-export default function EmdashPage() {
+/** The CMS page: the company's EmDash admin in a frame. */
+export default function CmsPage() {
   const { current } = useWorkspace();
-  const [site, setSite] = useState<EmdashSite | null>(null);
+  const [site, setSite] = useState<CmsSite | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [frameKey, setFrameKey] = useState(0);
 
   const load = useCallback(() => {
     if (!current) return;
     setProblem(null);
-    api<EmdashSite>(`${API}/companies/${current.id}/site`).then(setSite, (e) => setProblem(errorText(e)));
+    api<CmsSite>(`${API}/companies/${current.id}/site`).then(setSite, (e) => setProblem(errorText(e)));
   }, [current]);
   useEffect(load, [load]);
 
@@ -30,7 +30,7 @@ export default function EmdashPage() {
 
   return (
     <>
-      <SiteHeader title="EmDash">
+      <SiteHeader title="CMS">
         {admin && (
           <>
             <Button variant="ghost" size="sm" onClick={() => setFrameKey((k) => k + 1)} aria-label="Reload the EmDash admin">
@@ -48,7 +48,7 @@ export default function EmdashPage() {
         )}
       </SiteHeader>
       {admin ? (
-        <div className="flex min-h-[calc(100svh-var(--header-height)-1rem)] flex-1 flex-col overflow-hidden md:rounded-b-xl" data-emdash-frame="">
+        <div className="flex min-h-[calc(100svh-var(--header-height)-1rem)] flex-1 flex-col overflow-hidden md:rounded-b-xl" data-cms-frame="">
           <iframe
             key={frameKey}
             src={admin}
@@ -64,7 +64,7 @@ export default function EmdashPage() {
           {problem && <Notice tone="error">{problem}</Notice>}
           {!site && !problem && <p className="text-sm text-muted-foreground">Loading…</p>}
           {site && !site.siteUrl && (
-            <div className="grid gap-3 rounded-lg border p-4" data-emdash-empty="">
+            <div className="grid gap-3 rounded-lg border p-4" data-cms-empty="">
               <h2 className="text-base font-medium">Connect your EmDash site</h2>
               {site.canManage ? (
                 <>
@@ -73,7 +73,7 @@ export default function EmdashPage() {
                   </p>
                   <div>
                     <Button asChild>
-                      <Link to={EMDASH_SETTINGS}>Add the EmDash address</Link>
+                      <Link to={CMS_SETTINGS}>Add the EmDash address</Link>
                     </Button>
                   </div>
                 </>

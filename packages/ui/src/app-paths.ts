@@ -29,7 +29,7 @@ export const railApps = <A extends AppPathInfo>(apps: readonly A[]): A[] => apps
 
 /**
  * The app rail in groups: the primary app on its own, the other apps in install order,
- * then the apps with `railPlacement: "end"` in their own group, such as an outside tool like EmDash.
+ * then the apps with `railPlacement: "end"` in their own group, such as an outside tool like the CMS app.
  */
 export interface RailGroups<A> {
   /** The deploy's primary app, such as a company's own app. Undefined when there is none, or when it is off or has no rail icon. */

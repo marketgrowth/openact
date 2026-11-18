@@ -182,7 +182,7 @@ function SignedIn({
     return () => document.removeEventListener("keydown", onKey);
   }, [commands]);
 
-  // An app with collapsePanel, such as EmDash, closes the panel on its pages. The saved choice stays as it is.
+  // An app with collapsePanel, such as the CMS app, closes the panel on its pages. The saved choice stays as it is.
   const collapsed = useMemo(
     () => path !== APPS_PATH && !isSettingsPath(path) && onApps.some((a) => a.collapsePanel && appOwnsPath(a, onApps, path)),
     [onApps, path]
