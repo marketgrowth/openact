@@ -1,8 +1,8 @@
 {
   "$comment": "The OpenAct app directory. docs.openact.app/directory shows it, and `npm run openact -- add <id>` installs from it. To list your app, open a pull request that adds an entry with the status \"available\".",
   "plans": {
-    "director": "Part of OpenAct Director, the paid plan for startups to midmarket companies",
-    "producer": "Part of OpenAct Producer, the paid plan for enterprise companies"
+    "director": "Part of OpenAct Director, the paid plan for growing organizations",
+    "producer": "Part of OpenAct Producer, the done-for-you plan with custom apps as a service"
   },
   "statuses": {
     "built-in": "Part of OpenAct",

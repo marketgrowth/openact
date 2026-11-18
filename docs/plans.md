@@ -10,10 +10,10 @@ The OpenAct core, the UI and the Projects app are free and open source. Paid app
 | Plan | For | What you get |
 | --- | --- | --- |
 | **Free** | Everyone | The core, the UI and the [Projects](getting-started.md) app, under the Apache License 2.0 |
-| **Director** | Startups to midmarket companies | Everything in Free, plus [Docs](docs-app.md), [Advisory](advisory-app.md) and [eSign](esign-app.md). More paid apps will join Director. |
-| **Producer** | Enterprise companies | Everything in Director |
+| **Director** | Growing organizations | Everything in Free, plus [Docs](docs-app.md), [Advisory](advisory-app.md) and [eSign](esign-app.md). More paid apps will join Director. |
+| **Producer** | Custom apps as a service | Everything in Director. A done-for-you service: we install and manage OpenAct, and we work with you to build your primary custom app. |
 
-Each paid plan has one annual price per company. The price does not change with the number of people. Choose the plan that fits the size of your company.
+Each paid plan has one annual price per company. The price does not change with the number of people. Choose Director to build your own apps. Choose Producer when you want us to do the work.
 
 ## Get a plan
 
