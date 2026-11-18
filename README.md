@@ -2,14 +2,14 @@
 
 **All The World's A Stage**
 
-OpenAct is an open source framework for agentic business apps on Cloudflare. The core, the UI and the Projects app are free and open source. Paid apps, Docs, Advisory and eSign, come with OpenAct Director. Add more apps from the app directory, or build your own.
+OpenAct is an open source framework for agentic business apps on Cloudflare. The core, the UI and the Projects app are free and open source. Paid apps, Docs, Advisory and eSign, come with OpenAct Director and install from the app directory. Add more apps from the app directory, or build your own.
 
 - **A suite of apps.** Projects is ready now, with Kanban, Gantt and calendar views, an AI agent and search. Docs is a company library of paper-size documents, Advisory is a marketplace of approved advisors, and eSign sends PDFs for signature. All three are in the OpenAct Director plan. Official apps for time tracking, contacts, events, support and more are under review in the [app directory](https://docs.openact.app/directory).
 - **A framework for your own apps.** Sign-in, companies, roles, permissions, live updates, email, files and the app shell are ready. Your app adds only its own features.
 - **Agents that know their limits.** The Projects agent acts for a person and never does more than their role allows. Risky changes wait for approval.
 - **Cloudflare from end to end.** Workers, D1, R2, Durable Objects, Vectorize and Workers AI, on your own account.
 
-MarketGrowth makes OpenAct and shares the core, the UI and the Projects app under the Apache License 2.0. Docs, Advisory and eSign are under the OpenAct Director License ([Docs](apps/docs/LICENSE), [Advisory](apps/advisory/LICENSE), [eSign](apps/esign/LICENSE)). Read about [plans](https://docs.openact.app/plans).
+MarketGrowth makes OpenAct and shares the core, the UI and the Projects app under the Apache License 2.0. Docs, Advisory and eSign are paid apps under the OpenAct Director License. They are not in this repository. A Director or Producer plan includes them. Read about [plans](https://docs.openact.ing/plans).
 
 Read the documentation at [docs.openact.app](https://docs.openact.app).
 
@@ -266,7 +266,6 @@ apps/projects/         The projects app
   src/client/            Projects page, board, timeline, calendar, task panel, AI agent, search
   src/shared/            Project types, access rules, agent policy, AG-UI types
   migrations/            New database changes for this app
-apps/docs/             The docs app: a library of paper-size docs with folders, categories and tags, share links, print to PDF
 src/                   The host: the Worker entry, the web app entry and the colophon
 www/                   The website at openact.ing: Astro pages and their Worker, with the Contribute page and its payment routes
 openact.apps.json      The installed apps, in order
@@ -344,12 +343,12 @@ To help build OpenAct, open [openact.ing/contribute](https://openact.ing/contrib
 | Director | Growing organizations | Everything in Free, plus Docs, Advisory and eSign. More paid apps will join it. |
 | Producer | Custom apps as a service | Everything in Director. We install and manage OpenAct, and we work with you to build your primary custom app. |
 
-Each paid plan has one annual price per company. A company owner buys a plan on the **Plan** page. A self-hosted deploy gets its plan from a license key in the `OPENACT_LICENSE` secret. Read [docs/plans.md](docs/plans.md).
+Each paid plan has one annual price. The owner of the site buys a plan in **Site settings > Plan**. A self-hosted deploy gets its plan from a license key in the `OPENACT_LICENSE` secret, and installs the paid apps from the private Director repository. When a license key ends, the paid app versions you have keep working. Read [docs/plans.md](docs/plans.md).
 
 ## License
 
 The core (`packages/core`), the UI kit (`packages/ui`), the Projects app (`apps/projects`) and the examples are under the Apache License 2.0. See [LICENSE](LICENSE).
 
-The Docs app (`apps/docs`) is under the [OpenAct Director License](apps/docs/LICENSE). You can read and change it, and run it for development and testing. Production use needs a Director or Producer plan. Versions of Docs released before November 10, 2026 stay under the Apache License 2.0.
+The paid apps (Docs, Advisory and eSign) are not in this repository. They are under the OpenAct Director License, in the private repository `marketgrowth/openact-director`. Earlier versions in this repository's history keep the license they were released under: Docs versions released before November 10, 2026 stay under the Apache License 2.0, and later versions stay under the OpenAct Director License.
 
 See [NOTICE](NOTICE). Copyright 2026 MarketGrowth.

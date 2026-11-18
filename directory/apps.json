@@ -47,36 +47,36 @@
       "name": "Docs",
       "summary": "A company library of paper-size docs, with folders, categories and tags. Live editing, comments and AI writing help. Share a doc with a link, or print it to PDF.",
       "category": "Work",
-      "status": "built-in",
+      "status": "available",
       "plan": "director",
       "publisher": "MarketGrowth",
       "reserved": true,
-      "source": "local",
-      "repo": "https://github.com/marketgrowth/openact/tree/main/apps/docs"
+      "source": "github:marketgrowth/openact-director/apps/docs",
+      "repo": "https://docs.openact.ing/docs-app"
     },
     {
       "id": "advisory",
       "name": "Advisory",
       "summary": "Run a marketplace of approved advisors. Members book consults or pay in advance through Stripe Connect, and the company keeps a fee. Each paid engagement opens a project.",
       "category": "Sales",
-      "status": "built-in",
+      "status": "available",
       "plan": "director",
       "publisher": "MarketGrowth",
       "reserved": true,
-      "source": "local",
-      "repo": "https://github.com/marketgrowth/openact/tree/main/apps/advisory"
+      "source": "github:marketgrowth/openact-director/apps/advisory",
+      "repo": "https://docs.openact.ing/advisory-app"
     },
     {
       "id": "esign",
       "name": "eSign",
       "summary": "Send PDFs for signature. Make templates with signer roles and fields, send signing links that need no account, and get a signed PDF with a signing certificate.",
       "category": "Work",
-      "status": "built-in",
+      "status": "available",
       "plan": "director",
       "publisher": "MarketGrowth",
       "reserved": true,
-      "source": "local",
-      "repo": "https://github.com/marketgrowth/openact/tree/main/apps/esign"
+      "source": "github:marketgrowth/openact-director/apps/esign",
+      "repo": "https://docs.openact.ing/esign-app"
     },
     {
       "id": "timetrack",
