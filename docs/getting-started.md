@@ -138,7 +138,7 @@ A super admin sets the name, logo, Submit issues link and sign-in page that ever
 
 The name shows on the sign-in page, in the browser tab, in the company menu and in emails. The logo shows on the sign-in page and as the browser tab icon. Without a logo, the OpenAct mark shows.
 
-The sign-in page shows the heading and credit beside the form. On a phone, they show in a band above the form. The page also says that people agree to the Terms of Use and Privacy Policy when they sign in. Each name links to its page when you add the link. Without a link, the name shows as plain text.
+The sign-in page is one card. The form is on the left, and the heading, credit and background are on the right. On a phone, only the form shows. Soft emerald and rose glows fill the page around the card. The page also says that people agree to the Terms of Use and Privacy Policy when they sign in. Each name links to its page when you add the link. Without a link, the name shows as plain text.
 
 Super admins also see the **App directory** icon on the app rail, and they choose the plan for the site in **Site settings > Plan**. Read [Change the plan descriptions](plans.md#change-the-plan-descriptions).
 

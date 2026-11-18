@@ -47,7 +47,10 @@
         "border": "Lines between parts.",
         "input": "The edge of a form field.",
         "ring": "The focus ring.",
-        "scrim": "The shade behind a dialog or a sheet."
+        "scrim": "The shade behind a dialog or a sheet.",
+        "glow-a": "The first soft glow behind a full-page background, such as the sign-in page. Decoration only.",
+        "glow-b": "The second soft glow. It is the complement of the first. Decoration only.",
+        "glow-c": "The third soft glow, a cool blue. Decoration only."
       }
     },
     "action": {

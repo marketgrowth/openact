@@ -51,6 +51,10 @@
   --stage-border: #ffffff1a;
   --stage-line: #ffffff14;
   --stage-glow: #e3b85c;
+  /* Page glows behind the sign-in card: emerald, its complement rose, and a cool blue. */
+  --glow-a: oklch(0.72 0.15 162 / 0.2);
+  --glow-b: oklch(0.66 0.19 5 / 0.13);
+  --glow-c: oklch(0.62 0.13 268 / 0.1);
 
   /* Docs paper. The sheet stays light in both themes, like printed paper. The desk around it follows the theme. */
   --paper: #ffffff;
@@ -152,6 +156,9 @@
   --stage-border: #ffffff1a;
   --stage-line: #ffffff14;
   --stage-glow: #e3b85c;
+  --glow-a: oklch(0.72 0.16 162 / 0.17);
+  --glow-b: oklch(0.68 0.2 5 / 0.12);
+  --glow-c: oklch(0.64 0.13 268 / 0.09);
 
   --paper: #fbfafc;
   --paper-foreground: #1c1824;
@@ -269,11 +276,22 @@
   --color-agent-done: var(--agent-done);
   --color-agent-fail: var(--agent-fail);
   --color-scrim: var(--scrim);
+  --color-glow-a: var(--glow-a);
+  --color-glow-b: var(--glow-b);
+  --color-glow-c: var(--glow-c);
 
   /* Motion curves: ease-enter, ease-exit and ease-move classes */
   --ease-enter: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-exit: cubic-bezier(0.55, 0, 1, 0.45);
   --ease-move: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* Soft complementary glows for full-page backgrounds, such as the sign-in page. */
+@utility bg-glow {
+  background-image:
+    radial-gradient(1100px 720px at 8% -8%, var(--glow-a), transparent 62%),
+    radial-gradient(900px 760px at 96% 40%, var(--glow-b), transparent 62%),
+    radial-gradient(1200px 800px at 40% 115%, var(--glow-c), transparent 60%);
 }
 
 @layer base {
