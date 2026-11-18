@@ -8,4 +8,4 @@ export const DEPLOY_URL = "https://deploy.workers.cloudflare.com/?url=https://gi
 export const OG_IMAGE = `${SITE_URL}/images/og.png`;
 export const OG_IMAGE_ALT = "The OpenAct Projects board with Backlog, To do, In progress and Review columns";
 export const FONTS =
-  "https://fonts.googleapis.com/css2?family=Open+Sans:wdth,wght@75..100,500..800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap";
+  "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap";
