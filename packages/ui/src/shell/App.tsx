@@ -20,6 +20,10 @@ import { Button } from "@openact/ui/components/button";
 const SettingsPage = lazy(() => import("./SettingsPage").then((m) => ({ default: m.SettingsPage })));
 const NewCompanyDialog = lazy(() => import("./CompanyDialogs").then((m) => ({ default: m.NewCompanyDialog })));
 const AppsPage = lazy(() => import("./AppsPage").then((m) => ({ default: m.AppsPage })));
+const AgentConsent = lazy(() => import("./AgentConsent").then((m) => ({ default: m.AgentConsent })));
+
+/** The consent page that AI agents send people to. Same path as CONSENT_PATH in AgentConsent.tsx. */
+const CONSENT_PATH = "/oauth/authorize";
 
 /**
  * Starts the web app with the installed apps. The host's main.tsx calls it.
@@ -73,7 +77,8 @@ const DEFAULT_CONFIG: AppConfig = {
   signupMode: "open",
   aiProvider: "workers-ai",
   apps: [],
-  signIn: { heading: "", credit: "", termsUrl: null, privacyUrl: null, backgroundUrl: null }
+  signIn: { heading: "", credit: "", termsUrl: null, privacyUrl: null, backgroundUrl: null },
+  agentAccess: false
 };
 
 function Root({ apps, directory, primary }: { apps: ClientApp[]; directory: readonly DirectoryApp[]; primary: string | null }) {
@@ -125,6 +130,13 @@ function Root({ apps, directory, primary }: { apps: ClientApp[]; directory: read
   }
   if (me === undefined) return <div className="min-h-dvh bg-background" aria-busy="true" />;
   if (!me) return <SignIn config={config} onSignedIn={setMe} />;
+  // An AI agent asks to connect. The person signs in first, then answers on this page.
+  if (path === CONSENT_PATH)
+    return (
+      <Suspense fallback={<div className="min-h-dvh bg-background" aria-busy="true" />}>
+        <AgentConsent config={config} />
+      </Suspense>
+    );
   return (
     <WorkspaceProvider key={me.id}>
       <SignedIn me={me} config={config} apps={apps} primary={primary} directory={directory} onMe={setMe} onSite={onSite} />

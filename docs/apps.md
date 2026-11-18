@@ -155,6 +155,51 @@ Apps that a super admin turns off in Site settings are off in every company. A s
 
 Live updates: call `registerRoomKind("inventory-item", readRevisions)` once, `markChanged("inventory-item", id)` when data changes, and `acceptLive()` in a route that checks access first. Pages use `useLive()` from `@openact/ui`.
 
+### Tools for AI agents
+
+When a site turns on [agent access](agent-access.md), AI agents can call your app's tools over MCP. List them in `tools`:
+
+```ts
+export default defineServerApp({
+  id: "inventory",
+  name: "Inventory",
+  permissions: { "inventory.view": { label: "See stock", roles: ["owner", "admin", "member"] } },
+  tools: [
+    {
+      name: "inventory_stock",
+      title: "Check stock",
+      description: "Returns how many units of a product are in stock in the company. Give the product SKU.",
+      inputSchema: {
+        type: "object",
+        properties: { sku: { type: "string", description: "The product SKU.", maxLength: 40 } },
+        required: ["sku"],
+        additionalProperties: false
+      },
+      permission: "inventory.view",
+      readOnly: true,
+      run: async (ctx, input) => {
+        const row = await ctx.env.DB.prepare("SELECT units FROM inventory_stock WHERE company_id = ? AND sku = ?")
+          .bind(ctx.companyId, input.sku)
+          .first<{ units: number }>();
+        if (!row) throw new HttpError(404, `There is no product with SKU ${input.sku}.`);
+        return { text: `${row.units} units in stock.`, data: { units: row.units } };
+      }
+    }
+  ]
+});
+```
+
+- **Name.** Start it with your app id and an underscore, such as `inventory_stock`. Use lowercase letters, numbers and underscores.
+- **Description.** Write it for the agent: what the tool does, what to give it and what it returns.
+- **Input.** The core checks the arguments against `inputSchema` before `run`: required fields, types, `enum`, `maxLength`, `minimum`, `maximum` and `maxItems`.
+- **Permission.** The core checks it before every call, with the app's on/off state and the plan, as `requirePermission` does. `run` gets `ctx.user` and `ctx.companyId` from the connection. Keep data in that company.
+- **readOnly.** Set it when the tool only reads. A tool that changes data needs the person to allow changes on the consent page. Follow the same rules as your routes, such as `bumpRev` or `markChanged`.
+- **public.** Set it for a tool that anyone may call without sign-in, at `/mcp/public`, such as a free check of a website. A public tool must be `readOnly`, gets no person and no company, and must not read company data.
+- **Errors.** Throw `HttpError` with a plain message. The agent reads it as the tool's result.
+- **No deletes and no changes to people.** Leave those to a person in the app.
+
+The Projects app has one tool, `projects_list`, as an example.
+
 ### Client side
 
 ```tsx

@@ -36,6 +36,7 @@ Every app has a `package.json` with an `openact` field. The `openact` script rea
 | `middleware` | `MiddlewareHandler<AppEnv>[]` | Runs on every API request, after the session is read |
 | `scheduled` | `(env, cron) => Promise<void>` | Runs on each cron trigger. `DAILY_CRON` is the daily schedule. |
 | `hooks` | `AppHooks` | Joins the core's sign-in and company events. See below. |
+| `tools` | `AgentTool[]` | Tools that AI agents can call over MCP when the site turns on agent access. See [Tools for AI agents](../apps.md#tools-for-ai-agents). |
 
 ### Hooks
 

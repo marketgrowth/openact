@@ -15,7 +15,7 @@ import { SitePlan } from "./Plan";
 import { SiteSettingsSection, type SiteSection } from "./SiteSettings";
 import { SiteGrants } from "./SiteGrants";
 import { SiteDuplicate } from "./SiteDuplicate";
-import { ProfileSection, SecuritySection } from "./AccountSettings";
+import { ConnectedAgentsSection, ProfileSection, SecuritySection } from "./AccountSettings";
 
 /*
  * The Settings page. It fills the main content area, and the side panel lists its sections.
@@ -68,7 +68,13 @@ export function SettingsPage({
     if (!section) return <Missing />;
     return (
       <Shell title="Personal account" section={section}>
-        {section.id === "profile" ? <ProfileSection key={me.id} me={me} onMe={onMe} /> : <SecuritySection me={me} onMe={onMe} onSignOut={onSignOut} />}
+        {section.id === "profile" ? (
+          <ProfileSection key={me.id} me={me} onMe={onMe} />
+        ) : section.id === "agents" ? (
+          <ConnectedAgentsSection />
+        ) : (
+          <SecuritySection me={me} onMe={onMe} onSignOut={onSignOut} />
+        )}
       </Shell>
     );
   }
