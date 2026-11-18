@@ -31,6 +31,13 @@ export interface ServerApp {
   /** Runs on each cron trigger. `cron` is the schedule that fired. */
   scheduled?: (env: Env, cron: string) => Promise<void>;
   hooks?: AppHooks;
+  /**
+   * Server functions that other apps may call when this app is installed, by name.
+   * Another app reads one with appService(appId, name). Use it for an optional link between apps,
+   * where a static import would break the build when this app is not installed.
+   * A service does not check the caller's access. The calling app checks its own permissions first.
+   */
+  services?: Record<string, unknown>;
 }
 
 export interface AppHooks {
@@ -83,6 +90,14 @@ export function setApps(apps: ServerApp[]): void {
 }
 
 export const getApps = (): readonly ServerApp[] => installed;
+
+/**
+ * A service of another installed app, or undefined when that app is not installed or has no such service.
+ * The caller gives the type. Check that the app is on for the company with companyAppState before you use it.
+ */
+export function appService<T>(appId: string, name: string): T | undefined {
+  return installed.find((a) => a.id === appId)?.services?.[name] as T | undefined;
+}
 
 /** Runs a hook in every app that has it, in install order. */
 export async function runHook<K extends keyof AppHooks>(

@@ -3,6 +3,7 @@ import { DOC_ROOM, LIBRARY_ROOM, aiEnabled, docsRoutes } from "./routes";
 import { shareImage, sharePage } from "./share";
 import { COMMENTS_ROOM, commentRoutes } from "./comments";
 import { duplicateDocs } from "./duplicate";
+import { docsLibrary } from "./library-service";
 
 // Durable Object classes must be exported from the app's server file. npm run sync exports them from the Worker.
 export { DocsRoom } from "./room";
@@ -108,6 +109,8 @@ export default defineServerApp({
   scheduled: async (env, cron) => {
     if (cron === DAILY_CRON) await cleanOrphanFiles(env);
   },
+  // For other apps, such as eSign: read PDFs from the library and save PDFs to it.
+  services: { library: docsLibrary },
   hooks: {
     // Company settings, Docs section.
     companyDetail: async (env, companyId) => ({ docsAi: await aiEnabled(env, companyId) }),
