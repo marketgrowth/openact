@@ -6,6 +6,7 @@ import { Link, navigate, usePath } from "../router";
 import { ToastProvider } from "../ui";
 import { WorkspaceProvider, useWorkspace } from "../workspace";
 import { settingsPath } from "../settings-paths";
+import { iconLinks, setFavicon } from "../favicon";
 import { APPS_PATH, ShellContext, appHome, homeAppAt, isSettingsPath, railOrder, type ClientApp, type DirectoryApp, type Shell } from "../apps";
 import { SignIn } from "./SignIn";
 import { PLAN_PATH } from "./Plan";
@@ -92,7 +93,7 @@ function Root({ apps, directory, primary }: { apps: ClientApp[]; directory: read
   // The browser tab follows the site settings.
   useEffect(() => {
     document.title = config.appName;
-    setFavicon(config.logoUrl);
+    setFavicon(config.logoUrl, iconLinks(document));
   }, [config.appName, config.logoUrl]);
 
   const onSite = useCallback(
@@ -132,19 +133,6 @@ function Root({ apps, directory, primary }: { apps: ClientApp[]; directory: read
 }
 
 type Dialog = null | "newCompany" | { command: string };
-
-/** Shows the site logo as the tab icon, or the default icon from index.html. */
-function setFavicon(url: string | null) {
-  const link = document.querySelector<HTMLLinkElement>('link[rel~="icon"]');
-  if (!link) return;
-  if (link.dataset.defaultHref === undefined) {
-    link.dataset.defaultHref = link.getAttribute("href") ?? "";
-    link.dataset.defaultType = link.getAttribute("type") ?? "";
-  }
-  link.href = url ?? link.dataset.defaultHref;
-  if (url) link.removeAttribute("type");
-  else if (link.dataset.defaultType) link.type = link.dataset.defaultType;
-}
 
 function SignedIn({
   me,
