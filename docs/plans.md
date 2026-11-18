@@ -15,6 +15,8 @@ The OpenAct core, the UI and the Projects app are free and open source. Paid app
 
 Each paid plan has one annual price per company. The price does not change with the number of people. Choose Director to build your own apps. Choose Producer when you want us to do the work.
 
+Nonprofits get 50% off Director and Producer.
+
 ## Get a plan
 
 There are two ways to get a plan. A super admin can also [give one person a paid app](#give-one-person-a-paid-app).
