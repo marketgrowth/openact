@@ -5,7 +5,7 @@ import { AdvisoryProvider } from "./state";
 import { AdvisorySection } from "./AdvisorySection";
 
 /*
- * Advisory in the web app: its own icon in the app rail, the directory of advisors in the panel, and these pages:
+ * Advisory in the web app: its own icon at the bottom of the app rail, above Settings, the directory of advisors in the panel, and these pages:
  *   /a/advisory            the directory
  *   /a/advisory/p/<id>     an advisor's profile, with Book a consult and Pay in advance
  *   /a/advisory/pay/<id>   the payment page for a request
@@ -26,6 +26,8 @@ export default defineClientApp({
   id: "advisory",
   name: "Advisory",
   icon: "handshake",
+  // The site owner installs Advisory to add professional services to the brand. Its icon sits in the rail footer.
+  railPlacement: "footer",
   home: ADVISORY_HOME,
   Provider: AdvisoryProvider,
   routes: [

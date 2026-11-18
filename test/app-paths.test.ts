@@ -79,3 +79,16 @@ test("the primary app does not change which app owns a path", () => {
   assert.equal(activeApp(apps, "/")?.id, "projects");
   assert.equal(appHome(projects, apps), "/");
 });
+
+test("footer apps sit apart from the other apps, after them in rail order", () => {
+  const advisory = { id: "advisory", icon: "handshake", home: "/a/advisory", railPlacement: "footer" as const };
+  const all = [projects, advisory, orbytt];
+  const g = railGroups(all, null);
+  assert.deepEqual(g.others.map((a) => a.id), ["projects", "orbytt"]);
+  assert.deepEqual(g.footer.map((a) => a.id), ["advisory"]);
+  assert.deepEqual(railOrder(all).map((a) => a.id), ["projects", "orbytt", "advisory"]);
+  assert.equal(activeApp(all, "/a/advisory/me")?.id, "advisory");
+  // A primary app stays at the top, even with a footer placement.
+  assert.equal(railGroups(all, "advisory").primary?.id, "advisory");
+  assert.deepEqual(railGroups(all, "advisory").footer, []);
+});

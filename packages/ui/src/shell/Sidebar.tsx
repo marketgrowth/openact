@@ -1,6 +1,6 @@
 import { COMPANY_ROLE_LABELS, type Company, type User } from "@openact/core/shared";
 import { APPS_PATH, SETTINGS_PATH, activeApp, appHome, isSettingsPath, railGroups, railOrder, resolveAppPath, type ClientApp } from "../apps";
-import { ACCOUNT_SECTIONS, SITE_SECTIONS, companySections, parseSettingsPath, settingsPath, type SettingsSection } from "../settings-paths";
+import { ACCOUNT_SECTIONS, CONTRIBUTE_SECTION, SITE_SECTIONS, companySections, parseSettingsPath, settingsPath, type SettingsSection } from "../settings-paths";
 import { canManageCompany } from "@openact/core/shared";
 import { Link, navigate, usePath } from "../router";
 import { Avatar, Icon } from "../ui";
@@ -203,6 +203,10 @@ export function AppSidebar(p: AppSidebarProps) {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )}
+              {/* Apps such as Advisory sit here. The site owner installs them from the App directory. */}
+              {groups.footer.map((app) => (
+                <RailApp key={app.id} app={app} apps={p.apps} active={app === active} onPick={done} />
+              ))}
               {footer.map((item) =>
                 isWebAddress(item.path) ? (
                   <SidebarMenuItem key={item.path}>
@@ -311,7 +315,10 @@ export function AppSidebar(p: AppSidebarProps) {
   );
 }
 
-/** The settings sections in the app panel: Company settings for owners and admins, Personal account for everyone, then Site settings for super admins. */
+/**
+ * The settings sections in the app panel: Company settings for owners and admins, Personal account for everyone,
+ * then Site settings for super admins. Contribute shows under Company settings for super admins only.
+ */
 function SettingsNav({ apps, path, company, site, onPick }: { apps: readonly ClientApp[]; path: string; company: boolean; site: boolean; onPick: () => void }) {
   const here = parseSettingsPath(path);
   const group = (label: string, sections: readonly SettingsSection[]) => (
@@ -338,7 +345,7 @@ function SettingsNav({ apps, path, company, site, onPick }: { apps: readonly Cli
   );
   return (
     <>
-      {company && group("Company settings", companySections(apps))}
+      {(company || site) && group("Company settings", [...(company ? companySections(apps) : []), ...(site ? [CONTRIBUTE_SECTION] : [])])}
       {group("Personal account", ACCOUNT_SECTIONS)}
       {site && group("Site settings", SITE_SECTIONS)}
     </>

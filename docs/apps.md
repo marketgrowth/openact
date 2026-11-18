@@ -176,7 +176,7 @@ export default defineClientApp({
 
 The side panel has two columns, like a desktop chat app:
 
-- **The app rail** on the left. It shows the company, the primary app if the deploy has one, one icon for each other app, the App directory (super admins only), the footer items, Settings and the person's menu. Projects is first, because it is installed first.
+- **The app rail** on the left. It shows the company, the primary app if the deploy has one, one icon for each other app, the App directory (super admins only), the footer items and footer apps such as Advisory, Settings and the person's menu. Projects is first, because it is installed first.
 - **The app panel** beside it. It shows the active app's name, its commands, its `nav` items and its `SidebarSection`. The projects app shows Pinned, Projects and Recent here. On the Settings page, it lists the settings sections.
 
 Ctrl+B or Cmd+B collapses the panel and leaves only the rail. On a phone, both columns open as one sheet.
@@ -209,6 +209,7 @@ An app shows in the rail when it has an `icon` or a `Mark`. Its pages live under
 | --- | --- |
 | `icon` | The app's icon in the rail, as a Lucide name for `Icon`, such as `"users"` |
 | `Mark` | A custom rail icon, such as a brand mark. Draw it with `currentColor`. |
+| `railPlacement` | `"footer"` puts the app's icon at the bottom of the rail, above Settings, such as Advisory. Default: `"apps"` |
 | `home` | Where the rail icon goes. Default: `/` for the first app with a home page, otherwise `/a/<id>` |
 | `ownsPath` | Says which paths belong to the app. Default: the home, `/a/<id>/...` and the app's routes |
 | `routes` | Pages. Start each one with `SiteHeader` and put its content in `PageBody`. |

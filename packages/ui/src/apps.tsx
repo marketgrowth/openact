@@ -64,6 +64,11 @@ export interface ClientApp {
   /** Where the rail icon goes. Default: "/" for the first app with a home page, otherwise /a/<id>. */
   home?: string;
   /**
+   * "footer" puts the app's icon at the bottom of the rail, above Settings, instead of with the other apps.
+   * Use it for an app that serves the whole site, such as Advisory. Default: "apps".
+   */
+  railPlacement?: "apps" | "footer";
+  /**
    * True when a path belongs to this app, so the rail lights it and the panel shows its items.
    * Default: the home path, paths under /a/<id>/, and the app's routes.
    */

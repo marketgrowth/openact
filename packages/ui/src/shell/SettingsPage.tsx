@@ -5,7 +5,7 @@ import { api, errorText } from "../api";
 import { navigate, usePath } from "../router";
 import { Notice } from "../ui";
 import { useWorkspace } from "../workspace";
-import { ACCOUNT_SECTIONS, SITE_SECTIONS, companySections, parseSettingsPath, settingsPath, type SettingsSection } from "../settings-paths";
+import { ACCOUNT_SECTIONS, CONTRIBUTE_SECTION, SITE_SECTIONS, companySections, parseSettingsPath, settingsPath, type SettingsSection } from "../settings-paths";
 import { PageBody, SiteHeader } from "./SiteHeader";
 import { CompanyMark } from "./Sidebar";
 import { GeneralTab, PeopleTab } from "./CompanyDialogs";
@@ -98,6 +98,19 @@ export function SettingsPage({
     );
   }
 
+  if (scope === "company" && id === CONTRIBUTE_SECTION.id) {
+    if (superAdmin === undefined) return <Loading title="Company settings" />;
+    return (
+      <Shell title="Company settings" section={CONTRIBUTE_SECTION}>
+        {superAdmin ? (
+          <ContributeSection />
+        ) : (
+          <Notice tone="info">Only the owner of this site can open this section.</Notice>
+        )}
+      </Shell>
+    );
+  }
+
   const section = sections.find((s) => s.id === id);
   if (!section) return <Missing />;
   if (ws.companies === null) return <Loading title="Company settings" />;
@@ -159,6 +172,26 @@ function CompanySection({ companyId, me, apps, section }: { companyId: string; m
     >
       {body}
     </Shell>
+  );
+}
+
+/** The Contribute page lives on openact.ing. Keep this address in step with CONTRIBUTE_URL in src/shared/contribute.ts. */
+const CONTRIBUTE_URL = "https://openact.ing/contribute";
+
+/** Contribute, for the site owner: what it is, and a link that opens the page in a new tab. */
+function ContributeSection() {
+  return (
+    <div className="grid gap-4 text-sm" data-contribute-section="">
+      <p>
+        OpenAct is open source. Contributions pay for new apps, fixes and docs. You can give once or each month, by card or in USDC.
+      </p>
+      <p>
+        <a className="font-medium underline underline-offset-4" href={CONTRIBUTE_URL} target="_blank" rel="noreferrer">
+          Open the Contribute page
+          <span className="sr-only"> (opens in a new tab)</span>
+        </a>
+      </p>
+    </div>
   );
 }
 
