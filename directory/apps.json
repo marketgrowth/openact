@@ -79,6 +79,17 @@
       "repo": "https://docs.openact.ing/esign-app"
     },
     {
+      "id": "cms",
+      "name": "CMS",
+      "summary": "Open your EmDash CMS admin inside OpenAct, next to the app rail. Each company adds its own EmDash site address.",
+      "category": "Content",
+      "status": "built-in",
+      "publisher": "MarketGrowth",
+      "reserved": true,
+      "source": "local",
+      "repo": "https://github.com/marketgrowth/openact/tree/main/apps/cms"
+    },
+    {
       "id": "timetrack",
       "name": "TimeTrack",
       "summary": "Track time on projects and tasks. Timesheets, approvals and reports.",

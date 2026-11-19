@@ -1,8 +1,10 @@
 # Security headers for the web app. Cloudflare applies them to every static file and to index.html.
 # API responses get their headers from the Worker (packages/core/src/server/worker.ts).
 # If an app loads files from another site, add that site to the matching directive below.
+# frame-src allows https pages in frames, because the CMS app frames each company's own EmDash site.
+# The site address differs by company, so it cannot be listed here. http is allowed only for a site on this computer.
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; frame-src 'self' https: http://localhost:* http://127.0.0.1:*; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: same-origin
