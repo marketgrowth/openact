@@ -15,6 +15,7 @@ import { directorRoutes, refreshStoreLicense } from "./director.ts";
 import { siteState } from "./site-state";
 import { accountRoutes } from "./account";
 import { billingRoutes, companyPlanRoutes } from "./billing";
+import { agentAccessOn, agentAccountRoutes, agentApiRoutes, agentRoutes, cleanupAgentAccess } from "./agents";
 
 const securityHeaders: MiddlewareHandler<AppEnv> = async (c, next) => {
   await next();
@@ -45,6 +46,7 @@ async function cleanup(env: Env): Promise<void> {
     env.DB.prepare("DELETE FROM login_codes WHERE created_at < ?").bind(now - 86400000),
     env.DB.prepare("DELETE FROM sessions WHERE expires_at < ?").bind(now)
   ]);
+  await cleanupAgentAccess(env);
 }
 
 /** The daily cron. Apps get every cron; the core cleans up on this one. */
@@ -72,7 +74,8 @@ export function createWorker({ apps, catalog }: { apps: ServerApp[]; catalog?: A
       signupMode: (c.env.SIGNUP_MODE || "open").trim() === "invite" ? "invite" : "open",
       aiProvider: (c.env.AI_PROVIDER || "workers-ai").trim(),
       apps: getCatalog().map((a) => ({ id: a.id, name: a.name })),
-      signIn: signInPage()
+      signIn: signInPage(),
+      agentAccess: agentAccessOn(c.env)
     };
     return c.json(config);
   });
@@ -88,12 +91,22 @@ export function createWorker({ apps, catalog }: { apps: ServerApp[]; catalog?: A
   app.route("/api/companies", companyAiRoutes);
   app.route("/api/companies", companyPlanRoutes);
   app.route("/api/billing", billingRoutes);
+  app.route("/api/oauth", agentApiRoutes);
+  app.route("/api/me", agentAccountRoutes);
   for (const a of apps) a.routes?.(app);
 
   app.get("/api/health", (c) => c.json({ ok: true }));
 
+  // Agent access (OAuth 2.1 and MCP), outside /api. Off unless AGENT_ACCESS is "on". See docs/agent-access.md.
+  app.route("/", agentRoutes);
+
   app.notFound((c) => {
     if (c.req.path.startsWith("/api/")) return c.json({ error: "This API route does not exist." }, 404);
+    // Well-known files are for programs. A host's own file in public/.well-known is served. A missing one is a 404, not the web app.
+    if (c.req.path.startsWith("/.well-known/"))
+      return c.env.ASSETS.fetch(c.req.raw).then((r) =>
+        r.ok && !(r.headers.get("content-type") || "").includes("text/html") ? r : c.json({ error: "Not found." }, 404)
+      );
     return c.env.ASSETS.fetch(c.req.raw);
   });
 

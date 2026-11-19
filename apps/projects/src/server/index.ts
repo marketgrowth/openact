@@ -7,7 +7,7 @@ import { attachmentRoutes, columnRoutes, projectTaskRoutes, taskRoutes } from ".
 import { aiRoutes } from "./ai";
 import { aguiRoutes } from "./agui";
 import { processVectorOutbox, searchRoutes, vectorsEnabled } from "./search";
-import { PROJECT_ROOM, markProjectChanged } from "./data";
+import { PROJECT_ROOM, markProjectChanged, visibleProjectIds } from "./data";
 import { disconnectFromProject, liveRoutes, projectRevisions } from "./live";
 import { duplicateProjects } from "./duplicate";
 
@@ -99,6 +99,40 @@ export default defineServerApp({
     api.route("/api/search", searchRoutes);
   },
   middleware: [indexAfterWrites],
+  // Tools for AI agents (MCP), when the site turns on agent access. Read-only for now.
+  tools: [
+    {
+      name: "projects_list",
+      title: "List projects",
+      description:
+        "Lists the projects that the person can see in the company, most recently changed first. Each item has the project id, name, the person's role in it and a link.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Only projects whose name contains this text.", maxLength: 100 },
+          limit: { type: "integer", description: "At most this many projects. Default 50.", minimum: 1, maximum: 200 }
+        },
+        additionalProperties: false
+      },
+      permission: "projects.browse",
+      readOnly: true,
+      run: async (ctx, input) => {
+        const query = typeof input.query === "string" ? input.query.trim().toLowerCase() : "";
+        const limit = typeof input.limit === "number" ? input.limit : 50;
+        const visible = await visibleProjectIds(ctx.env, ctx.companyId!, ctx.user!.id);
+        const projects = visible
+          .filter((p) => !query || p.name.toLowerCase().includes(query))
+          .slice(0, limit)
+          .map((p) => ({ id: p.id, name: p.name, role: p.role, url: `${ctx.origin}/p/${p.id}` }));
+        const text = projects.length
+          ? projects.map((p) => `- ${p.name} (${p.role}): ${p.url}`).join("\n")
+          : query
+            ? `No project name contains "${query}".`
+            : "There are no projects that you can see in this company.";
+        return { text, data: { projects } };
+      }
+    }
+  ],
   scheduled: async (env, cron) => {
     if (cron === DAILY_CRON) {
       // Approval requests that nobody answered.
