@@ -64,7 +64,7 @@ The core must never import from an app. If the core needs something from apps, a
 
 15. **Apps stay in their lane.** Prefix an app's tables, routes, file keys, room kinds and command ids with its id. An app reads people and companies through the core. It cleans up its data in the `companyMemberRemoved` and `companyDeleting` hooks. It declares its permissions in `defineServerApp({ permissions })` and never hard-codes company roles in a route. App ids in `directory/apps.json` with `"reserved": true`, and the ids in `systemIds`, belong to official apps and to OpenAct. Never give a new app one of them.
 
-16. **Never weaken the plan gate.** A paid app is locked through `companyAppState`. Do not add a way around it, do not add keys to `license-keys.ts` and do not change an app's `plan` field unless MarketGrowth asks for it. Never add an Apache 2.0 notice to a file in a paid app folder.
+16. **Never weaken the plan gate.** A paid app is locked through `companyAppState`. Do not add a way around it, do not add keys to `license-keys.ts` and do not change an app's `plan` or `released` field unless MarketGrowth asks for it. The only way past the gate without a plan is a grant or the license fallback (`fallbackCovers` in `packages/core/src/shared/plans.ts`). Never add an Apache 2.0 notice to a file in a paid app folder.
 17. **Follow the Promptbook.** Read `docs/design-system.md` before you change UI. Pick tokens by intent. Show agent work with `AgentState` and its five states (think, act, wait, done, fail). When you change `theme.css` or `packages/ui/promptbook.json`, run `npm run design -- build` and commit the files in `www/public/design` and `www/src/pages/design.astro`.
 
 ## Docs
