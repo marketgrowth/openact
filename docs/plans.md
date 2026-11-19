@@ -17,6 +17,23 @@ Each paid plan has one annual price per company. The price does not change with 
 
 Nonprofits get 50% off Director and Producer.
 
+## Get the Director apps
+
+The paid apps are in a private repository, `marketgrowth/openact-director`. The public OpenAct repository has the core, the UI and Projects only.
+
+- **Sites that MarketGrowth runs:** the paid apps are already installed. Buy a plan in **Site settings > Plan**.
+- **Your own deploy:** MarketGrowth gives you two things with your plan: a license key, and read access to the private repository for one GitHub account. Then install each app:
+
+  ```bash
+  npm run openact -- add docs       # or advisory, esign
+  npm install
+  npm run deploy
+  ```
+
+  `add` copies the app into `apps/<id>` in your repository. Keep your repository private: the OpenAct Director License does not let you share the paid apps. Each app's page says what else to add to `wrangler.jsonc`.
+
+To get new versions, run `npm run openact -- update <id>` while your license is current. Read [When a plan ends](#when-a-plan-ends).
+
 ## Get a plan
 
 There are two ways to get a plan. A super admin can also [give one person a paid app](#give-one-person-a-paid-app).
@@ -204,11 +221,9 @@ npm run license -- inspect oa1....
 | Part | License |
 | --- | --- |
 | Core (`packages/core`), UI kit (`packages/ui`), Projects (`apps/projects`), examples | [Apache License 2.0](https://github.com/marketgrowth/openact/blob/main/LICENSE) |
-| Docs (`apps/docs`) | [OpenAct Director License 1.0](https://github.com/marketgrowth/openact/blob/main/apps/docs/LICENSE) |
-| Advisory (`apps/advisory`) | [OpenAct Director License 1.0](https://github.com/marketgrowth/openact/blob/main/apps/advisory/LICENSE) |
-| eSign (`apps/esign`) | [OpenAct Director License 1.0](https://github.com/marketgrowth/openact/blob/main/apps/esign/LICENSE) |
+| Docs, Advisory and eSign (private repository) | OpenAct Director License 1.0, in each app's `LICENSE` file |
 
-The OpenAct Director License lets you read and change the code of paid apps, and run them for development and testing. Production use needs a Director or Producer plan. Versions of Docs released before November 10, 2026 stay under the Apache License 2.0.
+The OpenAct Director License lets a licensee read and change the code of paid apps, and run them for development and testing. Production use needs a Director or Producer plan. Versions of Docs released before November 10, 2026 stay under the Apache License 2.0.
 
 ## For app builders
 
@@ -220,4 +235,4 @@ An app asks for a plan with `"plan"` in the `openact` field of its `package.json
 }
 ```
 
-Use `"director"` or `"producer"`. Set `"released"` to the release day each time you release a new version. Without it, the app gets no [perpetual fallback](#perpetual-fallback-on-your-own-deploy). Only official MarketGrowth apps use it today. Apps from other publishers are free. The core checks the plan everywhere it checks that an app is on, so a paid app needs no plan code of its own. See [Build an app](apps.md).
+Use `"director"` or `"producer"`. The paid apps live in the private `marketgrowth/openact-director` repository and use only the public SDK, like any other app. Set `"released"` to the release day each time you release a new version. Without it, the app gets no [perpetual fallback](#perpetual-fallback-on-your-own-deploy). Only official MarketGrowth apps use it today. Apps from other publishers are free. The core checks the plan everywhere it checks that an app is on, so a paid app needs no plan code of its own. See [Build an app](apps.md).
