@@ -8,6 +8,7 @@ import { workspaceRoutes } from "./workspaces";
 import { liveChanges } from "./live";
 import { HttpError, appName } from "./util";
 import { setApps, type ServerApp } from "./apps";
+import { hostApp } from "./hosts";
 import { companyAppRoutes } from "./company-apps";
 import { companyAiRoutes, userAiRoutes } from "./company-ai";
 import { getCatalog, setCatalog, type AppInfo } from "./permissions";
@@ -118,8 +119,29 @@ export function createWorker({ apps, catalog }: { apps: ServerApp[]; catalog?: A
     return c.json({ error: "Something went wrong on the server. Try again." }, 500);
   });
 
+  // Apps that serve hostnames of their own, such as Pages for a company's domain. See "Serve your own hostnames" in docs/apps.md.
+  const hostApps = apps.filter((a) => a.hosts);
+  const fetch: ExportedHandler<Env>["fetch"] = async (req, env, ctx) => {
+    if (hostApps.length) {
+      const host = new URL(req.url).hostname;
+      const owner = await hostApp(hostApps, env, host);
+      if (owner) {
+        try {
+          return await owner.hosts!.fetch(req, env, ctx);
+        } catch (e) {
+          console.error(`[openact] ${owner.id} could not answer a request to ${host}`, e);
+          return new Response("This page is not available right now. Try again in a minute.", {
+            status: 500,
+            headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" }
+          });
+        }
+      }
+    }
+    return app.fetch(req, env, ctx);
+  };
+
   return {
-    fetch: app.fetch,
+    fetch,
     scheduled: async (event, env, ctx) => {
       // Scheduled jobs can send email, so they need the current app name.
       await loadSite(env);

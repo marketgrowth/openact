@@ -223,6 +223,33 @@ export default defineServerApp({
 
 The Projects app has one tool, `projects_list`, as an example.
 
+### Serve your own hostnames
+
+An app can answer requests to hostnames of its own, outside the web app. [Pages](pages-app.md) uses it to serve a company's published pages on the company's own domain, such as `gtmmatters.com`, from the same Worker as `app.gtmmatters.com`.
+
+```ts
+export default defineServerApp({
+  id: "inventory",
+  name: "Inventory",
+  hosts: {
+    // Runs on every request to a host that is not APP_URL's host. Keep it fast, and cache the answer.
+    owns: async (env, hostname) => (await storefrontFor(env, hostname)) !== null,
+    fetch: async (req, env, ctx) => {
+      await loadSite(env);
+      return renderStorefront(req, env, ctx);
+    }
+  }
+});
+```
+
+- For a request to a host that is not the deploy's own (the host of `APP_URL`), the Worker asks each app's `owns`, in install order. The first app that answers true gets the whole request.
+- That host has no `/api`, no session cookie and no web app. A page there cannot read the app's session: the session cookie belongs only to the app's own host.
+- When `APP_URL` is empty, the Worker asks about every host. So `owns` must never answer true for the deploy's own host. Check `deployHost(env)`, and refuse a hostname that matches the app's host when a person saves it.
+- `owns` runs often. Cache answers in memory for a short time, including "no".
+- An error in `owns` counts as false. An error in `fetch` answers 500 with a plain message.
+- The hostname must also reach the Worker: add it as a [Workers Custom Domain](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/), by hand in `wrangler.jsonc` or through the Cloudflare API.
+- `wrangler.jsonc` sends every path to the Worker first (`"run_worker_first": ["/*", "!/assets/*"]`), so a request to `/` on such a host reaches the app. The web app's own pages go back to the static files, with the same security headers as before.
+
 ### Client side
 
 ```tsx
@@ -286,7 +313,7 @@ The first app with a home page still owns `/`, whether it is official or not.
 
 The side panel has two columns, like a desktop chat app:
 
-- **The app rail** on the left. It shows the company, the primary app if the deploy has one, one icon for each other app, the end apps (such as [CMS](cms-app.md)), the App directory (super admins only), the footer items and footer apps (such as [Advisory](advisory-app.md)), Settings and the person's menu. Projects is first, because it is installed first.
+- **The app rail** on the left. It shows the company, the primary app if the deploy has one, one icon for each other app, the end apps (such as [Pages](pages-app.md)), the App directory (super admins only), the footer items and footer apps (such as [Advisory](advisory-app.md)), Settings and the person's menu. Projects is first, because it is installed first.
 - **The app panel** beside it. It shows the active app's name, its commands, its `nav` items and its `SidebarSection`. The projects app shows Pinned, Projects and Recent here. On the Settings page, it lists the settings sections.
 
 Ctrl+B or Cmd+B collapses the panel and leaves only the rail. On a phone, both columns open as one sheet.
@@ -301,9 +328,9 @@ A deploy can have one primary app. Use it for the app that the deploy is for, su
 | --- | --- |
 | None | Projects, Docs, divider, App directory (super admins) |
 | `orbytt` | Orbytt, divider, Projects, Docs, divider, App directory (super admins) |
-| None, with CMS on | Projects, Docs, divider, CMS, divider, App directory (super admins) |
+| None, with Pages on | Projects, Docs, divider, Pages, divider, App directory (super admins) |
 
-An app with `railPlacement: "end"` sits in its own group at the end of the app list, below a divider. Use it for an app that opens an outside tool, such as [CMS](cms-app.md), which opens EmDash. The primary app stays at the top, whatever its placement.
+An app with `railPlacement: "end"` sits in its own group at the end of the app list, below a divider. Use it for a content tool that stands apart from the work apps, such as [Pages](pages-app.md). The primary app stays at the top, whatever its placement.
 
 Set it with the app tool. The command writes `"primary"` in `openact.apps.json`:
 
@@ -323,7 +350,7 @@ An app shows in the rail when it has an `icon` or a `Mark`. Its pages live under
 | `icon` | The app's icon in the rail, as a Lucide name for `Icon`, such as `"users"` |
 | `Mark` | A custom rail icon, such as a brand mark. Draw it with `currentColor`. |
 | `home` | Where the rail icon goes. Default: `/` for the first app with a home page, otherwise `/a/<id>`. Community apps must keep it under `/a/<id>/`. |
-| `railPlacement` | `"apps"` (the default), `"end"` or `"footer"`. `"end"` puts the app last in the app list, below its own divider, such as CMS. `"footer"` puts its icon at the bottom of the rail, above Settings, such as Advisory. |
+| `railPlacement` | `"apps"` (the default), `"end"` or `"footer"`. `"end"` puts the app last in the app list, below its own divider, such as Pages. `"footer"` puts its icon at the bottom of the rail, above Settings, such as Advisory. |
 | `collapsePanel` | `true` closes the app panel on the app's pages, so a page such as a framed outside tool sits right of the rail. The person's saved panel choice does not change. |
 | `ownsPath` | Says which paths belong to the app. Default: the home, `/a/<id>/...` and the app's routes |
 | `routes` | Pages, as named paths. Start each one with `SiteHeader` and put its content in `PageBody`. Read [Pages and paths](#pages-and-paths). |

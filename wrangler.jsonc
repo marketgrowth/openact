@@ -7,15 +7,15 @@
   "upload_source_maps": true,
   "observability": { "enabled": true },
 
-  // The web app is built by Vite into dist/client. The Worker answers /api/* first.
-  // Agent access (docs/agent-access.md) also needs the well-known files, the OAuth endpoints and /mcp.
-  // The consent page, /oauth/authorize, is part of the web app.
-  // An app with public pages of its own adds them here, such as "/docs/s/*" for Docs share links.
+  // The web app is built by Vite into dist/client. The Worker answers every path first, except the built files in /assets/.
+  // It sends the web app's own pages back to the static files, so the web app works as before.
+  // The Worker must run first because an app can serve hostnames of its own, such as Pages for a company's domain.
+  // See "Serve your own hostnames" in docs/apps.md.
   "assets": {
     "directory": "./dist/client",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*", "/.well-known/*", "/oauth/register", "/oauth/token", "/oauth/revoke", "/mcp", "/mcp/*"]
+    "run_worker_first": ["/*", "!/assets/*"]
   },
 
   // Users, projects, members, tasks and sessions.

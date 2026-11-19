@@ -16,6 +16,7 @@
     "app",
     "apps",
     "auth",
+    "cms",
     "company",
     "companies",
     "core",
@@ -26,6 +27,7 @@
     "sessions",
     "settings",
     "site",
+    "sites",
     "ui",
     "user",
     "users"
@@ -79,15 +81,16 @@
       "repo": "https://docs.openact.ing/esign-app"
     },
     {
-      "id": "cms",
-      "name": "CMS",
-      "summary": "Open your EmDash CMS admin inside OpenAct, next to the app rail. Each company adds its own EmDash site address.",
+      "id": "pages",
+      "name": "Pages",
+      "summary": "Build public pages with an AI writer, edit them on the page, and publish them on your own domain. Folders, categories, tags, versions, forms and Google Tag Manager.",
       "category": "Content",
-      "status": "built-in",
+      "status": "available",
+      "plan": "director",
       "publisher": "MarketGrowth",
       "reserved": true,
-      "source": "local",
-      "repo": "https://github.com/marketgrowth/openact/tree/main/apps/cms"
+      "source": "github:marketgrowth/openact-director/apps/pages",
+      "repo": "https://docs.openact.ing/pages-app"
     },
     {
       "id": "timetrack",
