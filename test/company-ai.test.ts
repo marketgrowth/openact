@@ -37,10 +37,15 @@ test("damaged or unknown data does not open", async () => {
 
 test("only known providers and their models are accepted", () => {
   assert.equal(isCompanyAiProvider("anthropic"), true);
-  assert.equal(isCompanyAiProvider("openai"), false);
+  assert.equal(isCompanyAiProvider("openai"), true);
+  assert.equal(isCompanyAiProvider("google"), true);
+  assert.equal(isCompanyAiProvider("workers-ai"), false);
   assert.equal(isCompanyAiProvider("default"), false);
   assert.equal(isCompanyAiModel("anthropic", "claude-sonnet-5-5"), true);
   assert.equal(isCompanyAiModel("anthropic", "gpt-4.1-mini"), false);
+  assert.equal(isCompanyAiModel("openai", "gpt-6.2-sol"), true);
+  assert.equal(isCompanyAiModel("google", "gemini-3.8-flash"), true);
+  assert.equal(isCompanyAiModel("google", "claude-sonnet-5-5"), false);
   assert.equal(COMPANY_AI_MODELS.anthropic[0].id, "claude-sonnet-5-5");
 });
 
@@ -57,4 +62,12 @@ test("labels and hints", () => {
   assert.equal(aiModelLabel("claude-sonnet-5-5"), "Claude Sonnet 5.5");
   assert.equal(aiModelLabel("@cf/meta/llama-3.3-70b-instruct-fp8-fast"), "@cf/meta/llama-3.3-70b-instruct-fp8-fast");
   assert.equal(keyHintOf(KEY), "1234");
+});
+
+test("OpenAI and Gemini keys are checked for shape before any request", () => {
+  assert.deepEqual(cleanApiKey("openai", "sk-proj-abc123"), { key: "sk-proj-abc123" });
+  assert.ok("problem" in cleanApiKey("openai", "sk-ant-abc"));
+  assert.ok("problem" in cleanApiKey("openai", "AIza123"));
+  assert.deepEqual(cleanApiKey("google", "AIzaSyExample123"), { key: "AIzaSyExample123" });
+  assert.ok("problem" in cleanApiKey("google", "sk-proj-abc"));
 });

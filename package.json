@@ -31,6 +31,7 @@
     "openact": "node scripts/openact.mjs",
     "license": "node scripts/license.mjs",
     "design": "node scripts/design.mjs",
+    "ai:check": "node --experimental-strip-types scripts/ai-check.ts",
     "sync": "node scripts/openact.mjs sync",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
