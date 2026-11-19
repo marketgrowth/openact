@@ -3,8 +3,8 @@
  *
  * The core, the UI kit and the Projects app are free and open source. Paid apps need a plan:
  *   - Free: the open source core with the apps that need no plan.
- *   - Director: paid apps for startups to midmarket companies: Docs and Advisory.
- *   - Producer: everything in Director, for enterprise companies.
+ *   - Director: paid apps for growing organizations: Docs and Advisory.
+ *   - Producer: everything in Director, as a done-for-you service (custom apps as a service).
  *
  * A company gets a plan from an annual subscription on this deploy, from the site plan, or from the deploy's license key.
  * The site plan is the plan that a super owner (a super admin who owns a company) pays for. Every company on the deploy gets it.
@@ -29,8 +29,8 @@ export interface PlanInfo {
 
 export const PLANS: Record<PlanId, PlanInfo> = {
   free: { id: "free", name: "Free", short: "Free", audience: "The open source core, the UI and the Projects app." },
-  director: { id: "director", name: "Director", short: "Director", audience: "For startups to midmarket companies." },
-  producer: { id: "producer", name: "Producer", short: "Producer", audience: "For enterprise companies. Includes everything in Director." }
+  director: { id: "director", name: "Director", short: "Director", audience: "For growing organizations." },
+  producer: { id: "producer", name: "Producer", short: "Producer", audience: "Custom apps as a service. We install and manage OpenAct and help build your primary custom app. Includes everything in Director." }
 };
 
 export const isPlanId = (v: unknown): v is PlanId => (PLAN_IDS as readonly unknown[]).includes(v);
@@ -128,6 +128,31 @@ export type LicenseUse = "plan" | "grants";
 /** True when a license key gives every company on the deploy its plan. A grants key does not. */
 export const licenseGivesPlan = (p: Pick<LicensePayload, "use">): boolean => (p.use ?? "plan") === "plan";
 
+/*
+ * Perpetual fallback for self-hosted deploys.
+ *
+ * A license key buys a year of updates for the paid apps. When the key ends, an app version that was released
+ * on or before the key's last day keeps working. A newer version stays locked until the key is renewed.
+ * An app gives its release day with "released" (YYYY-MM-DD) in the "openact" field of its package.json.
+ * Hosted plans (Stripe subscriptions) have no fallback: when the plan ends, the paid apps lock and their data stays.
+ */
+
+/** A YYYY-MM-DD day. */
+export const isDay = (v: unknown): v is string => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(`${v}T00:00:00Z`));
+
+/**
+ * True when an ended license key still covers an app: the key gives a plan that includes the app's plan,
+ * and the app version was released on or before the key's last day. An app without a release day gets no fallback.
+ */
+export function fallbackCovers(
+  ended: Pick<LicensePayload, "plan" | "use" | "expiresAt"> | null | undefined,
+  app: { plan?: PaidPlan; released?: string }
+): boolean {
+  if (!ended || !app.plan || !isDay(app.released)) return false;
+  if (!licenseGivesPlan(ended) || !planIncludes(ended.plan, app.plan)) return false;
+  return app.released <= ended.expiresAt;
+}
+
 const fromB64Url = (s: string): Uint8Array => {
   const b = atob(s.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - (s.length % 4)) % 4));
   return Uint8Array.from(b, (ch) => ch.charCodeAt(0));
@@ -218,6 +243,11 @@ export interface CompanyPlan {
   };
   /** The deploy's license, when it has one that works. */
   license: null | { licensee: string; plan: PaidPlan; expiresAt: string; inGrace: boolean };
+  /**
+   * The deploy's license key after it ended, when it was valid before. Paid app versions released on or before
+   * its last day keep working. Newer versions and new apps need a renewed key.
+   */
+  licenseEnded: null | { licensee: string; plan: PaidPlan; expiresAt: string };
   /** True when this person can buy or change the plan. Company owners can. */
   canManage: boolean;
   /** True when this deploy sells plans through Stripe. */
@@ -230,7 +260,7 @@ export interface CompanyPlan {
   /** True when this person is a super admin, who can change the plan descriptions. */
   canEditDescriptions: boolean;
   /** Installed apps that need a plan. */
-  apps: Array<{ id: string; name: string; plan: PaidPlan; unlocked: boolean }>;
+  apps: Array<{ id: string; name: string; plan: PaidPlan; unlocked: boolean; fallback: boolean }>;
 }
 
 /** Formats a price like "$1,200 a year". */

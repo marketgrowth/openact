@@ -6,17 +6,16 @@ import { DatabaseSync } from "node:sqlite";
 import { DUPLICATE_MAX_FILES } from "../packages/core/src/shared/site.ts";
 import { CopyError, deleteCompanyData, duplicateCompany } from "../packages/core/src/server/company-copy.ts";
 import { duplicateProjects } from "../apps/projects/src/server/duplicate.ts";
-import { duplicateDocs, remapImages } from "../apps/docs/src/server/duplicate.ts";
-import { fileSrc } from "../apps/docs/src/shared/types.ts";
 
 /*
  * Duplicate company, run on SQLite with every migration, a small D1 stand-in and an R2 stand-in in memory.
+ * The Director apps (such as Docs) test their own copy hooks in the private openact-director repository.
  */
 
 const ROOT = join(import.meta.dirname, "..");
 
 function migrations(): string[] {
-  const dirs = ["packages/core/migrations", "apps/advisory/migrations", "apps/docs/migrations", "apps/projects/migrations"];
+  const dirs = ["packages/core/migrations", "apps/projects/migrations"];
   return dirs.flatMap((d) =>
     readdirSync(join(ROOT, d))
       .filter((f) => f.endsWith(".sql"))
@@ -75,8 +74,7 @@ function r2() {
 }
 
 const APPS = [
-  { id: "projects", hooks: { companyDuplicating: duplicateProjects, companyDeleting: deleteProjects } },
-  { id: "docs", hooks: { companyDuplicating: duplicateDocs, companyDeleting: deleteDocs } }
+  { id: "projects", hooks: { companyDuplicating: duplicateProjects, companyDeleting: deleteProjects } }
 ];
 
 // The same clean-up as the apps' companyDeleting hooks.
@@ -86,16 +84,9 @@ async function deleteProjects(env: any, companyId: string) {
   for (const p of projects) for (const k of [...files.objects.keys()]) if (k.startsWith(`projects/${p.id}/`)) files.objects.delete(k);
   env.DB.raw.prepare("DELETE FROM projects WHERE company_id = ?").run(companyId);
 }
-async function deleteDocs(env: any, companyId: string) {
-  const files = r2Of(env);
-  for (const k of [...files.objects.keys()]) if (k.startsWith(`docs/${companyId}/`)) files.objects.delete(k);
-  for (const t of ["docs_files", "docs_docs", "docs_folders", "docs_categories", "docs_tags", "docs_library", "docs_settings"])
-    env.DB.raw.prepare(`DELETE FROM ${t} WHERE company_id = ?`).run(companyId);
-}
 const r2Of = (env: any) => env.FILES as ReturnType<typeof r2>;
 
 const T = "2026-01-01T00:00:00.000Z";
-const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 
 /** A site with two people and one company full of content. */
 function setup() {
@@ -135,38 +126,13 @@ function setup() {
   files.objects.set("projects/p1/tasks/t1/a1", { data: new Uint8Array([7, 7, 7]), type: "application/pdf" });
   ins("INSERT INTO agent_actions (id, project_id, tool, args, summary, status, created_at) VALUES ('ag1', 'p1', 'x', '{}', 's', 'done', ?)", T);
 
-  // Docs: a folder in a folder, a category, a tag, a doc with an image, a PDF with an old and a current file, a comment and a share link.
-  ins("INSERT INTO docs_folders (id, company_id, parent_id, name, created_at, updated_at) VALUES ('f2', 'c1', NULL, 'Policies', ?, ?)", T, T);
-  ins("INSERT INTO docs_folders (id, company_id, parent_id, name, created_at, updated_at) VALUES ('f1', 'c1', 'f2', 'Staffing', ?, ?)", T, T);
-  ins("INSERT INTO docs_categories (id, company_id, name, color, position, created_at) VALUES ('cat1', 'c1', 'Policy', 'teal', 1, ?)", T);
-  ins("INSERT INTO docs_tags (id, company_id, name, created_at) VALUES ('tag1', 'c1', 'DDS', ?)", T);
-  const img = uuid(1);
-  const content = JSON.stringify({ type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Hi" }] }, { type: "image", attrs: { src: fileSrc(img) } }] });
-  ins(
-    "INSERT INTO docs_docs (id, company_id, folder_id, category_id, title, content, header, footer, hide_first, created_by, created_at, updated_at) VALUES ('d1', 'c1', 'f1', 'cat1', 'Staffing plan', ?, 'Head', 'Page {page}', 1, 'u_ann', ?, ?)",
-    content,
-    T,
-    T
-  );
-  ins("INSERT INTO docs_doc_tags (doc_id, tag_id) VALUES ('d1', 'tag1')");
-  ins("INSERT INTO docs_files (id, company_id, doc_id, r2_key, content_type, size, created_at) VALUES (?, 'c1', 'd1', 'docs/c1/d1/img', 'image/png', 2, ?)", img, T);
-  files.objects.set("docs/c1/d1/img", { data: new Uint8Array([9, 9]), type: "image/png" });
-  ins("INSERT INTO docs_docs (id, company_id, title, content, kind, file_id, created_at, updated_at) VALUES ('d2', 'c1', 'Form', '{}', 'pdf', 'pdfnew', ?, ?)", T, T);
-  ins("INSERT INTO docs_files (id, company_id, doc_id, r2_key, content_type, size, name, created_at) VALUES ('pdfold', 'c1', 'd2', 'docs/c1/d2/old', 'application/pdf', 1, 'old.pdf', ?)", T);
-  ins("INSERT INTO docs_files (id, company_id, doc_id, r2_key, content_type, size, name, created_at) VALUES ('pdfnew', 'c1', 'd2', 'docs/c1/d2/new', 'application/pdf', 4, 'form.pdf', ?)", T);
-  files.objects.set("docs/c1/d2/old", { data: new Uint8Array([1]), type: "application/pdf" });
-  files.objects.set("docs/c1/d2/new", { data: new Uint8Array([4, 4, 4, 4]), type: "application/pdf" });
-  ins("INSERT INTO docs_threads (id, company_id, doc_id, created_at, updated_at) VALUES ('th1', 'c1', 'd1', ?, ?)", T, T);
-  ins("INSERT INTO docs_shares (doc_id, token_hash, token_box, created_at) VALUES ('d1', 'h', 'b', ?)", T);
-  ins("INSERT INTO docs_settings (company_id, ai_enabled, updated_at) VALUES ('c1', 1, ?)", T);
-  ins("INSERT INTO docs_library (company_id, rev) VALUES ('c1', 9)");
   return { env, raw, files };
 }
 
 const one = (raw: DatabaseSync, sql: string, ...a: unknown[]) => raw.prepare(sql).get(...(a as never[])) as any;
 const many = (raw: DatabaseSync, sql: string, ...a: unknown[]) => raw.prepare(sql).all(...(a as never[])) as any[];
 
-test("a duplicate copies the company, its projects and its docs, and leaves out people and history", async () => {
+test("a duplicate copies the company and its projects, and leaves out people and history", async () => {
   const { env, raw, files } = setup();
   const before = files.objects.size;
   const r = await duplicateCompany(env, { fromId: "c1", name: "ICF/DD Co (copy)", userId: "u_admin", now: T }, APPS);
@@ -174,7 +140,7 @@ test("a duplicate copies the company, its projects and its docs, and leaves out 
 
   assert.deepEqual(
     r.copied.map((c) => `${c.label}: ${c.count}`),
-    ["Projects: 1", "Tasks: 2", "Task files: 1", "Docs: 1", "PDFs: 1", "Doc folders: 2", "Doc files: 2"]
+    ["Projects: 1", "Tasks: 2", "Task files: 1"]
   );
 
   // The company: new name, the logo, AI defaults, app settings and blocks. No email domain, plan or other people.
@@ -208,47 +174,16 @@ test("a duplicate copies the company, its projects and its docs, and leaves out 
   // New tasks wait for the search index.
   assert.equal(one(raw, "SELECT COUNT(*) AS n FROM vector_outbox WHERE task_id IN (SELECT id FROM tasks WHERE project_id = ?)", p.id).n, 2);
 
-  // Docs: folders keep their tree, the doc keeps its category, tag, header and footer, and its image points at a new file.
-  const staffing = one(raw, "SELECT * FROM docs_folders WHERE company_id = ? AND name = 'Staffing'", to);
-  assert.equal(one(raw, "SELECT name FROM docs_folders WHERE id = ?", staffing.parent_id).name, "Policies");
-  const d1 = one(raw, "SELECT * FROM docs_docs WHERE company_id = ? AND kind = 'doc'", to);
-  assert.equal(d1.folder_id, staffing.id);
-  assert.equal(one(raw, "SELECT name FROM docs_categories WHERE id = ?", d1.category_id).name, "Policy");
-  assert.equal(one(raw, "SELECT t.name FROM docs_doc_tags dt JOIN docs_tags t ON t.id = dt.tag_id WHERE dt.doc_id = ?", d1.id).name, "DDS");
-  assert.equal(d1.header, "Head");
-  assert.equal(d1.footer, "Page {page}");
-  assert.equal(d1.hide_first, 1);
-  assert.equal(d1.created_by, "u_admin");
-  const image = one(raw, "SELECT * FROM docs_files WHERE doc_id = ?", d1.id);
-  assert.equal(image.company_id, to);
-  assert.equal(image.r2_key, `docs/${to}/${d1.id}/${image.id}`);
-  assert.deepEqual(JSON.parse(d1.content).content[1].attrs.src, fileSrc(image.id));
-  assert.deepEqual([...files.objects.get(image.r2_key)!.data], [9, 9]);
 
-  // The PDF copies only its current file, and points at the copy.
-  const pdf = one(raw, "SELECT * FROM docs_docs WHERE company_id = ? AND kind = 'pdf'", to);
-  const pdfFiles = many(raw, "SELECT * FROM docs_files WHERE doc_id = ?", pdf.id);
-  assert.equal(pdfFiles.length, 1);
-  assert.equal(pdf.file_id, pdfFiles[0].id);
-  assert.equal(pdfFiles[0].name, "form.pdf");
-  assert.deepEqual([...files.objects.get(pdfFiles[0].r2_key)!.data], [4, 4, 4, 4]);
-
-  // No comments or share links. The AI setting and a library row are there.
-  assert.equal(one(raw, "SELECT COUNT(*) AS n FROM docs_threads WHERE company_id = ?", to).n, 0);
-  assert.equal(one(raw, "SELECT COUNT(*) AS n FROM docs_shares WHERE doc_id IN (SELECT id FROM docs_docs WHERE company_id = ?)", to).n, 0);
-  assert.equal(one(raw, "SELECT ai_enabled FROM docs_settings WHERE company_id = ?", to).ai_enabled, 1);
-  assert.equal(one(raw, "SELECT rev FROM docs_library WHERE company_id = ?", to).rev, 1);
-
-  // The source company did not change. Files: logo, task file, image and the current PDF file are new.
+  // The source company did not change. Files: the logo and the task file are new.
   assert.equal(one(raw, "SELECT COUNT(*) AS n FROM tasks WHERE project_id = 'p1'").n, 2);
-  assert.equal(one(raw, "SELECT content FROM docs_docs WHERE id = 'd1'").content.includes(uuid(1)), true);
-  assert.equal(files.objects.size, before + 4);
+  assert.equal(files.objects.size, before + 2);
 
   // Deleting the copy leaves the source and its files alone.
   await deleteCompanyData(env, to, APPS);
   assert.equal(one(raw, "SELECT COUNT(*) AS n FROM companies WHERE id = ?", to).n, 0);
   assert.equal(files.objects.size, before);
-  assert.equal(one(raw, "SELECT COUNT(*) AS n FROM docs_docs WHERE company_id = 'c1'").n, 2);
+  assert.equal(one(raw, "SELECT COUNT(*) AS n FROM projects WHERE company_id = 'c1'").n, 1);
 });
 
 test("a failed duplicate leaves nothing behind", async () => {
@@ -258,7 +193,6 @@ test("a failed duplicate leaves nothing behind", async () => {
   await assert.rejects(duplicateCompany(env, { fromId: "c1", name: "Copy", userId: "u_admin" }, [...APPS, broken]), /boom/);
   assert.equal(one(raw, "SELECT COUNT(*) AS n FROM companies").n, 1);
   assert.equal(one(raw, "SELECT COUNT(*) AS n FROM projects").n, 1);
-  assert.equal(one(raw, "SELECT COUNT(*) AS n FROM docs_docs").n, 2);
   assert.equal(files.objects.size, before);
 });
 
@@ -276,16 +210,4 @@ test("a duplicate refuses a missing company and too many files", async () => {
   );
   assert.equal(one(raw, "SELECT COUNT(*) AS n FROM companies").n, 1);
   assert.equal(files.objects.size, before);
-});
-
-test("images point at their copies, and other content stays the same", () => {
-  const a = uuid(1);
-  const b = uuid(2);
-  const doc = { type: "doc", content: [{ type: "table", content: [{ type: "image", attrs: { src: fileSrc(a), alt: "x" } }] }, { type: "image", attrs: { src: "https://evil.example/x.png" } }] };
-  const out = JSON.parse(remapImages(JSON.stringify(doc), new Map([[a, b]]))!);
-  assert.equal(out.content[0].content[0].attrs.src, fileSrc(b));
-  assert.equal(out.content[0].content[0].attrs.alt, "x");
-  assert.equal(out.content[1].attrs.src, "https://evil.example/x.png");
-  assert.equal(remapImages(JSON.stringify(doc), new Map()), null);
-  assert.equal(remapImages("not json", new Map([[a, b]])), null);
 });

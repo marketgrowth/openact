@@ -27,6 +27,7 @@ export const COMPANY_SECTIONS: readonly SettingsSection[] = [
 
 export const ACCOUNT_SECTIONS: readonly SettingsSection[] = [
   { scope: "account", id: "profile", label: "Profile", icon: "user", description: "Your name, your email and how the app looks for you." },
+  { scope: "account", id: "ai", label: "My AI", icon: "sparkle", description: "Use your own AI provider, model and API key." },
   { scope: "account", id: "security", label: "Sign-in and security", icon: "shield", description: "Sign out, or delete your account." },
   {
     scope: "account",

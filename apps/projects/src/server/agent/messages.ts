@@ -10,10 +10,19 @@ export interface ToolCall {
   args: Record<string, unknown>;
 }
 
+/**
+ * Opaque items a provider needs back on the next step of the same run:
+ * OpenAI reasoning items (encrypted) and Gemini thought signatures. They never go to the web app.
+ */
+export interface ProviderReplay {
+  provider: "openai" | "google";
+  items: unknown[];
+}
+
 export type AgentMsg =
   | { role: "system"; content: string }
   | { role: "user"; content: string }
-  | { role: "assistant"; content: string; toolCalls?: ToolCall[] }
+  | { role: "assistant"; content: string; toolCalls?: ToolCall[]; replay?: ProviderReplay }
   | { role: "tool"; toolCallId: string; name?: string; content: string };
 
 export interface ToolDef {
@@ -25,6 +34,7 @@ export interface ToolDef {
 export interface ModelOutput {
   text: string;
   toolCalls: ToolCall[];
+  replay?: ProviderReplay;
 }
 
 const NOT_RUN = "This action did not run.";
@@ -200,6 +210,193 @@ export function parseOpenAi(data: unknown): ModelOutput {
       .filter((c) => typeof c.function?.name === "string")
       .map((c) => ({ id: c.id || genId(), name: c.function!.name!, args: parseArgs(c.function!.arguments) }))
   };
+}
+
+/*
+ * OpenAI Responses API. GPT-6 models need it for tool calls.
+ * store is false, so OpenAI keeps nothing. Reasoning items come back encrypted and go back in the next step of the run.
+ */
+
+type ResponsesItem = Record<string, unknown>;
+
+export function toOpenAiResponses(msgs: AgentMsg[], tools: ToolDef[]) {
+  const instructions = msgs.filter((m) => m.role === "system").map((m) => m.content).join("\n\n");
+  const input: ResponsesItem[] = [];
+  for (const m of msgs) {
+    if (m.role === "system") continue;
+    if (m.role === "user") input.push({ role: "user", content: m.content });
+    else if (m.role === "assistant") {
+      if (m.replay?.provider === "openai") {
+        input.push(...(m.replay.items as ResponsesItem[]));
+        continue;
+      }
+      if (m.content.trim()) input.push({ role: "assistant", content: m.content });
+      for (const c of m.toolCalls ?? []) input.push({ type: "function_call", call_id: c.id, name: c.name, arguments: JSON.stringify(c.args) });
+    } else input.push({ type: "function_call_output", call_id: m.toolCallId, output: m.content });
+  }
+  return {
+    instructions,
+    input,
+    tools: tools.map((t) => ({ type: "function", name: t.name, description: t.description, parameters: t.parameters, strict: false }))
+  };
+}
+
+export function parseOpenAiResponses(data: unknown): ModelOutput {
+  const output = (((data as { output?: unknown[] })?.output ?? []) as ResponsesItem[]).filter((o) => o && typeof o === "object");
+  const texts: string[] = [];
+  const toolCalls: ToolCall[] = [];
+  const replay: ResponsesItem[] = [];
+  for (const o of output) {
+    if (o.type === "message") {
+      const t = ((o.content as Array<{ type?: string; text?: string }>) ?? [])
+        .filter((p) => p?.type === "output_text")
+        .map((p) => p.text ?? "")
+        .join("");
+      if (t) {
+        texts.push(t);
+        replay.push({ role: "assistant", content: t });
+      }
+    } else if (o.type === "function_call" && typeof o.name === "string") {
+      const id = typeof o.call_id === "string" && o.call_id ? o.call_id : genId();
+      toolCalls.push({ id, name: o.name, args: parseArgs(o.arguments) });
+      replay.push({ type: "function_call", ...(typeof o.id === "string" ? { id: o.id } : {}), call_id: id, name: o.name, arguments: typeof o.arguments === "string" ? o.arguments : JSON.stringify(o.arguments ?? {}) });
+    } else if (o.type === "reasoning" && typeof o.encrypted_content === "string") {
+      // Only encrypted reasoning can go back when store is false.
+      replay.push({ type: "reasoning", ...(typeof o.id === "string" ? { id: o.id } : {}), summary: Array.isArray(o.summary) ? o.summary : [], encrypted_content: o.encrypted_content });
+    }
+  }
+  return { text: texts.join(""), toolCalls, ...(toolCalls.length ? { replay: { provider: "openai" as const, items: replay } } : {}) };
+}
+
+/*
+ * Gemini generateContent API.
+ * Gemini 3 and later sign their tool calls (thoughtSignature). The signed parts go back unchanged in the next step of the run.
+ * Calls from an earlier request (the web app keeps no signature) get Google's documented placeholder signature.
+ */
+
+type GeminiPart = Record<string, unknown>;
+
+/** Google's documented value for a function call whose real signature is not available. */
+export const GEMINI_SKIP_SIGNATURE = "skip_thought_signature_validator";
+
+export function toGemini(msgs: AgentMsg[], tools: ToolDef[]) {
+  const system = msgs.filter((m) => m.role === "system").map((m) => m.content).join("\n\n");
+  const contents: Array<{ role: "user" | "model"; parts: GeminiPart[] }> = [];
+  const push = (role: "user" | "model", parts: GeminiPart[]) => {
+    if (!parts.length) return;
+    const last = contents[contents.length - 1];
+    if (last && last.role === role) last.parts.push(...parts);
+    else contents.push({ role, parts });
+  };
+  const names = new Map<string, string>();
+  for (const m of msgs) {
+    if (m.role === "system") continue;
+    if (m.role === "user") push("user", [{ text: m.content }]);
+    else if (m.role === "assistant") {
+      for (const c of m.toolCalls ?? []) names.set(c.id, c.name);
+      if (m.replay?.provider === "google") {
+        push("model", m.replay.items as GeminiPart[]);
+        continue;
+      }
+      const parts: GeminiPart[] = m.content.trim() ? [{ text: m.content }] : [];
+      (m.toolCalls ?? []).forEach((c, i) => parts.push({ functionCall: { name: c.name, args: c.args }, ...(i === 0 ? { thoughtSignature: GEMINI_SKIP_SIGNATURE } : {}) }));
+      push("model", parts);
+    } else {
+      const name = m.name ?? names.get(m.toolCallId) ?? "action";
+      push("user", [{ functionResponse: { name, response: { result: m.content } } }]);
+    }
+  }
+  return {
+    ...(system ? { systemInstruction: { parts: [{ text: system }] } } : {}),
+    contents,
+    ...(tools.length ? { tools: [{ functionDeclarations: tools.map((t) => ({ name: t.name, description: t.description, parametersJsonSchema: t.parameters })) }] } : {})
+  };
+}
+
+export function parseGemini(data: unknown): ModelOutput {
+  const parts = (((data as { candidates?: Array<{ content?: { parts?: unknown[] } }> })?.candidates?.[0]?.content?.parts ?? []) as GeminiPart[]).filter(
+    (p) => p && typeof p === "object"
+  );
+  const texts: string[] = [];
+  const toolCalls: ToolCall[] = [];
+  const replay: GeminiPart[] = [];
+  for (const p of parts) {
+    const fc = p.functionCall as { name?: unknown; args?: unknown } | undefined;
+    if (fc && typeof fc.name === "string") {
+      toolCalls.push({ id: genId(), name: fc.name, args: parseArgs(fc.args) });
+      // Calls are matched by order, so the provider's own id is not sent back.
+      replay.push({ functionCall: { name: fc.name, args: parseArgs(fc.args) }, ...(typeof p.thoughtSignature === "string" ? { thoughtSignature: p.thoughtSignature } : {}) });
+    } else if (typeof p.text === "string") {
+      if (p.thought === true) continue;
+      texts.push(p.text);
+      replay.push(typeof p.thoughtSignature === "string" ? { text: p.text, thoughtSignature: p.thoughtSignature } : { text: p.text });
+    } else if (typeof p.thoughtSignature === "string") replay.push(p);
+  }
+  if (toolCalls.length && !replay.some((p) => typeof p.thoughtSignature === "string")) {
+    const first = replay.find((p) => p.functionCall);
+    if (first) first.thoughtSignature = GEMINI_SKIP_SIGNATURE;
+  }
+  return { text: texts.join(""), toolCalls, ...(toolCalls.length ? { replay: { provider: "google" as const, items: replay } } : {}) };
+}
+
+/*
+ * One request to a keyed provider, as a pure value. The agent sends it through AI Gateway.
+ * scripts/ai-check.ts sends the same request, so the live check tests what the agent really sends.
+ */
+
+export type KeyedProvider = "anthropic" | "openai" | "google";
+
+export interface ProviderRequest {
+  /** The path after the AI Gateway base, such as "openai/responses". */
+  gatewayPath: string;
+  /** The same request straight to the provider, without AI Gateway. For the live check. */
+  directUrl: string;
+  headers: Record<string, string>;
+  body: Record<string, unknown>;
+}
+
+/** Room for reasoning. OpenAI and Gemini count reasoning tokens in the output limit, so a small limit can end a reply before it starts. */
+export const withThinking = (maxTokens: number) => Math.max(maxTokens, 1000) + 4000;
+
+export function providerRequest(provider: KeyedProvider, model: string, apiKey: string, msgs: AgentMsg[], tools: ToolDef[], maxTokens: number): ProviderRequest {
+  if (provider === "anthropic") {
+    const b = toAnthropic(msgs, tools);
+    return {
+      gatewayPath: "anthropic/v1/messages",
+      directUrl: "https://api.anthropic.com/v1/messages",
+      headers: { "content-type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
+      body: { model, max_tokens: maxTokens, system: b.system, messages: b.messages, ...(tools.length ? { tools: b.tools } : {}) }
+    };
+  }
+  if (provider === "openai") {
+    // The Responses API, because GPT-6 models need it for tool calls. OpenAI stores nothing (store: false).
+    const b = toOpenAiResponses(msgs, tools);
+    return {
+      gatewayPath: "openai/responses",
+      directUrl: "https://api.openai.com/v1/responses",
+      headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
+      body: {
+        model,
+        ...(b.instructions ? { instructions: b.instructions } : {}),
+        input: b.input,
+        max_output_tokens: withThinking(maxTokens),
+        store: false,
+        include: ["reasoning.encrypted_content"],
+        ...(tools.length ? { tools: b.tools } : {})
+      }
+    };
+  }
+  const path = `v1beta/models/${encodeURIComponent(model)}:generateContent`;
+  return {
+    gatewayPath: `google-ai-studio/${path}`,
+    directUrl: `https://generativelanguage.googleapis.com/${path}`,
+    headers: { "content-type": "application/json", "x-goog-api-key": apiKey },
+    body: { ...toGemini(msgs, tools), generationConfig: { maxOutputTokens: withThinking(maxTokens) } }
+  };
+}
+
+export function parseProvider(provider: KeyedProvider, data: unknown): ModelOutput {
+  return provider === "anthropic" ? parseAnthropic(data) : provider === "openai" ? parseOpenAiResponses(data) : parseGemini(data);
 }
 
 /* Workers AI. Tool results go back as plain text, which every Workers AI chat model accepts. */

@@ -1,6 +1,6 @@
 import type { Env } from "./env";
 import type { CompanyRole } from "../shared/types";
-import { HttpError } from "./util";
+import { HttpError } from "./util.ts";
 
 /** The company role of a person, or null. */
 export async function companyRole(env: Env, companyId: string, userId: string): Promise<CompanyRole | null> {

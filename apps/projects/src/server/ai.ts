@@ -5,18 +5,19 @@ import { extractJson, toPlannedTasks } from "./plan";
 import { requireRole, toTask, type TaskRow } from "./data";
 import { effectiveLevel, parsePolicy } from "../shared/agent-policy";
 import { HttpError, dateOrNull, readJson, requireUser, text, todayIso } from "./util";
-import { aiSetup, deployAi, type AiSetup } from "./agent/model";
+import { aiSetup, deployAi, runModel, type AiSetup } from "./agent/model";
 
 /*
  * AI features. Every request goes through Cloudflare AI Gateway when AI_GATEWAY_ID is set,
  * so you get logs, caching, rate limits and spend controls in one place.
  *
  * The provider, model and key come from aiSetup (agent/model.ts):
+ *   the person's own AI, when they set one in Personal account, under My AI, and their company allows it, or
  *   the company's own AI, when a company owner set one in Company settings, under AI provider, or
  *   the deploy default from AI_PROVIDER:
  *     workers-ai (default) uses the Workers AI binding. No API key needed.
  *     anthropic            uses the Anthropic API through AI Gateway. Needs ANTHROPIC_API_KEY and CF_ACCOUNT_ID.
- *     openai               uses the OpenAI API through AI Gateway. Needs OPENAI_API_KEY and CF_ACCOUNT_ID.
+ *     openai               uses the OpenAI Responses API through AI Gateway. Needs OPENAI_API_KEY and CF_ACCOUNT_ID.
  */
 
 interface ChatMessage {
@@ -24,49 +25,17 @@ interface ChatMessage {
   content: string;
 }
 
-function gatewayUrl(env: Env, path: string): string {
-  if (!env.CF_ACCOUNT_ID || !env.AI_GATEWAY_ID) {
-    throw new HttpError(500, "Set CF_ACCOUNT_ID and AI_GATEWAY_ID to use this AI provider through AI Gateway.");
-  }
-  return `https://gateway.ai.cloudflare.com/v1/${env.CF_ACCOUNT_ID}/${env.AI_GATEWAY_ID}/${path}`;
-}
 
-function gatewayHeaders(env: Env): Record<string, string> {
-  return env.AI_GATEWAY_TOKEN ? { "cf-aig-authorization": `Bearer ${env.AI_GATEWAY_TOKEN}` } : {};
-}
 
 export async function runChat(env: Env, setup: AiSetup, messages: ChatMessage[], maxTokens = 1500): Promise<string> {
   // dev-scripted has no chat model, so plan and summary use Workers AI, as before.
   const p = setup.provider === "dev-scripted" ? "workers-ai" : setup.provider;
   const m = setup.provider === "dev-scripted" ? deployAi({ ...env, AI_PROVIDER: "workers-ai" }).model : setup.model;
 
-  if (p === "anthropic") {
-    if (!setup.apiKey) throw new HttpError(500, setup.source === "company" ? "Your company's AI key is missing. A company owner can add it in Company settings, under AI provider." : "Set the ANTHROPIC_API_KEY secret to use Anthropic models.");
-    const res = await fetch(gatewayUrl(env, "anthropic/v1/messages"), {
-      method: "POST",
-      headers: { "content-type": "application/json", "x-api-key": setup.apiKey, "anthropic-version": "2023-06-01", ...gatewayHeaders(env) },
-      body: JSON.stringify({
-        model: m,
-        max_tokens: maxTokens,
-        system: messages.filter((x) => x.role === "system").map((x) => x.content).join("\n\n"),
-        messages: messages.filter((x) => x.role !== "system")
-      })
-    });
-    if (!res.ok) throw await providerError(res, setup);
-    const data = (await res.json()) as { content?: Array<{ type: string; text?: string }> };
-    return (data.content || []).map((b) => b.text || "").join("");
-  }
-
-  if (p === "openai") {
-    if (!setup.apiKey) throw new HttpError(500, "Set the OPENAI_API_KEY secret to use OpenAI models.");
-    const res = await fetch(gatewayUrl(env, "openai/chat/completions"), {
-      method: "POST",
-      headers: { "content-type": "application/json", authorization: `Bearer ${setup.apiKey}`, ...gatewayHeaders(env) },
-      body: JSON.stringify({ model: m, messages, max_tokens: maxTokens })
-    });
-    if (!res.ok) throw await providerError(res, setup);
-    const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-    return data.choices?.[0]?.message?.content || "";
+  // Anthropic, OpenAI and Gemini share the agent's request code, with no tools.
+  if (p === "anthropic" || p === "openai" || p === "google") {
+    const out = await runModel(env, setup, messages, [], maxTokens);
+    return out.text;
   }
 
   // Workers AI through the binding.
@@ -103,14 +72,6 @@ function readWorkersAiText(out: unknown): string {
   return "";
 }
 
-async function providerError(res: Response, setup: AiSetup): Promise<HttpError> {
-  const body = await res.text().catch(() => "");
-  console.error(`[openact] AI provider returned ${res.status}: ${body.slice(0, 500)}`);
-  if (setup.source === "company" && (res.status === 401 || res.status === 403)) {
-    return new HttpError(502, "The AI provider did not accept your company's API key. A company owner can check it in Company settings, under AI provider.");
-  }
-  return new HttpError(502, "The AI service did not answer. Try again in a minute.");
-}
 
 /** Checks the role, and that the project's AI policy has not turned AI off for that role. */
 async function requireAiRole(env: Env, projectId: string, userId: string, min: "viewer" | "editor"): Promise<AiSetup> {
@@ -119,7 +80,7 @@ async function requireAiRole(env: Env, projectId: string, userId: string, min: "
   if (effectiveLevel(role, parsePolicy(row?.ai_policy)) === "off") {
     throw new HttpError(403, "AI is turned off for your role in this project. A project owner can change this in Project settings.");
   }
-  return aiSetup(env, row?.company_id);
+  return aiSetup(env, row?.company_id, userId);
 }
 
 export const aiRoutes = new Hono<AppEnv>();

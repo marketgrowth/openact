@@ -22,6 +22,26 @@ Every app has a `package.json` with an `openact` field. The `openact` script rea
 | `migrations` | No | A folder of numbered SQL files. The default is `./migrations`. |
 | `durableObjects` | No | Durable Object classes that the server file exports |
 | `enabledByDefault` | No | `false` makes each company turn the app on first. The default is `true`. |
+| `requiresApps` | No | App ids that must be installed too, such as `["projects"]`. Sync stops without them. |
+| `optionalApps` | No | App ids that your app uses when they are there. See [Use another app when it is there](../apps.md#use-another-app-when-it-is-there). |
+| `requiresCore` | No | The oldest core version that the app works with, such as `"0.2.0"`. Sync stops when the core is older. |
+| `testedCore` | No | The newest core version that the app was tested with, such as `"0.3"`. Sync warns when the core is newer. |
+| `plan` | No | `"director"` or `"producer"`. Makes the app a paid app. Only official MarketGrowth apps use it. See [Plans](../plans.md). |
+| `released` | For paid apps | The day this version was released, as `YYYY-MM-DD`. When a license key ends, versions released on or before its last day keep working. See [When a plan ends](../plans.md#when-a-plan-ends). |
+
+`npm run sync` also checks the Durable Object bindings and migrations in `wrangler.jsonc`. See [Durable Objects](../apps.md#durable-objects).
+
+### Install sources
+
+| Source | Example |
+| --- | --- |
+| An app id from the directory | `npm run openact -- add contacts` |
+| A GitHub repository with one app at the top | `npm run openact -- add github:owner/repo` |
+| One app in a GitHub repository with several apps | `npm run openact -- add github:owner/repo/apps/crm` |
+| A tag or branch | Add `#v1.2.0` to either GitHub form |
+| A folder on this computer | `npm run openact -- add ./path/to/app` |
+
+Private repositories work when git can sign in to GitHub on the computer that runs the command.
 
 ## Server: `@openact/core/server`
 
@@ -61,7 +81,7 @@ Every app has a `package.json` with an `openact` field. The `openact` script rea
 | `requireAppOn(env, companyId, appId)` | Throws 403 `app_off` when the app is off in the company or for the whole site |
 | `siteAppOff(appId)` | `true` when a super admin turned the app off for the whole site. Call `loadSite(env)` first in routes outside `/api/`. |
 | `loadSite(env)` | Loads the site settings, such as the site app switches. `/api/` routes and the cron load them for you. |
-| `companyAppState(env, companyId)` | `enabled(appId)` and `roles(permission)` for one company, from one query |
+| `companyAppState(env, companyId)` | `enabled(appId)` and `roles(permission)` for one company, from one query. Also `locked`, `granted`, `fallback` and `blocked` for paid apps and site switches. |
 | `appOffError(appId)` | The `app_off` error, for your own access checks |
 | `companyRole(env, companyId, userId)` | The person's company role, or `null` |
 | `requireCompanyRole(env, companyId, userId, roles)` | Throws unless the person has one of the roles. Prefer `requirePermission()` in apps. |

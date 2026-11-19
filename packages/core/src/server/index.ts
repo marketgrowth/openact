@@ -29,6 +29,10 @@ export { isSuperAdmin, requireSuperAdmin, loadSite } from "./site.ts";
 export { sealSecret, openSecret } from "./secret-box.ts";
 export {
   companyAi,
+  userAi,
+  aiOverride,
+  companyAllowsMemberKeys,
+  checkAiKey,
   companyAiChoice,
   deployAiDefault,
   aiGatewayUrl,

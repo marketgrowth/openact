@@ -8,7 +8,7 @@ Agent access is off by default. Turn it on for a deploy with one variable.
 
 1. Set `AGENT_ACCESS` to `on` in `wrangler.jsonc` (`vars`), or in the Cloudflare dashboard.
 2. Set `APP_URL` to the address of the site, such as `https://app.example.com`. The OAuth issuer and the MCP address use it.
-3. Run `npm run deploy`. It applies migration `0011_agent_access.sql`, which adds the tables for agents.
+3. Run `npm run deploy`. It applies migration `0012_agent_access.sql`, which adds the tables for agents.
 
 `wrangler.jsonc` must send these paths to the Worker first (`run_worker_first`): `/.well-known/*`, `/oauth/register`, `/oauth/token`, `/oauth/revoke`, `/mcp` and `/mcp/*`. The default file does. The consent page, `/oauth/authorize`, is part of the web app.
 

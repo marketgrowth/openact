@@ -90,10 +90,10 @@ Set these under `vars` in `wrangler.jsonc`, or in the Cloudflare dashboard.
 | `EMAIL_FROM` | `OpenAct <no-reply@example.com>` | The sender address. The domain must be verified in Resend. |
 | `SIGNUP_MODE` | `open` | `open`: anyone can sign up. `invite`: only invited people can sign up. |
 | `ALLOWED_EMAIL_DOMAINS` | empty | A comma-separated list of domains that can sign up, for example `example.com,example.org` |
-| `AI_PROVIDER` | `workers-ai` | `workers-ai`, `anthropic` or `openai`. This is the deploy default. A company owner can choose Claude with their own key. Read [The AI provider of a company](companies.md#the-ai-provider-of-a-company). |
+| `AI_PROVIDER` | `workers-ai` | `workers-ai`, `anthropic` or `openai`. This is the deploy default. A company owner and each person can choose Claude, GPT or Gemini with their own key. Read [The AI provider of a company](companies.md#the-ai-provider-of-a-company). |
 | `AI_MODEL` | `@cf/meta/llama-3.3-70b-instruct-fp8-fast` | The model ID for the provider |
 | `AI_EMBED_MODEL` | `@cf/baai/bge-base-en-v1.5` | The Workers AI model for search embeddings. It must make 768-dimension vectors. |
-| `AI_SCOPE_MODEL` | (empty) | A small, fast model for the topic check. Empty uses `@cf/meta/llama-3.1-8b-instruct-fast`, `claude-haiku-5-5` or `gpt-4.1-mini`, by provider. |
+| `AI_SCOPE_MODEL` | (empty) | A small, fast model for the topic check. Empty uses `@cf/meta/llama-3.1-8b-instruct-fast`, `claude-haiku-5-5` or `gpt-6-luna`, by provider. |
 | `AI_GATEWAY_ID` | `openact` | The AI Gateway name. Empty turns the gateway off. |
 | `CF_ACCOUNT_ID` | empty | Your account ID. Needed for `anthropic` and `openai`. |
 | `AGENT_ACCESS` | empty | `on` lets AI agents sign in with OAuth 2.1 and use the apps' tools over MCP at `/mcp`. Set `APP_URL` too. Read [Agent access](agent-access.md). |

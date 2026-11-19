@@ -10,7 +10,7 @@ import { PageBody, SiteHeader } from "./SiteHeader";
 import { CompanyMark } from "./Sidebar";
 import { GeneralTab, PeopleTab } from "./CompanyDialogs";
 import { AppsTab, PermissionsTab } from "./AppSettings";
-import { CompanyAiTab } from "./CompanyAi";
+import { CompanyAiTab, MyAiSection } from "./CompanyAi";
 import { SitePlan } from "./Plan";
 import { SiteSettingsSection, type SiteSection } from "./SiteSettings";
 import { SiteGrants } from "./SiteGrants";
@@ -70,6 +70,8 @@ export function SettingsPage({
       <Shell title="Personal account" section={section}>
         {section.id === "profile" ? (
           <ProfileSection key={me.id} me={me} onMe={onMe} />
+        ) : section.id === "ai" ? (
+          <MyAiSection key={me.id} />
         ) : section.id === "agents" ? (
           <ConnectedAgentsSection />
         ) : (

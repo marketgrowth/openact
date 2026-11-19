@@ -42,6 +42,8 @@ export interface Env {
   STRIPE_PRICE_PRODUCER?: string;
   /** Plans: an optional page or mailto link to ask about plans, such as for Producer. */
   PLANS_CONTACT_URL?: string;
+  /** The Director store. Empty uses https://on.openact.ing. */
+  OPENACT_STORE_URL?: string;
 
   // Secrets
   /** A self-hosted deploy's license key from MarketGrowth. It gives every company on the deploy its plan. */

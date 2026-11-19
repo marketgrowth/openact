@@ -5,7 +5,7 @@ import { getApps } from "./apps";
 import { siteState } from "./site-state";
 import { companyPlan, grantCeiling, ownerGrants } from "./plans";
 import { COMPANY_ROLES, type CompanyRole } from "../shared/types";
-import { PLANS, planIncludes, type PaidPlan, type PlanId } from "../shared/plans";
+import { PLANS, fallbackCovers, planIncludes, type PaidPlan, type PlanId } from "../shared/plans";
 import { permissionApp, rolesWithPermission, type CompanyAccess, type PermissionDef } from "../shared/permissions";
 
 /*
@@ -27,6 +27,10 @@ export interface AppInfo {
   enabledByDefault: boolean;
   /** The plan the app needs, such as "director". Missing: the app is free. From "plan" in the app's package.json. */
   plan?: PaidPlan;
+  /** The day this version of a paid app was released, as YYYY-MM-DD. Used for the license fallback. See fallbackCovers(). */
+  released?: string;
+  /** The app's version, from its package.json. */
+  version?: string;
 }
 
 let catalog: AppInfo[] = [];
@@ -53,6 +57,8 @@ export interface CompanyAppState {
   locked: (appId: string) => boolean;
   /** True when the app needs a plan that the company does not have, but a super admin granted it to an owner. */
   granted: (appId: string) => boolean;
+  /** True when the deploy's license key ended, but this app version was released before it ended, so it keeps working. */
+  fallback: (appId: string) => boolean;
   /** True when a super admin turned the app off for this company only. The company cannot turn it on. */
   blocked: (appId: string) => boolean;
   enabled: (appId: string) => boolean;
@@ -79,13 +85,18 @@ export async function companyAppState(env: Env, companyId: string): Promise<Comp
   const ceiling = grantCeiling(planState?.license ?? null);
   const hasGrant = (appId: string) => ownerApps.has(appId) && planIncludes(ceiling, appPlan(appId));
   const byApp = new Map(rows.results.map((r) => [r.app_id, r]));
+  // An ended license key keeps app versions released before its last day. See fallbackCovers().
+  const ended = planState?.license && !planState.license.ok ? planState.license.ended : undefined;
+  const fallback = (appId: string) =>
+    !planIncludes(plan, appPlan(appId)) && !hasGrant(appId) && fallbackCovers(ended, catalog.find((a) => a.id === appId) ?? {});
   const granted = (appId: string) => !planIncludes(plan, appPlan(appId)) && hasGrant(appId);
-  const locked = (appId: string) => !planIncludes(plan, appPlan(appId)) && !hasGrant(appId);
+  const locked = (appId: string) => !planIncludes(plan, appPlan(appId)) && !hasGrant(appId) && !fallback(appId);
   const blocked = (appId: string) => blocks.has(appId);
   return {
     plan,
     locked,
     granted,
+    fallback,
     blocked,
     enabled: (appId) => {
       if (siteAppOff(appId)) return false;

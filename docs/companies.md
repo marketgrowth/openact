@@ -12,7 +12,7 @@ Every project belongs to one company. A person can be in many companies and swit
 The gear at the bottom of the app rail opens **Settings** as a page. The side panel lists its sections in three groups:
 
 - **Company settings**, for owners and admins: **General**, **People**, **Apps**, **Permissions**, **AI provider**, and a section for each app that adds one.
-- **Personal account**, for everyone: **Profile** (name, email and theme) and **Sign-in and security** (sign out, delete account).
+- **Personal account**, for everyone: **Profile** (name, email and theme), **My AI** (your own AI key) and **Sign-in and security** (sign out, delete account).
 - **Site settings**, for super admins only.
 
 Each section has its own address, such as `/settings/company/people`, so you can link to it.
@@ -27,7 +27,7 @@ Each section has its own address, such as `/settings/company/people`, so you can
 - **Email domain auto-join.** Set a domain such as `acme.com` in **Company settings > General**. People who sign in with that domain join as members. Public domains such as gmail.com are refused, your own email must use the domain, and each domain belongs to one company.
 - **Request access.** A person who opens a project link without access sees a request form. The project owners get an email and approve (with a role) or decline in the **People** tab. Approving someone from outside the company makes them a guest. The page never shows the project's name.
 - **AI defaults.** Company owners and admins set the AI access, note search and topic scope that new projects start with.
-- **AI provider.** A company owner can choose the AI for the company's projects. Read [The AI provider of a company](#the-ai-provider-of-a-company).
+- **AI provider.** A company owner can choose the AI for the company's projects, and if members can use their own AI key. Read [The AI provider of a company](#the-ai-provider-of-a-company).
 - **Removing someone from a company** removes them from all its projects.
 - **Upgrading an older install.** Migration `0003_companies.sql` gives each project owner a company that holds their projects. Everyone else becomes a guest, so nobody can see more than before. Make people members in **Company settings** when you are ready.
 - The AI agent only routes requests to projects in the same company.
@@ -63,32 +63,74 @@ Notes:
 
 ## The AI provider of a company
 
-Each deploy has a default AI. The person who runs the deploy sets it with `AI_PROVIDER` and `AI_MODEL`. Read [Settings](getting-started.md#settings).
+Every OpenAct app brings its own AI. The AI for each request comes from the first of these that is set:
 
-A company owner can replace the default with Claude and the company's own Anthropic API key:
+1. **The person's own AI**, from **Settings > Personal account > My AI**, when the company allows personal keys. Read [Your own AI](#your-own-ai).
+2. **The company AI**, from **Company settings > AI provider**.
+3. **The deploy default.** The person who runs the deploy sets it with `AI_PROVIDER` and `AI_MODEL`. Read [Settings](getting-started.md#settings). Without them, it is a free Workers AI model.
+
+A site owner can leave the deploy default as it is. Each company and each person can then choose their own.
+
+### Providers and models
+
+Only models that pass a live tool-call check are on the list, because the agent depends on tool calls. Run `npm run ai:check` before you add a model to `COMPANY_AI_MODELS` in `packages/core/src/shared/ai.ts`.
+
+| Provider | Models (the first is the recommended default) | Topic check model | Make a key at |
+| --- | --- | --- | --- |
+| Claude (Anthropic) | Claude Sonnet 5.5, Claude Haiku 5.5, Claude Opus 5.5 | Claude Haiku 5.5 | [console.anthropic.com](https://console.anthropic.com/settings/keys) |
+| GPT (OpenAI) | GPT-6.2 Sol, GPT-6.2 Astra | GPT-6 Luna | [platform.openai.com](https://platform.openai.com/api-keys) |
+| Gemini (Google) | Gemini 3.8 Flash, Gemini 4 Argon | Gemini 3.5 Flash-Lite | [aistudio.google.com](https://aistudio.google.com/apikey) |
+
+OpenAct uses the OpenAI Responses API with `store: false`, so OpenAI keeps no copy of the requests. Gemini requests use the `generateContent` API.
+
+### Set the company AI
 
 1. Open **Company settings > AI provider**.
-2. Set **Provider** to **Claude (Anthropic)**.
-3. Choose a model. Claude Sonnet 5.5 is the recommended default. Claude Haiku 5.5 is faster and costs less. Claude Opus 5.5 is the strongest.
-4. Make a key at [console.anthropic.com](https://console.anthropic.com/settings/keys) and paste it in **API key**.
-5. Click **Test and save**. OpenAct sends one very short request with the key. If the key or the model does not work, nothing is saved and the page says why.
+2. Choose a **Provider** and a **Model**.
+3. Make a key with the provider and paste it in **API key**.
+4. Click **Test and save**. OpenAct sends one very short request with the key. If the key or the model does not work, nothing is saved and the page says why.
 
 What changes:
 
-- The agent, the topic check, task drafts and status summaries in every project of the company use Claude. The topic check uses Claude Haiku 5.5. Jev still runs the topic check when the deploy sets `TYPESAFE_API_KEY`.
+- The agent, the topic check, task drafts and status summaries in every project of the company use this AI, except for members who use their own key.
 - Search by meaning still uses the deploy's Workers AI embedding model.
-- The company pays Anthropic for each request. Requests still go through the deploy's Cloudflare AI Gateway, so the deploy needs `CF_ACCOUNT_ID` and `AI_GATEWAY_ID`.
-
-How the key is kept:
-
-- The server encrypts the key with AES-GCM before it saves it in D1. The encryption key comes from `AUTH_SECRET`. Each saved key is bound to its company, so it does not decrypt for another company.
-- The key never goes back to the web app. The page shows only its last 4 characters.
-- If `AUTH_SECRET` changes, saved keys stop working, and the deploy default runs. The page asks a company owner to paste the key again.
+- The company pays the provider for each request. Requests still go through the deploy's Cloudflare AI Gateway, so the deploy needs `CF_ACCOUNT_ID` and `AI_GATEWAY_ID`.
 
 Who can do what:
 
 - Company owners change the provider, the model and the key. To change only the model, leave **API key** empty.
+- Company owners turn **Members can use their own AI key** on or off. It is on by default.
 - Company admins see the current provider and model, but they cannot change them.
 - **Use the deploy default** deletes the saved key, and the company goes back to the deploy default.
 
-The setting is in the `company_ai` table (migration `0007_company_ai.sql`). Deleting a company deletes its row.
+### Your own AI
+
+Each person can use their own provider, model and API key:
+
+1. Open **Settings > Personal account > My AI**.
+2. Choose a **Provider** and a **Model**, and paste your **API key**.
+3. Click **Test and save**.
+
+Your key runs for your requests in every company that allows personal keys. In a company that turned them off, the company AI runs, and **My AI** names that company. The agent panel shows which AI runs, such as "GPT-6.2 Sol (your key)". **Use the company AI** deletes your saved key.
+
+Before you add a key, know this:
+
+- **Your own key charges your account with the provider for each request.**
+- **AI output is not deterministic.** The same request can give a different answer.
+- **Always check the work before you use it.**
+
+The forms in **My AI** and **AI provider** show the same notice.
+
+A personal key sends your requests, with the company's project data that the request needs, to your own provider account. A company owner who wants all AI requests to stay on the company AI turns off **Members can use their own AI key**.
+
+### How keys are kept
+
+- The server encrypts each key with AES-GCM before it saves it in D1. The encryption key comes from `AUTH_SECRET`. A company key is bound to its company. A personal key is bound to its person, with a separate encryption key. A key copied to another row does not decrypt.
+- A key never goes back to the web app. The page shows only its last 4 characters.
+- If `AUTH_SECRET` changes, saved keys stop working. The next AI in the order runs, and the page asks for the key again.
+
+The company AI is in the `company_ai` table (migration `0007_company_ai.sql`). Personal AI is in the `user_ai` table, and the company switch is `companies.ai_member_keys` (migration `0011_user_ai.sql`). Deleting a company or an account deletes its row.
+
+### For app builders
+
+Call `aiOverride(env, companyId, userId)` from `@openact/core/server` for every model request. It returns the person's AI, the company AI, or `null` for the deploy default, and it applies the company switch. Use `companyAiChoice(env, companyId, userId)` for labels. Never read `user_ai` or `company_ai` yourself.
