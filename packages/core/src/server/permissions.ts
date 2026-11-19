@@ -29,6 +29,8 @@ export interface AppInfo {
   plan?: PaidPlan;
   /** The day this version of a paid app was released, as YYYY-MM-DD. Used for the license fallback. See fallbackCovers(). */
   released?: string;
+  /** The app's version, from its package.json. */
+  version?: string;
 }
 
 let catalog: AppInfo[] = [];

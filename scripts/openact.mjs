@@ -130,6 +130,7 @@ function manifest(dir, label = relative(ROOT, dir)) {
   }
   return {
     ...m,
+    version: typeof pkg.version === "string" ? pkg.version : undefined,
     name: m.name ?? m.id,
     durableObjects: m.durableObjects ?? [],
     enabledByDefault: m.enabledByDefault ?? true,
@@ -306,6 +307,7 @@ function sync() {
           id: a.id,
           name: a.name,
           enabledByDefault: a.enabledByDefault,
+          ...(a.version ? { version: a.version } : {}),
           ...(a.plan ? { plan: a.plan } : {}),
           ...(a.plan && a.released ? { released: a.released } : {})
         }))
@@ -474,6 +476,8 @@ switch (cmd) {
     const entry = readRegistry().apps.find((a) => a.id === arg);
     if (!entry) fail(`No installed app has the id "${arg}". Run npm run openact -- list.`);
     if (entry.source === "local") fail(`"${arg}" is part of this repository. Change its code in ${entry.path} directly.`);
+    if (entry.source === "director")
+      fail(`"${arg}" is a Director app from the OpenAct store. Update it in the app: Settings > Site settings > Plan > Install or update apps.`);
     const m = install(fetchApp(`${entry.source}${entry.ref ? `#${entry.ref}` : ""}`), entry.id);
     console.log(`openact: updated "${m.name}". Next: run npm install, then npm run deploy (or npm run dev).`);
     break;

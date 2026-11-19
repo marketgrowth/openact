@@ -22,7 +22,8 @@ Nonprofits get 50% off Director and Producer.
 The paid apps are in a private repository, `marketgrowth/openact-director`. The public OpenAct repository has the core, the UI and Projects only.
 
 - **Sites that MarketGrowth runs:** the paid apps are already installed. Buy a plan in **Site settings > Plan**.
-- **Your own deploy:** MarketGrowth gives you two things with your plan: a license key, and read access to the private repository for one GitHub account. Then install each app:
+- **Your own deploy:** buy and install from your site. Read [Buy and install from your site](#buy-and-install-from-your-site).
+- **Your own deploy, by hand:** MarketGrowth gives you two things with your plan: a license key, and read access to the private repository for one GitHub account. Then install each app:
 
   ```bash
   npm run openact -- add docs       # or advisory, esign
@@ -32,7 +33,54 @@ The paid apps are in a private repository, `marketgrowth/openact-director`. The 
 
   `add` copies the app into `apps/<id>` in your repository. Keep your repository private: the OpenAct Director License does not let you share the paid apps. Each app's page says what else to add to `wrangler.jsonc`.
 
-To get new versions, run `npm run openact -- update <id>` while your license is current. Read [When a plan ends](#when-a-plan-ends).
+To get new versions of apps you added by hand, run `npm run openact -- update <id>` while your license is current. Read [When a plan ends](#when-a-plan-ends).
+
+## Buy and install from your site
+
+A site that runs on your own Cloudflare account can buy Director and install its apps from **Site settings > Plan**, in **License and Director apps**. Only super admins see it. The site's Worker talks to the OpenAct store at on.openact.ing.
+
+Before you start:
+
+- Set `APP_URL` to the site's address, such as `https://app.example.com`. A license from the store works only on that host.
+- Keep the site's code in a **private** GitHub repository, with Cloudflare Workers Builds deploying it. A site made with the Deploy to Cloudflare button already has both. Make the repository private if it is public.
+- Keep the deploy command that runs the database migrations, such as `npm run deploy`.
+
+### Buy
+
+1. Choose **Buy Director**. Stripe Checkout opens. Nonprofits can use their promotion code there.
+2. Pay. Stripe sends you back to the Plan page.
+3. The site gets its license key from the store and saves it. The paid apps unlock.
+
+The store sends a new key each time the plan renews. The site fetches it once a day. If you stop the plan, the last key ends, and the [perpetual fallback](#perpetual-fallback-on-your-own-deploy) keeps the app versions you have.
+
+The site proves that it made the order with a claim token. The token stays in the site's Worker, sealed with `AUTH_SECRET`. The browser never sees it.
+
+### Add a key by hand
+
+If MarketGrowth sent you a license key, choose **Add a license key**, paste it and choose **Save the key**. It does the same as the `OPENACT_LICENSE` secret. When both are set, the key that works and lasts longer wins.
+
+### Install or update the apps
+
+1. Choose **Connect GitHub**. GitHub asks you to install the **OpenAct Director** app. Give it only the repository of this site.
+2. Back on the Plan page, choose the repository. Leave the branch empty to use the branch that Cloudflare deploys.
+3. Choose the apps, then **Install**.
+
+The store checks your license. Then it makes one commit in your repository:
+
+- Each app goes to `director/<id>/`, as a prebuilt bundle with its migrations and its license. Your `package-lock.json` does not change.
+- `openact.apps.json` lists the app with the source `director` and its version.
+- `wrangler.jsonc` gets the lines the app needs, such as the `DOCS_ROOMS` Durable Object and the `/docs/s/*` share links for Docs.
+- An app that was in `apps/<id>/` from an older OpenAct moves to `director/<id>/`. Its data stays.
+
+Cloudflare builds and deploys the commit. The apps show up after the build, in a few minutes. If the branch is protected, the store opens a pull request instead. Merge it to deploy.
+
+When the store has a newer version, the Plan page shows **Update from** next to the app. Install it the same way.
+
+| Setting | What it does |
+| --- | --- |
+| `APP_URL` | The site's address. Store keys work only on its host. |
+| `OPENACT_STORE_URL` | Optional. Another store, for tests. Empty uses `https://on.openact.ing`. |
+| `OPENACT_LICENSE` | Optional. A license key as a secret. Site settings > Plan can hold the key instead. |
 
 ## Get a plan
 
