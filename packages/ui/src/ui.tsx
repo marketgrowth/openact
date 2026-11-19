@@ -82,6 +82,7 @@ import {
   Undo2,
   Unlink,
   Folder,
+  Globe,
   FolderOpen,
   FolderPlus,
   Tag,
@@ -211,6 +212,8 @@ const ICONS: Record<string, LucideIcon> = {
   tag: Tag,
   category: Shapes,
   pencil: Pencil,
+  // CMS
+  website: Globe,
   inbox: Inbox,
   library: Library,
   // Advisory

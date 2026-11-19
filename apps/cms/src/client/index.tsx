@@ -1,7 +1,6 @@
 import { lazy } from "react";
 import { defineClientApp } from "@openact/ui";
 import { CMS_HOME } from "../shared/rules";
-import { CmsMark } from "./mark";
 
 /*
  * CMS in the web app: its own group at the end of the app rail, below a divider,
@@ -16,8 +15,7 @@ const SettingsTab = lazy(() => import("./settings").then((m) => ({ default: m.Cm
 export default defineClientApp({
   id: "cms",
   name: "CMS",
-  icon: "pencil",
-  Mark: CmsMark,
+  icon: "website",
   home: CMS_HOME,
   railPlacement: "end",
   collapsePanel: true,
