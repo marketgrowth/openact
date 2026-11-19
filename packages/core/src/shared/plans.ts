@@ -128,6 +128,31 @@ export type LicenseUse = "plan" | "grants";
 /** True when a license key gives every company on the deploy its plan. A grants key does not. */
 export const licenseGivesPlan = (p: Pick<LicensePayload, "use">): boolean => (p.use ?? "plan") === "plan";
 
+/*
+ * Perpetual fallback for self-hosted deploys.
+ *
+ * A license key buys a year of updates for the paid apps. When the key ends, an app version that was released
+ * on or before the key's last day keeps working. A newer version stays locked until the key is renewed.
+ * An app gives its release day with "released" (YYYY-MM-DD) in the "openact" field of its package.json.
+ * Hosted plans (Stripe subscriptions) have no fallback: when the plan ends, the paid apps lock and their data stays.
+ */
+
+/** A YYYY-MM-DD day. */
+export const isDay = (v: unknown): v is string => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(`${v}T00:00:00Z`));
+
+/**
+ * True when an ended license key still covers an app: the key gives a plan that includes the app's plan,
+ * and the app version was released on or before the key's last day. An app without a release day gets no fallback.
+ */
+export function fallbackCovers(
+  ended: Pick<LicensePayload, "plan" | "use" | "expiresAt"> | null | undefined,
+  app: { plan?: PaidPlan; released?: string }
+): boolean {
+  if (!ended || !app.plan || !isDay(app.released)) return false;
+  if (!licenseGivesPlan(ended) || !planIncludes(ended.plan, app.plan)) return false;
+  return app.released <= ended.expiresAt;
+}
+
 const fromB64Url = (s: string): Uint8Array => {
   const b = atob(s.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - (s.length % 4)) % 4));
   return Uint8Array.from(b, (ch) => ch.charCodeAt(0));
@@ -218,6 +243,11 @@ export interface CompanyPlan {
   };
   /** The deploy's license, when it has one that works. */
   license: null | { licensee: string; plan: PaidPlan; expiresAt: string; inGrace: boolean };
+  /**
+   * The deploy's license key after it ended, when it was valid before. Paid app versions released on or before
+   * its last day keep working. Newer versions and new apps need a renewed key.
+   */
+  licenseEnded: null | { licensee: string; plan: PaidPlan; expiresAt: string };
   /** True when this person can buy or change the plan. Company owners can. */
   canManage: boolean;
   /** True when this deploy sells plans through Stripe. */
@@ -230,7 +260,7 @@ export interface CompanyPlan {
   /** True when this person is a super admin, who can change the plan descriptions. */
   canEditDescriptions: boolean;
   /** Installed apps that need a plan. */
-  apps: Array<{ id: string; name: string; plan: PaidPlan; unlocked: boolean }>;
+  apps: Array<{ id: string; name: string; plan: PaidPlan; unlocked: boolean; fallback: boolean }>;
 }
 
 /** Formats a price like "$1,200 a year". */

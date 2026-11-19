@@ -48,7 +48,6 @@ npm run build
 
 ## Licenses
 
-Most of OpenAct is under the Apache License 2.0. Paid apps, such as Docs in `apps/docs`, are under the [OpenAct Director License](apps/docs/LICENSE). See [NOTICE](NOTICE) for the list.
+Everything in this repository is under the Apache License 2.0. You agree that your work is shared under the Apache License 2.0, as section 5 of the license describes. See [NOTICE](NOTICE).
 
-- Changes outside the paid app folders: you agree that your work is shared under the Apache License 2.0, as section 5 of the license describes.
-- Changes inside a paid app folder: you give MarketGrowth the right to use, change and share your work under any license, as section 3 of the OpenAct Director License says.
+The paid apps (Docs, Advisory and eSign) are in a private repository. To report a problem with one of them, open an issue here.

@@ -111,7 +111,7 @@ export function AiDialog({
       <SheetContent className="w-full gap-0 sm:max-w-lg" data-ai-panel="">
         <SheetHeader className="border-b">
           <SheetTitle>AI agent</SheetTitle>
-          <SheetDescription>AI can make mistakes. Check the output. Provider: {provider}, through Cloudflare AI Gateway.</SheetDescription>
+          <SheetDescription>AI output is not deterministic, and it can be wrong. Always check the work. Provider: {provider}, through Cloudflare AI Gateway.</SheetDescription>
         </SheetHeader>
         <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="flex min-h-0 flex-1 flex-col gap-0">
           <div className="px-4 pt-3">

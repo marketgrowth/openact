@@ -48,6 +48,8 @@ export interface AppConfig {
   apps: Array<{ id: string; name: string }>;
   /** What the sign-in page shows. A super admin sets it in Site settings. */
   signIn: SignInPage;
+  /** True when AI agents can sign in with OAuth and use the apps' tools (AGENT_ACCESS is "on"). */
+  agentAccess: boolean;
 }
 
 /** The sign-in page settings. Empty values use the defaults. */

@@ -17,6 +17,71 @@ Each paid plan has one annual price per company. The price does not change with 
 
 Nonprofits get 50% off Director and Producer.
 
+## Get the Director apps
+
+The paid apps are in a private repository, `marketgrowth/openact-director`. The public OpenAct repository has the core, the UI and Projects only.
+
+- **Sites that MarketGrowth runs:** the paid apps are already installed. Buy a plan in **Site settings > Plan**.
+- **Your own deploy:** buy and install from your site. Read [Buy and install from your site](#buy-and-install-from-your-site).
+- **Your own deploy, by hand:** MarketGrowth gives you two things with your plan: a license key, and read access to the private repository for one GitHub account. Then install each app:
+
+  ```bash
+  npm run openact -- add docs       # or advisory, esign
+  npm install
+  npm run deploy
+  ```
+
+  `add` copies the app into `apps/<id>` in your repository. Keep your repository private: the OpenAct Director License does not let you share the paid apps. Each app's page says what else to add to `wrangler.jsonc`.
+
+To get new versions of apps you added by hand, run `npm run openact -- update <id>` while your license is current. Read [When a plan ends](#when-a-plan-ends).
+
+## Buy and install from your site
+
+A site that runs on your own Cloudflare account can buy Director and install its apps from **Site settings > Plan**, in **License and Director apps**. Only super admins see it. The site's Worker talks to the OpenAct store at on.openact.ing.
+
+Before you start:
+
+- Set `APP_URL` to the site's address, such as `https://app.example.com`. A license from the store works only on that host.
+- Keep the site's code in a **private** GitHub repository, with Cloudflare Workers Builds deploying it. A site made with the Deploy to Cloudflare button already has both. Make the repository private if it is public.
+- Keep the deploy command that runs the database migrations, such as `npm run deploy`.
+
+### Buy
+
+1. Choose **Buy Director**. Stripe Checkout opens. Nonprofits can use their promotion code there.
+2. Pay. Stripe sends you back to the Plan page.
+3. The site gets its license key from the store and saves it. The paid apps unlock.
+
+The store sends a new key each time the plan renews. The site fetches it once a day. If you stop the plan, the last key ends, and the [perpetual fallback](#perpetual-fallback-on-your-own-deploy) keeps the app versions you have.
+
+The site proves that it made the order with a claim token. The token stays in the site's Worker, sealed with `AUTH_SECRET`. The browser never sees it.
+
+### Add a key by hand
+
+If MarketGrowth sent you a license key, choose **Add a license key**, paste it and choose **Save the key**. It does the same as the `OPENACT_LICENSE` secret. When both are set, the key that works and lasts longer wins.
+
+### Install or update the apps
+
+1. Choose **Connect GitHub**. GitHub asks you to install the **OpenAct Director** app. Give it only the repository of this site.
+2. Back on the Plan page, choose the repository. Leave the branch empty to use the branch that Cloudflare deploys.
+3. Choose the apps, then **Install**.
+
+The store checks your license. Then it makes one commit in your repository:
+
+- Each app goes to `director/<id>/`, as a prebuilt bundle with its migrations and its license. Your `package-lock.json` does not change.
+- `openact.apps.json` lists the app with the source `director` and its version.
+- `wrangler.jsonc` gets the lines the app needs, such as the `DOCS_ROOMS` Durable Object and the `/docs/s/*` share links for Docs.
+- An app that was in `apps/<id>/` from an older OpenAct moves to `director/<id>/`. Its data stays.
+
+Cloudflare builds and deploys the commit. The apps show up after the build, in a few minutes. If the branch is protected, the store opens a pull request instead. Merge it to deploy.
+
+When the store has a newer version, the Plan page shows **Update from** next to the app. Install it the same way.
+
+| Setting | What it does |
+| --- | --- |
+| `APP_URL` | The site's address. Store keys work only on its host. |
+| `OPENACT_STORE_URL` | Optional. Another store, for tests. Empty uses `https://on.openact.ing`. |
+| `OPENACT_LICENSE` | Optional. A license key as a secret. Site settings > Plan can hold the key instead. |
+
 ## Get a plan
 
 There are two ways to get a plan. A super admin can also [give one person a paid app](#give-one-person-a-paid-app).
@@ -55,6 +120,31 @@ In the app, the plans are named **Director** and **Producer**, so the names fit 
 
 Only a super admin who owns the company can buy a plan. The server checks it on every checkout. Choose **Manage billing** to change the card, see invoices, switch between Director and Producer, or cancel. A canceled plan works until the end of the paid year.
 
+## When a plan ends
+
+What happens depends on who runs the site.
+
+| Where OpenAct runs | How you pay | When the plan ends |
+| --- | --- | --- |
+| A site that MarketGrowth or a brand runs, such as a hosted OpenAct | A yearly subscription through Stripe | The paid apps lock. Their data stays. They come back when the plan comes back. |
+| Your own deploy (self-hosted) | A license key for one year | **Perpetual fallback:** the paid app versions that you have keep working. You stop getting new versions and new paid apps until you renew. |
+
+### Perpetual fallback on your own deploy
+
+A license key buys one year of updates for the paid apps. Each paid app version has a release day (`"released"` in its manifest).
+
+- When the key ends, an app version released on or before the key's last day keeps working.
+- A newer version stays locked. If you install a newer version after your key ends, renew the key to unlock it.
+- A paid app that you install after your key ends stays locked.
+- Grants stop when the key ends. Read [Give one person a paid app](#give-one-person-a-paid-app).
+- The Plan page says that the license ended, and which apps still work.
+
+Renew the key to get updates again. A renewed key covers every version released up to its new last day.
+
+::: info Why it works this way
+On your own deploy, the code runs on your Cloudflare account. The fallback is fair to you: you keep what you paid for. Updates, new apps and support are what you renew for.
+:::
+
 ## What happens without a plan
 
 An app that needs a plan is **locked** in a company without that plan.
@@ -65,6 +155,8 @@ An app that needs a plan is **locked** in a company without that plan.
 - For Docs: share links stop working, and live editing closes.
 
 The app's data stays. When the company gets the plan again, the app comes back with all its data.
+
+On your own deploy, an ended license key keeps the paid app versions that you have. Read [Perpetual fallback](#perpetual-fallback-on-your-own-deploy).
 
 If a payment fails, the plan keeps working while Stripe tries the card again. After the paid year ends, the plan keeps working for 7 more days, in case a message from Stripe is late.
 
@@ -150,7 +242,7 @@ npx wrangler secret put OPENACT_LICENSE
 
 Set `APP_URL` too when the key names host names, so the core knows the host.
 
-After the last day, the key keeps working for 14 more days, and the Plan page asks for a new key. Then the paid apps lock.
+After the last day, the key keeps working for 14 more days, and the Plan page asks for a new key. Then the key ends. Read [When a plan ends](#when-a-plan-ends).
 
 ### Make keys (MarketGrowth)
 
@@ -177,11 +269,9 @@ npm run license -- inspect oa1....
 | Part | License |
 | --- | --- |
 | Core (`packages/core`), UI kit (`packages/ui`), Projects (`apps/projects`), examples | [Apache License 2.0](https://github.com/marketgrowth/openact/blob/main/LICENSE) |
-| Docs (`apps/docs`) | [OpenAct Director License 1.0](https://github.com/marketgrowth/openact/blob/main/apps/docs/LICENSE) |
-| Advisory (`apps/advisory`) | [OpenAct Director License 1.0](https://github.com/marketgrowth/openact/blob/main/apps/advisory/LICENSE) |
-| eSign (`apps/esign`) | [OpenAct Director License 1.0](https://github.com/marketgrowth/openact/blob/main/apps/esign/LICENSE) |
+| Docs, Advisory and eSign (private repository) | OpenAct Director License 1.0, in each app's `LICENSE` file |
 
-The OpenAct Director License lets you read and change the code of paid apps, and run them for development and testing. Production use needs a Director or Producer plan. Versions of Docs released before November 10, 2026 stay under the Apache License 2.0.
+The OpenAct Director License lets a licensee read and change the code of paid apps, and run them for development and testing. Production use needs a Director or Producer plan. Versions of Docs released before November 10, 2026 stay under the Apache License 2.0.
 
 ## For app builders
 
@@ -189,8 +279,8 @@ An app asks for a plan with `"plan"` in the `openact` field of its `package.json
 
 ```json
 {
-  "openact": { "id": "docs", "name": "Docs", "plan": "director" }
+  "openact": { "id": "docs", "name": "Docs", "plan": "director", "released": "2026-11-18" }
 }
 ```
 
-Use `"director"` or `"producer"`. Only official MarketGrowth apps use it today. Apps from other publishers are free. The core checks the plan everywhere it checks that an app is on, so a paid app needs no plan code of its own. See [Build an app](apps.md).
+Use `"director"` or `"producer"`. The paid apps live in the private `marketgrowth/openact-director` repository and use only the public SDK, like any other app. Set `"released"` to the release day each time you release a new version. Without it, the app gets no [perpetual fallback](#perpetual-fallback-on-your-own-deploy). Only official MarketGrowth apps use it today. Apps from other publishers are free. The core checks the plan everywhere it checks that an app is on, so a paid app needs no plan code of its own. See [Build an app](apps.md).

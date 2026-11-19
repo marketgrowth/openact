@@ -22,6 +22,7 @@ Cloudflare Workers cannot load new code while they run. So apps are added when y
 npm run openact -- add contacts                   # an app from the app directory, by its id
 npm run openact -- add github:owner/repo          # the default branch
 npm run openact -- add github:owner/repo#v1.2.0   # a tag or branch
+npm run openact -- add github:owner/repo/apps/crm  # one app from a repository with several apps
 npm install
 npm run deploy                                     # or: npm run dev
 ```
@@ -155,6 +156,51 @@ Apps that a super admin turns off in Site settings are off in every company. A s
 
 Live updates: call `registerRoomKind("inventory-item", readRevisions)` once, `markChanged("inventory-item", id)` when data changes, and `acceptLive()` in a route that checks access first. Pages use `useLive()` from `@openact/ui`.
 
+### Tools for AI agents
+
+When a site turns on [agent access](agent-access.md), AI agents can call your app's tools over MCP. List them in `tools`:
+
+```ts
+export default defineServerApp({
+  id: "inventory",
+  name: "Inventory",
+  permissions: { "inventory.view": { label: "See stock", roles: ["owner", "admin", "member"] } },
+  tools: [
+    {
+      name: "inventory_stock",
+      title: "Check stock",
+      description: "Returns how many units of a product are in stock in the company. Give the product SKU.",
+      inputSchema: {
+        type: "object",
+        properties: { sku: { type: "string", description: "The product SKU.", maxLength: 40 } },
+        required: ["sku"],
+        additionalProperties: false
+      },
+      permission: "inventory.view",
+      readOnly: true,
+      run: async (ctx, input) => {
+        const row = await ctx.env.DB.prepare("SELECT units FROM inventory_stock WHERE company_id = ? AND sku = ?")
+          .bind(ctx.companyId, input.sku)
+          .first<{ units: number }>();
+        if (!row) throw new HttpError(404, `There is no product with SKU ${input.sku}.`);
+        return { text: `${row.units} units in stock.`, data: { units: row.units } };
+      }
+    }
+  ]
+});
+```
+
+- **Name.** Start it with your app id and an underscore, such as `inventory_stock`. Use lowercase letters, numbers and underscores.
+- **Description.** Write it for the agent: what the tool does, what to give it and what it returns.
+- **Input.** The core checks the arguments against `inputSchema` before `run`: required fields, types, `enum`, `maxLength`, `minimum`, `maximum` and `maxItems`.
+- **Permission.** The core checks it before every call, with the app's on/off state and the plan, as `requirePermission` does. `run` gets `ctx.user` and `ctx.companyId` from the connection. Keep data in that company.
+- **readOnly.** Set it when the tool only reads. A tool that changes data needs the person to allow changes on the consent page. Follow the same rules as your routes, such as `bumpRev` or `markChanged`.
+- **public.** Set it for a tool that anyone may call without sign-in, at `/mcp/public`, such as a free check of a website. A public tool must be `readOnly`, gets no person and no company, and must not read company data.
+- **Errors.** Throw `HttpError` with a plain message. The agent reads it as the tool's result.
+- **No deletes and no changes to people.** Leave those to a person in the app.
+
+The Projects app has one tool, `projects_list`, as an example.
+
 ### Client side
 
 ```tsx
@@ -232,6 +278,30 @@ Use `useShell()` for the person and the config, `useWorkspace()` for the current
 ### Migrations
 
 Put numbered SQL files in `migrations/`, such as `0001_init.sql`. `npm run sync` copies them as `<id>_0001_init.sql`. Wrangler applies new files in name order, after the core's files. Your tables may use core tables, such as `users` and `companies`. Core tables never use yours.
+
+### Durable Objects
+
+List your Durable Object classes in `durableObjects` in the manifest, and export them from your server file. Each class also needs a binding and a migration in the deploy's `wrangler.jsonc`. `npm run sync` warns when a class has no binding, and stops when a binding has no migration. Both messages show the lines to add. Tell people the binding name in your app's docs.
+
+```jsonc
+"durable_objects": { "bindings": [{ "name": "CRM_ROOMS", "class_name": "CrmRoom" }] },
+"migrations": [{ "tag": "v3", "new_sqlite_classes": ["CrmRoom"] }]
+```
+
+Sync also stops when `wrangler.jsonc` binds a class that no installed app exports, because the deploy would fail. Remove that binding only when you no longer need its data: deleting a class needs a `deleted_classes` migration, which deletes the stored data.
+
+### Core versions
+
+Say which core versions your app works with, the way a WordPress plugin says "Requires at least" and "Tested up to":
+
+```json
+{ "openact": { "id": "crm", "requiresCore": "0.2.0", "testedCore": "0.3" } }
+```
+
+- `requiresCore`: the oldest core version that your app works with. `npm run sync` stops when the core is older.
+- `testedCore`: the newest core version that you tested. `npm run sync` warns when the core is newer. `"0.3"` covers every `0.3.x` release.
+
+Update `testedCore` each time you test with a new core release.
 
 ## Rules for apps
 
