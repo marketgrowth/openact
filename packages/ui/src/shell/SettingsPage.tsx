@@ -5,17 +5,18 @@ import { api, errorText } from "../api";
 import { navigate, usePath } from "../router";
 import { Notice } from "../ui";
 import { useWorkspace } from "../workspace";
-import { ACCOUNT_SECTIONS, SITE_SECTIONS, companySections, parseSettingsPath, settingsPath, type SettingsSection } from "../settings-paths";
+import { ACCOUNT_SECTIONS, CONTRIBUTE_SECTION, SITE_SECTIONS, companySections, parseSettingsPath, settingsPath, type SettingsSection } from "../settings-paths";
 import { PageBody, SiteHeader } from "./SiteHeader";
 import { CompanyMark } from "./Sidebar";
 import { GeneralTab, PeopleTab } from "./CompanyDialogs";
 import { AppsTab, PermissionsTab } from "./AppSettings";
 import { CompanyAiTab, MyAiSection } from "./CompanyAi";
+import { WorkspacesTab } from "./Workspaces";
 import { SitePlan } from "./Plan";
 import { SiteSettingsSection, type SiteSection } from "./SiteSettings";
 import { SiteGrants } from "./SiteGrants";
 import { SiteDuplicate } from "./SiteDuplicate";
-import { ProfileSection, SecuritySection } from "./AccountSettings";
+import { ConnectedAgentsSection, ProfileSection, SecuritySection } from "./AccountSettings";
 
 /*
  * The Settings page. It fills the main content area, and the side panel lists its sections.
@@ -72,6 +73,8 @@ export function SettingsPage({
           <ProfileSection key={me.id} me={me} onMe={onMe} />
         ) : section.id === "ai" ? (
           <MyAiSection key={me.id} />
+        ) : section.id === "agents" ? (
+          <ConnectedAgentsSection />
         ) : (
           <SecuritySection me={me} onMe={onMe} onSignOut={onSignOut} />
         )}
@@ -99,6 +102,19 @@ export function SettingsPage({
           <SiteDuplicate />
         ) : (
           <SiteSettingsSection key={section.id} section={section.id as SiteSection} onSaved={onSite} />
+        )}
+      </Shell>
+    );
+  }
+
+  if (scope === "company" && id === CONTRIBUTE_SECTION.id) {
+    if (superAdmin === undefined) return <Loading title="Company settings" />;
+    return (
+      <Shell title="Company settings" section={CONTRIBUTE_SECTION}>
+        {superAdmin ? (
+          <ContributeSection />
+        ) : (
+          <Notice tone="info">Only the owner of this site can open this section.</Notice>
         )}
       </Shell>
     );
@@ -151,6 +167,7 @@ function CompanySection({ companyId, me, apps, section }: { companyId: string; m
   else if (!detail) body = <p className="text-sm text-muted-foreground">Loading…</p>;
   else if (section.id === "general") body = <GeneralTab key={detail.id} detail={detail} me={me} onChanged={changed} />;
   else if (section.id === "people") body = <PeopleTab detail={detail} me={me} onChanged={changed} />;
+  else if (section.id === "workspaces") body = <WorkspacesTab key={detail.id} company={detail} />;
   else if (section.id === "apps") body = <AppsTab companyId={companyId} />;
   else if (section.id === "permissions") body = <PermissionsTab companyId={companyId} />;
   else if (section.id === "ai") body = <CompanyAiTab companyId={companyId} />;
@@ -165,6 +182,26 @@ function CompanySection({ companyId, me, apps, section }: { companyId: string; m
     >
       {body}
     </Shell>
+  );
+}
+
+/** The Contribute page lives on openact.ing. Keep this address in step with CONTRIBUTE_URL in src/shared/contribute.ts. */
+const CONTRIBUTE_URL = "https://openact.ing/contribute";
+
+/** Contribute, for the site owner: what it is, and a link that opens the page in a new tab. */
+function ContributeSection() {
+  return (
+    <div className="grid gap-4 text-sm" data-contribute-section="">
+      <p>
+        OpenAct is open source. Contributions pay for new apps, fixes and docs. You can give once or each month, by card or in USDC.
+      </p>
+      <p>
+        <a className="font-medium underline underline-offset-4" href={CONTRIBUTE_URL} target="_blank" rel="noreferrer">
+          Open the Contribute page
+          <span className="sr-only"> (opens in a new tab)</span>
+        </a>
+      </p>
+    </div>
   );
 }
 

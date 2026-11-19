@@ -28,6 +28,7 @@ import { Switch } from "@openact/ui/components/switch";
 import { Label } from "@openact/ui/components/label";
 import { Separator } from "@openact/ui/components/separator";
 import { Badge } from "@openact/ui/components/badge";
+import { NativeSelect, NativeSelectOption } from "@openact/ui/components/native-select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@openact/ui/components/tooltip";
 import { cn } from "@openact/ui/lib/utils";
 import { useLive, type Viewer } from "@openact/ui";
@@ -665,6 +666,10 @@ function ProjectSettings({
   const [visibility, setVisibility] = useState<Visibility>(data.project.visibility);
   const [busy, setBusy] = useState(false);
   const onProject = data.members.some((m) => m.userId === me.id);
+  // Project owners can move the project to another workspace of its company. The field shows when the company has more than one.
+  const ws = useWorkspace();
+  const workspaces = ws.current && ws.current.id === data.project.companyId ? ws.workspaces : [];
+  const [workspaceId, setWorkspaceId] = useState(data.project.workspaceId ?? "");
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -672,6 +677,7 @@ function ProjectSettings({
     try {
       const body: Record<string, unknown> = { name, description, color };
       if (isOwner && visibility !== data.project.visibility) body.visibility = visibility;
+      if (isOwner && workspaceId && workspaceId !== data.project.workspaceId) body.workspaceId = workspaceId;
       await api(`/api/projects/${data.project.id}`, { method: "PATCH", body });
       toast("Project saved.");
       onSaved();
@@ -738,7 +744,18 @@ function ProjectSettings({
           />
           {!isOwner && <p className="text-xs text-muted-foreground">Only project owners can change who can see the project.</p>}
         </fieldset>
-        {canEdit && (
+        {workspaces.length > 1 && (
+          <Field label="Workspace" htmlFor="ps-workspace" help={isOwner ? "Move the project to another workspace. Its tasks, files and people move with it." : "Only project owners can move the project."}>
+            <NativeSelect id="ps-workspace" disabled={!isOwner} value={workspaceId} onChange={(e) => setWorkspaceId(e.target.value)} data-project-workspace="">
+              {workspaces.map((w) => (
+                <NativeSelectOption key={w.id} value={w.id}>
+                  {w.name}
+                </NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </Field>
+        )}
+        {(canEdit || isOwner) && (
           <div className="flex justify-end">
             <Button type="submit" disabled={busy || !name.trim()}>
               Save

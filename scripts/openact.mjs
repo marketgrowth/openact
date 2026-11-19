@@ -20,6 +20,7 @@
  *
  * "enabledByDefault": false makes each company turn the app on in Company settings before it shows.
  * "requiresApps": ["projects"] lists apps that must be installed too. "optionalApps" lists apps the app uses when they are there.
+ * "scope": "workspace" makes the app workspace-aware: it keeps its rows per workspace. Default: "company" (company-wide).
  * "plan": "director" or "producer" makes the app a paid app. It is locked in companies without that plan.
  * Only official MarketGrowth apps use "plan". See https://docs.openact.ing/plans.
  * "released": "YYYY-MM-DD" is the day this version was released. A paid app needs it for the license fallback.
@@ -49,6 +50,7 @@ const VERSION = /^\d+\.\d+(\.\d+)?$/;
 const DIRECTORY = join(ROOT, "directory/apps.json");
 const ID = /^[a-z][a-z0-9-]{1,30}$/;
 const PAID_PLANS = ["director", "producer"];
+const SCOPES = ["company", "workspace"];
 const PLAN_NAMES = { director: "Director", producer: "Producer" };
 
 const temps = [];
@@ -117,6 +119,7 @@ function manifest(dir, label = relative(ROOT, dir)) {
     if (m[key] && !existsSync(join(dir, m[key]))) fail(`The app "${m.id}" lists ${key}: ${m[key]}, but that file does not exist.`);
   }
   if (m.enabledByDefault !== undefined && typeof m.enabledByDefault !== "boolean") fail(`The app "${m.id}" has "enabledByDefault": it must be true or false.`);
+  if (m.scope !== undefined && !SCOPES.includes(m.scope)) fail(`The app "${m.id}" has "scope": "${m.scope}". Use ${SCOPES.join(" or ")}.`);
   if (m.plan !== undefined && !PAID_PLANS.includes(m.plan)) fail(`The app "${m.id}" has "plan": "${m.plan}". Use ${PAID_PLANS.join(" or ")}, or leave it out for a free app.`);
   if (m.released !== undefined && (typeof m.released !== "string" || !DAY.test(m.released) || Number.isNaN(Date.parse(`${m.released}T00:00:00Z`))))
     fail(`The app "${m.id}" has "released": "${m.released}". Use a day such as "2026-11-18".`);
@@ -134,6 +137,7 @@ function manifest(dir, label = relative(ROOT, dir)) {
     name: m.name ?? m.id,
     durableObjects: m.durableObjects ?? [],
     enabledByDefault: m.enabledByDefault ?? true,
+    scope: m.scope ?? "company",
     requiresApps: m.requiresApps ?? [],
     optionalApps: m.optionalApps ?? []
   };
@@ -307,6 +311,7 @@ function sync() {
           id: a.id,
           name: a.name,
           enabledByDefault: a.enabledByDefault,
+          scope: a.scope,
           ...(a.version ? { version: a.version } : {}),
           ...(a.plan ? { plan: a.plan } : {}),
           ...(a.plan && a.released ? { released: a.released } : {})

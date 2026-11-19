@@ -95,6 +95,13 @@
 .rowk { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 11px 14px; font-family: var(--mono); font-size: 13px; color: var(--soft); }
 .rowk:nth-child(2) { transform: rotate(-0.6deg); }
 .rowk:nth-child(3) { transform: rotate(0.5deg); }
+/* Companies and workspaces: workspaces sit under their company, and each app shows its scope. */
+.tree .rowk { transform: none; }
+.tree .ws { margin-left: 28px; }
+.scopes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
+.scope { padding: 10px 12px; font-family: var(--mono); font-size: 12px; color: var(--soft); }
+.scope small { display: block; margin-top: 2px; font-size: 10.5px; color: var(--muted); }
+@media (max-width: 520px) { .scopes { grid-template-columns: repeat(2, minmax(0, 1fr)); } .tree .ws { margin-left: 16px; } }
 
 /* Price per seat */
 .big { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; margin-top: 20px; }

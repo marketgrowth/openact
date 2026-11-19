@@ -23,8 +23,7 @@ function ContributeMoved() {
 export const site = defineClientApp({
   id: "site",
   name: "OpenAct",
-  publicRoutes: { "/contribute": ContributeMoved, "/colophon": Colophon },
-  // Footer items show at the bottom of the app rail. The colophon has no icon there. Its page still works at /colophon.
-  // The heart opens the Contribute page on openact.ing in a new browser tab.
-  nav: [{ label: "Contribute", icon: "heart", path: CONTRIBUTE_URL, placement: "footer" }]
+  // The colophon has no icon on the app rail. Its page still works at /colophon.
+  // Contribute is in Company settings, for the site owner only. It is not on the rail.
+  publicRoutes: { "/contribute": ContributeMoved, "/colophon": Colophon }
 });

@@ -28,6 +28,8 @@ export interface AppPathInfo {
   Mark?: unknown;
   Home?: unknown;
   home?: string;
+  /** "end": its own group at the end of the app list, such as CMS. "footer": the bottom of the rail, above Settings, such as Advisory. Default: "apps". */
+  railPlacement?: "apps" | "end" | "footer";
   routes?: ReadonlyArray<RouteInfo>;
   publicRoutes?: Readonly<Record<string, unknown>>;
   ownsPath?: (path: string) => boolean;
@@ -201,25 +203,38 @@ export function guardApps<A extends AppPathInfo>(apps: readonly A[], trust: AppT
 /** Apps with an icon or a mark show in the app rail. Others, such as the colophon, do not. */
 export const railApps = <A extends AppPathInfo>(apps: readonly A[]): A[] => apps.filter((a) => a.icon || a.Mark);
 
-/** The app rail in groups: the primary app on its own, then the other apps in install order. */
+/**
+ * The app rail in groups: the primary app on its own, the other apps in install order,
+ * then the apps with `railPlacement: "end"` in their own group, such as an outside tool like the CMS app.
+ */
 export interface RailGroups<A> {
   /** The deploy's primary app, such as a company's own app. Undefined when there is none, or when it is off or has no rail icon. */
   primary: A | undefined;
   /** The other rail apps, such as Projects and Docs, in install order. */
   others: A[];
+  /** The apps at the end of the app list, below a divider, in install order. */
+  end: A[];
+  /** Apps with `railPlacement: "footer"`, such as Advisory. Their icons sit at the bottom of the rail, above Settings. */
+  footer: A[];
 }
 
-/** Splits the rail apps into the primary app and the others. */
+/** Splits the rail apps into the primary app, the others, the end group and the footer apps. The primary app stays first, whatever its placement. */
 export function railGroups<A extends AppPathInfo>(apps: readonly A[], primaryId?: string | null): RailGroups<A> {
   const rail = railApps(apps);
   const primary = primaryId ? rail.find((a) => a.id === primaryId) : undefined;
-  return { primary, others: rail.filter((a) => a !== primary) };
+  const rest = rail.filter((a) => a !== primary);
+  return {
+    primary,
+    others: rest.filter((a) => a.railPlacement !== "end" && a.railPlacement !== "footer"),
+    end: rest.filter((a) => a.railPlacement === "end"),
+    footer: rest.filter((a) => a.railPlacement === "footer")
+  };
 }
 
-/** The rail apps in the order the rail shows them: the primary app first, then the others. */
+/** The rail apps in the order the rail shows them: the primary app first, then the others, the end group and the footer apps. */
 export function railOrder<A extends AppPathInfo>(apps: readonly A[], primaryId?: string | null): A[] {
-  const { primary, others } = railGroups(apps, primaryId);
-  return primary ? [primary, ...others] : others;
+  const { primary, others, end, footer } = railGroups(apps, primaryId);
+  return [...(primary ? [primary] : []), ...others, ...end, ...footer];
 }
 
 /** Where an app starts: its own `home`, "/" for the first app with a home page, or /a/<id>. */

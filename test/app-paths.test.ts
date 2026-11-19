@@ -79,3 +79,42 @@ test("the primary app does not change which app owns a path", () => {
   assert.equal(activeApp(apps, "/")?.id, "projects");
   assert.equal(appHome(projects, apps), "/");
 });
+
+// An outside tool, such as the CMS app (EmDash), sits in its own group at the end of the app list.
+const cms = { id: "cms", Mark: () => null, home: "/a/cms", railPlacement: "end" as const };
+const withEnd = [projects, cms, orbytt, hello, site];
+
+test("apps with railPlacement end go last, in their own group", () => {
+  const g = railGroups(withEnd, null);
+  assert.deepEqual(g.others.map((a) => a.id), ["projects", "orbytt", "hello"]);
+  assert.deepEqual(g.end.map((a) => a.id), ["cms"]);
+  assert.deepEqual(railOrder(withEnd).map((a) => a.id), ["projects", "orbytt", "hello", "cms"]);
+  assert.deepEqual(railGroups(apps, null).end, []);
+});
+
+test("the primary app stays first, even with railPlacement end", () => {
+  const g = railGroups(withEnd, "cms");
+  assert.equal(g.primary?.id, "cms");
+  assert.deepEqual(g.end, []);
+  assert.deepEqual(railOrder(withEnd, "hello").map((a) => a.id), ["hello", "projects", "orbytt", "cms"]);
+});
+
+test("an end app owns its own paths", () => {
+  assert.equal(activeApp(withEnd, "/a/cms")?.id, "cms");
+  assert.equal(activeApp(withEnd, "/")?.id, "projects");
+});
+
+test("footer apps sit apart from the other apps, after them in rail order", () => {
+  const advisory = { id: "advisory", icon: "handshake", home: "/a/advisory", railPlacement: "footer" as const };
+  const all = [projects, advisory, orbytt];
+  const g = railGroups(all, null);
+  assert.deepEqual(g.others.map((a) => a.id), ["projects", "orbytt"]);
+  assert.deepEqual(g.footer.map((a) => a.id), ["advisory"]);
+  assert.deepEqual(railOrder(all).map((a) => a.id), ["projects", "orbytt", "advisory"]);
+  assert.equal(activeApp(all, "/a/advisory/me")?.id, "advisory");
+  // A primary app stays at the top, even with a footer placement.
+  assert.equal(railGroups(all, "advisory").primary?.id, "advisory");
+  assert.deepEqual(railGroups(all, "advisory").footer, []);
+  // End apps come before footer apps.
+  assert.deepEqual(railOrder([projects, advisory, cms]).map((a) => a.id), ["projects", "cms", "advisory"]);
+});

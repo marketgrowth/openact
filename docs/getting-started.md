@@ -96,6 +96,7 @@ Set these under `vars` in `wrangler.jsonc`, or in the Cloudflare dashboard.
 | `AI_SCOPE_MODEL` | (empty) | A small, fast model for the topic check. Empty uses `@cf/meta/llama-3.1-8b-instruct-fast`, `claude-haiku-5-5` or `gpt-6-luna`, by provider. |
 | `AI_GATEWAY_ID` | `openact` | The AI Gateway name. Empty turns the gateway off. |
 | `CF_ACCOUNT_ID` | empty | Your account ID. Needed for `anthropic` and `openai`. |
+| `AGENT_ACCESS` | empty | `on` lets AI agents sign in with OAuth 2.1 and use the apps' tools over MCP at `/mcp`. Set `APP_URL` too. Read [Agent access](agent-access.md). |
 | `TYPESAFE_MODEL` | `jev-1.14.0` | The Jev release for the topic check. Pinned, because the thresholds are set for it. |
 | `TYPESAFE_BASE_URL` | `https://api.typesafe.ai` | Another URL for the TypeSafe API, such as a gateway |
 

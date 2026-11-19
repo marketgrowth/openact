@@ -15,6 +15,7 @@ The app shows the same page at `/colophon`. It has no icon on the app rail, so o
 | Calendar | A month view with start cards and deadline pills. Drag either to change the date. Phones get an agenda list. |
 | Tasks | Dates, phase, assignee, notes and files up to 25 MB. Web addresses in notes and descriptions show as links that open in a new tab. |
 | Pinned and Recent | Pin projects to the top of the panel. Recent shows the tasks you opened lately, and one click opens a task again. Both are yours only. |
+| Workspaces | A company splits its work into flat workspaces: brands, business units, locations or regions. Projects and Docs keep their work per workspace. |
 | Companies | One install holds many companies. Switch from the company mark at the top of the app rail. Each company has its own name, logo, people, email domain and AI defaults. |
 | Access | Project roles (owner, editor, viewer) and company roles (owner, admin, member, guest). Owners can make a project secret. People without access can ask for it. |
 | Permissions | Owners and admins turn apps on or off for their company, and choose what each role can do in each app. Apps declare their permissions, and the core checks them. |
@@ -25,7 +26,7 @@ The app shows the same page at `/colophon`. It has no icon on the app rail, so o
 | Note search | Owners can let the agent search task notes. It gets only short parts, with email addresses and phone numbers hidden. |
 | Sign-in | No passwords. People sign in with a 6-digit email code. |
 | Themes and phones | Light, dark, or follow the system. On a phone, the rail and the panel open as one sheet. |
-| Contribute | A public page at openact.ing/contribute. The heart on the app rail opens it in a new tab. People help build OpenAct by card (Stripe) or in USDC (x402). |
+| Contribute | A public page at openact.ing/contribute. The site owner opens it from Company settings > Contribute. People help build OpenAct by card (Stripe) or in USDC (x402). |
 | Keyboard | Ctrl+K or Cmd+K opens search. Ctrl+B or Cmd+B opens and closes the app panel. |
 
 ## Build log

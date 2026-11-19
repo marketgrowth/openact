@@ -5,6 +5,11 @@
       "id": "projects",
       "path": "apps/projects",
       "source": "local"
+    },
+    {
+      "id": "cms",
+      "path": "apps/cms",
+      "source": "local"
     }
   ]
 }

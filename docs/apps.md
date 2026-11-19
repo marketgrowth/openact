@@ -54,7 +54,8 @@ An app is a folder with a `package.json` that has an `openact` field:
     "client": "./src/client/index.tsx",
     "migrations": "./migrations",
     "durableObjects": [],
-    "enabledByDefault": true
+    "enabledByDefault": true,
+    "scope": "workspace"
   },
   "dependencies": { "@openact/core": "^0.2.0", "@openact/ui": "^0.2.0", "hono": "^4.13.16", "react": "^19.3.1" }
 }
@@ -64,9 +65,30 @@ The `id` is 2 to 31 lowercase letters, numbers or dashes. It must be unique in a
 
 `enabledByDefault` is optional. Set it to `false` when each company must turn the app on first.
 
+`scope` is optional. Use `"workspace"` to make the app workspace-aware, or `"company"` (the default) to keep its data company-wide. Read [Workspace-aware apps](#workspace-aware-apps).
+
 `plan` is optional, and only official MarketGrowth apps use it. Set it to `"director"` or `"producer"` to make a paid app. The core locks the app in companies without that plan. See [Plans](plans.md).
 
 `requiresApps` is optional. List the apps that must be installed too, such as `["projects"]`. `npm run sync` stops with a clear message when one is missing. `optionalApps` lists apps that your app uses when they are there.
+
+### Workspace-aware apps
+
+A company can split its work into [workspaces](workspaces.md), such as brands or locations. An app opts in with `"scope": "workspace"` in its manifest. An app without it stays company-wide and never sees a workspace.
+
+A workspace-aware app:
+
+1. Adds a `workspace_id` column to its main tables, in a migration. Point it at `workspaces (id)`.
+2. Puts existing rows in the company's default workspace, in the same migration:
+   `UPDATE <table> SET workspace_id = (SELECT id FROM workspaces w WHERE w.company_id = <table>.company_id AND w.is_default = 1);`
+3. Adds a trigger that does the same for rows inserted without a workspace, such as rows from **Duplicate a company**. See `apps/projects/migrations/0002_workspaces.sql`.
+4. Reads the workspace in list routes with `workspaceScope(c, "<app id>", companyId)` from `@openact/core/server`. It returns a workspace id, or `null` for every workspace (All workspaces, or a guest). Filter by `workspace_id` only when it is not null.
+5. Picks the workspace of a new row with `workspaceForNew(c, "<app id>", companyId, body.workspaceId)`.
+6. Checks a move with `requireActiveWorkspace(env, companyId, workspaceId)`.
+7. In the web app, adds `useWorkspace().workspaceParam` to its API calls, and loads again when it changes.
+
+Workspaces organize work. They never decide access. Check the company role, the app permission and the row's own access first, as before.
+
+For an app with `"scope": "company"`, `workspaceScope` always returns `null`, so the same code stays company-wide.
 
 ### Use another app
 
@@ -156,6 +178,51 @@ Apps that a super admin turns off in Site settings are off in every company. A s
 
 Live updates: call `registerRoomKind("inventory-item", readRevisions)` once, `markChanged("inventory-item", id)` when data changes, and `acceptLive()` in a route that checks access first. Pages use `useLive()` from `@openact/ui`.
 
+### Tools for AI agents
+
+When a site turns on [agent access](agent-access.md), AI agents can call your app's tools over MCP. List them in `tools`:
+
+```ts
+export default defineServerApp({
+  id: "inventory",
+  name: "Inventory",
+  permissions: { "inventory.view": { label: "See stock", roles: ["owner", "admin", "member"] } },
+  tools: [
+    {
+      name: "inventory_stock",
+      title: "Check stock",
+      description: "Returns how many units of a product are in stock in the company. Give the product SKU.",
+      inputSchema: {
+        type: "object",
+        properties: { sku: { type: "string", description: "The product SKU.", maxLength: 40 } },
+        required: ["sku"],
+        additionalProperties: false
+      },
+      permission: "inventory.view",
+      readOnly: true,
+      run: async (ctx, input) => {
+        const row = await ctx.env.DB.prepare("SELECT units FROM inventory_stock WHERE company_id = ? AND sku = ?")
+          .bind(ctx.companyId, input.sku)
+          .first<{ units: number }>();
+        if (!row) throw new HttpError(404, `There is no product with SKU ${input.sku}.`);
+        return { text: `${row.units} units in stock.`, data: { units: row.units } };
+      }
+    }
+  ]
+});
+```
+
+- **Name.** Start it with your app id and an underscore, such as `inventory_stock`. Use lowercase letters, numbers and underscores.
+- **Description.** Write it for the agent: what the tool does, what to give it and what it returns.
+- **Input.** The core checks the arguments against `inputSchema` before `run`: required fields, types, `enum`, `maxLength`, `minimum`, `maximum` and `maxItems`.
+- **Permission.** The core checks it before every call, with the app's on/off state and the plan, as `requirePermission` does. `run` gets `ctx.user` and `ctx.companyId` from the connection. Keep data in that company.
+- **readOnly.** Set it when the tool only reads. A tool that changes data needs the person to allow changes on the consent page. Follow the same rules as your routes, such as `bumpRev` or `markChanged`.
+- **public.** Set it for a tool that anyone may call without sign-in, at `/mcp/public`, such as a free check of a website. A public tool must be `readOnly`, gets no person and no company, and must not read company data.
+- **Errors.** Throw `HttpError` with a plain message. The agent reads it as the tool's result.
+- **No deletes and no changes to people.** Leave those to a person in the app.
+
+The Projects app has one tool, `projects_list`, as an example.
+
 ### Client side
 
 ```tsx
@@ -219,7 +286,7 @@ The first app with a home page still owns `/`, whether it is official or not.
 
 The side panel has two columns, like a desktop chat app:
 
-- **The app rail** on the left. It shows the company, the primary app if the deploy has one, one icon for each other app, the App directory (super admins only), the footer items, Settings and the person's menu. Projects is first, because it is installed first.
+- **The app rail** on the left. It shows the company, the primary app if the deploy has one, one icon for each other app, the end apps (such as [CMS](cms-app.md)), the App directory (super admins only), the footer items and footer apps (such as [Advisory](advisory-app.md)), Settings and the person's menu. Projects is first, because it is installed first.
 - **The app panel** beside it. It shows the active app's name, its commands, its `nav` items and its `SidebarSection`. The projects app shows Pinned, Projects and Recent here. On the Settings page, it lists the settings sections.
 
 Ctrl+B or Cmd+B collapses the panel and leaves only the rail. On a phone, both columns open as one sheet.
@@ -234,6 +301,9 @@ A deploy can have one primary app. Use it for the app that the deploy is for, su
 | --- | --- |
 | None | Projects, Docs, divider, App directory (super admins) |
 | `orbytt` | Orbytt, divider, Projects, Docs, divider, App directory (super admins) |
+| None, with CMS on | Projects, Docs, divider, CMS, divider, App directory (super admins) |
+
+An app with `railPlacement: "end"` sits in its own group at the end of the app list, below a divider. Use it for an app that opens an outside tool, such as [CMS](cms-app.md), which opens EmDash. The primary app stays at the top, whatever its placement.
 
 Set it with the app tool. The command writes `"primary"` in `openact.apps.json`:
 
@@ -253,6 +323,8 @@ An app shows in the rail when it has an `icon` or a `Mark`. Its pages live under
 | `icon` | The app's icon in the rail, as a Lucide name for `Icon`, such as `"users"` |
 | `Mark` | A custom rail icon, such as a brand mark. Draw it with `currentColor`. |
 | `home` | Where the rail icon goes. Default: `/` for the first app with a home page, otherwise `/a/<id>`. Community apps must keep it under `/a/<id>/`. |
+| `railPlacement` | `"apps"` (the default), `"end"` or `"footer"`. `"end"` puts the app last in the app list, below its own divider, such as CMS. `"footer"` puts its icon at the bottom of the rail, above Settings, such as Advisory. |
+| `collapsePanel` | `true` closes the app panel on the app's pages, so a page such as a framed outside tool sits right of the rail. The person's saved panel choice does not change. |
 | `ownsPath` | Says which paths belong to the app. Default: the home, `/a/<id>/...` and the app's routes |
 | `routes` | Pages, as named paths. Start each one with `SiteHeader` and put its content in `PageBody`. Read [Pages and paths](#pages-and-paths). |
 | `Home` | The app's home page. The first app with a home page shows it at `/`. Other apps show it at `/a/<id>`. |

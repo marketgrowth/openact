@@ -102,6 +102,19 @@ export interface ClientApp {
   /** Where the rail icon goes. Default: "/" for the first app with a home page, otherwise /a/<id>. */
   home?: string;
   /**
+   * Where the app sits in the rail. "apps" (the default) puts it with the other apps, in install order.
+   * "end" puts it in its own group at the end of the app list, below a divider. Use it for an outside tool, such as the CMS app.
+   * "footer" puts its icon at the bottom of the rail, above Settings. Use it for an app that serves the whole site, such as Advisory.
+   * The primary app stays at the top either way.
+   */
+  railPlacement?: "apps" | "end" | "footer";
+  /**
+   * True to close the app panel while the app is open, so its page sits right of the app rail,
+   * such as an outside tool in a frame. The person's saved panel choice does not change.
+   * Ctrl+B or Cmd+B still opens the panel on the app's pages.
+   */
+  collapsePanel?: boolean;
+  /**
    * True when a path belongs to this app, so the rail lights it and the panel shows its items.
    * Default: the home path, paths under /a/<id>/, and the app's routes.
    */

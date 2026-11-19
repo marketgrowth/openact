@@ -4,7 +4,7 @@ import { companyRole } from "./data";
 import { getApps } from "./apps";
 import { siteState } from "./site-state";
 import { companyPlan, grantCeiling, ownerGrants } from "./plans";
-import { COMPANY_ROLES, type CompanyRole } from "../shared/types";
+import { COMPANY_ROLES, type AppScope, type CompanyRole } from "../shared/types";
 import { PLANS, fallbackCovers, planIncludes, type PaidPlan, type PlanId } from "../shared/plans";
 import { permissionApp, rolesWithPermission, type CompanyAccess, type PermissionDef } from "../shared/permissions";
 
@@ -27,6 +27,8 @@ export interface AppInfo {
   enabledByDefault: boolean;
   /** The plan the app needs, such as "director". Missing: the app is free. From "plan" in the app's package.json. */
   plan?: PaidPlan;
+  /** "workspace" when the app keeps its rows per workspace. Missing or "company": company-wide. From "scope" in package.json. */
+  scope?: AppScope;
   /** The day this version of a paid app was released, as YYYY-MM-DD. Used for the license fallback. See fallbackCovers(). */
   released?: string;
   /** The app's version, from its package.json. */
