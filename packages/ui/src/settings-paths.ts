@@ -20,6 +20,13 @@ export interface SettingsSection {
 export const COMPANY_SECTIONS: readonly SettingsSection[] = [
   { scope: "company", id: "general", label: "General", icon: "gear", description: "The company name, logo and email domain." },
   { scope: "company", id: "people", label: "People", icon: "users" },
+  {
+    scope: "company",
+    id: "workspaces",
+    label: "Workspaces",
+    icon: "layers",
+    description: "Split the company's work by brand, business unit, location or region. Workspace-aware apps, such as Projects and Docs, keep their work per workspace."
+  },
   { scope: "company", id: "apps", label: "Apps", icon: "apps" },
   { scope: "company", id: "permissions", label: "Permissions", icon: "shield" },
   { scope: "company", id: "ai", label: "AI provider", icon: "bot" }

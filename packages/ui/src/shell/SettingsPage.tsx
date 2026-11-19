@@ -11,6 +11,7 @@ import { CompanyMark } from "./Sidebar";
 import { GeneralTab, PeopleTab } from "./CompanyDialogs";
 import { AppsTab, PermissionsTab } from "./AppSettings";
 import { CompanyAiTab, MyAiSection } from "./CompanyAi";
+import { WorkspacesTab } from "./Workspaces";
 import { SitePlan } from "./Plan";
 import { SiteSettingsSection, type SiteSection } from "./SiteSettings";
 import { SiteGrants } from "./SiteGrants";
@@ -166,6 +167,7 @@ function CompanySection({ companyId, me, apps, section }: { companyId: string; m
   else if (!detail) body = <p className="text-sm text-muted-foreground">Loading…</p>;
   else if (section.id === "general") body = <GeneralTab key={detail.id} detail={detail} me={me} onChanged={changed} />;
   else if (section.id === "people") body = <PeopleTab detail={detail} me={me} onChanged={changed} />;
+  else if (section.id === "workspaces") body = <WorkspacesTab key={detail.id} company={detail} />;
   else if (section.id === "apps") body = <AppsTab companyId={companyId} />;
   else if (section.id === "permissions") body = <PermissionsTab companyId={companyId} />;
   else if (section.id === "ai") body = <CompanyAiTab companyId={companyId} />;

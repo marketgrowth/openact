@@ -8,6 +8,7 @@ import { companyRole, requireCompanyRole } from "./data";
 import { hasRenewingSubscription } from "./billing";
 import { companyInviteEmail, sendEmail } from "./email";
 import { removeAgentGrants } from "./agent-grants";
+import { listWorkspaces } from "./workspaces";
 import { HttpError, appUrl, isEmail, newId, normalizeEmail, nowIso, oneOf, readJson, requireUser, text } from "./util";
 
 export const companyRoutes = new Hono<AppEnv>();
@@ -30,7 +31,10 @@ export async function listCompanies(env: Env, userId: string): Promise<Company[]
   )
     .bind(userId)
     .all<CompanyRow>();
-  return rows.results.map(toCompany);
+  // Workspaces for the switcher. Guests get none: they see what they are invited to, in every workspace.
+  const ids = rows.results.filter((r) => r.role !== "guest").map((r) => r.id);
+  const workspaces = await listWorkspaces(env, ids);
+  return rows.results.map((r) => ({ ...toCompany(r), workspaces: workspaces.get(r.id) ?? [] }));
 }
 
 /** The company the person last used, or their first one. */
@@ -49,7 +53,9 @@ async function ownerCount(env: Env, companyId: string): Promise<number> {
 companyRoutes.get("/", async (c) => {
   const user = requireUser(c);
   const companies = await listCompanies(c.env, user.id);
-  return c.json({ companies, currentId: await currentCompanyId(c.env, user.id, companies) });
+  // The saved workspace: an id, "all", or null. The web app checks it against the current company with pickWorkspace().
+  const saved = await c.env.DB.prepare("SELECT current_workspace_id FROM users WHERE id = ?").bind(user.id).first<{ current_workspace_id: string | null }>();
+  return c.json({ companies, currentId: await currentCompanyId(c.env, user.id, companies), currentWorkspaceId: saved?.current_workspace_id ?? null });
 });
 
 companyRoutes.post("/", async (c) => {
@@ -67,7 +73,8 @@ companyRoutes.post("/", async (c) => {
     c.env.DB.prepare("UPDATE users SET current_company_id = ? WHERE id = ?").bind(id, user.id)
   ]);
   await runHook("companyCreated", c.env, id, user.id);
-  const company: Company = { id, name, role: "owner", logoUrl: null };
+  // A trigger made the default workspace with the company.
+  const company: Company = { id, name, role: "owner", logoUrl: null, workspaces: (await listWorkspaces(c.env, [id])).get(id) ?? [] };
   return c.json({ company }, 201);
 });
 
@@ -145,9 +152,15 @@ companyRoutes.patch("/:id", async (c) => {
   if (!sets.length && !appChanged) throw new HttpError(400, "Nothing to change.");
   sets.push("updated_at = ?");
   vals.push(nowIso());
-  await c.env.DB.prepare(`UPDATE companies SET ${sets.join(", ")} WHERE id = ?`)
-    .bind(...vals, id)
-    .run();
+  const rename = c.env.DB.prepare(
+    // The default workspace keeps the company name, until someone gives it its own name.
+    "UPDATE workspaces SET name = (SELECT name FROM companies WHERE id = ?), updated_at = ? WHERE company_id = ? AND is_default = 1 AND name = ?"
+  );
+  const before = await c.env.DB.prepare("SELECT name FROM companies WHERE id = ?").bind(id).first<{ name: string }>();
+  await c.env.DB.batch([
+    c.env.DB.prepare(`UPDATE companies SET ${sets.join(", ")} WHERE id = ?`).bind(...vals, id),
+    rename.bind(id, nowIso(), id, before?.name ?? "")
+  ]);
   return c.json({ ok: true });
 });
 

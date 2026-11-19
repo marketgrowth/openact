@@ -107,6 +107,7 @@ import {
   ShieldCheck,
   Archive,
   ArchiveRestore,
+  Layers,
   Eraser,
   ZoomOut,
   type LucideIcon
@@ -232,6 +233,8 @@ const ICONS: Record<string, LucideIcon> = {
   "shield-check": ShieldCheck,
   archive: Archive,
   unarchive: ArchiveRestore,
+  // Workspaces
+  layers: Layers,
   eraser: Eraser,
   "zoom-out": ZoomOut
 };

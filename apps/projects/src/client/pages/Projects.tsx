@@ -24,6 +24,13 @@ import { Badge } from "@openact/ui/components/badge";
 import { Card, CardAction, CardDescription, CardFooter, CardHeader, CardTitle } from "@openact/ui/components/card";
 import { cn } from "@openact/ui/lib/utils";
 
+/** "Acme: Brand X" when the company has several workspaces. The workspace name is left out when it is the company name. */
+function workspaceTitle(company: string, count: number, workspace: string | undefined): string {
+  if (count < 2) return company;
+  if (!workspace) return `${company}: All workspaces`;
+  return workspace === company ? company : `${company}: ${workspace}`;
+}
+
 export function ProjectsPage() {
   const ws = useWorkspace();
   const shell = useShell();
@@ -31,6 +38,9 @@ export function ProjectsPage() {
   const me = shell.me!;
   const onNewCompany = () => shell.open("newCompany");
   const current = ws.current;
+  // Workspace names, for the cards in the All workspaces view.
+  const wsNames = new Map(ws.workspaces.map((w) => [w.id, w.name]));
+  const showWorkspace = ws.workspaces.length > 1 && !ws.currentWorkspace;
 
   if (ws.companies && !ws.companies.length) {
     return (
@@ -59,7 +69,7 @@ export function ProjectsPage() {
   const donePct = totals.tasks ? Math.round((totals.done / totals.tasks) * 100) : 0;
   return (
     <>
-      <SiteHeader title={current ? current.name : "Projects"}>
+      <SiteHeader title={current ? workspaceTitle(current.name, ws.workspaces.length, ws.currentWorkspace?.name) : "Projects"}>
         {canCreate && (
           <Button size="sm" onClick={onNewProject}>
             <Icon name="plus" /> <span className="hidden sm:inline">New project</span>
@@ -116,6 +126,7 @@ export function ProjectsPage() {
                           <span className="tabular">
                             {p.taskCount} {p.taskCount === 1 ? "task" : "tasks"} · {p.memberCount} {p.memberCount === 1 ? "person" : "people"}
                           </span>
+
                         </CardDescription>
                         <CardTitle className="flex min-w-0 items-center gap-2 text-lg font-semibold">
                           <span className="truncate">{p.name}</span>
@@ -126,6 +137,13 @@ export function ProjectsPage() {
                             </span>
                           )}
                         </CardTitle>
+                        {/* In All workspaces, each card names its workspace. */}
+                        {showWorkspace && p.workspaceId && wsNames.get(p.workspaceId) && (
+                          <CardDescription className="flex min-w-0 items-center gap-1.5" data-project-workspace="">
+                            <Icon name="layers" size={12} />
+                            <span className="truncate">{wsNames.get(p.workspaceId)}</span>
+                          </CardDescription>
+                        )}
                         <CardAction>
                           <Badge variant="outline">{p.isMember ? ROLE_LABELS[p.role] : `${ROLE_LABELS[p.role]} via company`}</Badge>
                         </CardAction>
