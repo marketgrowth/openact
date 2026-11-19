@@ -11,6 +11,7 @@ import { companyAppRoutes } from "./company-apps";
 import { companyAiRoutes } from "./company-ai";
 import { getCatalog, setCatalog, type AppInfo } from "./permissions";
 import { loadSite, signInPage, siteLogo, siteMiddleware, siteRoutes } from "./site";
+import { directorRoutes, refreshStoreLicense } from "./director.ts";
 import { siteState } from "./site-state";
 import { accountRoutes } from "./account";
 import { billingRoutes, companyPlanRoutes } from "./billing";
@@ -79,6 +80,7 @@ export function createWorker({ apps, catalog }: { apps: ServerApp[]; catalog?: A
   app.route("/api/auth", authRoutes);
   app.route("/api/me", meRoutes);
   app.route("/api/me", accountRoutes);
+  app.route("/api/site/director", directorRoutes);
   app.route("/api/site", siteRoutes);
   app.route("/api/companies", companyRoutes);
   app.route("/api/companies", companyAppRoutes);
@@ -106,6 +108,8 @@ export function createWorker({ apps, catalog }: { apps: ServerApp[]; catalog?: A
       // Scheduled jobs can send email, so they need the current app name.
       await loadSite(env);
       if (event.cron === DAILY_CRON) ctx.waitUntil(cleanup(env));
+      // A deploy that bought through the Director store fetches its renewed license key.
+      if (event.cron === DAILY_CRON) ctx.waitUntil(refreshStoreLicense(env));
       for (const a of apps) {
         if (a.scheduled) ctx.waitUntil(a.scheduled(env, event.cron).catch((e) => console.warn(`[openact] ${a.id} scheduled job failed`, e)));
       }

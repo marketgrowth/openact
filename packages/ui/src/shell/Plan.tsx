@@ -4,6 +4,7 @@ import { api, errorText } from "../api";
 import { navigate } from "../router";
 import { Icon, Notice, useToast } from "../ui";
 import { useWorkspace } from "../workspace";
+import { DirectorStore } from "./Director";
 import { Badge } from "@openact/ui/components/badge";
 import { Button } from "@openact/ui/components/button";
 import { Textarea } from "@openact/ui/components/textarea";
@@ -47,16 +48,19 @@ export function SitePlan() {
   if (ws.companies === null) return <p className="text-sm text-muted-foreground">Loading…</p>;
   const owned = ws.companies.filter((c) => c.role === "owner");
   const company = owned.find((c) => c.id === ws.current?.id) ?? owned[0];
-  if (!company)
-    return (
-      <Notice tone="info">
-        You own no company on this site. Create one from the company menu at the top of the side panel. Then choose a plan here.
-      </Notice>
-    );
   return (
-    <div className="grid gap-3">
-      <p className="text-sm text-muted-foreground">{`The plan is paid by ${company.name}.`}</p>
-      <PlanPanel key={company.id} companyId={company.id} />
+    <div className="grid gap-6">
+      {company ? (
+        <div className="grid gap-3">
+          <p className="text-sm text-muted-foreground">{`The plan is paid by ${company.name}.`}</p>
+          <PlanPanel key={company.id} companyId={company.id} />
+        </div>
+      ) : (
+        <Notice tone="info">
+          You own no company on this site. Create one from the company menu at the top of the side panel. Then choose a plan here.
+        </Notice>
+      )}
+      <DirectorStore />
     </div>
   );
 }

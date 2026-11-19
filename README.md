@@ -206,6 +206,7 @@ Set these under `vars` in `wrangler.jsonc`, or in the Cloudflare dashboard.
 | `TYPESAFE_MODEL` | `jev-1.14.0` | The Jev release for the topic check. Pinned, because the thresholds are set for it. |
 | `TYPESAFE_BASE_URL` | `https://api.typesafe.ai` | Another URL for the TypeSafe API, such as a gateway |
 | `STRIPE_PRICE_DIRECTOR` | empty | Plans: the Stripe Price id of the annual Director price. Director is for sale when it and `STRIPE_SECRET_KEY` are set. |
+| `OPENACT_STORE_URL` | empty | The Director store that Site settings > Plan buys from and installs from. Empty uses `https://on.openact.ing`. |
 | `STRIPE_PRICE_PRODUCER` | empty | Plans: the Stripe Price id of the annual Producer price |
 | `PLANS_CONTACT_URL` | empty | Plans: a `https://` or `mailto:` link for questions, such as about Producer |
 
@@ -219,7 +220,7 @@ Set these secrets with `npx wrangler secret put NAME`:
 | `OPENAI_API_KEY` | For `openai` | OpenAI API key, sent through AI Gateway |
 | `AI_GATEWAY_TOKEN` | No | Needed only if your AI Gateway uses authentication |
 | `TYPESAFE_API_KEY` | No | Turns on Jev for the topic check. Get a key from TypeSafe. |
-| `OPENACT_LICENSE` | No | A license key from MarketGrowth. It gives every company on a self-hosted deploy its paid plan. |
+| `OPENACT_LICENSE` | No | A license key from MarketGrowth. It gives every company on a self-hosted deploy its paid plan. Site settings > Plan can save the key instead. |
 | `STRIPE_SECRET_KEY` | No | Sells plans with Stripe, and takes card contributions |
 | `STRIPE_WEBHOOK_SECRET` | With plans | The signing secret of the Stripe webhook at `/api/billing/stripe-webhook` |
 | `ADVISORY_STRIPE_SECRET_KEY` | For Advisory payments | The Stripe secret key of the Connect platform that takes payments for advisors. Separate from `STRIPE_SECRET_KEY`. |
@@ -343,7 +344,7 @@ To help build OpenAct, open [openact.ing/contribute](https://openact.ing/contrib
 | Director | Growing organizations | Everything in Free, plus Docs, Advisory and eSign. More paid apps will join it. |
 | Producer | Custom apps as a service | Everything in Director. We install and manage OpenAct, and we work with you to build your primary custom app. |
 
-Each paid plan has one annual price. The owner of the site buys a plan in **Site settings > Plan**. A self-hosted deploy gets its plan from a license key in the `OPENACT_LICENSE` secret, and installs the paid apps from the private Director repository. When a license key ends, the paid app versions you have keep working. Read [docs/plans.md](docs/plans.md).
+Each paid plan has one annual price. The owner of the site buys a plan in **Site settings > Plan**. A self-hosted deploy can buy Director and install its apps from the same page: the OpenAct store issues the license key, and commits the apps to the deploy's private repository. A key in the `OPENACT_LICENSE` secret still works. When a license key ends, the paid app versions you have keep working. Read [docs/plans.md](docs/plans.md).
 
 ## License
 
