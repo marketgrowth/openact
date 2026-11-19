@@ -23,7 +23,7 @@ To disconnect the site, select **Remove**.
 
 ## Use it
 
-The CMS icon (a long dash) is the last app on the rail, below its own divider. Select it to open the EmDash admin at `<your site>/_emdash/admin/`.
+The CMS icon (a globe, for a website) is the last app on the rail, below its own divider. Select it to open the EmDash admin at `<your site>/_emdash/admin/`.
 
 - The app panel closes while the CMS page is open, so the admin sits right of the rail. It opens again when you leave the page. Press Ctrl+B or Cmd+B to open it on the CMS page.
 - **Reload** loads the admin again.
