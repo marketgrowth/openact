@@ -1,12 +1,10 @@
 import type { Env } from "../env";
-import { HttpError, companyAi } from "../util";
+import { HttpError, aiOverride } from "../util";
 import {
-  parseAnthropic,
-  parseOpenAi,
+  parseProvider,
   parseWorkersAi,
+  providerRequest,
   runDevScripted,
-  toAnthropic,
-  toOpenAi,
   toWorkersAi,
   type AgentMsg,
   type ModelOutput,
@@ -17,19 +15,21 @@ import {
  * One model turn with tool calling. Every provider goes through Cloudflare AI Gateway.
  * The deploy default comes from AI_PROVIDER: workers-ai (default), anthropic, openai, or dev-scripted (local tests only).
  * A company owner can replace it with their own provider, model and API key in Company settings, under AI provider.
+ * Each person can replace both with their own key in Personal account, under My AI, when the company allows it.
  */
 
 const DEFAULT_MODELS: Record<string, string> = {
   "workers-ai": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
   anthropic: "claude-haiku-5-5",
-  openai: "gpt-4.1-mini"
+  // The OpenAI path uses the Responses API with encrypted reasoning, so the default is a tested GPT-6 model.
+  openai: "gpt-6.2-sol"
 };
 
 /** Small, fast models for the scope check. Set AI_SCOPE_MODEL to choose another. */
 const SCOPE_MODELS: Record<string, string> = {
   "workers-ai": "@cf/meta/llama-3.1-8b-instruct-fast",
   anthropic: "claude-haiku-5-5",
-  openai: "gpt-4.1-mini"
+  openai: "gpt-6-luna"
 };
 
 export type ModelKind = "agent" | "scope";
@@ -39,10 +39,10 @@ export interface AiSetup {
   provider: string;
   model: string;
   scopeModel: string;
-  /** The key for anthropic or openai. Empty for workers-ai and dev-scripted. */
+  /** The key for anthropic, openai or google. Empty for workers-ai and dev-scripted. */
   apiKey: string;
-  /** "company" when a company owner set the AI, "deploy" for the deploy default. */
-  source: "company" | "deploy";
+  /** "user" for the person's own key, "company" when a company owner set the AI, "deploy" for the deploy default. */
+  source: "user" | "company" | "deploy";
 }
 
 export function agentProvider(env: Env): string {
@@ -66,18 +66,19 @@ export function deployAi(env: Env): AiSetup {
 }
 
 /**
- * The AI for a company: the company's own setting when an owner set one, or the deploy default.
+ * The AI for one person in one company: their own key when the company allows it, then the company AI, then the deploy default.
  * dev-scripted always wins, so local tests never call a real provider.
  */
-export async function aiSetup(env: Env, companyId: string | null | undefined): Promise<AiSetup> {
+export async function aiSetup(env: Env, companyId: string | null | undefined, userId?: string | null): Promise<AiSetup> {
   if (agentProvider(env) === "dev-scripted") return deployAi(env);
-  const own = await companyAi(env, companyId);
-  if (own) return { provider: own.provider, model: own.model, scopeModel: own.scopeModel, apiKey: own.apiKey, source: "company" };
+  const own = await aiOverride(env, companyId, userId);
+  if (own) return { provider: own.provider, model: own.model, scopeModel: own.scopeModel, apiKey: own.apiKey, source: own.source };
   return deployAi(env);
 }
 
-/** Says who must add the key: a company owner for a company setting, or the person who runs the deploy. */
-function missingKey(setup: AiSetup, secret: string): HttpError {
+/** Says who must add the key: the person, a company owner, or the person who runs the deploy. */
+export function missingKey(setup: AiSetup, secret: string): HttpError {
+  if (setup.source === "user") return new HttpError(500, "Your own AI key is missing. Add it again in Settings, under Personal account, My AI.");
   return new HttpError(
     500,
     setup.source === "company"
@@ -93,9 +94,16 @@ function gatewayUrl(env: Env, path: string): string {
 
 const gatewayAuth = (env: Env): Record<string, string> => (env.AI_GATEWAY_TOKEN ? { "cf-aig-authorization": `Bearer ${env.AI_GATEWAY_TOKEN}` } : {});
 
-async function failed(res: Response, setup: AiSetup): Promise<HttpError> {
-  console.error(`[openact] AI provider returned ${res.status}: ${(await res.text().catch(() => "")).slice(0, 500)}`);
-  if (setup.source === "company" && (res.status === 401 || res.status === 403)) {
+/** A clear error for a failed provider request. It says whose key failed and where to fix it. */
+export async function failed(res: Response, setup: AiSetup): Promise<HttpError> {
+  const body = await res.text().catch(() => "");
+  console.error(`[openact] AI provider returned ${res.status}: ${body.slice(0, 500)}`);
+  const rejected = res.status === 401 || res.status === 403 || (setup.provider === "google" && res.status === 400 && /API_KEY_INVALID|API key not valid/i.test(body));
+  const noCredit = /credit|billing|insufficient_quota|exceeded your current quota/i.test(body);
+  if (setup.source === "user" && (rejected || noCredit)) {
+    return new HttpError(502, `The AI provider did not accept your own API key${noCredit ? ", because the account has no credit" : ""}. Check it in Settings, under Personal account, My AI.`);
+  }
+  if (setup.source === "company" && (rejected || noCredit)) {
     return new HttpError(502, "The AI provider did not accept your company's API key. A company owner can check it in Company settings, under AI provider.");
   }
   return new HttpError(502, "The AI service did not answer. Try again in a minute.");
@@ -106,28 +114,12 @@ export async function runModel(env: Env, setup: AiSetup, msgs: AgentMsg[], tools
   if (p === "dev-scripted") return runDevScripted(msgs);
   const model = kind === "scope" ? setup.scopeModel : setup.model;
 
-  if (p === "anthropic") {
-    if (!setup.apiKey) throw missingKey(setup, "ANTHROPIC_API_KEY");
-    const body = toAnthropic(msgs, tools);
-    const res = await fetch(gatewayUrl(env, "anthropic/v1/messages"), {
-      method: "POST",
-      headers: { "content-type": "application/json", "x-api-key": setup.apiKey, "anthropic-version": "2023-06-01", ...gatewayAuth(env) },
-      body: JSON.stringify({ model, max_tokens: maxTokens, system: body.system, messages: body.messages, ...(tools.length ? { tools: body.tools } : {}) })
-    });
+  if (p === "anthropic" || p === "openai" || p === "google") {
+    if (!setup.apiKey) throw missingKey(setup, p === "anthropic" ? "ANTHROPIC_API_KEY" : p === "openai" ? "OPENAI_API_KEY" : "GEMINI_API_KEY");
+    const req = providerRequest(p, model, setup.apiKey, msgs, tools, maxTokens);
+    const res = await fetch(gatewayUrl(env, req.gatewayPath), { method: "POST", headers: { ...req.headers, ...gatewayAuth(env) }, body: JSON.stringify(req.body) });
     if (!res.ok) throw await failed(res, setup);
-    return parseAnthropic(await res.json());
-  }
-
-  if (p === "openai") {
-    if (!setup.apiKey) throw missingKey(setup, "OPENAI_API_KEY");
-    const body = toOpenAi(msgs, tools);
-    const res = await fetch(gatewayUrl(env, "openai/chat/completions"), {
-      method: "POST",
-      headers: { "content-type": "application/json", authorization: `Bearer ${setup.apiKey}`, ...gatewayAuth(env) },
-      body: JSON.stringify({ model, messages: body.messages, max_tokens: maxTokens, ...(tools.length ? { tools: body.tools } : {}) })
-    });
-    if (!res.ok) throw await failed(res, setup);
-    return parseOpenAi(await res.json());
+    return parseProvider(p, await res.json());
   }
 
   // Workers AI through the binding, with AI Gateway when AI_GATEWAY_ID is set.

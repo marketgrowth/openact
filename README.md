@@ -200,7 +200,7 @@ Set these under `vars` in `wrangler.jsonc`, or in the Cloudflare dashboard.
 | `AI_PROVIDER` | `workers-ai` | `workers-ai`, `anthropic` or `openai`. This is the deploy default. A company owner can choose Claude with their own key in Company settings. |
 | `AI_MODEL` | `@cf/meta/llama-3.3-70b-instruct-fp8-fast` | The model ID for the provider |
 | `AI_EMBED_MODEL` | `@cf/baai/bge-base-en-v1.5` | The Workers AI model for search embeddings. It must make 768-dimension vectors. |
-| `AI_SCOPE_MODEL` | (empty) | A small, fast model for the topic check. Empty uses `@cf/meta/llama-3.1-8b-instruct-fast`, `claude-haiku-5-5` or `gpt-4.1-mini`, by provider. |
+| `AI_SCOPE_MODEL` | (empty) | A small, fast model for the topic check. Empty uses `@cf/meta/llama-3.1-8b-instruct-fast`, `claude-haiku-5-5` or `gpt-6-luna`, by provider. |
 | `AI_GATEWAY_ID` | `openact` | The AI Gateway name. Empty turns the gateway off. |
 | `CF_ACCOUNT_ID` | empty | Your account ID. Needed for `anthropic` and `openai`. |
 | `TYPESAFE_MODEL` | `jev-1.14.0` | The Jev release for the topic check. Pinned, because the thresholds are set for it. |

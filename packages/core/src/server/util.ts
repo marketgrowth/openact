@@ -1,16 +1,17 @@
 import type { Context } from "hono";
 import type { AppEnv, Env } from "./env";
 import type { User } from "../shared/types";
-import { siteState } from "./site-state";
+import { siteState } from "./site-state.ts";
 
 export class HttpError extends Error {
-  /** code: a stable name the web app can act on, such as "no_access". */
-  constructor(
-    public status: number,
-    message: string,
-    public code?: string
-  ) {
+  status: number;
+  /** A stable name the web app can act on, such as "no_access". */
+  code?: string;
+  // Plain fields, not parameter properties, so Node's type stripping can load this file in tests.
+  constructor(status: number, message: string, code?: string) {
     super(message);
+    this.status = status;
+    this.code = code;
   }
 }
 

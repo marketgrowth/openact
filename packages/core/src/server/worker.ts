@@ -8,7 +8,7 @@ import { liveChanges } from "./live";
 import { HttpError, appName } from "./util";
 import { setApps, type ServerApp } from "./apps";
 import { companyAppRoutes } from "./company-apps";
-import { companyAiRoutes } from "./company-ai";
+import { companyAiRoutes, userAiRoutes } from "./company-ai";
 import { getCatalog, setCatalog, type AppInfo } from "./permissions";
 import { loadSite, signInPage, siteLogo, siteMiddleware, siteRoutes } from "./site";
 import { directorRoutes, refreshStoreLicense } from "./director.ts";
@@ -80,6 +80,7 @@ export function createWorker({ apps, catalog }: { apps: ServerApp[]; catalog?: A
   app.route("/api/auth", authRoutes);
   app.route("/api/me", meRoutes);
   app.route("/api/me", accountRoutes);
+  app.route("/api/me", userAiRoutes);
   app.route("/api/site/director", directorRoutes);
   app.route("/api/site", siteRoutes);
   app.route("/api/companies", companyRoutes);
