@@ -7,7 +7,7 @@ export class HttpError extends Error {
   status: number;
   /** A stable name the web app can act on, such as "no_access". */
   code?: string;
-  // Plain fields, not parameter properties, so tests can load this file with Node's type stripping.
+  // Plain fields, not parameter properties, so Node's type stripping can load this file in tests.
   constructor(status: number, message: string, code?: string) {
     super(message);
     this.status = status;

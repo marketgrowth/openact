@@ -7,18 +7,8 @@
       "source": "local"
     },
     {
-      "id": "docs",
-      "path": "apps/docs",
-      "source": "local"
-    },
-    {
-      "id": "advisory",
-      "path": "apps/advisory",
-      "source": "local"
-    },
-    {
-      "id": "esign",
-      "path": "apps/esign",
+      "id": "cms",
+      "path": "apps/cms",
       "source": "local"
     }
   ]

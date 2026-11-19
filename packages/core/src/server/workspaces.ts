@@ -30,7 +30,7 @@ export {
  * Workspaces: named slices of a company's work, such as brands, business units, locations or regions.
  *
  * Rules:
- * - Every company has one default workspace. A trigger in 0011_workspaces.sql makes it with the company.
+ * - Every company has one default workspace. A trigger in 0013_workspaces.sql makes it with the company.
  * - Workspaces are flat. They use the company roles. Owners and admins manage them.
  * - Workspaces are archived, never deleted. The default workspace cannot be archived.
  * - Apps with "scope": "workspace" keep a workspace_id on their rows. They read it with workspaceScope().

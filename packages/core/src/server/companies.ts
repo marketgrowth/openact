@@ -7,6 +7,7 @@ import { MAX_COMPANIES_PER_PERSON, deleteCompanyData } from "./company-copy";
 import { companyRole, requireCompanyRole } from "./data";
 import { hasRenewingSubscription } from "./billing";
 import { companyInviteEmail, sendEmail } from "./email";
+import { removeAgentGrants } from "./agent-grants";
 import { listWorkspaces } from "./workspaces";
 import { HttpError, appUrl, isEmail, newId, normalizeEmail, nowIso, oneOf, readJson, requireUser, text } from "./util";
 
@@ -303,6 +304,8 @@ companyRoutes.delete("/:id/members/:userId", async (c) => {
 export async function removeFromCompany(env: Env, companyId: string, userId: string): Promise<void> {
   // Apps remove the person's access to their data in this company first.
   await runHook("companyMemberRemoved", env, companyId, userId);
+  // Agents the person connected in this company stop working.
+  await removeAgentGrants(env, companyId, userId);
   await env.DB.batch([
     env.DB.prepare("DELETE FROM company_members WHERE company_id = ? AND user_id = ?").bind(companyId, userId),
     env.DB.prepare("UPDATE users SET current_company_id = NULL WHERE id = ? AND current_company_id = ?").bind(userId, companyId)

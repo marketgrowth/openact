@@ -2,14 +2,14 @@
 
 **All The World's A Stage**
 
-OpenAct is an open source framework for agentic business apps on Cloudflare. The core, the UI and the Projects app are free and open source. Paid apps, Docs, Advisory and eSign, come with OpenAct Director. Add more apps from the app directory, or build your own.
+OpenAct is an open source framework for agentic business apps on Cloudflare. The core, the UI and the Projects app are free and open source. Paid apps, Docs, Advisory and eSign, come with OpenAct Director and install from the app directory. Add more apps from the app directory, or build your own.
 
 - **A suite of apps.** Projects is ready now, with Kanban, Gantt and calendar views, an AI agent and search. Docs is a company library of paper-size documents, Advisory is a marketplace of approved advisors, and eSign sends PDFs for signature. All three are in the OpenAct Director plan. Official apps for time tracking, contacts, events, support and more are under review in the [app directory](https://docs.openact.app/directory).
 - **A framework for your own apps.** Sign-in, companies, roles, permissions, live updates, email, files and the app shell are ready. Your app adds only its own features.
 - **Agents that know their limits.** The Projects agent acts for a person and never does more than their role allows. Risky changes wait for approval.
 - **Cloudflare from end to end.** Workers, D1, R2, Durable Objects, Vectorize and Workers AI, on your own account.
 
-MarketGrowth makes OpenAct and shares the core, the UI and the Projects app under the Apache License 2.0. Docs, Advisory and eSign are under the OpenAct Director License ([Docs](apps/docs/LICENSE), [Advisory](apps/advisory/LICENSE), [eSign](apps/esign/LICENSE)). Read about [plans](https://docs.openact.app/plans).
+MarketGrowth makes OpenAct and shares the core, the UI and the Projects app under the Apache License 2.0. Docs, Advisory and eSign are paid apps under the OpenAct Director License. They are not in this repository. A Director or Producer plan includes them. Read about [plans](https://docs.openact.ing/plans).
 
 Read the documentation at [docs.openact.app](https://docs.openact.app).
 
@@ -42,6 +42,7 @@ Read the documentation at [docs.openact.app](https://docs.openact.app).
 - **Note search, when owners allow it.** Owners can let the agent search task notes, for example for a contact or a location. The agent gets only a short part of each matching note, with email addresses and phone numbers hidden. The filter box on the board also searches notes.
 - **The agent stays on topic.** A quick check reads each new request first. With a TypeSafe key, [Jev](https://typesafe.ai/) answers typed questions about the request, and code makes the decision. A request for another project gets a link that opens it there. New work gets an offer to start a project for it. Anything else gets a short decline and does not use the main AI model.
 - **AI tools.** Draft tasks from a goal, or write a status summary. All AI requests go through [Cloudflare AI Gateway](https://developers.cloudflare.com/ai-gateway/). Workers AI is the default, so you need no extra API key. Anthropic and OpenAI are optional. A company owner can also choose Claude with the company's own Anthropic API key, in Company settings.
+- **Agent access over MCP.** Turn on `AGENT_ACCESS`, and AI agents such as Claude can connect with OAuth 2.1 and use the tools of your apps at `/mcp`. An agent acts as one person in one company, never does more than their role allows, and needs the person's consent to change data. Read [docs/agent-access.md](docs/agent-access.md).
 - **Built on AG-UI.** The agent speaks [AG-UI](https://docs.ag-ui.com). Approvals use AG-UI interrupts, so any AG-UI client can connect.
 - **Themes.** Light, dark, or follow the system setting.
 - **Apps.** OpenAct is a core plus apps. The core gives every app sign-in, people, companies, roles, live updates and the web shell. Project management is the first app. Add more from GitHub with one command: `npm run openact -- add github:owner/repo`. See [docs/apps.md](docs/apps.md).
@@ -200,12 +201,13 @@ Set these under `vars` in `wrangler.jsonc`, or in the Cloudflare dashboard.
 | `AI_PROVIDER` | `workers-ai` | `workers-ai`, `anthropic` or `openai`. This is the deploy default. A company owner can choose Claude with their own key in Company settings. |
 | `AI_MODEL` | `@cf/meta/llama-3.3-70b-instruct-fp8-fast` | The model ID for the provider |
 | `AI_EMBED_MODEL` | `@cf/baai/bge-base-en-v1.5` | The Workers AI model for search embeddings. It must make 768-dimension vectors. |
-| `AI_SCOPE_MODEL` | (empty) | A small, fast model for the topic check. Empty uses `@cf/meta/llama-3.1-8b-instruct-fast`, `claude-haiku-5-5` or `gpt-4.1-mini`, by provider. |
+| `AI_SCOPE_MODEL` | (empty) | A small, fast model for the topic check. Empty uses `@cf/meta/llama-3.1-8b-instruct-fast`, `claude-haiku-5-5` or `gpt-6-luna`, by provider. |
 | `AI_GATEWAY_ID` | `openact` | The AI Gateway name. Empty turns the gateway off. |
 | `CF_ACCOUNT_ID` | empty | Your account ID. Needed for `anthropic` and `openai`. |
 | `TYPESAFE_MODEL` | `jev-1.14.0` | The Jev release for the topic check. Pinned, because the thresholds are set for it. |
 | `TYPESAFE_BASE_URL` | `https://api.typesafe.ai` | Another URL for the TypeSafe API, such as a gateway |
 | `STRIPE_PRICE_DIRECTOR` | empty | Plans: the Stripe Price id of the annual Director price. Director is for sale when it and `STRIPE_SECRET_KEY` are set. |
+| `OPENACT_STORE_URL` | empty | The Director store that Site settings > Plan buys from and installs from. Empty uses `https://on.openact.ing`. |
 | `STRIPE_PRICE_PRODUCER` | empty | Plans: the Stripe Price id of the annual Producer price |
 | `PLANS_CONTACT_URL` | empty | Plans: a `https://` or `mailto:` link for questions, such as about Producer |
 
@@ -219,7 +221,7 @@ Set these secrets with `npx wrangler secret put NAME`:
 | `OPENAI_API_KEY` | For `openai` | OpenAI API key, sent through AI Gateway |
 | `AI_GATEWAY_TOKEN` | No | Needed only if your AI Gateway uses authentication |
 | `TYPESAFE_API_KEY` | No | Turns on Jev for the topic check. Get a key from TypeSafe. |
-| `OPENACT_LICENSE` | No | A license key from MarketGrowth. It gives every company on a self-hosted deploy its paid plan. |
+| `OPENACT_LICENSE` | No | A license key from MarketGrowth. It gives every company on a self-hosted deploy its paid plan. Site settings > Plan can save the key instead. |
 | `STRIPE_SECRET_KEY` | No | Sells plans with Stripe, and takes card contributions |
 | `STRIPE_WEBHOOK_SECRET` | With plans | The signing secret of the Stripe webhook at `/api/billing/stripe-webhook` |
 | `ADVISORY_STRIPE_SECRET_KEY` | For Advisory payments | The Stripe secret key of the Connect platform that takes payments for advisors. Separate from `STRIPE_SECRET_KEY`. |
@@ -266,7 +268,6 @@ apps/projects/         The projects app
   src/client/            Projects page, board, timeline, calendar, task panel, AI agent, search
   src/shared/            Project types, access rules, agent policy, AG-UI types
   migrations/            New database changes for this app
-apps/docs/             The docs app: a library of paper-size docs with folders, categories and tags, share links, print to PDF
 src/                   The host: the Worker entry, the web app entry and the colophon
 www/                   The website at openact.ing: Astro pages and their Worker, with the Contribute page and its payment routes
 openact.apps.json      The installed apps, in order
@@ -341,15 +342,15 @@ To help build OpenAct, open [openact.ing/contribute](https://openact.ing/contrib
 | Plan | For | What you get |
 | --- | --- | --- |
 | Free | Everyone | The core, the UI and the Projects app. Open source. |
-| Director | Startups to midmarket companies | Everything in Free, plus Docs, Advisory and eSign. More paid apps will join it. |
-| Producer | Enterprise companies | Everything in Director. |
+| Director | Growing organizations | Everything in Free, plus Docs, Advisory and eSign. More paid apps will join it. |
+| Producer | Custom apps as a service | Everything in Director. We install and manage OpenAct, and we work with you to build your primary custom app. |
 
-Each paid plan has one annual price per company. A company owner buys a plan on the **Plan** page. A self-hosted deploy gets its plan from a license key in the `OPENACT_LICENSE` secret. Read [docs/plans.md](docs/plans.md).
+Each paid plan has one annual price. The owner of the site buys a plan in **Site settings > Plan**. A self-hosted deploy can buy Director and install its apps from the same page: the OpenAct store issues the license key, and commits the apps to the deploy's private repository. A key in the `OPENACT_LICENSE` secret still works. When a license key ends, the paid app versions you have keep working. Read [docs/plans.md](docs/plans.md).
 
 ## License
 
 The core (`packages/core`), the UI kit (`packages/ui`), the Projects app (`apps/projects`) and the examples are under the Apache License 2.0. See [LICENSE](LICENSE).
 
-The Docs app (`apps/docs`) is under the [OpenAct Director License](apps/docs/LICENSE). You can read and change it, and run it for development and testing. Production use needs a Director or Producer plan. Versions of Docs released before November 10, 2026 stay under the Apache License 2.0.
+The paid apps (Docs, Advisory and eSign) are not in this repository. They are under the OpenAct Director License, in the private repository `marketgrowth/openact-director`. Earlier versions in this repository's history keep the license they were released under: Docs versions released before November 10, 2026 stay under the Apache License 2.0, and later versions stay under the OpenAct Director License.
 
 See [NOTICE](NOTICE). Copyright 2026 MarketGrowth.

@@ -31,12 +31,19 @@ export interface Env {
   TYPESAFE_BASE_URL?: string;
   AI_GATEWAY_ID?: string;
   CF_ACCOUNT_ID?: string;
+  /**
+   * "on" lets AI agents sign in with OAuth 2.1 and call the apps' tools at /mcp. Empty or "off": the agent
+   * routes answer 404. See docs/agent-access.md.
+   */
+  AGENT_ACCESS?: string;
 
   /** Plans: the Stripe Price ids of the annual Director and Producer prices. A plan is for sale when its price is set. */
   STRIPE_PRICE_DIRECTOR?: string;
   STRIPE_PRICE_PRODUCER?: string;
   /** Plans: an optional page or mailto link to ask about plans, such as for Producer. */
   PLANS_CONTACT_URL?: string;
+  /** The Director store. Empty uses https://on.openact.ing. */
+  OPENACT_STORE_URL?: string;
 
   // Secrets
   /** A self-hosted deploy's license key from MarketGrowth. It gives every company on the deploy its plan. */

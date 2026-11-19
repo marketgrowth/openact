@@ -4,6 +4,7 @@ import { api, errorText } from "../api";
 import { navigate } from "../router";
 import { Icon, Notice, useToast } from "../ui";
 import { useWorkspace } from "../workspace";
+import { DirectorStore } from "./Director";
 import { Badge } from "@openact/ui/components/badge";
 import { Button } from "@openact/ui/components/button";
 import { Textarea } from "@openact/ui/components/textarea";
@@ -47,16 +48,19 @@ export function SitePlan() {
   if (ws.companies === null) return <p className="text-sm text-muted-foreground">Loading…</p>;
   const owned = ws.companies.filter((c) => c.role === "owner");
   const company = owned.find((c) => c.id === ws.current?.id) ?? owned[0];
-  if (!company)
-    return (
-      <Notice tone="info">
-        You own no company on this site. Create one from the company menu at the top of the side panel. Then choose a plan here.
-      </Notice>
-    );
   return (
-    <div className="grid gap-3">
-      <p className="text-sm text-muted-foreground">{`The plan is paid by ${company.name}.`}</p>
-      <PlanPanel key={company.id} companyId={company.id} />
+    <div className="grid gap-6">
+      {company ? (
+        <div className="grid gap-3">
+          <p className="text-sm text-muted-foreground">{`The plan is paid by ${company.name}.`}</p>
+          <PlanPanel key={company.id} companyId={company.id} />
+        </div>
+      ) : (
+        <Notice tone="info">
+          You own no company on this site. Create one from the company menu at the top of the side panel. Then choose a plan here.
+        </Notice>
+      )}
+      <DirectorStore />
     </div>
   );
 }
@@ -151,7 +155,10 @@ export function PlanPanel({ companyId }: { companyId: string }) {
           <p className="text-sm text-muted-foreground">This plan also unlocks its paid apps for every company on this site.</p>
         )}
         {info.license?.inGrace && (
-          <Notice tone="warn">The license key expired. Paid apps stop soon. Ask the person who runs this site to put in a new key.</Notice>
+          <Notice tone="warn">The license key expired. Paid apps stop getting updates soon. Ask the person who runs this site to put in a new key.</Notice>
+        )}
+        {info.licenseEnded && (
+          <Notice tone="warn">{`The license for ${info.licenseEnded.licensee} ended on ${dateText(info.licenseEnded.expiresAt)}. Paid app versions from before that day keep working. Newer versions stay locked until the key is renewed.`}</Notice>
         )}
         {sub && sub.status === "past_due" && <Notice tone="error">Stripe could not take the last payment. Update the card with Manage billing.</Notice>}
         {info.canManage && sub?.status && (

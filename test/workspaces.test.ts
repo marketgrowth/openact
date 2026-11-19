@@ -15,7 +15,8 @@ const ROOT = join(import.meta.dirname, "..");
 const T = "2026-01-01T00:00:00.000Z";
 
 /** The workspace migrations. They run last, the way they run on a deploy that has data. */
-const NEW = new Set(["packages/core/migrations/0011_workspaces.sql", "apps/projects/migrations/0002_workspaces.sql", "apps/docs/migrations/0006_workspaces.sql"]);
+// The Docs app and its workspace migration are in openact-director, with their own tests.
+const NEW = new Set(["packages/core/migrations/0013_workspaces.sql", "apps/projects/migrations/0002_workspaces.sql"]);
 
 function files(dirs: string[]): string[] {
   return dirs.flatMap((d) =>
@@ -25,7 +26,7 @@ function files(dirs: string[]): string[] {
       .map((f) => `${d}/${f}`)
   );
 }
-const ALL = files(["packages/core/migrations", "apps/advisory/migrations", "apps/docs/migrations", "apps/projects/migrations"]);
+const ALL = files(["packages/core/migrations", "apps/projects/migrations"]);
 const run = (db: DatabaseSync, list: string[]) => {
   for (const f of list) db.exec(readFileSync(join(ROOT, f), "utf8"));
 };
@@ -64,8 +65,6 @@ function seed(db: DatabaseSync) {
     ins("INSERT INTO company_members (company_id, user_id, role, created_at) VALUES ('c1', ?, ?, ?)", u, r, T);
   ins("UPDATE users SET current_company_id = 'c1' WHERE id IN ('u_own', 'u_mem')");
   ins("INSERT INTO projects (id, name, company_id, created_by, created_at, updated_at) VALUES ('p1', 'Launch', 'c1', 'u_own', ?, ?)", T, T);
-  ins("INSERT INTO docs_folders (id, company_id, name, created_at, updated_at) VALUES ('f1', 'c1', 'Policies', ?, ?)", T, T);
-  ins("INSERT INTO docs_docs (id, company_id, folder_id, title, content, created_at, updated_at) VALUES ('d1', 'c1', 'f1', 'Handbook', '{}', ?, ?)", T, T);
 }
 
 /** A deploy with data, upgraded to workspaces. */
@@ -97,8 +96,6 @@ test("the migration gives each existing company one default workspace, and moves
   );
   const def = one<{ id: string }>(db, "SELECT id FROM workspaces WHERE company_id = 'c1'").id;
   assert.equal(one<any>(db, "SELECT workspace_id FROM projects WHERE id = 'p1'").workspace_id, def);
-  assert.equal(one<any>(db, "SELECT workspace_id FROM docs_folders WHERE id = 'f1'").workspace_id, def);
-  assert.equal(one<any>(db, "SELECT workspace_id FROM docs_docs WHERE id = 'd1'").workspace_id, def);
   assert.equal(one<any>(db, "SELECT current_workspace_id FROM users WHERE id = 'u_own'").current_workspace_id, def);
   assert.equal(one<any>(db, "SELECT current_workspace_id FROM users WHERE id = 'u_gst'").current_workspace_id, null);
 });
@@ -116,16 +113,6 @@ test("a new company gets its default workspace, and new rows without a workspace
       .prepare("INSERT INTO workspaces (id, company_id, name, slug, is_default, created_at, updated_at) VALUES ('w9', 'c3', 'Again', 'again', 1, ?, ?)")
       .run(T, T)
   );
-});
-
-test("a doc or subfolder without a workspace goes to its folder's workspace", async () => {
-  const { db, env } = upgraded();
-  const brand = await createWorkspace(env, "c1", "u_own", { name: "Brand X" });
-  db.prepare("INSERT INTO docs_folders (id, company_id, workspace_id, name, created_at, updated_at) VALUES ('fx', 'c1', ?, 'X files', ?, ?)").run(brand.id, T, T);
-  db.prepare("INSERT INTO docs_folders (id, company_id, parent_id, name, created_at, updated_at) VALUES ('fx2', 'c1', 'fx', 'Sub', ?, ?)").run(T, T);
-  db.prepare("INSERT INTO docs_docs (id, company_id, folder_id, title, content, created_at, updated_at) VALUES ('dx', 'c1', 'fx2', 'Signed', '{}', ?, ?)").run(T, T);
-  assert.equal(one<any>(db, "SELECT workspace_id FROM docs_folders WHERE id = 'fx2'").workspace_id, brand.id);
-  assert.equal(one<any>(db, "SELECT workspace_id FROM docs_docs WHERE id = 'dx'").workspace_id, brand.id);
 });
 
 test("owners and admins add workspaces with unique slugs, and the default one cannot be archived", async () => {

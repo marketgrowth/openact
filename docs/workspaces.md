@@ -59,7 +59,7 @@ Search and the AI agent still work across the whole company, with the same acces
 
 ## Upgrade an existing deploy
 
-Migration `0011_workspaces` makes one default workspace for each company. Migrations `projects_0002_workspaces` and `docs_0006_workspaces` put every existing project, folder and doc in that default workspace. Each person keeps the company they had open. Nothing else changes until an owner or admin adds a second workspace.
+Migration `0013_workspaces` makes one default workspace for each company. Migrations `projects_0002_workspaces` and `docs_0006_workspaces` put every existing project, folder and doc in that default workspace. Each person keeps the company they had open. Nothing else changes until an owner or admin adds a second workspace.
 
 **Duplicate a company** (Site settings) copies the content into the new company's default workspace. It does not copy the other workspaces.
 

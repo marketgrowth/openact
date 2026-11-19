@@ -11,7 +11,18 @@ Advisory lets a company run a marketplace of approved advisors. Members can hire
 Advisory is a paid app. It needs a [Director or Producer plan](plans.md). Without a plan, Advisory is locked: the Apps page shows it with a **Director** badge and an **Upgrade** button, and your data stays saved.
 :::
 
-Advisory comes with OpenAct, next to Projects and Docs. It has its own icon in the app rail. It needs the Projects app.
+Advisory's icon sits at the bottom of the app rail, above Settings, because the site owner adds it to offer professional services on the brand. It needs the Projects app.
+
+## Install Advisory
+
+On sites that MarketGrowth runs, Advisory is already installed. On your own deploy, you need a [license key](plans.md#license-keys) and access to the private Director repository. Read [Get the Director apps](plans.md#get-the-director-apps).
+
+```bash
+npm run openact -- add advisory
+npm install
+```
+
+Then [set up payments](#set-up-payments), and deploy.
 
 ## Examples
 
@@ -33,7 +44,7 @@ By default, owners, admins and members can hire and sell. Owners and admins mana
 
 ## Hire an advisor
 
-1. Choose **Advisory** in the app rail. The panel lists each advisor with their name and role.
+1. Choose **Advisory** (the handshake) at the bottom of the app rail. The panel lists each advisor with their name and role.
 2. Choose an advisor. Their profile opens with their bio and their offers.
 3. Choose one of two buttons:
    - **Book a consult** opens a form. Tell the advisor what you need. The advisor accepts with a price, or declines. You get an email either way.

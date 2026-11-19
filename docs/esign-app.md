@@ -11,7 +11,17 @@ eSign lets a company send PDFs for signature. You upload a PDF, add signer roles
 eSign is a paid app. It needs a [Director or Producer plan](plans.md). Without a plan, eSign is locked: the Apps page shows it with a **Director** badge and an **Upgrade** button, and the signing links stop working until the company has a plan again. Your data stays saved.
 :::
 
-eSign comes with OpenAct, next to Projects, Docs and Advisory. It has its own icon in the app rail. It works without Docs. When Docs is on, you can send a PDF from the Docs library, and eSign saves each signed PDF back to Docs.
+eSign has its own icon in the app rail. It works without Docs. When Docs is on, you can send a PDF from the Docs library, and eSign saves each signed PDF back to Docs.
+
+## Install eSign
+
+On sites that MarketGrowth runs, eSign is already installed. On your own deploy, you need a [license key](plans.md#license-keys) and access to the private Director repository. Read [Get the Director apps](plans.md#get-the-director-apps).
+
+```bash
+npm run openact -- add esign
+npm install
+npm run deploy
+```
 
 eSign is a new app. It is not a copy of DocuSeal or of any other product, and it has none of their code.
 

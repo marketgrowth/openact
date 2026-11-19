@@ -32,9 +32,26 @@ export const COMPANY_SECTIONS: readonly SettingsSection[] = [
   { scope: "company", id: "ai", label: "AI provider", icon: "bot" }
 ];
 
+/** Contribute, in Company settings. Only the site owner (the super admin) sees it. It links to openact.ing/contribute. */
+export const CONTRIBUTE_SECTION: SettingsSection = {
+  scope: "company",
+  id: "contribute",
+  label: "Contribute",
+  icon: "heart",
+  description: "Help build OpenAct. Only the owner of this site sees this section."
+};
+
 export const ACCOUNT_SECTIONS: readonly SettingsSection[] = [
   { scope: "account", id: "profile", label: "Profile", icon: "user", description: "Your name, your email and how the app looks for you." },
-  { scope: "account", id: "security", label: "Sign-in and security", icon: "shield", description: "Sign out, or delete your account." }
+  { scope: "account", id: "ai", label: "My AI", icon: "sparkle", description: "Use your own AI provider, model and API key." },
+  { scope: "account", id: "security", label: "Sign-in and security", icon: "shield", description: "Sign out, or delete your account." },
+  {
+    scope: "account",
+    id: "agents",
+    label: "Connected agents",
+    icon: "bot",
+    description: "AI agents that you allowed to act as you. Disconnect one to stop it at once."
+  }
 ];
 
 export const SITE_SECTIONS: readonly SettingsSection[] = [

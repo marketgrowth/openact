@@ -30,13 +30,19 @@ export {
   type Viewer,
   type LiveMessage
 } from "./live.ts";
-export { defineServerApp, getApps, appService, runHook, type ServerApp, type AppHooks } from "./apps.ts";
+export { defineServerApp, getApps, appService, runHook, type ServerApp, type AppHooks, type AgentTool, type ToolContext, type ToolOutput } from "./apps.ts";
+export type { ToolInputSchema, PropertySchema } from "./mcp-rpc.ts";
+export { agentAccessOn } from "./agents.ts";
 export type { CompanyCopyContext } from "./company-copy.ts";
 export { createWorker, DAILY_CRON } from "./worker.ts";
 export { isSuperAdmin, requireSuperAdmin, loadSite } from "./site.ts";
 export { sealSecret, openSecret } from "./secret-box.ts";
 export {
   companyAi,
+  userAi,
+  aiOverride,
+  companyAllowsMemberKeys,
+  checkAiKey,
   companyAiChoice,
   deployAiDefault,
   aiGatewayUrl,
