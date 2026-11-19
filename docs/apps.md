@@ -222,7 +222,7 @@ export default defineClientApp({
 
 The side panel has two columns, like a desktop chat app:
 
-- **The app rail** on the left. It shows the company, the primary app if the deploy has one, one icon for each other app, the end apps (such as [CMS](cms-app.md)), the App directory (super admins only), the footer items, Settings and the person's menu. Projects is first, because it is installed first.
+- **The app rail** on the left. It shows the company, the primary app if the deploy has one, one icon for each other app, the end apps (such as [CMS](cms-app.md)), the App directory (super admins only), the footer items and footer apps (such as [Advisory](advisory-app.md)), Settings and the person's menu. Projects is first, because it is installed first.
 - **The app panel** beside it. It shows the active app's name, its commands, its `nav` items and its `SidebarSection`. The projects app shows Pinned, Projects and Recent here. On the Settings page, it lists the settings sections.
 
 Ctrl+B or Cmd+B collapses the panel and leaves only the rail. On a phone, both columns open as one sheet.
@@ -259,7 +259,7 @@ An app shows in the rail when it has an `icon` or a `Mark`. Its pages live under
 | `icon` | The app's icon in the rail, as a Lucide name for `Icon`, such as `"users"` |
 | `Mark` | A custom rail icon, such as a brand mark. Draw it with `currentColor`. |
 | `home` | Where the rail icon goes. Default: `/` for the first app with a home page, otherwise `/a/<id>` |
-| `railPlacement` | `"apps"` (the default) or `"end"`. `"end"` puts the app last on the rail, below its own divider. |
+| `railPlacement` | `"apps"` (the default), `"end"` or `"footer"`. `"end"` puts the app last in the app list, below its own divider, such as CMS. `"footer"` puts its icon at the bottom of the rail, above Settings, such as Advisory. |
 | `collapsePanel` | `true` closes the app panel on the app's pages, so a page such as a framed outside tool sits right of the rail. The person's saved panel choice does not change. |
 | `ownsPath` | Says which paths belong to the app. Default: the home, `/a/<id>/...` and the app's routes |
 | `routes` | Pages. Start each one with `SiteHeader` and put its content in `PageBody`. |

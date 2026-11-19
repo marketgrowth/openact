@@ -66,9 +66,10 @@ export interface ClientApp {
   /**
    * Where the app sits in the rail. "apps" (the default) puts it with the other apps, in install order.
    * "end" puts it in its own group at the end of the app list, below a divider. Use it for an outside tool, such as the CMS app.
+   * "footer" puts its icon at the bottom of the rail, above Settings. Use it for an app that serves the whole site, such as Advisory.
    * The primary app stays at the top either way.
    */
-  railPlacement?: "apps" | "end";
+  railPlacement?: "apps" | "end" | "footer";
   /**
    * True to close the app panel while the app is open, so its page sits right of the app rail,
    * such as an outside tool in a frame. The person's saved panel choice does not change.

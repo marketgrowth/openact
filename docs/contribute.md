@@ -4,7 +4,7 @@ The Contribute page is a public landing page at [openact.ing/contribute](https:/
 
 The page also lists the nonprofits, and the projects that support nonprofits, that OpenAct helps build software for. Edit the list in the "Who we build for" section of `www/src/pages/contribute.astro`.
 
-The Contribute icon (a heart) sits at the bottom of the app rail of every OpenAct deploy. It opens the page in a new browser tab. The old address, `/contribute` on a deploy, sends people to the new page.
+The site owner (the super admin) finds Contribute in **Company settings > Contribute**. Other people do not see it. The section links to the page and opens it in a new browser tab. The old address, `/contribute` on a deploy, sends people to the new page.
 
 The page and its payment routes run on the website Worker (`openact-site`), not on an OpenAct deploy. A deploy needs no contribution settings.
 

@@ -19,7 +19,8 @@ export interface AppPathInfo {
   Mark?: unknown;
   Home?: unknown;
   home?: string;
-  railPlacement?: "apps" | "end";
+  /** "end": its own group at the end of the app list, such as CMS. "footer": the bottom of the rail, above Settings, such as Advisory. Default: "apps". */
+  railPlacement?: "apps" | "end" | "footer";
   routes?: ReadonlyArray<{ pattern: RegExp }>;
   ownsPath?: (path: string) => boolean;
 }
@@ -38,20 +39,27 @@ export interface RailGroups<A> {
   others: A[];
   /** The apps at the end of the app list, below a divider, in install order. */
   end: A[];
+  /** Apps with `railPlacement: "footer"`, such as Advisory. Their icons sit at the bottom of the rail, above Settings. */
+  footer: A[];
 }
 
-/** Splits the rail apps into the primary app, the others and the end group. The primary app stays first, whatever its placement. */
+/** Splits the rail apps into the primary app, the others, the end group and the footer apps. The primary app stays first, whatever its placement. */
 export function railGroups<A extends AppPathInfo>(apps: readonly A[], primaryId?: string | null): RailGroups<A> {
   const rail = railApps(apps);
   const primary = primaryId ? rail.find((a) => a.id === primaryId) : undefined;
   const rest = rail.filter((a) => a !== primary);
-  return { primary, others: rest.filter((a) => a.railPlacement !== "end"), end: rest.filter((a) => a.railPlacement === "end") };
+  return {
+    primary,
+    others: rest.filter((a) => a.railPlacement !== "end" && a.railPlacement !== "footer"),
+    end: rest.filter((a) => a.railPlacement === "end"),
+    footer: rest.filter((a) => a.railPlacement === "footer")
+  };
 }
 
-/** The rail apps in the order the rail shows them: the primary app first, then the others, then the end group. */
+/** The rail apps in the order the rail shows them: the primary app first, then the others, the end group and the footer apps. */
 export function railOrder<A extends AppPathInfo>(apps: readonly A[], primaryId?: string | null): A[] {
-  const { primary, others, end } = railGroups(apps, primaryId);
-  return [...(primary ? [primary] : []), ...others, ...end];
+  const { primary, others, end, footer } = railGroups(apps, primaryId);
+  return [...(primary ? [primary] : []), ...others, ...end, ...footer];
 }
 
 /** Where an app starts: its own `home`, "/" for the first app with a home page, or /a/<id>. */
