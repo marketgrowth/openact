@@ -111,6 +111,12 @@ import {
   Layers,
   Eraser,
   ZoomOut,
+  Eye,
+  Code,
+  Tablet,
+  Smartphone,
+  Maximize2,
+  ClipboardList,
   type LucideIcon
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@openact/ui/components/dialog";
@@ -212,8 +218,14 @@ const ICONS: Record<string, LucideIcon> = {
   tag: Tag,
   category: Shapes,
   pencil: Pencil,
-  // CMS
+  // Pages
   website: Globe,
+  eye: Eye,
+  code: Code,
+  tablet: Tablet,
+  phone: Smartphone,
+  full: Maximize2,
+  form: ClipboardList,
   inbox: Inbox,
   library: Library,
   // Advisory

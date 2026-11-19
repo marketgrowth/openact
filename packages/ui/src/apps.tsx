@@ -103,7 +103,7 @@ export interface ClientApp {
   home?: string;
   /**
    * Where the app sits in the rail. "apps" (the default) puts it with the other apps, in install order.
-   * "end" puts it in its own group at the end of the app list, below a divider. Use it for an outside tool, such as the CMS app.
+   * "end" puts it in its own group at the end of the app list, below a divider. Use it for a content tool, such as the Pages app.
    * "footer" puts its icon at the bottom of the rail, above Settings. Use it for an app that serves the whole site, such as Advisory.
    * The primary app stays at the top either way.
    */

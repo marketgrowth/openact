@@ -45,6 +45,28 @@ export interface ServerApp {
    * See docs/agent-access.md.
    */
   tools?: AgentTool[];
+  /**
+   * Hostnames that the app answers itself, outside the web app, such as a company's own domain for published pages.
+   * For a request to any host that is not the deploy's own (APP_URL), the Worker asks each app's `owns`, in install order.
+   * The first app that answers true gets the whole request in `fetch`. That host has no /api, no session and no web app.
+   * See "Serve your own hostnames" in docs/apps.md.
+   */
+  hosts?: HostHandler;
+}
+
+/** How an app serves hostnames of its own. */
+export interface HostHandler {
+  /**
+   * True when the app serves this hostname (lowercase, no port). It runs on every request to a host that is not the
+   * deploy's own, so keep it fast: cache the answer for a short time. Never answer true for the deploy's own host.
+   * An error counts as false.
+   */
+  owns: (env: Env, hostname: string) => Promise<boolean>;
+  /**
+   * Answers a request to a host that the app owns. Call loadSite(env) first if you check app or plan state.
+   * An error answers 500 with a plain message.
+   */
+  fetch: (req: Request, env: Env, ctx: ExecutionContext) => Promise<Response>;
 }
 
 /** One tool of an app for AI agents (MCP). */

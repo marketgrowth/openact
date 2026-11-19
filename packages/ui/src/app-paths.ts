@@ -28,7 +28,7 @@ export interface AppPathInfo {
   Mark?: unknown;
   Home?: unknown;
   home?: string;
-  /** "end": its own group at the end of the app list, such as CMS. "footer": the bottom of the rail, above Settings, such as Advisory. Default: "apps". */
+  /** "end": its own group at the end of the app list, such as Pages. "footer": the bottom of the rail, above Settings, such as Advisory. Default: "apps". */
   railPlacement?: "apps" | "end" | "footer";
   routes?: ReadonlyArray<RouteInfo>;
   publicRoutes?: Readonly<Record<string, unknown>>;
@@ -205,7 +205,7 @@ export const railApps = <A extends AppPathInfo>(apps: readonly A[]): A[] => apps
 
 /**
  * The app rail in groups: the primary app on its own, the other apps in install order,
- * then the apps with `railPlacement: "end"` in their own group, such as an outside tool like the CMS app.
+ * then the apps with `railPlacement: "end"` in their own group, such as the Pages app.
  */
 export interface RailGroups<A> {
   /** The deploy's primary app, such as a company's own app. Undefined when there is none, or when it is off or has no rail icon. */
