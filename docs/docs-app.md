@@ -11,7 +11,26 @@ Docs is a company library of rich text documents and uploaded PDFs. Each doc is 
 Docs is a paid app. It needs a [Director or Producer plan](plans.md). Without a plan, Docs is locked: the Apps page shows it with a **Director** badge and an **Upgrade** button, and your docs stay saved.
 :::
 
-Docs comes with OpenAct, next to Projects. It has its own icon in the app rail. In a company with a plan, it is on unless an admin turns it off.
+Docs has its own icon in the app rail. In a company with a plan, it is on unless an admin turns it off.
+
+## Install Docs
+
+On sites that MarketGrowth runs, Docs is already installed. On your own deploy, you need a [license key](plans.md#license-keys) and access to the private Director repository. Read [Get the Director apps](plans.md#get-the-director-apps).
+
+```bash
+npm run openact -- add docs
+npm install
+```
+
+Then add these lines to `wrangler.jsonc`, and deploy:
+
+```jsonc
+"assets": { "run_worker_first": ["/api/*", "/docs/s/*"] },  // share links
+"durable_objects": { "bindings": [{ "name": "DOCS_ROOMS", "class_name": "DocsRoom" }] },  // live editing
+"migrations": [{ "tag": "v2", "new_sqlite_classes": ["DocsRoom"] }]
+```
+
+Keep your other bindings and migrations. Use a new migration tag if `v2` is taken. Without `DOCS_ROOMS`, Docs works, but people do not edit together live.
 
 ## Write a doc
 

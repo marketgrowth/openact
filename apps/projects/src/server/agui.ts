@@ -130,8 +130,8 @@ aguiRoutes.post("/:id/agent", async (c) => {
       await send({ type: EventType.CUSTOM, name: CUSTOM_EVENTS.AGENT_LEVEL, value: { level } });
       const snap = await loadSnapshot(env, projectId);
       const companyId = (await env.DB.prepare("SELECT company_id FROM projects WHERE id = ?").bind(projectId).first<{ company_id: string | null }>())?.company_id ?? null;
-      // The company's own AI when an owner set one, or the deploy default.
-      const ai = await aiSetup(env, companyId);
+      // The person's own AI when the company allows it, then the company AI, then the deploy default.
+      const ai = await aiSetup(env, companyId, user.id);
       let msgs: AgentMsg[] = [...history];
       const tasks = await env.DB.prepare(
         "SELECT t.id, t.title, t.column_id, t.status, t.priority, t.phase, t.start_date, t.end_date, u.name AS assignee_name FROM tasks t LEFT JOIN users u ON u.id = t.assignee_id WHERE t.project_id = ? ORDER BY t.start_date"
@@ -263,7 +263,7 @@ aguiRoutes.post("/:id/agent", async (c) => {
           await send({ type: EventType.TEXT_MESSAGE_CONTENT, messageId, delta: out.text.trim() });
           await send({ type: EventType.TEXT_MESSAGE_END, messageId });
         }
-        msgs.push({ role: "assistant", content: out.text, toolCalls: out.toolCalls });
+        msgs.push({ role: "assistant", content: out.text, toolCalls: out.toolCalls, ...(out.replay ? { replay: out.replay } : {}) });
         if (!out.toolCalls.length) {
           await finishChanged();
           await send({ type: EventType.RUN_FINISHED, threadId, runId, outcome: { type: "success" } });

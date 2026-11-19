@@ -7,7 +7,7 @@ import { ToastProvider } from "../ui";
 import { WorkspaceProvider, useWorkspace } from "../workspace";
 import { settingsPath } from "../settings-paths";
 import { iconLinks, setFavicon } from "../favicon";
-import { APPS_PATH, ShellContext, appHome, homeAppAt, isSettingsPath, railOrder, type ClientApp, type DirectoryApp, type Shell } from "../apps";
+import { APPS_PATH, ShellContext, appHome, appOwnsPath, homeAppAt, isSettingsPath, railOrder, type ClientApp, type DirectoryApp, type Shell } from "../apps";
 import { SignIn } from "./SignIn";
 import { PLAN_PATH } from "./Plan";
 import { AppSidebar } from "./Sidebar";
@@ -20,6 +20,10 @@ import { Button } from "@openact/ui/components/button";
 const SettingsPage = lazy(() => import("./SettingsPage").then((m) => ({ default: m.SettingsPage })));
 const NewCompanyDialog = lazy(() => import("./CompanyDialogs").then((m) => ({ default: m.NewCompanyDialog })));
 const AppsPage = lazy(() => import("./AppsPage").then((m) => ({ default: m.AppsPage })));
+const AgentConsent = lazy(() => import("./AgentConsent").then((m) => ({ default: m.AgentConsent })));
+
+/** The consent page that AI agents send people to. Same path as CONSENT_PATH in AgentConsent.tsx. */
+const CONSENT_PATH = "/oauth/authorize";
 
 /**
  * Starts the web app with the installed apps. The host's main.tsx calls it.
@@ -73,7 +77,8 @@ const DEFAULT_CONFIG: AppConfig = {
   signupMode: "open",
   aiProvider: "workers-ai",
   apps: [],
-  signIn: { heading: "", credit: "", termsUrl: null, privacyUrl: null, backgroundUrl: null }
+  signIn: { heading: "", credit: "", termsUrl: null, privacyUrl: null, backgroundUrl: null },
+  agentAccess: false
 };
 
 function Root({ apps, directory, primary }: { apps: ClientApp[]; directory: readonly DirectoryApp[]; primary: string | null }) {
@@ -125,6 +130,13 @@ function Root({ apps, directory, primary }: { apps: ClientApp[]; directory: read
   }
   if (me === undefined) return <div className="min-h-dvh bg-background" aria-busy="true" />;
   if (!me) return <SignIn config={config} onSignedIn={setMe} />;
+  // An AI agent asks to connect. The person signs in first, then answers on this page.
+  if (path === CONSENT_PATH)
+    return (
+      <Suspense fallback={<div className="min-h-dvh bg-background" aria-busy="true" />}>
+        <AgentConsent config={config} />
+      </Suspense>
+    );
   return (
     <WorkspaceProvider key={me.id}>
       <SignedIn me={me} config={config} apps={apps} primary={primary} directory={directory} onMe={setMe} onSite={onSite} />
@@ -182,7 +194,21 @@ function SignedIn({
     return () => document.removeEventListener("keydown", onKey);
   }, [commands]);
 
+  // An app with collapsePanel, such as the CMS app, closes the panel on its pages. The saved choice stays as it is.
+  const collapsed = useMemo(
+    () => path !== APPS_PATH && !isSettingsPath(path) && onApps.some((a) => a.collapsePanel && appOwnsPath(a, onApps, path)),
+    [onApps, path]
+  );
+  // On those pages, Ctrl+B or Cmd+B opens the panel for now only.
+  const [peek, setPeek] = useState(false);
+  useEffect(() => setPeek(false), [collapsed]);
+  const panelOpen = collapsed ? peek : open;
+
   const onOpenChange = (next: boolean) => {
+    if (collapsed) {
+      setPeek(next);
+      return;
+    }
     setOpen(next);
     try {
       localStorage.setItem(PANEL_KEY, next ? "open" : "collapsed");
@@ -271,7 +297,7 @@ function SignedIn({
 
   // App providers wrap the shell, in install order.
   let body: ReactNode = (
-    <SidebarProvider open={open} onOpenChange={onOpenChange} style={{ "--header-height": "calc(var(--spacing) * 12)", "--sidebar-width": "19rem" } as CSSProperties}>
+    <SidebarProvider open={panelOpen} onOpenChange={onOpenChange} style={{ "--header-height": "calc(var(--spacing) * 12)", "--sidebar-width": "19rem" } as CSSProperties}>
       <AppSidebar
         me={me}
         appName={config.appName}

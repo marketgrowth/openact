@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { User } from "@openact/core/shared";
 import { api, errorText } from "../api";
 import { navigate } from "../router";
@@ -139,5 +139,75 @@ function DeleteAccount({ me, onDeleted }: { me: User; onDeleted: () => void }) {
         </Button>
       </div>
     </form>
+  );
+}
+
+interface ConnectedAgent {
+  id: string;
+  name: string;
+  uri: string | null;
+  company: string;
+  canChange: boolean;
+  connectedAt: string;
+  lastUsedAt: string | null;
+}
+
+const shortDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+
+/** The AI agents that the person connected, with a way to disconnect each one. */
+export function ConnectedAgentsSection() {
+  const toast = useToast();
+  const [data, setData] = useState<{ enabled: boolean; agents: ConnectedAgent[] } | null>(null);
+  const [problem, setProblem] = useState<string | null>(null);
+
+  const load = () =>
+    api<{ enabled: boolean; agents: ConnectedAgent[] }>("/api/me/agents")
+      .then(setData)
+      .catch((e) => setProblem(errorText(e)));
+  useEffect(() => {
+    load();
+  }, []);
+
+  const disconnect = async (agent: ConnectedAgent) => {
+    try {
+      await api(`/api/me/agents/${encodeURIComponent(agent.id)}`, { method: "DELETE" });
+      toast(`${agent.name} is disconnected.`);
+      load();
+    } catch (e) {
+      toast(errorText(e));
+    }
+  };
+
+  if (problem) return <p className="text-sm text-destructive">{problem}</p>;
+  if (!data) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  return (
+    <div className="grid gap-4" data-account-agents="">
+      {!data.enabled && (
+        <p className="text-sm text-muted-foreground">Agent access is off on this site. Agents cannot connect, and connected agents cannot act.</p>
+      )}
+      {data.agents.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No agents are connected. An AI agent connects when you approve it on the page it sends you to.</p>
+      ) : (
+        <ul className="grid gap-3">
+          {data.agents.map((a) => (
+            <li key={a.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4" data-agent-row="">
+              <div className="grid gap-1">
+                <span className="text-sm font-medium">{a.name}</span>
+                <span className="text-sm text-muted-foreground">
+                  {a.company} · {a.canChange ? "Can read and change data" : "Can only read"}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  Connected {shortDate(a.connectedAt)}
+                  {a.lastUsedAt ? ` · Last used ${shortDate(a.lastUsedAt)}` : " · Not used yet"}
+                </span>
+              </div>
+              <Button type="button" variant="outline" onClick={() => disconnect(a)}>
+                Disconnect
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }

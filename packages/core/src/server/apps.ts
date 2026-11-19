@@ -6,6 +6,7 @@ import { COMPANY_ROLES } from "../shared/types";
 import { PERMISSION_ID, permissionApp, type PermissionDef } from "../shared/permissions";
 import type { CopyCount } from "../shared/site";
 import type { CompanyCopyContext } from "./company-copy";
+import type { ToolInputSchema } from "./mcp-rpc";
 
 /*
  * Server side of an OpenAct app.
@@ -38,6 +39,66 @@ export interface ServerApp {
    * A service does not check the caller's access. The calling app checks its own permissions first.
    */
   services?: Record<string, unknown>;
+  /**
+   * Tools that AI agents can call through the MCP endpoint (/mcp), when the site turns on agent access.
+   * An agent acts for one person in one company, and never does more than that person's role allows.
+   * See docs/agent-access.md.
+   */
+  tools?: AgentTool[];
+}
+
+/** One tool of an app for AI agents (MCP). */
+export interface AgentTool {
+  /** "<app id>_<action>", such as "projects_list". Lowercase letters, numbers and underscores. */
+  name: string;
+  /** A short title for people, such as "List projects". */
+  title: string;
+  /** What the tool does and when to use it, for the agent. Say what it returns. */
+  description: string;
+  inputSchema: ToolInputSchema;
+  /**
+   * The permission the person needs in the company, such as "projects.browse". The core checks it before every call,
+   * with the app on/off state and the plan. Required unless the tool is public.
+   */
+  permission?: string;
+  /** True when the tool only reads. Tools that change data need the "mcp:write" scope, which the person allows on the consent screen. */
+  readOnly?: boolean;
+  /**
+   * True when anyone may call the tool without sign-in, at /mcp/public. A public tool gets no person and no company.
+   * Use it only for data that is public anyway, such as a free check of a website.
+   */
+  public?: boolean;
+  run: (ctx: ToolContext, input: Record<string, unknown>) => Promise<ToolOutput>;
+}
+
+export interface ToolContext {
+  env: Env;
+  /** The person the agent acts for. Null for a public tool called without sign-in. */
+  user: User | null;
+  /** The company the person picked when they connected the agent. Null for a public tool called without sign-in. */
+  companyId: string | null;
+  /** The site's address, such as https://app.example.com. */
+  origin: string;
+  waitUntil: (p: Promise<unknown>) => void;
+}
+
+/** Text for the agent, and optional data in a fixed shape. Throw HttpError for a problem the agent should read. */
+export type ToolOutput = string | { text: string; data?: Record<string, unknown> };
+
+const TOOL_NAME = /^[a-z][a-z0-9_]{0,63}$/;
+
+function checkTool(app: ServerApp, tool: AgentTool, seen: Set<string>): void {
+  const prefix = `${app.id.replace(/-/g, "_")}_`;
+  if (!TOOL_NAME.test(tool.name) || !tool.name.startsWith(prefix))
+    throw new Error(`Tool "${tool.name}" must start with "${prefix}" and use lowercase letters, numbers and underscores (64 at most).`);
+  if (seen.has(tool.name)) throw new Error(`Two tools use the name "${tool.name}".`);
+  seen.add(tool.name);
+  if (!tool.title || !tool.description) throw new Error(`Tool "${tool.name}" needs a title and a description.`);
+  if (tool.inputSchema?.type !== "object") throw new Error(`Tool "${tool.name}" needs an inputSchema of type "object".`);
+  if (tool.permission && !app.permissions?.[tool.permission])
+    throw new Error(`Tool "${tool.name}" uses the permission "${tool.permission}", but the app does not declare it.`);
+  if (!tool.permission && !tool.public) throw new Error(`Tool "${tool.name}" needs a permission, or public: true.`);
+  if (tool.public && !tool.readOnly) throw new Error(`Public tool "${tool.name}" must be readOnly. Tools that change data need sign-in.`);
 }
 
 export interface AppHooks {
@@ -74,6 +135,8 @@ export function defineServerApp(app: ServerApp): ServerApp {
       throw new Error(`Permission "${id}" needs a label and roles from owner, admin, member and guest.`);
     if (def.roles.includes("guest") && !def.guests) throw new Error(`Permission "${id}" gives guests access. Set guests: true if that is safe.`);
   }
+  const seen = new Set<string>();
+  for (const tool of app.tools ?? []) checkTool(app, tool, seen);
   return app;
 }
 
@@ -86,6 +149,12 @@ export function setApps(apps: ServerApp[]): void {
     if (ids.has(a.id)) throw new Error(`Two apps use the id "${a.id}".`);
     ids.add(a.id);
   }
+  const tools = new Set<string>();
+  for (const a of apps)
+    for (const t of a.tools ?? []) {
+      if (tools.has(t.name)) throw new Error(`Two apps use the tool name "${t.name}".`);
+      tools.add(t.name);
+    }
   installed = apps;
 }
 

@@ -36,7 +36,15 @@ export const CONTRIBUTE_SECTION: SettingsSection = {
 
 export const ACCOUNT_SECTIONS: readonly SettingsSection[] = [
   { scope: "account", id: "profile", label: "Profile", icon: "user", description: "Your name, your email and how the app looks for you." },
-  { scope: "account", id: "security", label: "Sign-in and security", icon: "shield", description: "Sign out, or delete your account." }
+  { scope: "account", id: "ai", label: "My AI", icon: "sparkle", description: "Use your own AI provider, model and API key." },
+  { scope: "account", id: "security", label: "Sign-in and security", icon: "shield", description: "Sign out, or delete your account." },
+  {
+    scope: "account",
+    id: "agents",
+    label: "Connected agents",
+    icon: "bot",
+    description: "AI agents that you allowed to act as you. Disconnect one to stop it at once."
+  }
 ];
 
 export const SITE_SECTIONS: readonly SettingsSection[] = [

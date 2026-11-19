@@ -7,7 +7,7 @@ import { getCatalog } from "./permissions";
 import { subscriptionFields, verifyStripeSignature, type StripeSubscription, type SubscriptionFields } from "./stripe";
 import { isSuperAdmin, loadSite } from "./site";
 import { isSuperAdminEmail } from "../shared/site";
-import { PAID_PLANS, PLANS, planDescriptions, planIncludes, type CompanyPlan, type PaidPlan, type PlanOffer } from "../shared/plans";
+import { PAID_PLANS, PLANS, fallbackCovers, planDescriptions, planIncludes, type CompanyPlan, type PaidPlan, type PlanOffer } from "../shared/plans";
 
 /*
  * Plans for sale on this deploy: an annual Stripe subscription per company.
@@ -159,6 +159,10 @@ async function planDetail(c: Context<AppEnv>, companyId: string, canManage: bool
     license: state.license?.ok
       ? { licensee: state.license.payload.licensee, plan: state.license.payload.plan, expiresAt: state.license.payload.expiresAt, inGrace: state.license.inGrace }
       : null,
+    licenseEnded:
+      state.license && !state.license.ok && state.license.ended
+        ? { licensee: state.license.ended.licensee, plan: state.license.ended.plan, expiresAt: state.license.ended.expiresAt }
+        : null,
     canManage: canManage && on,
     billing: on,
     offers,
@@ -167,7 +171,11 @@ async function planDetail(c: Context<AppEnv>, companyId: string, canManage: bool
     contactUrl: /^(https:\/\/|mailto:)/i.test(contact) ? contact : null,
     apps: getCatalog()
       .filter((a) => a.plan)
-      .map((a) => ({ id: a.id, name: a.name, plan: a.plan!, unlocked: planIncludes(state.plan, a.plan) }))
+      .map((a) => {
+        const unlocked = planIncludes(state.plan, a.plan);
+        const ended = state.license && !state.license.ok ? state.license.ended : undefined;
+        return { id: a.id, name: a.name, plan: a.plan!, unlocked, fallback: !unlocked && fallbackCovers(ended, a) };
+      })
   };
 }
 
