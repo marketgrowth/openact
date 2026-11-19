@@ -25,8 +25,10 @@ In the app, select **App directory** below the last divider on the app rail. The
 
 ```tsx
 import directory from "../../directory/apps.json";
-createClient({ apps: [...apps, site], directory: directory.apps as DirectoryApp[] });
+createClient({ apps: [...apps, site], directory: directory.apps as DirectoryApp[], primary, systemIds: directory.systemIds });
 ```
+
+The directory also tells the shell which apps are official. Official apps, the host's own apps (`systemIds`) and the primary app can use short paths, such as `/p/...`. Every other app keeps its pages under `/a/<id>/`. Read [Your app's space](apps.md#app-space).
 
 <AppDirectory />
 

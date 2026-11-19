@@ -137,9 +137,9 @@ Live messages carry only revision numbers and viewer names. Pages load the data 
 | `Mark` | A custom rail icon, such as a brand mark. Draw it with `currentColor`. |
 | `home` | Where the rail icon goes. Default: `/` for the first app with a home page, otherwise `/a/<id>` |
 | `ownsPath(path)` | Which paths belong to the app. Default: the home, `/a/<id>/...` and the app's routes |
-| `routes` | Pages: `{ pattern: RegExp, render: (match) => ReactNode }`. Start each page with `SiteHeader` and `PageBody`. |
+| `routes` | Pages: `{ path: "/a/<id>/item/:id", render: (params) => ReactNode }`. The older `{ pattern: RegExp, render: (match) => ReactNode }` still works. Start each page with `SiteHeader` and `PageBody`. Community apps must keep every page under `/a/<id>/`. Read [Pages and paths](../apps.md#pages-and-paths). |
 | `Home` | The page at `/`. The first app with a home page that is on owns it. |
-| `publicRoutes` | Pages that work without sign-in, by path |
+| `publicRoutes` | Pages that work without sign-in, by exact path. Community apps must use paths under `/a/<id>/`. |
 | `nav` | Items at the top of the app's panel (`main`), or icons at the bottom of the rail (`footer`) |
 | `SidebarSection` | Groups in the app's panel, such as Pinned, Projects and Recent |
 | `commands` | Dialogs: `{ id, label, icon, shortcut?, inSidebar?, Dialog }`. `shortcut: "k"` opens with Ctrl+K or Cmd+K. |
@@ -157,6 +157,7 @@ An app shows in the rail only when it has an `icon` or a `Mark`, and only in com
 | `useCan(permission)` | `true` when the person has the permission in the current company |
 | `useAppOn(appId)` | `true` when the app is on in the current company |
 | `usePath()` | The current path |
+| `useParams()` | The named parts of the current route, such as `{ id: "abc" }` for `/p/:id`. A missing optional part is `undefined`. |
 | `useLive(path, enabled, onRev)` | Opens a live room. Returns `connected` and `viewers`. |
 | `useToast()` | Shows a short message: `toast("Saved.")` |
 | `useCloseOnPhone()` | Closes the side panel on a phone after a person picks an item |
@@ -167,7 +168,9 @@ An app shows in the rail only when it has an `icon` or a `Mark`, and only in com
 | --- | --- |
 | `api(path, { method, body })` | Calls the API with the session cookie. Throws `ApiError` with the server's message. |
 | `errorText(error)` | A message to show for any error |
-| `navigate(to, replace?)`, `Link` | Moves between pages without a reload |
+| `navigate(to, replace?)`, `Link` | Moves between pages without a reload. A new page starts at the top. Back and Forward put the page back where it was scrolled. |
+| `Redirect` | Goes to another path when it shows, and replaces the current history entry: `<Redirect to="/a/<id>" />` |
+| `matchRoute(route, path)`, `compilePath(path)` | The route matcher that the shell uses, for tests and tools |
 | `SiteHeader`, `PageBody` | The page header and the padded page body |
 | `Icon`, `Avatar`, `CompanyMark`, `Logo` | Icons and marks |
 | `Modal`, `Field`, `Notice`, `ConfirmButton`, `LinkedText` | Common building blocks |

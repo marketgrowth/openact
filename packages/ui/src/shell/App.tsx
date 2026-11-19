@@ -2,12 +2,12 @@ import { lazy, StrictMode, Suspense, useCallback, useEffect, useMemo, useState, 
 import { createRoot } from "react-dom/client";
 import type { AppConfig, SiteSettings, User } from "@openact/core/shared";
 import { api } from "../api";
-import { Link, navigate, usePath } from "../router";
+import { Link, Redirect, RouteParamsContext, navigate, usePath } from "../router";
 import { ToastProvider } from "../ui";
 import { WorkspaceProvider, useWorkspace } from "../workspace";
 import { settingsPath } from "../settings-paths";
 import { iconLinks, setFavicon } from "../favicon";
-import { APPS_PATH, ShellContext, appHome, homeAppAt, isSettingsPath, railOrder, type ClientApp, type DirectoryApp, type Shell } from "../apps";
+import { APPS_PATH, ShellContext, appHome, guardApps, homeAppAt, isSettingsPath, matchRoute, railOrder, type ClientApp, type DirectoryApp, type Route, type Shell } from "../apps";
 import { SignIn } from "./SignIn";
 import { PLAN_PATH } from "./Plan";
 import { AppSidebar } from "./Sidebar";
@@ -25,33 +25,55 @@ const AppsPage = lazy(() => import("./AppsPage").then((m) => ({ default: m.AppsP
  * Starts the web app with the installed apps. The host's main.tsx calls it.
  * Pass `directory` (the apps from directory/apps.json) to list apps that a company can add on the Apps page.
  * Pass `primary` (the id from "primary" in openact.apps.json) to put that app at the top of the app rail, above a divider.
+ * Pass `systemIds` (from directory/apps.json) so the host's own apps, such as "site", keep their short paths.
+ * Official apps (ids reserved in the directory), the primary app and system apps can use any path.
+ * Every other app stays under /a/<id>/. Read guardApps in app-paths.ts.
  */
 export function createClient({
   apps,
   directory = [],
   primary = null,
+  systemIds = [],
   root = document.getElementById("root")!
 }: {
   apps: ClientApp[];
   directory?: readonly DirectoryApp[];
   primary?: string | null;
+  systemIds?: readonly string[];
   root?: HTMLElement;
 }) {
   createRoot(root).render(
     <StrictMode>
-      <App apps={apps} directory={directory} primary={primary} />
+      <App apps={apps} directory={directory} primary={primary} systemIds={systemIds} />
     </StrictMode>
   );
 }
 
-export function App({ apps, directory = [], primary = null }: { apps: ClientApp[]; directory?: readonly DirectoryApp[]; primary?: string | null }) {
+export function App({
+  apps,
+  directory = [],
+  primary = null,
+  systemIds = []
+}: {
+  apps: ClientApp[];
+  directory?: readonly DirectoryApp[];
+  primary?: string | null;
+  systemIds?: readonly string[];
+}) {
+  // Community apps stay in their own space, /a/<id>/, so they cannot take another app's pages.
+  const guarded = useMemo(() => guardApps(apps, { directory, systemIds, primary }), [apps, directory, systemIds, primary]);
   return (
     <TooltipProvider delayDuration={200}>
       <ToastProvider>
-        <Root apps={apps} directory={directory} primary={primary} />
+        <Root apps={guarded} directory={directory} primary={primary} />
       </ToastProvider>
     </TooltipProvider>
   );
+}
+
+/** Renders a route's page with its params, so the page can call useParams(). */
+function renderRoute(r: Route, found: NonNullable<ReturnType<typeof matchRoute>>): ReactNode {
+  return <RouteParamsContext.Provider value={found.params}>{r.path !== undefined ? r.render(found.params) : r.render(found.match)}</RouteParamsContext.Provider>;
 }
 
 const PANEL_KEY = "openact-sidepanel";
@@ -242,9 +264,9 @@ function SignedIn({
     ) : null;
   for (const app of page ? [] : apps) {
     for (const r of app.routes ?? []) {
-      const m = path.match(r.pattern);
+      const m = matchRoute(r, path);
       if (m) {
-        page = onApps.includes(app) ? r.render(m) : <AppOff name={app.name} locked={!!ws.access?.lockedApps.includes(app.id)} blocked={!!ws.access?.blockedApps?.includes(app.id)} superAdmin={superAdmin === true} />;
+        page = onApps.includes(app) ? renderRoute(r, m) : <AppOff name={app.name} locked={!!ws.access?.lockedApps.includes(app.id)} blocked={!!ws.access?.blockedApps?.includes(app.id)} superAdmin={superAdmin === true} />;
         break;
       }
     }
@@ -302,11 +324,6 @@ function SignedIn({
   );
   for (const app of [...apps].reverse()) if (app.Provider) body = <app.Provider>{body}</app.Provider>;
   return <ShellContext.Provider value={shell}>{body}</ShellContext.Provider>;
-}
-
-function Redirect({ to }: { to: string }) {
-  useEffect(() => navigate(to, true), [to]);
-  return null;
 }
 
 /** An app that is off in this company. An empty name means that every app is off. */

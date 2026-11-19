@@ -1,5 +1,6 @@
 import { createContext, useContext, type ComponentType, type ReactNode } from "react";
 import type { AppConfig, CompanyDetail, PaidPlan, User } from "@openact/core/shared";
+import type { RouteParams } from "./app-paths.ts";
 
 /*
  * Client side of an OpenAct app.
@@ -9,7 +10,27 @@ import type { AppConfig, CompanyDetail, PaidPlan, User } from "@openact/core/sha
  * installed apps, and createClient() builds the shell from them.
  */
 
-export { APPS_PATH, SETTINGS_PATH, activeApp, appHome, appOwnsPath, homeAppAt, isSettingsPath, railApps, railGroups, railOrder, resolveAppPath, type RailGroups } from "./app-paths.ts";
+export {
+  APPS_PATH,
+  SETTINGS_PATH,
+  activeApp,
+  appHome,
+  appOwnsPath,
+  compilePath,
+  guardApps,
+  homeAppAt,
+  inAppSpace,
+  isOfficialApp,
+  isSettingsPath,
+  matchRoute,
+  railApps,
+  railGroups,
+  railOrder,
+  resolveAppPath,
+  type AppTrust,
+  type RailGroups,
+  type RouteParams
+} from "./app-paths.ts";
 
 export interface NavItem {
   label: string;
@@ -44,9 +65,26 @@ export interface CompanySettingsTab {
   Tab: ComponentType<{ detail: CompanyDetail & Record<string, unknown>; onChanged: () => Promise<void> }>;
 }
 
-export interface Route {
-  /** Matched against the path. Capture groups go to render(). */
+/**
+ * A page of an app. Use a named path, in the style of React Router:
+ *   { path: "/a/academy/mission/:id", render: ({ id }) => <Mission id={id!} /> }
+ * The page can also read the values with useParams().
+ * Community apps must keep their pages under /a/<id>/. Official apps, such as Projects, can use short paths.
+ */
+export type Route = PathRoute | PatternRoute;
+
+export interface PathRoute {
+  /** A named path: ":name" for one part, ":name?" for an optional last part, "*" for the rest of the path. */
+  path: string;
+  pattern?: undefined;
+  render: (params: RouteParams) => ReactNode;
+}
+
+/** The older style. It still works. New apps should use `path`. */
+export interface PatternRoute {
+  /** Matched against the path. Capture groups go to render(). Named groups also go to useParams(). */
   pattern: RegExp;
+  path?: undefined;
   render: (match: RegExpMatchArray) => ReactNode;
 }
 
@@ -75,8 +113,9 @@ export interface ClientApp {
    * Link to /a/<id> to reach it: the shell sends that path to "/" when the app owns "/".
    */
   Home?: ComponentType;
+  /** Pages. The first route that matches the path wins. */
   routes?: Route[];
-  /** Pages that work without sign-in, such as /colophon. */
+  /** Pages that work without sign-in, by exact path, such as /colophon. Community apps must use paths under /a/<id>/. */
   publicRoutes?: Record<string, ComponentType>;
   nav?: NavItem[];
   /** Groups in the app's panel, below the main items, such as pinned and recent projects. Shows when the app is active. */

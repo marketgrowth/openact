@@ -169,9 +169,51 @@ export default defineClientApp({
   id: "inventory",
   name: "Inventory",
   icon: "box",
-  routes: [{ pattern: /^\/a\/inventory\/?$/, render: () => <InventoryPage /> }]
+  routes: [
+    { path: "/a/inventory", render: () => <InventoryPage /> },
+    { path: "/a/inventory/item/:id", render: ({ id }) => <ItemPage id={id!} /> }
+  ]
 });
 ```
+
+### Pages and paths
+
+Write each route as a named path, in the same style as React Router and TanStack Router:
+
+| Path | Matches | Params |
+| --- | --- | --- |
+| `/a/inventory` | `/a/inventory` and `/a/inventory/` | none |
+| `/a/inventory/item/:id` | `/a/inventory/item/42` | `{ id: "42" }` |
+| `/a/inventory/:view?` | `/a/inventory` and `/a/inventory/list` | `{ view: undefined }` or `{ view: "list" }` |
+| `/a/inventory/files/*` | `/a/inventory/files/2026/plan.pdf` | `{ "*": "2026/plan.pdf" }` |
+
+- A part matches one path segment. Values are URL-decoded.
+- Only the last part can be optional.
+- The first route that matches wins.
+- A page can read the values with `useParams()` from `@openact/ui`. `render` gets the same values.
+- Check a value in `render` when only some values are valid. For example, the projects app sends an unknown view to the board with `<Redirect>`.
+
+The older style, `{ pattern: RegExp, render: (match) => ... }`, still works. Named groups in the RegExp also go to `useParams()`. Use named paths in new apps.
+
+### Your app's space: /a/&lt;id&gt;/ {#app-space}
+
+Every page of a community app must be under `/a/<id>/`. The shell enforces this, so an app cannot take the pages of another app, by accident or on purpose:
+
+- A named path outside `/a/<id>/` is off.
+- A RegExp route matches only paths under `/a/<id>/`.
+- A public page outside `/a/<id>/` is off.
+- A `home` outside `/a/<id>/` is ignored, and the default home applies.
+- `ownsPath` answers only for paths under `/a/<id>/`.
+
+The browser console shows one warning for each route that breaks the rule. It names the app and the route.
+
+These apps can use short paths, such as `/p/...` for Projects:
+
+- Official apps: their ids are reserved in `directory/apps.json`, and `npm run openact` installs a reserved id only from its official source.
+- The host's own apps, such as the colophon (`site`). Their ids are in `systemIds`, and `npm run openact` never installs an app with one.
+- The deploy's primary app, because the person who runs the deploy chose it.
+
+The first app with a home page still owns `/`, whether it is official or not.
 
 ### The app rail and the app panel
 
@@ -204,22 +246,22 @@ Run `npm run openact -- primary none` to remove it. `npm run sync` fails when `"
 
 The primary app does not change which app owns `/`. The first app with a home page still owns it.
 
-An app shows in the rail when it has an `icon` or a `Mark`. Its pages live under `/a/<id>/` by default, and the rail lights the app that owns the current page. See `examples/orbytt` for a second app with its own icon, panel and pages.
+An app shows in the rail when it has an `icon` or a `Mark`. Its pages live under `/a/<id>/`, and the rail lights the app that owns the current page. See `examples/orbytt` for a second app with its own icon, panel and pages.
 
 | Part | What it is for |
 | --- | --- |
 | `icon` | The app's icon in the rail, as a Lucide name for `Icon`, such as `"users"` |
 | `Mark` | A custom rail icon, such as a brand mark. Draw it with `currentColor`. |
-| `home` | Where the rail icon goes. Default: `/` for the first app with a home page, otherwise `/a/<id>` |
+| `home` | Where the rail icon goes. Default: `/` for the first app with a home page, otherwise `/a/<id>`. Community apps must keep it under `/a/<id>/`. |
 | `ownsPath` | Says which paths belong to the app. Default: the home, `/a/<id>/...` and the app's routes |
-| `routes` | Pages. Start each one with `SiteHeader` and put its content in `PageBody`. |
+| `routes` | Pages, as named paths. Start each one with `SiteHeader` and put its content in `PageBody`. Read [Pages and paths](#pages-and-paths). |
 | `Home` | The app's home page. The first app with a home page shows it at `/`. Other apps show it at `/a/<id>`. |
 | `nav` | Items at the top of the app's panel (`main`), or icons at the bottom of the rail for every app (`footer`). A `path` of `/a/<id>` goes to the app's home. |
 | `SidebarSection` | Groups in the app's panel, such as Pinned, Projects and Recent |
 | `commands` | Dialogs that open from the app's panel (`inSidebar`), a shortcut such as Ctrl+K, or `useShell().runCommand(id)` |
 | `companySettingsTabs` | Sections in Company settings. Each one shows in the side panel and opens at `/settings/company/<id>`. |
 | `Provider` | State for your app around the whole shell |
-| `publicRoutes` | Pages that work without sign-in |
+| `publicRoutes` | Pages that work without sign-in, by exact path. Community apps must use paths under `/a/<id>/`. |
 
 Do not assume that your app owns `/`. Another app, such as a host's own app, can own the home page. To link to your home page, use `/a/<id>`. When your app owns `/`, the shell sends `/a/<id>` there. Do not set `ownsPath` to claim `/`: the default rules give your app `/` only when it is the home app.
 

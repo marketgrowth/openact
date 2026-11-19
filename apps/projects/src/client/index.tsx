@@ -1,5 +1,5 @@
 import { lazy, useCallback, type ReactNode } from "react";
-import { defineClientApp, useShell, useWorkspace } from "@openact/ui";
+import { Redirect, defineClientApp, useShell, useWorkspace } from "@openact/ui";
 import type { CompanyDetail } from "../shared/types";
 import { ProjectsProvider } from "./projects-context";
 import { ProjectsSection } from "./ProjectsSection";
@@ -17,6 +17,7 @@ const SearchDialog = lazy(() => import("./components/SearchDialog").then((m) => 
 const AiDefaultsTab = lazy(() => import("./components/AiDefaultsTab").then((m) => ({ default: m.AiDefaultsTab })));
 
 type View = "board" | "timeline" | "calendar" | "members";
+const VIEWS: readonly string[] = ["board", "timeline", "calendar", "members"];
 
 function Provider({ children }: { children: ReactNode }) {
   const shell = useShell();
@@ -49,8 +50,9 @@ export default defineClientApp({
   Home: ProjectsPage,
   routes: [
     {
-      pattern: /^\/p\/([^/]+)(?:\/(board|timeline|calendar|members))?\/?$/,
-      render: (m) => <ProjectRoute id={m[1]!} view={(m[2] as View) || "board"} />
+      path: "/p/:id/:view?",
+      // An unknown view goes to the board.
+      render: ({ id, view }) => (view && !VIEWS.includes(view) ? <Redirect to={`/p/${encodeURIComponent(id!)}`} /> : <ProjectRoute id={id!} view={(view as View) || "board"} />)
     }
   ],
   nav: [{ label: "All projects", icon: "projects", path: PROJECTS_HOME }],
