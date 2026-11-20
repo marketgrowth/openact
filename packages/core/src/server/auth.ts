@@ -6,6 +6,7 @@ import type { AppEnv, Env } from "./env";
 import type { User } from "../shared/types";
 import { signInCodeEmail, sendEmail } from "./email";
 import { HttpError, isEmail, newId, normalizeEmail, nowIso, randomToken, readJson, requireUser, sha256Hex, text } from "./util";
+import { hashCode, saveCode, useCode } from "./login-codes";
 
 /*
  * Passwordless sign-in with a one-time email code.
@@ -17,10 +18,6 @@ import { HttpError, isEmail, newId, normalizeEmail, nowIso, randomToken, readJso
 export const SESSION_COOKIE = "openact_session";
 const SESSION_TTL_MS = 30 * 86400000;
 const SESSION_REFRESH_MS = 15 * 86400000;
-const CODE_TTL_MS = 10 * 60000;
-const MAX_ATTEMPTS = 5;
-const MAX_CODES_PER_EMAIL = 5; // per 15 minutes
-const MAX_CODES_PER_IP = 30; // per hour
 
 function randomCode(): string {
   const buf = new Uint32Array(1);
@@ -42,8 +39,6 @@ function secretFor(env: Env, url: string): string {
 
 /** The server secret (AUTH_SECRET) for apps that seal or sign values. Localhost runs without it. Throws 500 when it is missing. */
 export const authSecret = (env: Env, url: string): string => secretFor(env, url);
-
-const hashCode = (secret: string, email: string, code: string) => sha256Hex(`${secret}|${email}|${code}`);
 
 async function checkSignupAllowed(env: Env, email: string): Promise<void> {
   const existing = await env.DB.prepare("SELECT id FROM users WHERE email = ?").bind(email).first();
@@ -114,30 +109,14 @@ authRoutes.post("/request-code", async (c) => {
   const secret = secretFor(c.env, c.req.url);
   await checkSignupAllowed(c.env, email);
 
-  const now = Date.now();
-  const ip = c.req.header("cf-connecting-ip") || "local";
-  const perEmail = await c.env.DB.prepare("SELECT COUNT(*) AS n FROM login_codes WHERE email = ? AND created_at > ?")
-    .bind(email, now - 15 * 60000)
-    .first<{ n: number }>();
-  if ((perEmail?.n ?? 0) >= MAX_CODES_PER_EMAIL) throw new HttpError(429, "Too many codes were sent. Wait 15 minutes, then try again.");
-  const perIp = await c.env.DB.prepare("SELECT COUNT(*) AS n FROM login_codes WHERE ip = ? AND created_at > ?")
-    .bind(ip, now - 3600000)
-    .first<{ n: number }>();
-  if ((perIp?.n ?? 0) >= MAX_CODES_PER_IP) throw new HttpError(429, "Too many sign-in attempts. Wait an hour, then try again.");
-
   const code = randomCode();
-  await c.env.DB.batch([
-    // Only the newest code works.
-    c.env.DB.prepare("UPDATE login_codes SET used_at = ? WHERE email = ? AND used_at IS NULL").bind(now, email),
-    c.env.DB.prepare("INSERT INTO login_codes (id, email, code_hash, ip, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)").bind(
-      newId(),
-      email,
-      await hashCode(secret, email, code),
-      ip,
-      now,
-      now + CODE_TTL_MS
-    )
-  ]);
+  // The limits per email and per IP address are checked in the same statement that saves the code.
+  await saveCode(c.env, {
+    email,
+    ip: c.req.header("cf-connecting-ip") || "local",
+    codeHash: await hashCode(secret, email, code),
+    now: Date.now()
+  });
   await sendEmail(c.env, signInCodeEmail(c.env, email, code));
   return c.json({ ok: true });
 });
@@ -148,26 +127,8 @@ authRoutes.post("/verify", async (c) => {
   const code = text(body.code, "Code", { max: 12, required: true }).replace(/\s+/g, "");
   if (!isEmail(email) || !/^\d{6}$/.test(code)) throw new HttpError(400, "Type the 6-digit code from the email.");
   const secret = secretFor(c.env, c.req.url);
-  const now = Date.now();
-
-  const row = await c.env.DB.prepare(
-    "SELECT id, code_hash, attempts, expires_at FROM login_codes WHERE email = ? AND used_at IS NULL ORDER BY created_at DESC LIMIT 1"
-  )
-    .bind(email)
-    .first<{ id: string; code_hash: string; attempts: number; expires_at: number }>();
-  if (!row || row.expires_at < now || row.attempts >= MAX_ATTEMPTS) {
-    if (row) await c.env.DB.prepare("UPDATE login_codes SET used_at = ? WHERE id = ?").bind(now, row.id).run();
-    throw new HttpError(400, "This code is expired. Ask for a new code.");
-  }
-  if ((await hashCode(secret, email, code)) !== row.code_hash) {
-    await c.env.DB.prepare("UPDATE login_codes SET attempts = attempts + 1 WHERE id = ?").bind(row.id).run();
-    const left = MAX_ATTEMPTS - row.attempts - 1;
-    throw new HttpError(
-      400,
-      left > 0 ? `The code is not correct. You have ${left} more ${left === 1 ? "try" : "tries"}.` : "The code is not correct. Ask for a new code."
-    );
-  }
-  await c.env.DB.prepare("UPDATE login_codes SET used_at = ? WHERE id = ?").bind(now, row.id).run();
+  // Throws when the code is wrong, expired or out of tries. See login-codes.ts.
+  await useCode(c.env, { email, code, secret, now: Date.now() });
 
   // Find or create the user.
   let user = await c.env.DB.prepare("SELECT id, email, name FROM users WHERE email = ?").bind(email).first<User>();
