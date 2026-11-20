@@ -13,6 +13,8 @@ Do not open a public issue for a security problem. Use GitHub private vulnerabil
 - Sign-in uses one-time email codes. There are no passwords to leak.
 - Codes and session tokens are stored only as SHA-256 hashes. Codes also use `AUTH_SECRET`.
 - Codes expire after 10 minutes and 5 wrong tries. Code requests have limits per email and per IP address.
+- After 25 wrong tries for one email in 24 hours, the email gets no new code for a while.
+- Each limit is checked in the same database statement that changes it, so requests sent at the same time cannot pass it together.
 - Session cookies are `HttpOnly` and `SameSite=Lax`, and `Secure` on HTTPS.
 - The API rejects writes from other origins.
 - Every project route checks the person's role in that project. People who are not members get a "not found" reply.

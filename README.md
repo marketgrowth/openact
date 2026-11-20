@@ -236,7 +236,7 @@ The first person to sign in can always make an account, even in `invite` mode. A
 3. When the code is correct, OpenAct sets a session cookie for 30 days. The cookie is `HttpOnly` and `SameSite=Lax`, and `Secure` on HTTPS.
 4. Pending project and company invitations for that email become memberships. If a company claimed the email's domain, the person joins it as a member.
 
-OpenAct stores only SHA-256 hashes of codes and session tokens. It limits code requests to 5 for each email in 15 minutes and 30 for each IP address in one hour. A daily cron job deletes old codes and sessions.
+OpenAct stores only SHA-256 hashes of codes and session tokens. Each code allows 5 wrong tries. It limits code requests to 5 for each email in 15 minutes and 30 for each IP address in one hour. After 25 wrong tries for one email in 24 hours, that email gets no new code until the oldest tries are 24 hours old. Each limit is checked in the same database statement that changes it, so requests sent at the same time cannot pass it together. A daily cron job deletes old codes and sessions.
 
 ## How it is built
 
