@@ -27,4 +27,6 @@ export type Case = {
 export type CaseModule = {
   cases: Case[];
   seed?: (d: Deploy, alpha: Side, beta: Side) => Promise<void>;
+  /** Alpha's rows in the app's tables, as text. The test compares it before and after Beta's calls. */
+  snapshot?: (d: Deploy, alpha: Side) => string;
 };

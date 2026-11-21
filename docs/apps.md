@@ -69,6 +69,8 @@ The `id` is 2 to 31 lowercase letters, numbers or dashes. It must be unique in a
 
 `plan` is optional, and only official MarketGrowth apps use it. Set it to `"director"` or `"producer"` to make a paid app. The core locks the app in companies without that plan. See [Plans](plans.md).
 
+`namingFrom` is optional. It names the first migration that the [naming rules](naming.md) check, such as `"0004"`, so released migrations keep their names without warnings.
+
 `requiresApps` is optional. List the apps that must be installed too, such as `["projects"]`. `npm run sync` stops with a clear message when one is missing. `optionalApps` lists apps that your app uses when they are there.
 
 ### Workspace-aware apps
