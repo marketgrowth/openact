@@ -33,6 +33,8 @@ export interface AppInfo {
   released?: string;
   /** The app's version, from its package.json. */
   version?: string;
+  /** False for an app that was installed with --trust, because nobody reviewed its code. See docs/security.md. */
+  reviewed?: boolean;
 }
 
 let catalog: AppInfo[] = [];

@@ -366,6 +366,9 @@ projectRoutes.delete("/:id/invitations/:invId", async (c) => {
   const user = requireUser(c);
   const id = c.req.param("id");
   await requireRole(c.env, id, user.id, "owner");
+  // An id from another project removes nothing, so check first and do not bump the revision.
+  const inv = await c.env.DB.prepare("SELECT id FROM invitations WHERE id = ? AND project_id = ?").bind(c.req.param("invId"), id).first();
+  if (!inv) throw new HttpError(404, "This invitation does not exist.");
   const res = await c.env.DB.batch([
     c.env.DB.prepare("DELETE FROM invitations WHERE id = ? AND project_id = ?").bind(c.req.param("invId"), id),
     bumpRev(c.env, id)

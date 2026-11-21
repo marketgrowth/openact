@@ -218,6 +218,8 @@ export default defineServerApp({
 - **Permission.** The core checks it before every call, with the app's on/off state and the plan, as `requirePermission` does. `run` gets `ctx.user` and `ctx.companyId` from the connection. Keep data in that company.
 - **readOnly.** Set it when the tool only reads. A tool that changes data needs the person to allow changes on the consent page. Follow the same rules as your routes, such as `bumpRev` or `markChanged`.
 - **public.** Set it for a tool that anyone may call without sign-in, at `/mcp/public`, such as a free check of a website. A public tool must be `readOnly`, gets no person and no company, and must not read company data.
+- **effect.** Say what the tool does: `read`, `write`, `delete`, `send` (an email, a message or a call to another site) or `shared` (a place that other companies read). Agents ask the person before `delete`, `send` and `shared`. Without it, the effect is `read` for `readOnly` tools and `write` for the rest. Read [Security and company isolation](security.md#tool-effects).
+- **origin.** When a tool's answer holds text from outside the company, such as a forum post or a web page, return `{ text, origin: "shared" }` or `origin: "web"`. The core marks that text as untrusted, so the agent reads it as data, not instructions.
 - **Errors.** Throw `HttpError` with a plain message. The agent reads it as the tool's result.
 - **No deletes and no changes to people.** Leave those to a person in the app.
 
@@ -369,8 +371,9 @@ Update `testedCore` each time you test with a new core release.
 
 ## Rules for apps
 
-1. **Prefix everything with your id.** Tables (`inventory_items`), routes (`/api/apps/inventory`), R2 keys (`inventory/...`), room kinds and command ids. The projects app made some tables before apps had prefixes: `projects`, `project_members`, `tasks`, `attachments`, `board_columns`, `invitations`, `agent_actions`, `access_requests` and `vector_outbox`. Never use these names.
+1. **Prefix everything with your id.** Follow the [naming rules for data](naming.md). Tables (`inventory_items`), routes (`/api/apps/inventory`), R2 keys (`inventory/...`), room kinds and command ids. The projects app made some tables before apps had prefixes: `projects`, `project_members`, `tasks`, `attachments`, `board_columns`, `invitations`, `agent_actions`, `access_requests` and `vector_outbox`. Never use these names.
 2. **Scope your data to a company.** Every row has a `company_id`. Check access with `requirePermission`, or your own item check built on it.
 3. **Use the core for people.** Never read or write `users`, `sessions`, `companies` or `company_members` directly, except for read-only joins. Never handle sign-in yourself.
 4. **Follow the UI rules** in AGENTS.md and the [design system](/design-system): shadcn/ui components, Tailwind token classes, Lucide icons, `SiteHeader`, `PageBody` and `AgentState` for agent work.
 5. **Clean up through hooks.** When a person leaves a company, or a company is deleted, your hooks remove their access and data.
+6. **Prove company isolation.** Add a file for your app to `test/cross-company/`, with one case for each of your routes. Copy `test/cross-company/hello.ts` to start. The test fails for a route without a case. Read [Security and company isolation](security.md).

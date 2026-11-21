@@ -55,6 +55,8 @@ MCP runs over Streamable HTTP without sessions. Each POST holds one JSON-RPC mes
 - Redirect URIs must use https. Plain http works only on the loopback address, for apps on the person's computer.
 - The consent page shows where the browser goes back to. An unregistered redirect URI gets an error page, never a redirect.
 - One network can register 20 agents in an hour.
+- A token works in one company: the one the person picked on the consent page. A person who leaves that company loses the agent.
+- Tools tell the client what they do. `readOnlyHint` marks reads, `destructiveHint` marks deletes, and `openWorldHint` marks tools that send something out or write where other companies read. Read [Security and company isolation](security.md).
 - The agent endpoints allow calls from any origin, because they use tokens, not cookies. The consent answer is an `/api` route, so it accepts only same-site requests with the session cookie.
 
 ## Give your app tools

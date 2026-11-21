@@ -27,5 +27,6 @@ jobs:
           npm run openact -- add orbytt
           npm install
           npm run typecheck
+          npm test
           npm run build
           npx wrangler deploy --dry-run --outdir dist/worker-with-hello

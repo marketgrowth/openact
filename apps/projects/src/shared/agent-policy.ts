@@ -49,8 +49,11 @@ export function effectiveLevel(role: Role, policy: AiPolicy): AgentLevel {
 
 /* Agent tools that run on the server and change data */
 
-/** read: looks at data and changes nothing. */
-export type ToolRisk = "read" | "write" | "delete" | "people";
+/**
+ * read: looks at data and changes nothing. write and delete: change project data. people: changes who can see the project.
+ * send: sends something out of the company, such as an email. shared: writes where other companies can read.
+ */
+export type ToolRisk = "read" | "write" | "delete" | "people" | "send" | "shared";
 
 export interface BackendTool {
   name: string;
@@ -213,15 +216,20 @@ export function toolsForLevel(level: AgentLevel, policy: Pick<AiPolicy, "readNot
   return BACKEND_TOOLS.filter((t) => atLeast(level, t.level) && toolAllowedByPolicy(t.name, policy));
 }
 
-/** Changes in one step at or above this count wait for approval. */
+/** Changes in one run (one message from the person) at or above this count wait for approval. */
 export const BULK_APPROVAL_THRESHOLD = 5;
 
-/** True when this set of changes must wait for the person to approve it. */
-export function needsApproval(calls: Array<{ name: string }>): boolean {
+/**
+ * True when this set of changes must wait for the person to approve it.
+ * `earlierWrites` counts the changes the agent already made in this run, so a large batch cannot slip through
+ * a few changes at a time. Deletes, people changes, sending out and shared writes always wait: the agent's prompt
+ * holds text that other people wrote, so the agent can never be sure that the person asked for them.
+ */
+export function needsApproval(calls: Array<{ name: string }>, earlierWrites = 0): boolean {
   // Reads change nothing, so they never need approval and do not count toward a batch.
   const tools = calls.map((c) => BACKEND_TOOLS.find((t) => t.name === c.name)).filter((t): t is BackendTool => !!t && t.risk !== "read");
-  if (tools.some((t) => t.risk === "delete" || t.risk === "people")) return true;
-  return tools.length >= BULK_APPROVAL_THRESHOLD;
+  if (tools.some((t) => t.risk === "delete" || t.risk === "people" || t.risk === "send" || t.risk === "shared")) return true;
+  return tools.length > 0 && earlierWrites + tools.length >= BULK_APPROVAL_THRESHOLD;
 }
 
 /** Minutes an approval request stays open. */

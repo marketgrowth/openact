@@ -133,7 +133,7 @@ function settings(c: Context<AppEnv>, s: SiteState): SiteSettings {
     canEdit,
     signIn: { ...signInPage(s), customHeading: !!s.signInHeading },
     // Only super admins need the app switches.
-    ...(canEdit ? { apps: getCatalog().map((a) => ({ id: a.id, name: a.name, enabled: !s.appsOff.includes(a.id) })) } : {})
+    ...(canEdit ? { apps: getCatalog().map((a) => ({ id: a.id, name: a.name, enabled: !s.appsOff.includes(a.id), ...(a.reviewed === false ? { reviewed: false } : {}) })) } : {})
   };
 }
 

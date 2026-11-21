@@ -20,6 +20,15 @@ npm run openact -- add contacts   # Installs an app by its id
 
 An entry with `"plan": "director"` or `"plan": "producer"` is a paid app. The directory shows a badge, and the app needs that plan to work. Only official MarketGrowth apps have a plan. Read [Plans](../docs/plans.md).
 
+## Review
+
+Until sandboxed apps ship, an installed app has full access to the deploy. So `npm run openact -- add` installs an app that nobody reviewed only with `--trust`. Two kinds of entries install without it, from the source in the entry:
+
+- `"reserved": true`: official apps from MarketGrowth.
+- `"reviewed": true`: verified apps. MarketGrowth read the code at that source and tag. A new tag needs a new review.
+
+Read [Security and company isolation](../docs/security.md).
+
 ## Reserved ids
 
 Apps with `"reserved": true` are official apps from MarketGrowth. The app tool installs an app with one of these ids only from its official source. The ids in `systemIds` are reserved for OpenAct itself, because app ids become table, route and file prefixes.

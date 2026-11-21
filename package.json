@@ -22,7 +22,7 @@
     "build": "npm run sync && vite build",
     "preview": "npm run build && wrangler dev --local",
     "typecheck": "npm run sync && tsc -p tsconfig.worker.json --noEmit && tsc -p tsconfig.client.json --noEmit",
-    "test": "node --experimental-strip-types --test test/*.test.ts",
+    "test": "npm run sync --silent && node --experimental-strip-types --import ./test/harness/loader.mjs --test test/*.test.ts",
     "test:search": "node test/pipeline/search.mjs",
     "db:migrate:local": "npm run sync && wrangler d1 migrations apply DB --local",
     "db:migrate:remote": "npm run sync && wrangler d1 migrations apply DB --remote",

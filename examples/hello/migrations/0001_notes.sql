@@ -6,4 +6,4 @@ CREATE TABLE hello_notes (
   body TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
-CREATE INDEX hello_notes_company ON hello_notes (company_id, created_at);
+CREATE INDEX idx_hello_notes_company ON hello_notes (company_id, created_at);

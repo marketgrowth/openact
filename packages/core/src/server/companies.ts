@@ -316,7 +316,9 @@ companyRoutes.delete("/:id/invitations/:invId", async (c) => {
   const user = requireUser(c);
   const id = c.req.param("id");
   await requireCompanyRole(c.env, id, user.id, ["owner", "admin"]);
-  await c.env.DB.prepare("DELETE FROM company_invitations WHERE id = ? AND company_id = ?").bind(c.req.param("invId"), id).run();
+  const res = await c.env.DB.prepare("DELETE FROM company_invitations WHERE id = ? AND company_id = ?").bind(c.req.param("invId"), id).run();
+  // An id from another company removes nothing. Say so, rather than report success.
+  if (!res.meta.changes) throw new HttpError(404, "This invitation does not exist.");
   return c.json({ ok: true });
 });
 
