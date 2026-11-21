@@ -1,7 +1,8 @@
 import { Hono, type Context } from "hono";
 import type { AppEnv, Env } from "./env";
 import type { User } from "../shared/types";
-import { getApps, type AgentTool, type ToolOutput } from "./apps";
+import { getApps, toolEffect, type AgentTool, type ToolOutput } from "./apps";
+import { untrustedText } from "../shared/agent-safety";
 import { listCompanies } from "./companies";
 import { companyRole } from "./data";
 import { companyAppState, requirePermission, siteAppOff } from "./permissions";
@@ -184,7 +185,7 @@ async function toolProblem(env: Env, entry: ToolEntry, who: TokenSubject | null)
   const { appId, tool } = entry;
   if (siteAppOff(appId)) return `The app of "${tool.name}" is off for this site.`;
   if (!who) return tool.public ? null : `"${tool.name}" needs sign-in. Connect the agent at /mcp.`;
-  const needed: AgentScope = tool.readOnly ? "mcp:read" : "mcp:write";
+  const needed: AgentScope = toolEffect(tool) === "read" ? "mcp:read" : "mcp:write";
   if (!who.scopes.includes(needed))
     return `"${tool.name}" changes data, but the person did not allow changes. Connect the agent again and allow changes.`;
   if (tool.public) return null;
@@ -201,13 +202,21 @@ function toolInfo({ tool }: ToolEntry): McpToolInfo {
     title: tool.title,
     description: tool.description,
     inputSchema: tool.inputSchema,
-    annotations: { title: tool.title, readOnlyHint: !!tool.readOnly, destructiveHint: false }
+    annotations: {
+      title: tool.title,
+      readOnlyHint: toolEffect(tool) === "read",
+      destructiveHint: toolEffect(tool) === "delete",
+      // Tools that send something out, or write where other companies read, are open-world. Clients ask the person first.
+      openWorldHint: toolEffect(tool) === "send" || toolEffect(tool) === "shared"
+    }
   };
 }
 
 function toResult(out: ToolOutput): McpCallResult {
   if (typeof out === "string") return { content: [{ type: "text", text: out }] };
-  return { content: [{ type: "text", text: out.text }], ...(out.data ? { structuredContent: out.data } : {}) };
+  // Text from outside the company gets a label, so the client's model reads it as data, not instructions.
+  const text = out.origin && out.origin !== "company" ? untrustedText(out.text, out.origin) : out.text;
+  return { content: [{ type: "text", text }], ...(out.data ? { structuredContent: out.data } : {}) };
 }
 
 const toolError = (text: string): McpCallResult => ({ content: [{ type: "text", text }], isError: true });

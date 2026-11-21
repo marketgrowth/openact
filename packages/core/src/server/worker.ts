@@ -59,6 +59,27 @@ export const DAILY_CRON = "17 3 * * *";
  * `catalog` lists every installed app, also apps with only web code. Without it, the catalog is the server apps.
  */
 export function createWorker({ apps, catalog }: { apps: ServerApp[]; catalog?: AppInfo[] }): ExportedHandler<Env> {
+  const app = createApp({ apps, catalog });
+  return {
+    fetch: app.fetch,
+    scheduled: async (event, env, ctx) => {
+      // Scheduled jobs can send email, so they need the current app name.
+      await loadSite(env);
+      if (event.cron === DAILY_CRON) ctx.waitUntil(cleanup(env));
+      // A deploy that bought through the Director store fetches its renewed license key.
+      if (event.cron === DAILY_CRON) ctx.waitUntil(refreshStoreLicense(env));
+      for (const a of apps) {
+        if (a.scheduled) ctx.waitUntil(a.scheduled(env, event.cron).catch((e) => console.warn(`[openact] ${a.id} scheduled job failed`, e)));
+      }
+    }
+  };
+}
+
+/**
+ * Builds the Hono app with the core routes and the routes of the installed apps.
+ * `createWorker` uses it. Tests use it too: the cross-company suite lists every route from `app.routes`.
+ */
+export function createApp({ apps, catalog }: { apps: ServerApp[]; catalog?: AppInfo[] }): Hono<AppEnv> {
   setApps(apps);
   setCatalog(catalog ?? apps.map((a) => ({ id: a.id, name: a.name, enabledByDefault: true })));
   const app = new Hono<AppEnv>();
@@ -118,17 +139,5 @@ export function createWorker({ apps, catalog }: { apps: ServerApp[]; catalog?: A
     return c.json({ error: "Something went wrong on the server. Try again." }, 500);
   });
 
-  return {
-    fetch: app.fetch,
-    scheduled: async (event, env, ctx) => {
-      // Scheduled jobs can send email, so they need the current app name.
-      await loadSite(env);
-      if (event.cron === DAILY_CRON) ctx.waitUntil(cleanup(env));
-      // A deploy that bought through the Director store fetches its renewed license key.
-      if (event.cron === DAILY_CRON) ctx.waitUntil(refreshStoreLicense(env));
-      for (const a of apps) {
-        if (a.scheduled) ctx.waitUntil(a.scheduled(env, event.cron).catch((e) => console.warn(`[openact] ${a.id} scheduled job failed`, e)));
-      }
-    }
-  };
+  return app;
 }

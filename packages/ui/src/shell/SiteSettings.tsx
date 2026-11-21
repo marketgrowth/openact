@@ -15,6 +15,7 @@ import { api, errorText } from "../api";
 import { Field, Logo, Notice, useToast } from "../ui";
 import { useWorkspace } from "../workspace";
 import { Switch } from "@openact/ui/components/switch";
+import { Badge } from "@openact/ui/components/badge";
 import { Button } from "@openact/ui/components/button";
 import { Input } from "@openact/ui/components/input";
 import { Separator } from "@openact/ui/components/separator";
@@ -254,6 +255,11 @@ export function SiteSettingsSection({ section, onSaved }: { section: SiteSection
             {apps.map((a) => (
               <li key={a.id} className="flex items-center gap-3 rounded-lg border p-3" data-site-app={a.id}>
                 <span className="min-w-0 flex-1 truncate text-sm font-medium">{a.name}</span>
+                {a.reviewed === false && (
+                  <Badge variant="outline" title="Nobody reviewed this app. It runs with full access to every company on this site." data-unreviewed-app="">
+                    Not reviewed, full access
+                  </Badge>
+                )}
                 <span className="text-xs text-muted-foreground">{a.enabled ? "On" : "Off"}</span>
                 <Switch checked={a.enabled} disabled={appBusy} onCheckedChange={(on) => setAppOn(a.id, a.name, on)} aria-label={`${a.name} app for the whole site`} />
               </li>

@@ -30,7 +30,20 @@ export {
   type Viewer,
   type LiveMessage
 } from "./live.ts";
-export { defineServerApp, getApps, appService, runHook, type ServerApp, type AppHooks, type AgentTool, type ToolContext, type ToolOutput } from "./apps.ts";
+export {
+  defineServerApp,
+  getApps,
+  appService,
+  runHook,
+  toolEffect,
+  type ServerApp,
+  type AppHooks,
+  type AgentTool,
+  type ToolContext,
+  type ToolOutput,
+  type ToolEffect,
+  type ContentOrigin
+} from "./apps.ts";
 export type { ToolInputSchema, PropertySchema } from "./mcp-rpc.ts";
 export { agentAccessOn } from "./agents.ts";
 export type { CompanyCopyContext } from "./company-copy.ts";

@@ -42,7 +42,7 @@ export interface SiteSettings {
     customHeading: boolean;
   };
   /** Super admins only: every installed app, and whether it is on for the site. An app that is off is off in every company. */
-  apps?: Array<{ id: string; name: string; enabled: boolean }>;
+  apps?: Array<{ id: string; name: string; enabled: boolean; reviewed?: false }>;
 }
 
 /** One company in Site settings > Apps. */

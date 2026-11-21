@@ -64,6 +64,15 @@ export interface AgentTool {
   /** True when the tool only reads. Tools that change data need the "mcp:write" scope, which the person allows on the consent screen. */
   readOnly?: boolean;
   /**
+   * What the tool does beyond the app's own data. Agents use it to decide when to ask the person first.
+   * - "write" (the default for tools that change data) and "delete" change the company's own data.
+   * - "send" sends something out: an email, a message or a call to another site.
+   * - "shared" writes where people from other companies can read it: a public page, a forum or a network feed.
+   * Text that the agent read can carry planted instructions. So "send" and "shared" tools always need the person's
+   * approval in the agent, and MCP clients see them as open-world tools. Read docs/security.md.
+   */
+  effect?: ToolEffect;
+  /**
    * True when anyone may call the tool without sign-in, at /mcp/public. A public tool gets no person and no company.
    * Use it only for data that is public anyway, such as a free check of a website.
    */
@@ -82,8 +91,21 @@ export interface ToolContext {
   waitUntil: (p: Promise<unknown>) => void;
 }
 
+/** What a tool does to data. See AgentTool.effect. */
+export type ToolEffect = "read" | "write" | "delete" | "send" | "shared";
+
+/**
+ * Where the text in a tool's answer comes from. "company": people in the person's own company.
+ * "shared": a place people from other companies can write, such as a forum. "web": another site.
+ * Text that is not "company" is untrusted. The agent treats it as data, never as instructions.
+ */
+export type ContentOrigin = "company" | "shared" | "web";
+
 /** Text for the agent, and optional data in a fixed shape. Throw HttpError for a problem the agent should read. */
-export type ToolOutput = string | { text: string; data?: Record<string, unknown> };
+export type ToolOutput = string | { text: string; data?: Record<string, unknown>; origin?: ContentOrigin };
+
+/** The effect of a tool: its own, or "read" for read-only tools and "write" for the rest. */
+export const toolEffect = (tool: Pick<AgentTool, "readOnly" | "effect">): ToolEffect => tool.effect ?? (tool.readOnly ? "read" : "write");
 
 const TOOL_NAME = /^[a-z][a-z0-9_]{0,63}$/;
 
@@ -95,6 +117,8 @@ function checkTool(app: ServerApp, tool: AgentTool, seen: Set<string>): void {
   seen.add(tool.name);
   if (!tool.title || !tool.description) throw new Error(`Tool "${tool.name}" needs a title and a description.`);
   if (tool.inputSchema?.type !== "object") throw new Error(`Tool "${tool.name}" needs an inputSchema of type "object".`);
+  if (tool.readOnly && tool.effect && tool.effect !== "read") throw new Error(`Tool "${tool.name}" is readOnly, so its effect must be "read".`);
+  if (tool.public && tool.effect && tool.effect !== "read") throw new Error(`Tool "${tool.name}" is public, so it may only read.`);
   if (tool.permission && !app.permissions?.[tool.permission])
     throw new Error(`Tool "${tool.name}" uses the permission "${tool.permission}", but the app does not declare it.`);
   if (!tool.permission && !tool.public) throw new Error(`Tool "${tool.name}" needs a permission, or public: true.`);

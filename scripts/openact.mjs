@@ -36,6 +36,7 @@ import { execFileSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
+import { checkSchema } from "./schema-check.mjs";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const REGISTRY = join(ROOT, "openact.apps.json");
@@ -95,6 +96,29 @@ function checkReserved(m, fetched) {
     return;
   }
   fail(`The id "${m.id}" is reserved for the official ${entry.name} app (${baseSource(entry.source)}). Give your app another id, such as "acme-${m.id}". You can keep "${entry.name}" as its name.`);
+}
+
+/**
+ * True when MarketGrowth reviewed the code at this source: an official app ("reserved") or a verified one ("reviewed")
+ * in the directory, fetched from the source that the directory lists. Read docs/security.md.
+ */
+function isReviewed(m, fetched) {
+  const entry = readDirectory().apps.find((a) => a.id === m.id);
+  return !!entry && (entry.reserved || entry.reviewed) && baseSource(fetched.source) === baseSource(entry.source);
+}
+
+/**
+ * Installed apps run with full access to the deploy: every company's data and the deploy's secrets.
+ * Until sandboxed apps ship, an app that nobody reviewed installs only with --trust. Your own folders (./path) are yours.
+ */
+function checkTrust(m, fetched) {
+  if (fetched.source.startsWith("path:") || isReviewed(m, fetched)) return;
+  const warning =
+    `"${m.name}" (${baseSource(fetched.source)}) is not reviewed. Until sandboxed apps ship, an app runs with full access: ` +
+    "the data of every company on this deploy, and the deploy's secrets.";
+  if (!FLAGS.has("--trust"))
+    fail(`${warning}\n  Install it only if you trust its author and read its code. Then run the command again with --trust.\n  Never use --trust on a deploy that hosts other people's companies. Read https://docs.openact.ing/security`);
+  console.warn(`openact: warning: ${warning} You chose to trust it.`);
 }
 
 /** Finds an app in the directory by its id. Returns its source. */
@@ -270,7 +294,7 @@ function checkPrimary(reg, loaded) {
   return id;
 }
 
-function sync() {
+async function sync() {
   const reg = readRegistry();
   const { apps } = reg;
   const seen = new Set();
@@ -282,7 +306,7 @@ function sync() {
     if (m.id !== entry.id) fail(`openact.apps.json says "${entry.id}", but ${entry.path}/package.json says "${m.id}".`);
     if (seen.has(m.id)) fail(`Two apps use the id "${m.id}".`);
     seen.add(m.id);
-    return { ...m, dir };
+    return { ...m, dir, trusted: entry.trusted };
   });
   for (const a of loaded) {
     for (const need of a.requiresApps) {
@@ -314,7 +338,8 @@ function sync() {
           scope: a.scope,
           ...(a.version ? { version: a.version } : {}),
           ...(a.plan ? { plan: a.plan } : {}),
-          ...(a.plan && a.released ? { released: a.released } : {})
+          ...(a.plan && a.released ? { released: a.released } : {}),
+          ...(a.trusted === "manual" ? { reviewed: false } : {})
         }))
       )};\n`
   );
@@ -362,6 +387,15 @@ function sync() {
       count++;
     }
   }
+  // Run every migration on an empty database, and check new names against docs/naming.md.
+  let schema;
+  try {
+    schema = await checkSchema({ dir: join(OUT, "migrations"), apps: loaded.map((a) => a.id), strict: process.env.OPENACT_STRICT === "1" });
+  } catch (e) {
+    fail(e.message);
+  }
+  if (schema.skipped) console.warn(`openact: ${schema.skipped}`);
+  for (const w of schema.warnings) console.warn(`openact: naming: ${w}`);
   console.log(
     `openact: ${loaded.length} ${loaded.length === 1 ? "app" : "apps"} (${loaded.map((a) => a.id).join(", ") || "none"}), ${count} migrations` +
       (primary ? `, primary app "${primary}".` : ".")
@@ -421,34 +455,39 @@ function fetchApp(source) {
   return isPath(source) ? fetchFromPath(source) : fetchFromGitHub(source);
 }
 
-function install(fetched, expectId) {
+async function install(fetched, expectId) {
   const m = manifest(fetched.dir, fetched.label);
   if (expectId && m.id !== expectId) fail(`The repository now holds the app "${m.id}", not "${expectId}".`);
   checkReserved(m, fetched);
+  checkTrust(m, fetched);
   const target = join(ROOT, "apps", m.id);
   rmSync(target, { recursive: true, force: true });
   cpSync(fetched.dir, target, { recursive: true });
   rmSync(fetched.dir, { recursive: true, force: true });
   const reg = readRegistry();
-  const entry = { id: m.id, path: `apps/${m.id}`, source: fetched.source, ...(fetched.ref ? { ref: fetched.ref } : {}) };
+  const reviewed = fetched.source.startsWith("path:") || isReviewed(m, fetched);
+  const entry = { id: m.id, path: `apps/${m.id}`, source: fetched.source, ...(fetched.ref ? { ref: fetched.ref } : {}), ...(reviewed ? {} : { trusted: "manual" }) };
   const i = reg.apps.findIndex((a) => a.id === m.id);
   if (i >= 0) reg.apps[i] = entry;
   else reg.apps.push(entry);
   writeRegistry(reg);
-  sync();
+  await sync();
   return m;
 }
 
-const [cmd, arg] = process.argv.slice(2);
+const FLAGS = new Set(process.argv.slice(2).filter((a) => a.startsWith("--")));
+const [cmd, arg] = process.argv.slice(2).filter((a) => !a.startsWith("--"));
 switch (cmd) {
   case "sync":
-    sync();
+    await sync();
     break;
   case "list": {
     const { apps, primary } = readRegistry();
     if (!apps.length) console.log("No apps are installed.");
     for (const a of apps)
-      console.log(`${a.id.padEnd(16)} ${a.path.padEnd(22)} ${a.source}${a.ref ? `#${a.ref}` : ""}${a.id === primary ? "  (primary)" : ""}`);
+      console.log(
+        `${a.id.padEnd(16)} ${a.path.padEnd(22)} ${a.source}${a.ref ? `#${a.ref}` : ""}${a.id === primary ? "  (primary)" : ""}${a.trusted === "manual" ? "  (not reviewed, full access)" : ""}`
+      );
     break;
   }
   case "directory": {
@@ -473,7 +512,7 @@ switch (cmd) {
       rmSync(fetched.dir, { recursive: true, force: true });
       fail(`An app with the id "${m.id}" is already installed. Use update to get a new version.`);
     }
-    install(fetched);
+    await install(fetched);
     console.log(`openact: added "${m.name}" in apps/${m.id}. Next: run npm install, then npm run deploy (or npm run dev).`);
     break;
   }
@@ -483,7 +522,7 @@ switch (cmd) {
     if (entry.source === "local") fail(`"${arg}" is part of this repository. Change its code in ${entry.path} directly.`);
     if (entry.source === "director")
       fail(`"${arg}" is a Director app from the OpenAct store. Update it in the app: Settings > Site settings > Plan > Install or update apps.`);
-    const m = install(fetchApp(`${entry.source}${entry.ref ? `#${entry.ref}` : ""}`), entry.id);
+    const m = await install(fetchApp(`${entry.source}${entry.ref ? `#${entry.ref}` : ""}`), entry.id);
     console.log(`openact: updated "${m.name}". Next: run npm install, then npm run deploy (or npm run dev).`);
     break;
   }
@@ -495,7 +534,7 @@ switch (cmd) {
     if (reg.primary === arg) delete reg.primary;
     writeRegistry(reg);
     if (entry.source !== "local") rmSync(join(ROOT, entry.path), { recursive: true, force: true });
-    sync();
+    await sync();
     console.log(`openact: removed "${arg}". Its tables stay in the database, so you can add it again later without data loss.`);
     break;
   }
@@ -505,7 +544,7 @@ switch (cmd) {
     if (arg === "none") {
       delete reg.primary;
       writeRegistry(reg);
-      sync();
+      await sync();
       console.log("openact: no primary app. The app rail shows the apps in install order.");
       break;
     }
@@ -513,13 +552,13 @@ switch (cmd) {
     // Keep "primary" after "$comment" and before "apps", so the file reads in order.
     const { $comment, apps, ...rest } = reg;
     writeRegistry({ ...($comment ? { $comment } : {}), ...rest, primary: arg, apps });
-    sync();
+    await sync();
     console.log(`openact: "${arg}" is the primary app. Next: npm run deploy (or npm run dev).`);
     break;
   }
   default:
     console.log(
-      "Usage: npm run openact -- list | directory | add <id> | add github:owner/repo[/path][#ref] | add ./folder | update <id> | remove <id> | primary <id|none> | sync"
+      "Usage: npm run openact -- list | directory | add <id> [--trust] | add github:owner/repo[/path][#ref] [--trust] | add ./folder | update <id> [--trust] | remove <id> | primary <id|none> | sync"
     );
     if (cmd) process.exit(1);
 }
