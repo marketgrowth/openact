@@ -68,6 +68,14 @@ const CASES: Case[] = [
   { route: "GET /api/site/director", path: () => "/api/site/director", expect: "denied" },
   { route: "POST /api/site/director/checkout", path: () => "/api/site/director/checkout", body: () => ({}), expect: "denied" },
   { route: "POST /api/site/director/claim", path: () => "/api/site/director/claim", body: () => ({}), expect: "denied" },
+  { route: "POST /api/site/director/link", path: () => "/api/site/director/link", body: () => ({}), expect: "denied" },
+  {
+    route: "GET /api/site/director/link-proof",
+    path: () => "/api/site/director/link-proof",
+    who: "none",
+    expect: "any",
+    why: "Public by design. It shows only the hash of the site's claim token, never company data."
+  },
   { route: "PUT /api/site/director/license", path: () => "/api/site/director/license", body: () => ({ key: "x" }), expect: "denied" },
   { route: "DELETE /api/site/director/license", path: () => "/api/site/director/license", expect: "denied" },
   { route: "POST /api/site/director/github", path: () => "/api/site/director/github", body: () => ({}), expect: "denied" },
