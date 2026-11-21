@@ -66,7 +66,8 @@ async function storeCatalog(env: Env) {
 async function credentials(env: Env, requestUrl: string): Promise<{ license: string; claim?: string }> {
   const lic = await deployLicenseSource(env, requestUrl);
   if (!lic) throw new HttpError(409, "This site has no license key. Buy a plan or add a key first.", "no_license");
-  await linkToStore(env, requestUrl);
+  // A failed link never blocks the call. The store answers with what to do when the link is missing.
+  await linkToStore(env, requestUrl).catch((e) => console.warn("[openact] Could not link this site to the store", e));
   const { claim } = await readSaved(env, true);
   return { license: lic.key, ...(claim ? { claim } : {}) };
 }

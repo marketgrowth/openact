@@ -85,3 +85,22 @@ test("only super admins can start a link", async () => {
   const someone = d.person("someone@deploy.test");
   assert.equal((await d.call(someone, "POST", "/api/site/director/link")).status, 403);
 });
+
+test("a store without links does not block store calls", async () => {
+  const d = makeDeploy(vars);
+  const root = d.person("root@deploy.test");
+  const real = globalThis.fetch;
+  const paths: string[] = [];
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    const path = new URL(String(input)).pathname.replace("/api/apps/licenses/store", "");
+    paths.push(path);
+    return path === "/repos" ? Response.json({ repos: [] }) : Response.json({ error: "This API route does not exist." }, { status: 404 });
+  }) as typeof fetch;
+  try {
+    const r = await d.call(root, "GET", "/api/site/director/repos");
+    assert.equal(r.status, 200, r.text);
+    assert.deepEqual(paths, ["/link", "/repos"]);
+  } finally {
+    globalThis.fetch = real;
+  }
+});
