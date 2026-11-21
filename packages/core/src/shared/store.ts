@@ -35,7 +35,7 @@ export interface DirectorStatus {
   };
   /** Set when a saved or secret key does not work, such as a key for another host. */
   licenseProblem: string | null;
-  /** True when this deploy bought through the store, so it renews its key by itself. */
+  /** True when this deploy has a store link (it bought through the store, or linked a key from MarketGrowth), so it renews its key by itself. */
   storeOrder: boolean;
   /** The store's apps, or null when the store did not answer. */
   catalog: StoreApp[] | null;

@@ -146,6 +146,13 @@ export function DirectorStore() {
       toast("The saved license key is removed.");
     });
 
+  const link = () =>
+    run("link", async () => {
+      const r = await api<{ link: "active" | "pending"; director: DirectorStatus }>(`${API}/link`, { method: "POST" });
+      setInfo(r.director);
+      toast(r.link === "active" ? "This site is linked to the store." : "The link waits for MarketGrowth to approve it.");
+    });
+
   const connect = () =>
     run("github", async () => {
       const r = await api<{ url: string }>(`${API}/github`, { method: "POST" });
@@ -206,6 +213,11 @@ export function DirectorStore() {
           {info.storeOrder && (
             <Button size="sm" variant="outline" disabled={waiting || !!busy} onClick={() => void waitForKey()}>
               Check for the key
+            </Button>
+          )}
+          {lic && !info.storeOrder && info.host && (
+            <Button size="sm" variant="outline" disabled={!!busy} onClick={link}>
+              {busy === "link" ? "Linking…" : "Link to the store"}
             </Button>
           )}
           <Button size="sm" variant="outline" onClick={() => setShowKey((v) => !v)}>
