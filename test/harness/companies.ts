@@ -28,6 +28,12 @@ async function ok(p: Promise<{ status: number; text: string; json: Record<string
   return r.json ?? {};
 }
 
+/** True when the deploy has the Projects app. Some deploys, such as a store, run without it. */
+export const hasProjects = (d: Deploy) => d.app.routes.some((r) => r.path === "/api/projects");
+
+/** Ids for Projects data on a deploy without Projects. Calls with them get 404. */
+const NO_PROJECTS = "00000000-0000-4000-8000-000000000000";
+
 async function seed(d: Deploy, tag: string, word: string): Promise<Side> {
   const owner = d.person(`${tag}-owner@${tag}.test`, `${word} Owner`);
   const member = d.person(`${tag}-member@${tag}.test`, `${word} Member`);
@@ -36,6 +42,12 @@ async function seed(d: Deploy, tag: string, word: string): Promise<Side> {
   await ok(d.call(owner, "POST", `/api/companies/${companyId}/members`, { email: member.email, role: "member" }), `${tag} member`);
   await ok(d.call(owner, "POST", `/api/companies/${companyId}/members`, { email: `${tag}-pending@${tag}.test` }), `${tag} company invite`);
   await ok(d.call(owner, "POST", `/api/companies/${companyId}/workspaces`, { name: `${word} Workspace`, kind: "brand" }), `${tag} workspace`);
+  const workspaceId = d.one<{ id: string }>("SELECT id FROM workspaces WHERE company_id = ? AND name = ?", companyId, `${word} Workspace`).id;
+  const companyInvitationId = d.one<{ id: string }>("SELECT id FROM company_invitations WHERE company_id = ?", companyId).id;
+  if (!hasProjects(d)) {
+    const none = NO_PROJECTS;
+    return { owner, member, companyId, projectId: none, taskId: none, columnId: none, attachmentId: none, workspaceId, projectInvitationId: none, companyInvitationId };
+  }
   const project = await ok(d.call(owner, "POST", "/api/projects", { name: `${word} Project`, companyId }), `${tag} project`);
   const projectId = ((project.project as { id?: string } | undefined)?.id ?? project.id) as string;
   await ok(d.call(owner, "POST", `/api/projects/${projectId}/tasks`, { title: `${word} Task`, notes: `${word} private note` }), `${tag} task`);
@@ -53,9 +65,9 @@ async function seed(d: Deploy, tag: string, word: string): Promise<Side> {
     taskId,
     columnId: d.one<{ id: string }>("SELECT id FROM board_columns WHERE project_id = ? AND name = ?", projectId, `${word} Column`).id,
     attachmentId: d.one<{ id: string }>("SELECT id FROM attachments WHERE task_id = ?", taskId).id,
-    workspaceId: d.one<{ id: string }>("SELECT id FROM workspaces WHERE company_id = ? AND name = ?", companyId, `${word} Workspace`).id,
+    workspaceId,
     projectInvitationId: d.one<{ id: string }>("SELECT id FROM invitations WHERE project_id = ?", projectId).id,
-    companyInvitationId: d.one<{ id: string }>("SELECT id FROM company_invitations WHERE company_id = ?", companyId).id
+    companyInvitationId
   };
 }
 
@@ -75,13 +87,16 @@ export function alphaSnapshot(d: Deploy, alpha: Side): string {
     d.all("SELECT id, email, role FROM company_invitations WHERE company_id = ? ORDER BY id", alpha.companyId),
     d.all("SELECT id, name, is_default, archived_at FROM workspaces WHERE company_id = ? ORDER BY id", alpha.companyId),
     d.all("SELECT * FROM company_apps WHERE company_id = ? ORDER BY app_id", alpha.companyId),
-    d.all("SELECT * FROM company_ai WHERE company_id = ?", alpha.companyId),
+    d.all("SELECT * FROM company_ai WHERE company_id = ?", alpha.companyId)
+  ];
+  if (!hasProjects(d)) return JSON.stringify(rows);
+  rows.push(
     d.all("SELECT id, name, description, color, visibility, ai_policy, workspace_id FROM projects WHERE company_id = ? ORDER BY id", alpha.companyId),
     d.all("SELECT user_id, role FROM project_members WHERE project_id = ? ORDER BY user_id", alpha.projectId),
     d.all("SELECT id, email, role FROM invitations WHERE project_id = ? ORDER BY id", alpha.projectId),
     d.all("SELECT id, title, notes, status, priority, column_id, assignee_id FROM tasks WHERE project_id = ? ORDER BY id", alpha.projectId),
     d.all("SELECT id, name FROM board_columns WHERE project_id = ? ORDER BY id", alpha.projectId),
     d.all("SELECT id, filename FROM attachments WHERE project_id = ? ORDER BY id", alpha.projectId)
-  ];
+  );
   return JSON.stringify(rows);
 }
