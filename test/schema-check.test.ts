@@ -97,6 +97,28 @@ test("a migration that fails on an empty database stops sync", async () => {
   await assert.rejects(run({ "crm_0001_init.sql": "CREATE TABLE crm_deals (id TEXT PRIMARY KEY, company_id TEXT REFERENCES no_such_table (id), oops" }, ["crm"]), /fails on an empty database/);
 });
 
+test("a person column can end in _by", async () => {
+  const r = await run(
+    { "crm_0001_init.sql": "CREATE TABLE crm_deals (id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies (id), created_by TEXT REFERENCES users (id), closed_by TEXT REFERENCES crm_deals (id));" },
+    ["crm"]
+  );
+  assert.deepEqual(r.warnings.map((w: string) => w.replace(/^.*?: /, "")), ['The column "crm_deals.closed_by" points at another table, so its name must end in _id (or _by for a person).']);
+});
+
+test("an app's released migrations keep their names", async () => {
+  const files = {
+    "crm_0001_init.sql": "CREATE TABLE crm_deals (id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies (id)); CREATE INDEX deals_old ON crm_deals (company_id);",
+    "crm_0002_more.sql": "CREATE INDEX deals_new ON crm_deals (id);"
+  };
+  const dir = folder(files);
+  try {
+    const r = await checkSchema({ dir, apps: ["crm"], namingFrom: { crm: "0002" } });
+    assert.deepEqual(r.warnings.map((w: string) => w.replace(/: .*/, "")), ["crm_0002_more.sql"]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("released core tables and the legacy Projects tables are not checked", async () => {
   const r = await run({}, []);
   assert.deepEqual(r.warnings, []);

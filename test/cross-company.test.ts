@@ -230,7 +230,8 @@ test("a Beta person cannot read or change Alpha data on any route", async () => 
     const { d, alpha, beta } = await deployWithData();
     // Vectorize returns Alpha's task for every query, like a broken index. The app must drop it.
     d.env.VECTORS.store.set(alpha.taskId, { id: alpha.taskId, namespace: alpha.companyId, metadata: { project_id: alpha.projectId } });
-    const before = alphaSnapshot(d, alpha);
+    const snap = () => [alphaSnapshot(d, alpha), ...modules.map((m) => m.snapshot?.(d, alpha) ?? "")].join("\n");
+    const before = snap();
     const people: Record<Who, Person | null> = { beta: beta.owner, betaMember: beta.member, extra: null, none: null };
     for (const c of ALL_CASES) {
       const who = c.who === "extra" ? d.person(`extra-${Math.random().toString(36).slice(2)}@beta.test`) : people[c.who ?? "beta"];
@@ -243,7 +244,7 @@ test("a Beta person cannot read or change Alpha data on any route", async () => 
       const found = leaks(alpha).find((w) => r.text.includes(w));
       if (found) problems.push(`${label}: the answer holds Alpha data (${found === MARK ? MARK : "an Alpha id or email"})`);
     }
-    const after = alphaSnapshot(d, alpha);
+    const after = snap();
     if (before !== after) problems.push(`Alpha's rows changed:\nbefore ${before}\nafter  ${after}`);
   });
   assert.deepEqual(problems, []);

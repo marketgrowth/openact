@@ -151,6 +151,8 @@ function manifest(dir, label = relative(ROOT, dir)) {
     if (m[key] !== undefined && (typeof m[key] !== "string" || !VERSION.test(m[key])))
       fail(`The app "${m.id}" has "${key}": "${m[key]}". Use a core version such as "0.2" or "0.2.0".`);
   }
+  if (m.namingFrom !== undefined && (typeof m.namingFrom !== "string" || !/^\d{4}$/.test(m.namingFrom)))
+    fail(`The app "${m.id}" has "namingFrom": "${m.namingFrom}". Use the number of a migration, such as "0004".`);
   for (const key of ["requiresApps", "optionalApps"]) {
     if (m[key] !== undefined && (!Array.isArray(m[key]) || m[key].some((x) => typeof x !== "string" || !ID.test(x))))
       fail(`The app "${m.id}" has "${key}": it must be a list of app ids, such as ["projects"].`);
@@ -390,7 +392,12 @@ async function sync() {
   // Run every migration on an empty database, and check new names against docs/naming.md.
   let schema;
   try {
-    schema = await checkSchema({ dir: join(OUT, "migrations"), apps: loaded.map((a) => a.id), strict: process.env.OPENACT_STRICT === "1" });
+    schema = await checkSchema({
+      dir: join(OUT, "migrations"),
+      apps: loaded.map((a) => a.id),
+      strict: process.env.OPENACT_STRICT === "1",
+      namingFrom: Object.fromEntries(loaded.filter((a) => a.namingFrom).map((a) => [a.id, a.namingFrom]))
+    });
   } catch (e) {
     fail(e.message);
   }

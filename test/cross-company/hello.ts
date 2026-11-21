@@ -16,6 +16,10 @@ export async function seed(d: Deploy, alpha: Side): Promise<void> {
   assert.equal(r.status, 201, r.text);
 }
 
+export function snapshot(d: Deploy, alpha: Side): string {
+  return installed(d) ? JSON.stringify(d.all("SELECT id, body FROM hello_notes WHERE company_id = ? ORDER BY id", alpha.companyId)) : "";
+}
+
 export const cases: Case[] = [
   { route: "GET /api/apps/hello/companies/:id/notes", path: (a) => `/api/apps/hello/companies/${a.companyId}/notes`, expect: "denied" },
   { route: "POST /api/apps/hello/companies/:id/notes", path: (a) => `/api/apps/hello/companies/${a.companyId}/notes`, body: () => ({ body: "Planted" }), expect: "denied" }

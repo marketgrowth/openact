@@ -49,10 +49,11 @@ async function openSqlite() {
 
 /**
  * Runs the checks on the migrations in `dir` (the .openact/migrations folder that sync wrote).
- * `apps` are the installed apps' ids. Returns { skipped, warnings }. Throws on a failed migration,
- * or on a broken rule when `strict` is true.
+ * `apps` are the installed apps' ids. `namingFrom` maps an app id to its first migration that the naming rules check,
+ * such as "0004", from "namingFrom" in the app's package.json. Earlier migrations are released and keep their names.
+ * Returns { skipped, warnings }. Throws on a failed migration, or on a broken rule when `strict` is true.
  */
-export async function checkSchema({ dir, apps, strict = false }) {
+export async function checkSchema({ dir, apps, strict = false, namingFrom = {} }) {
   const db = await openSqlite();
   if (!db) return { skipped: "Schema checks need Node 22.13 or later. Sync skipped them.", warnings: [] };
   db.exec("PRAGMA foreign_keys = ON");
@@ -85,7 +86,11 @@ export async function checkSchema({ dir, apps, strict = false }) {
 
   const warnings = [];
   const warn = (file, msg) => warnings.push(`${file}: ${msg}`);
-  const checked = (owner, file) => owner !== "core" || file.slice(0, 4) > CORE_BASELINE;
+  const checked = (owner, file) => {
+    if (owner === "core") return file.slice(0, 4) > CORE_BASELINE;
+    const from = namingFrom[owner];
+    return !from || file.slice(owner.length + 1, owner.length + 5) >= from;
+  };
   const columnsOf = (t) => db.prepare(`PRAGMA table_info("${t}")`).all();
   const fksOf = (t) => db.prepare(`PRAGMA foreign_key_list("${t}")`).all();
   const hasCompany = (t) => columnsOf(t).some((c) => c.name === "company_id");
@@ -113,7 +118,10 @@ export async function checkSchema({ dir, apps, strict = false }) {
       if (col.name.endsWith("_at") && type !== "TEXT") warn(file, `The column "${at}" ends in _at, so it must be TEXT (ISO 8601). Use _ms for epoch milliseconds.`);
       if (col.name.endsWith("_ms") && type !== "INTEGER") warn(file, `The column "${at}" ends in _ms, so it must be INTEGER (epoch milliseconds).`);
       if (/^(is|has)_/.test(col.name) && type !== "INTEGER") warn(file, `The column "${at}" is a yes/no flag, so it must be INTEGER 0 or 1.`);
-      if (fkCols.has(col.name) && !col.name.endsWith("_id")) warn(file, `The column "${at}" points at another table, so its name must end in _id.`);
+      // A person who did something can end in _by (created_by), like the core tables do.
+      const byPerson = col.name.endsWith("_by") && fksOf(table).some((fk) => fk.from === col.name && fk.table === "users");
+      if (fkCols.has(col.name) && !col.name.endsWith("_id") && !byPerson)
+        warn(file, `The column "${at}" points at another table, so its name must end in _id (or _by for a person).`);
       if (/(^|_)(token|secret|password|code)$/.test(col.name)) warn(file, `The column "${at}" looks like a secret. Store only a hash, in a column that ends in _hash.`);
     }
   }

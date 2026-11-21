@@ -14,7 +14,7 @@ All names use lowercase ASCII snake_case. Each name works in SQL without quotes,
 | Table | Prefix + plural noun | `acme_crm_deals` |
 | Join table | Prefix + both nouns | `acme_crm_deal_contacts` |
 | Primary key | `id TEXT` (a UUID), or a key made of foreign keys | `id` |
-| Foreign key | The singular noun of the target + `_id` | `deal_id`, `company_id` |
+| Foreign key | The singular noun of the target + `_id`. A person who did something can use `_by`. | `deal_id`, `company_id`, `created_by` |
 | Company | Every app row reaches a company: a `company_id` column, or a foreign key to a table that has one | `company_id` |
 | Workspace | `workspace_id`, when the app has `"scope": "workspace"` | `workspace_id` |
 | Time as ISO text | Ends in `_at`, type TEXT, ISO 8601 in UTC | `created_at` |
@@ -42,5 +42,17 @@ The checks need Node 22.13 or later, which has `node:sqlite`. On an older Node, 
 The projects app made these tables before apps had prefixes: `projects`, `project_members`, `tasks`, `attachments`, `board_columns`, `invitations`, `agent_actions`, `access_requests` and `vector_outbox`. They keep their names. Never use them for a new table.
 
 Some released core columns end in `_at` but hold epoch milliseconds, such as `login_codes.expires_at` and the `oauth_*` tables. Read each column's type before you compare times. New columns follow the rules above.
+
+### Released migrations of your app
+
+When your app has migrations that deploys already ran, set `"namingFrom"` in the `openact` field of its `package.json` to the first migration that the rules should check:
+
+```json
+{ "openact": { "id": "crm", "namingFrom": "0004" } }
+```
+
+Migrations before it keep their names, and sync does not warn about them. New migrations follow the rules.
+
+A column for a person who did something, such as `created_by` or `resolved_by`, can end in `_by` when it points at `users`.
 
 To replace a name, add a new column or table, copy the data in a migration, and stop using the old one. Remove the old one only in a major core version.
