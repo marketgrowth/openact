@@ -15,12 +15,16 @@ import { DEFAULT_STORE_URL, type DirectorStatus, type InstallResult, type StoreA
  *   GET    /api/site/director              DirectorStatus
  *   POST   /api/site/director/checkout     { plan } → { url } of Stripe Checkout
  *   POST   /api/site/director/claim        Fetches the key after checkout. The daily cron does it too.
+ *   POST   /api/site/director/link         Links this site to the store (see linkToStore). The daily cron does it too.
+ *   GET    /api/site/director/link-proof   { linkCode }. Public. The store reads it to confirm that a link request came from this site.
  *   PUT    /api/site/director/license      { license } saves a key by hand. DELETE removes it.
  *   POST   /api/site/director/github       → { url } to connect the OpenAct Director GitHub App
  *   GET    /api/site/director/repos        The repositories that the app can see
  *   POST   /api/site/director/install      { repo, branch?, apps } → InstallResult
  *
  * The claim token proves that this deploy made the order. It never leaves the Worker except to the store.
+ * A key that MarketGrowth issued by hand gets a claim token too: the site links itself to the store (linkToStore).
+ * After that, a copied key alone cannot install apps. Read docs/plans.md, "How the store link works".
  */
 
 const storeUrl = (env: Env) => ((env.OPENACT_STORE_URL || "").trim() || DEFAULT_STORE_URL).replace(/\/+$/, "");
@@ -58,12 +62,37 @@ async function storeCatalog(env: Env) {
   return value;
 }
 
-/** What every store call that needs the customer sends: the license key, and the claim token when there is one. */
+/** What every store call that needs the customer sends: the license key and the claim token. Links the site first. */
 async function credentials(env: Env, requestUrl: string): Promise<{ license: string; claim?: string }> {
   const lic = await deployLicenseSource(env, requestUrl);
   if (!lic) throw new HttpError(409, "This site has no license key. Buy a plan or add a key first.", "no_license");
-  const { claim } = await readSaved(env);
+  // A failed link never blocks the call. The store answers with what to do when the link is missing.
+  await linkToStore(env, requestUrl).catch((e) => console.warn("[openact] Could not link this site to the store", e));
+  const { claim } = await readSaved(env, true);
   return { license: lic.key, ...(claim ? { claim } : {}) };
+}
+
+/** The link code: the SHA-256 of the claim token, in hex. It is safe to show. The token cannot be found from it. */
+export const linkCodeOf = (claim: string) => sha256Hex(claim);
+
+/**
+ * Links this site's license key to the store, so store calls need this site's claim token too.
+ * Makes and saves a claim token when the site has none. The store then reads GET /link-proof on the key's host,
+ * so a copied key cannot link another site. Safe to run again: the store answers at once when the link is in place.
+ * Returns the link status: "active", or "pending" while MarketGrowth approves a key that names no host.
+ * Returns null when the site has no license key or no APP_URL.
+ */
+export async function linkToStore(env: Env, requestUrl?: string): Promise<"active" | "pending" | null> {
+  const lic = await deployLicenseSource(env, requestUrl);
+  const host = deployHost(env);
+  if (!lic || !host) return null;
+  let { claim } = await readSaved(env, true);
+  if (!claim) {
+    claim = randomToken(32);
+    await saveClaim(env, claim, null);
+  }
+  const r = await callStore<{ status: "active" | "pending" }>(env, "POST", "/link", { license: lic.key, linkCode: await linkCodeOf(claim), host });
+  return r.status;
 }
 
 /** Asks the store for this deploy's newest key and saves it when it works here. Returns true when a key was saved. */
@@ -83,8 +112,13 @@ export async function claimFromStore(env: Env, requestUrl?: string): Promise<{ s
   return { saved: true, status: r.status };
 }
 
-/** The daily cron: renew the saved key from the store when the deploy bought through it. Never throws. */
+/** The daily cron: link the site to the store, then fetch a newer key when there is one. Never throws. */
 export async function refreshStoreLicense(env: Env): Promise<void> {
+  try {
+    await linkToStore(env);
+  } catch (e) {
+    console.warn("[openact] Could not link this site to the store", e);
+  }
   try {
     await claimFromStore(env);
   } catch (e) {
@@ -154,6 +188,22 @@ directorRoutes.post("/claim", async (c) => {
   requireSuperAdmin(c);
   const r = await claimFromStore(c.env, c.req.url);
   return c.json({ ...r, director: await status(c.env, c.req.url) });
+});
+
+directorRoutes.post("/link", async (c) => {
+  requireSuperAdmin(c);
+  const link = await linkToStore(c.env, c.req.url);
+  if (!link) throw new HttpError(409, "Add a license key and set APP_URL first.", "no_license");
+  const r = await claimFromStore(c.env, c.req.url);
+  return c.json({ link, ...r, director: await status(c.env, c.req.url) });
+});
+
+/** Public. The store calls it while it links this site. It shows only the hash of the claim token. */
+directorRoutes.get("/link-proof", async (c) => {
+  const { claim } = await readSaved(c.env, true);
+  if (!claim) throw new HttpError(404, "This site has no store link.", "no_link");
+  c.header("cache-control", "no-store");
+  return c.json({ linkCode: await linkCodeOf(claim) });
 });
 
 directorRoutes.put("/license", async (c) => {

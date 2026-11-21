@@ -59,6 +59,17 @@ The site proves that it made the order with a claim token. The token stays in th
 
 If MarketGrowth sent you a license key, choose **Add a license key**, paste it and choose **Save the key**. It does the same as the `OPENACT_LICENSE` secret. When both are set, the key that works and lasts longer wins.
 
+### How the store link works
+
+A license key alone cannot install apps from the store. The store also needs the site's claim token, so a copied key is not enough. A site that bought through the store has a claim token from checkout. A site with a key from MarketGrowth links itself:
+
+1. The site makes a claim token and seals it with `AUTH_SECRET`. The token never leaves the Worker except to the store.
+2. The site sends the store its key, its host (from `APP_URL`) and the link code. The link code is the SHA-256 of the token. Nobody can find the token from it.
+3. The store reads `https://<host>/api/site/director/link-proof`. When that page shows the same link code, the request came from the site on that host, and the store links the key.
+4. A key that names no host waits until MarketGrowth approves the link in License Keys.
+
+The site links itself once a day and before each install, so nobody has to do it by hand. **Link to the store** on the Plan page does it at once. After the link, the site fetches renewed keys by itself, the same as a store order. If the site loses its token, for example after a database restore, it makes a new one and links again.
+
 ### Install or update the apps
 
 1. Choose **Connect GitHub**. GitHub asks you to install the **OpenAct Director** app. Give it only the repository of this site.
