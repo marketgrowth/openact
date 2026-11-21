@@ -17,6 +17,10 @@ import { toolEffect } from "../packages/core/src/server/apps.ts";
 
 const ROOT = join(import.meta.dirname, "..");
 
+// The agent tests use the Projects app. A deploy without it, such as a store, skips them.
+const { catalog } = await import("../.openact/server.ts");
+const noProjects = !catalog.some((a: { id: string }) => a.id === "projects") && "this deploy has no Projects app";
+
 async function quietly<T>(f: () => Promise<T>): Promise<T> {
   const log = console.log;
   const warn = console.warn;
@@ -40,7 +44,7 @@ function agent(d: Deploy, who: Person, projectId: string, message: string) {
   });
 }
 
-test("a hijacked agent in Beta's project cannot read or change Alpha data", async () => {
+test("a hijacked agent in Beta's project cannot read or change Alpha data", { skip: noProjects }, async () => {
   await quietly(async () => {
     const { d, alpha, beta } = await twoCompanies({ AI_PROVIDER: "dev-scripted" });
     d.env.VECTORS.store.set(alpha.taskId, { id: alpha.taskId, namespace: alpha.companyId, metadata: { project_id: alpha.projectId } });
@@ -60,7 +64,7 @@ test("a hijacked agent in Beta's project cannot read or change Alpha data", asyn
   });
 });
 
-test("a hijacked agent cannot reach another company's project at all", async () => {
+test("a hijacked agent cannot reach another company's project at all", { skip: noProjects }, async () => {
   await quietly(async () => {
     const { d, alpha, beta } = await twoCompanies({ AI_PROVIDER: "dev-scripted" });
     const before = alphaSnapshot(d, alpha);
@@ -71,7 +75,7 @@ test("a hijacked agent cannot reach another company's project at all", async () 
   });
 });
 
-test("planted instructions cannot add people without the person's approval", async () => {
+test("planted instructions cannot add people without the person's approval", { skip: noProjects }, async () => {
   await quietly(async () => {
     const { d, beta } = await twoCompanies({ AI_PROVIDER: "dev-scripted" });
     const count = () => d.one<{ n: number }>("SELECT COUNT(*) AS n FROM invitations WHERE project_id = ?", beta.projectId).n;
@@ -132,7 +136,7 @@ function mcpToken(d: Deploy, who: Person, companyId: string): string {
 const rpc = (d: Deploy, token: string, method: string, params: Record<string, unknown> = {}) =>
   d.call(null, "POST", "/mcp", { jsonrpc: "2.0", id: 1, method, params }, { authorization: `Bearer ${token}`, accept: "application/json, text/event-stream" });
 
-test("an MCP token works in one company only", async () => {
+test("an MCP token works in one company only", { skip: noProjects }, async () => {
   await quietly(async () => {
     const { d, alpha, beta } = await twoCompanies();
     const own = mcpToken(d, beta.owner, beta.companyId);
@@ -148,7 +152,7 @@ test("an MCP token works in one company only", async () => {
   });
 });
 
-test("MCP clients see which tools only read", async () => {
+test("MCP clients see which tools only read", { skip: noProjects }, async () => {
   await quietly(async () => {
     const { d, beta } = await twoCompanies();
     const r = await rpc(d, mcpToken(d, beta.owner, beta.companyId), "tools/list");
