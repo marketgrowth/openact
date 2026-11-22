@@ -110,6 +110,31 @@ const { id, path } = await createProject(env, {
 
 `createProject` does not check the caller's access. Check your own permission first. A member who is not in the company joins it as a guest. [Advisory](advisory-app.md) uses it.
 
+To start the project from a plan, pass `tasks`. Each task goes to the first column of its status, in the order you give.
+
+```ts
+await createProject(env, {
+  companyId,
+  name: "Opening plan",
+  ownerId: userId,
+  tasks: [
+    { title: "Call the regional center", phase: "Step 1", priority: "high" },
+    { title: "Book the orientation class", phase: "Step 2", startDate: "2026-12-01" }
+  ]
+});
+```
+
+| Field | Rule |
+| --- | --- |
+| `title` | Required. 140 characters or fewer. |
+| `phase` | A group for the task, such as a step of the plan. 60 characters or fewer. |
+| `notes` | 8000 characters or fewer. |
+| `status` | `backlog`, `todo`, `doing`, `review` or `done`. Default: `todo`. |
+| `priority` | `high`, `med` or `low`. Default: `med`. |
+| `startDate`, `endDate` | Dates like `2026-11-05`. The end date cannot be before the start date. |
+
+The owner is the author of every task. A project can start with 200 tasks or fewer (`MAX_NEW_TASKS`). If one task is not valid, `createProject` throws an `HttpError` and writes nothing.
+
 ### Use another app when it is there
 
 A static import breaks the build when the other app is not installed. For an optional link, the other app lists functions in `services`, and your app reads them with `appService`. List the other app in `optionalApps`.
