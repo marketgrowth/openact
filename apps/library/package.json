@@ -1,0 +1,26 @@
+{
+  "name": "@openact/app-library",
+  "version": "0.1.0",
+  "description": "The OpenAct Library app: one body of reference content for a whole site. Sources with a plain-language summary, and dated updates. Super admins write and publish. Every company reads.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    "./server": "./src/server/index.ts",
+    "./client": "./src/client/index.tsx",
+    "./service": "./src/server/service.ts"
+  },
+  "openact": {
+    "id": "library",
+    "name": "Library",
+    "server": "./src/server/index.ts",
+    "client": "./src/client/index.tsx",
+    "migrations": "./migrations",
+    "enabledByDefault": true
+  },
+  "dependencies": {
+    "@openact/core": "0.2.0",
+    "@openact/ui": "0.2.0",
+    "hono": "^4.13.16",
+    "react": "^19.3.1"
+  }
+}

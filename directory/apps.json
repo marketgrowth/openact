@@ -90,6 +90,17 @@
       "repo": "https://github.com/marketgrowth/openact/tree/main/apps/cms"
     },
     {
+      "id": "library",
+      "name": "Library",
+      "summary": "One body of reference content for the whole site: sources with a plain-language summary, and dated updates. Super admins write, review and publish. Every company reads. Each site sets its own words and lists.",
+      "category": "Content",
+      "status": "built-in",
+      "publisher": "MarketGrowth",
+      "reserved": true,
+      "source": "local",
+      "repo": "https://github.com/marketgrowth/openact/tree/main/apps/library"
+    },
+    {
       "id": "timetrack",
       "name": "TimeTrack",
       "summary": "Track time on projects and tasks. Timesheets, approvals and reports.",

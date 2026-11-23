@@ -10,6 +10,11 @@
       "id": "cms",
       "path": "apps/cms",
       "source": "local"
+    },
+    {
+      "id": "library",
+      "path": "apps/library",
+      "source": "local"
     }
   ]
 }
