@@ -1,63 +1,35 @@
-import { HttpError, aiText, text, type Env } from "@openact/core/server";
-import { UNTRUSTED_TEXT_RULE, untrustedText } from "@openact/core/shared";
+import { HttpError, aiText, newId, text, type Env } from "@openact/core/server";
+import { EventType, UNTRUSTED_TEXT_RULE, encodeSse, untrustedText, type AguiEvent } from "@openact/core/shared";
 import {
-  ASK_ITEMS,
+  ASK_CHUNKS,
+  ASK_EVENT,
+  ASK_RESOURCES,
+  FORMAT_LABEL,
   MAX_HISTORY,
   MAX_QUESTION,
-  type AskAnswer,
   type AskCitation,
-  type AskTurn,
-  type ItemKind,
-  type PublishedSource,
-  type PublishedUpdate,
+  type AskCitations,
+  type AskSearched,
+  type Format,
   type Settings
 } from "../shared/rules.ts";
+import { publishedChunks } from "./store.ts";
 
 /*
- * Ask: retrieval-augmented answers from the published library.
- * 1. Rank the published items for the question with BM25 (keyword search, no embeddings).
- * 2. Send the best items to the model as numbered, labeled data, with the person's own AI rules (aiText).
- * 3. Return the answer and the items it cites.
- * Only published copies go to the model. No item matched: no model call.
+ * Ask: retrieval-augmented answers from the published library, over AG-UI.
+ * 1. Rank the chunks of the published resources for the question with BM25 (keyword search, no embeddings).
+ * 2. Send the best chunks to the model, grouped by resource and numbered, as labeled data (aiText, with the person's own AI rules).
+ * 3. Stream AG-UI events: the search step, the answer, and the resources it cites (CUSTOM "library.citations").
+ * Only published resources go to the model. No chunk matched: no model call.
  */
 
-/** One published item, flattened for search and for the prompt. */
-export interface AskDoc {
-  kind: ItemKind;
-  id: string;
+export interface Chunk {
+  resourceId: string;
+  seq: number;
+  text: string;
   title: string;
-  body: string;
+  format: Format;
   sourceUrl: string;
-  date: string | null;
-}
-
-export function docsFrom(sources: PublishedSource[], updates: PublishedUpdate[], s: Settings): AskDoc[] {
-  const l = s.fieldLabels;
-  return [
-    ...sources.map((x) => ({
-      kind: "source" as const,
-      id: x.id,
-      title: x.title,
-      body: [x.citation && `Citation: ${x.citation}`, x.summary && `Summary: ${x.summary}`, x.details].filter(Boolean).join("\n"),
-      sourceUrl: x.sourceUrl,
-      date: x.lastCheckedDate
-    })),
-    ...updates.map((x) => ({
-      kind: "update" as const,
-      id: x.id,
-      title: x.title,
-      body: [
-        x.whatChanged && `${l.whatChanged}: ${x.whatChanged}`,
-        x.whoAffected && `${l.whoAffected}: ${x.whoAffected}`,
-        x.action && `${l.action}: ${x.action}`,
-        x.actionDueDate && `${l.dueDate}: ${x.actionDueDate}`
-      ]
-        .filter(Boolean)
-        .join("\n"),
-      sourceUrl: x.sourceUrl,
-      date: x.publishedDate
-    }))
-  ];
 }
 
 const STOP = new Set(
@@ -74,109 +46,172 @@ export function words(s: string): string[] {
     .filter((w) => w.length > 1 && !STOP.has(w));
 }
 
-/** BM25 over the title (counted twice) and the body. Returns the best items with a score above zero. */
-export function rank(docs: AskDoc[], query: string, k = ASK_ITEMS): AskDoc[] {
+/** BM25 over each chunk, with its resource title counted twice. Returns the best chunks from at most `maxResources` resources. */
+export function rankChunks(chunks: Chunk[], query: string, k = ASK_CHUNKS, maxResources = ASK_RESOURCES): Chunk[] {
   const q = [...new Set(words(query))];
-  if (!q.length || !docs.length) return [];
-  const toks = docs.map((d) => [...words(d.title), ...words(d.title), ...words(d.body)]);
+  if (!q.length || !chunks.length) return [];
+  const toks = chunks.map((c) => [...words(c.title), ...words(c.title), ...words(c.text)]);
   const avg = toks.reduce((n, t) => n + t.length, 0) / toks.length || 1;
   const df = new Map(q.map((w) => [w, toks.filter((t) => t.includes(w)).length]));
-  const N = docs.length;
-  const scored = docs.map((d, i) => {
-    const t = toks[i]!;
-    let score = 0;
-    for (const w of q) {
-      const f = t.filter((x) => x === w).length;
-      if (!f) continue;
-      const n = df.get(w)!;
-      const idf = Math.log(1 + (N - n + 0.5) / (n + 0.5));
-      score += (idf * f * 2.2) / (f + 1.2 * (0.25 + 0.75 * (t.length / avg)));
-    }
-    return { d, score };
-  });
-  return scored
+  const N = chunks.length;
+  const scored = chunks
+    .map((c, i) => {
+      const t = toks[i]!;
+      let score = 0;
+      for (const w of q) {
+        const f = t.filter((x) => x === w).length;
+        if (!f) continue;
+        const n = df.get(w)!;
+        const idf = Math.log(1 + (N - n + 0.5) / (n + 0.5));
+        score += (idf * f * 2.2) / (f + 1.2 * (0.25 + 0.75 * (t.length / avg)));
+      }
+      return { c, score };
+    })
     .filter((x) => x.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, k)
-    .map((x) => x.d);
+    .sort((a, b) => b.score - a.score);
+  const out: Chunk[] = [];
+  const resources = new Set<string>();
+  for (const { c } of scored) {
+    if (!resources.has(c.resourceId) && resources.size >= maxResources) continue;
+    resources.add(c.resourceId);
+    out.push(c);
+    if (out.length >= k) break;
+  }
+  return out;
 }
 
-export function cleanQuestion(raw: unknown): string {
-  return text(raw, "Question", { max: MAX_QUESTION, required: true });
+export interface AskTurn {
+  role: "user" | "assistant";
+  content: string;
 }
 
-/** The earlier turns the web app sends back. Only the last few, each cut to a safe length. */
-export function cleanHistory(raw: unknown): AskTurn[] {
-  if (raw === undefined || raw === null) return [];
-  if (!Array.isArray(raw)) throw new HttpError(400, "History must be a list.");
-  return raw
-    .filter((t): t is AskTurn => !!t && typeof t === "object" && (t.role === "user" || t.role === "assistant") && typeof t.content === "string")
+/** The question and the earlier turns from an AG-UI RunAgentInput body. */
+export function readRunInput(raw: unknown): { threadId: string; runId: string; question: string; history: AskTurn[]; resourceId: string | null } {
+  if (!raw || typeof raw !== "object") throw new HttpError(400, "Send the question as an AG-UI RunAgentInput.");
+  const b = raw as Record<string, unknown>;
+  const msgs = Array.isArray(b.messages) ? (b.messages as Array<Record<string, unknown>>) : [];
+  const turns: AskTurn[] = msgs
+    .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+    .map((m) => ({ role: m.role as AskTurn["role"], content: String(m.content) }));
+  const last = turns.at(-1);
+  if (!last || last.role !== "user") throw new HttpError(400, "Type a question.");
+  const question = text(last.content, "Question", { max: MAX_QUESTION, required: true });
+  const history = turns
+    .slice(0, -1)
     .slice(-MAX_HISTORY)
     .map((t) => ({ role: t.role, content: t.content.slice(0, 2000) }));
+  const fp = b.forwardedProps && typeof b.forwardedProps === "object" ? (b.forwardedProps as Record<string, unknown>) : {};
+  const resourceId = typeof fp.resourceId === "string" && fp.resourceId.length <= 64 ? fp.resourceId : null;
+  const id = (v: unknown) => (typeof v === "string" && v.length > 0 && v.length <= 100 ? v : newId());
+  return { threadId: id(b.threadId), runId: id(b.runId), question, history, resourceId };
 }
 
-export function systemPrompt(s: Settings, items: AskDoc[]): string {
-  const list = items
-    .map((d, i) =>
-      [`[${i + 1}] ${d.kind === "source" ? s.sourcesName : s.updatesName}: ${d.title}`, d.date ? `Date: ${d.date}` : "", d.body, d.sourceUrl ? `Link: ${d.sourceUrl}` : ""]
-        .filter(Boolean)
-        .join("\n")
-    )
+/** Chunks grouped by resource, in rank order. The group number is the citation number. */
+export function groupByResource(picked: Chunk[]): Array<{ n: number; resourceId: string; title: string; format: Format; sourceUrl: string; parts: string[] }> {
+  const groups = new Map<string, { n: number; resourceId: string; title: string; format: Format; sourceUrl: string; parts: string[] }>();
+  for (const c of picked) {
+    let g = groups.get(c.resourceId);
+    if (!g) {
+      g = { n: groups.size + 1, resourceId: c.resourceId, title: c.title, format: c.format, sourceUrl: c.sourceUrl, parts: [] };
+      groups.set(c.resourceId, g);
+    }
+    g.parts.push(c.text);
+  }
+  return [...groups.values()];
+}
+
+export function systemPrompt(s: Settings, groups: ReturnType<typeof groupByResource>): string {
+  const list = groups
+    .map((g) => [`[${g.n}] ${FORMAT_LABEL[g.format]}: ${g.title}`, g.sourceUrl ? `Link: ${g.sourceUrl}` : "", ...g.parts].filter(Boolean).join("\n"))
     .join("\n\n");
   return [
-    `You answer questions for the readers of "${s.title}". Use only the numbered library items below.`,
-    "Cite each fact with the number of its item in square brackets, such as [1] or [2][3].",
-    "If the items do not answer the question, say that the library does not cover it yet, and suggest other words to search for.",
+    `You answer questions for the readers of a resource library called "${s.title}". Use only the numbered resources below.`,
+    "Cite each fact with the number of its resource in square brackets, such as [1] or [2][3].",
+    "If the resources do not answer the question, say that the library does not cover it yet, and suggest other words to search for.",
     "Keep the answer short: up to six sentences, or a short list. Use plain words.",
-    "Do not give legal, tax or medical advice. Say what the items say, and tell the reader to check the source.",
+    "Do not give legal, tax or medical advice. Say what the resources say, and tell the reader to open the resource.",
     s.notice ? `The site's notice to readers: ${s.notice}` : "",
     UNTRUSTED_TEXT_RULE,
-    "Library items:",
+    "Resources:",
     untrustedText(list, "shared")
   ]
     .filter(Boolean)
     .join("\n");
 }
 
-const cite = (d: AskDoc, n: number): AskCitation => ({ n, kind: d.kind, id: d.id, title: d.title, sourceUrl: d.sourceUrl });
-
-/** The items an answer cites. Numbers outside the list are dropped from the answer. */
-export function citationsOf(answer: string, items: AskDoc[]): { answer: string; citations: AskCitation[]; related: AskCitation[] } {
+/** The resources an answer cites. Numbers outside the list are dropped from the answer. */
+export function citationsOf(answer: string, groups: ReturnType<typeof groupByResource>): { answer: string; citations: AskCitation[]; related: AskCitation[] } {
   const used = new Set<number>();
   const clean = answer.replace(/\[(\d{1,2})\]/g, (m, n) => {
     const i = Number(n);
-    if (i >= 1 && i <= items.length) {
+    if (i >= 1 && i <= groups.length) {
       used.add(i);
       return m;
     }
     return "";
   });
-  const citations = [...used].sort((a, b) => a - b).map((n) => cite(items[n - 1]!, n));
-  const related = items.map((d, i) => cite(d, i + 1)).filter((c) => !used.has(c.n)).slice(0, 3);
-  return { answer: clean.trim(), citations, related };
+  const cite = (g: (typeof groups)[number]): AskCitation => ({ n: g.n, id: g.resourceId, title: g.title, format: g.format, sourceUrl: g.sourceUrl });
+  return {
+    answer: clean.trim(),
+    citations: groups.filter((g) => used.has(g.n)).map(cite),
+    related: groups.filter((g) => !used.has(g.n)).slice(0, 3).map(cite)
+  };
 }
 
-export const NO_MATCH = "The library has no published item about this yet. Try other words, or browse the items below.";
+export const NO_MATCH = "The library has no published resource about this yet. Try other words, or browse the resources below.";
 
-export async function ask(
-  env: Env,
-  companyId: string,
-  userId: string,
-  s: Settings,
-  docs: AskDoc[],
-  question: string,
-  history: AskTurn[]
-): Promise<AskAnswer> {
-  // A follow-up such as "and for 7 beds?" needs the words of the question before it.
-  const lastUser = history.filter((t) => t.role === "user").at(-1)?.content ?? "";
-  let items = rank(docs, question);
-  if (!items.length && lastUser) items = rank(docs, `${lastUser} ${question}`);
-  if (!items.length) return { answer: NO_MATCH, citations: [], related: [], ai: null };
-  const out = await aiText(env, companyId, userId, {
-    system: systemPrompt(s, items),
-    messages: [...history, { role: "user", content: question }],
-    maxTokens: 700
-  });
-  const r = citationsOf(out.text || "The AI gave no answer. Try again.", items);
-  return { ...r, ai: { provider: out.provider, model: out.model, source: out.source } };
+/** Runs one Ask turn and streams it as AG-UI events. */
+export function askStream(env: Env, companyId: string, userId: string, s: Settings, input: ReturnType<typeof readRunInput>, waitUntil: (p: Promise<unknown>) => void): Response {
+  const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
+  const writer = writable.getWriter();
+  const enc = new TextEncoder();
+  const send = (e: AguiEvent) => writer.write(enc.encode(encodeSse(e)));
+  const { threadId, runId } = input;
+
+  const run = async () => {
+    try {
+      await send({ type: EventType.RUN_STARTED, threadId, runId });
+      await send({ type: EventType.STEP_STARTED, stepName: "search" });
+      const chunks = await publishedChunks(env, input.resourceId ?? undefined);
+      // A follow-up such as "and for new staff?" needs the words of the question before it.
+      const lastUser = input.history.filter((t) => t.role === "user").at(-1)?.content ?? "";
+      let picked = rankChunks(chunks, input.question);
+      if (!picked.length && lastUser) picked = rankChunks(chunks, `${lastUser} ${input.question}`);
+      // "Ask about this" with no word match still reads the start of that one resource.
+      if (!picked.length && input.resourceId) picked = chunks.slice(0, ASK_CHUNKS);
+      const groups = groupByResource(picked);
+      const searched: AskSearched = { searched: new Set(chunks.map((c) => c.resourceId)).size, read: groups.length };
+      await send({ type: EventType.CUSTOM, name: ASK_EVENT.searched, value: searched });
+      await send({ type: EventType.STEP_FINISHED, stepName: "search" });
+
+      let answer = NO_MATCH;
+      let cites: AskCitations = { citations: [], related: [], ai: null };
+      if (groups.length) {
+        await send({ type: EventType.STEP_STARTED, stepName: "answer" });
+        const out = await aiText(env, companyId, userId, {
+          system: systemPrompt(s, groups),
+          messages: [...input.history, { role: "user", content: input.question }],
+          maxTokens: 700
+        });
+        const r = citationsOf(out.text || "The AI gave no answer. Try again.", groups);
+        answer = r.answer;
+        cites = { citations: r.citations, related: r.related, ai: { provider: out.provider, model: out.model, source: out.source } };
+        await send({ type: EventType.STEP_FINISHED, stepName: "answer" });
+      }
+      const messageId = newId();
+      await send({ type: EventType.TEXT_MESSAGE_START, messageId, role: "assistant" });
+      await send({ type: EventType.TEXT_MESSAGE_CONTENT, messageId, delta: answer });
+      await send({ type: EventType.TEXT_MESSAGE_END, messageId });
+      await send({ type: EventType.CUSTOM, name: ASK_EVENT.citations, value: cites });
+      await send({ type: EventType.RUN_FINISHED, threadId, runId });
+    } catch (err) {
+      const message = err instanceof HttpError ? err.message : "Something went wrong. Try again.";
+      if (!(err instanceof HttpError)) console.error(`[library] Ask failed: ${(err as Error).message}`);
+      await send({ type: EventType.RUN_ERROR, message }).catch(() => undefined);
+    } finally {
+      await writer.close().catch(() => undefined);
+    }
+  };
+  waitUntil(run());
+  return new Response(readable, { headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache, no-transform" } });
 }

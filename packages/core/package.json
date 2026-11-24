@@ -9,6 +9,7 @@
     "./shared": "./src/shared/index.ts"
   },
   "dependencies": {
-    "hono": "^4.13.16"
+    "hono": "^4.13.16",
+    "@ag-ui/core": "^1.0.4"
   }
 }

@@ -1,471 +1,371 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Icon, Link, Notice, PageBody, SiteHeader, api, errorText } from "@openact/ui";
+import { useEffect, useMemo, useState } from "react";
+import { Icon, Link, Notice, PageBody, SiteHeader, api, errorText, navigate } from "@openact/ui";
 import { Badge } from "@openact/ui/components/badge";
 import { Button } from "@openact/ui/components/button";
-import { Checkbox } from "@openact/ui/components/checkbox";
 import { Input } from "@openact/ui/components/input";
+import { NativeSelect, NativeSelectOption } from "@openact/ui/components/native-select";
 import {
   API,
+  FORMATS,
+  FORMAT_LABEL,
+  FORMAT_PLURAL,
   HOME,
   TERM_KINDS,
-  siteOf,
+  embedUrl,
+  fileSizeLabel,
+  type Format,
   type LibraryConfig,
-  type PublishedSource,
-  type PublishedUpdate,
-  type SourceDetail,
+  type Resource,
+  type ResourceDetail,
   type Term,
-  type TermKind,
-  type UpdateDetail
+  type TermKind
 } from "../shared/rules";
-import { fmtDate, useLibrary, visibleTerms } from "./state";
-import { AskPanel } from "./Ask";
+import { FORMAT_ICON, fileUrl, fmtDate, imageUrl, resourcePath, useLibrary, visibleTerms } from "./state";
+import { AskBox } from "./Ask";
 
-/* The read pages: the sources, the updates, and one page for each. Readers see published copies only. */
+/* The read pages: the library home (Ask, filters, cards) and one page for each resource. Readers see published resources only. */
 
-type Picked = Record<TermKind, string[]>;
-const NONE: Picked = { category: [], audience: [], topic: [] };
+type Filters = { q: string; format: Format | ""; terms: Record<TermKind, string>; sort: "newest" | "title" };
 
-function query(q: string, picked: Picked): string {
+function fromUrl(): Filters {
+  const p = new URLSearchParams(location.search);
+  const f = p.get("format");
+  return {
+    q: p.get("q") ?? "",
+    format: (FORMATS as string[]).includes(f ?? "") ? (f as Format) : "",
+    terms: { type: p.get("type") ?? "", topic: p.get("topic") ?? "", audience: p.get("audience") ?? "" },
+    sort: p.get("sort") === "title" ? "title" : "newest"
+  };
+}
+
+function toQuery(f: Filters): string {
   const p = new URLSearchParams();
-  if (q.trim()) p.set("q", q.trim());
-  for (const k of TERM_KINDS) if (picked[k].length) p.set(k, picked[k].join(","));
+  if (f.q.trim()) p.set("q", f.q.trim());
+  if (f.format) p.set("format", f.format);
+  for (const k of TERM_KINDS) if (f.terms[k]) p.set(k, f.terms[k]);
+  if (f.sort !== "newest") p.set("sort", f.sort);
   const s = p.toString();
   return s ? `?${s}` : "";
 }
 
-/** The tags of an item, from the lists that are on. Hidden list items still show on the items that have them. */
-function Tags({ termIds, config, children }: { termIds: string[]; config: LibraryConfig; children?: ReactNode }) {
-  const byId = useMemo(() => new Map(config.terms.map((t) => [t.id, t])), [config.terms]);
-  const terms = termIds.map((id) => byId.get(id)).filter((t): t is Term => !!t);
-  terms.sort((a, b) => TERM_KINDS.indexOf(a.kind) - TERM_KINDS.indexOf(b.kind) || a.sortOrder - b.sortOrder);
-  if (!terms.length && !children) return null;
+const termMap = (terms: Term[]) => new Map(terms.map((t) => [t.id, t]));
+
+/** The format chips and one dropdown per list that is on. Filters live in the address, so a filtered view can be shared. */
+function FilterBar({ config, f, setF }: { config: LibraryConfig; f: Filters; setF: (f: Filters) => void }) {
+  const s = config.settings;
+  const [open, setOpen] = useState(false);
+  const lists = TERM_KINDS.filter((k) => s.lists[k].on && visibleTerms(config.terms, k).length > 0);
+  const active = (f.format ? 1 : 0) + lists.filter((k) => f.terms[k]).length;
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      {children}
-      {terms.map((t) => (
-        <Badge key={t.id} variant={t.kind === "category" ? "outline" : "secondary"} className={t.kind === "category" ? "font-semibold" : "font-normal"}>
+    <div className="grid gap-3" data-filters="">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Format">
+          {(["", ...FORMATS] as const).map((fmt) => {
+            const on = f.format === fmt;
+            return (
+              <Button
+                key={fmt || "all"}
+                type="button"
+                size="sm"
+                variant={on ? "default" : "outline"}
+                aria-pressed={on}
+                className="rounded-full"
+                onClick={() => setF({ ...f, format: fmt })}
+              >
+                {fmt && <Icon name={FORMAT_ICON[fmt]} />}
+                {fmt ? FORMAT_PLURAL[fmt] : "All"}
+              </Button>
+            );
+          })}
+        </div>
+        <span className="flex-1" />
+        <Button type="button" variant="outline" size="sm" className="md:hidden" aria-expanded={open} aria-controls="library-more-filters" onClick={() => setOpen(!open)}>
+          <Icon name="flag" />
+          {active ? `Filters (${active})` : "Filters"}
+        </Button>
+      </div>
+      <div id="library-more-filters" className={`${open ? "flex" : "hidden"} flex-wrap items-center gap-2 md:flex`}>
+        {lists.map((k) => (
+          <div key={k} className="w-[calc(50%-0.25rem)] sm:w-44">
+            <NativeSelect aria-label={s.lists[k].label} value={f.terms[k]} onChange={(e) => setF({ ...f, terms: { ...f.terms, [k]: e.target.value } })} data-filter={k}>
+              <NativeSelectOption value="">All: {s.lists[k].label}</NativeSelectOption>
+              {visibleTerms(config.terms, k).map((t) => (
+                <NativeSelectOption key={t.id} value={t.id}>
+                  {t.name}
+                </NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </div>
+        ))}
+        <div className="w-[calc(50%-0.25rem)] sm:w-32">
+          <NativeSelect aria-label="Sort" value={f.sort} onChange={(e) => setF({ ...f, sort: e.target.value === "title" ? "title" : "newest" })}>
+            <NativeSelectOption value="newest">Newest</NativeSelectOption>
+            <NativeSelectOption value="title">A to Z</NativeSelectOption>
+          </NativeSelect>
+        </div>
+        <Input type="search" aria-label="Search" placeholder="Search" value={f.q} onChange={(e) => setF({ ...f, q: e.target.value })} className="w-full sm:w-48" />
+      </div>
+    </div>
+  );
+}
+
+/** The picture of a card: the resource's image, or its format icon on a muted tile. */
+function Thumb({ r, className = "h-32", manage = false }: { r: Resource; className?: string; manage?: boolean }) {
+  const { companyId } = useLibrary();
+  const [broken, setBroken] = useState(false);
+  if (r.imageUrl && !broken)
+    return <img src={imageUrl(r, companyId, manage)} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setBroken(true)} className={`${className} w-full rounded-lg bg-muted object-cover`} />;
+  return (
+    <div className={`${className} flex w-full items-center justify-center rounded-lg bg-muted text-muted-foreground`} aria-hidden="true">
+      <Icon name={FORMAT_ICON[r.format]} size={28} />
+    </div>
+  );
+}
+
+/** Where a resource comes from, in a few words: the site, the file size, or "Written here". */
+function sourceLine(r: Resource): string {
+  if (r.format === "article") return "Written here";
+  if (r.hasFile) return `${(r.fileName.split(".").pop() ?? "File").toUpperCase()} · ${fileSizeLabel(r.fileSize)}`;
+  return r.siteName;
+}
+
+function TypeTags({ r, byId, kinds = ["type"] }: { r: Resource; byId: Map<string, Term>; kinds?: TermKind[] }) {
+  const tags = r.termIds.map((id) => byId.get(id)).filter((t): t is Term => !!t && kinds.includes(t.kind));
+  return (
+    <>
+      {tags.map((t) => (
+        <Badge key={t.id} variant={t.kind === "type" ? "outline" : "secondary"} className="font-normal">
           {t.name}
         </Badge>
       ))}
-    </div>
+    </>
   );
 }
 
-/** The title and the notice under it. */
-function Intro({ config, sub }: { config: LibraryConfig; sub?: string }) {
+function Card({ r, byId }: { r: Resource; byId: Map<string, Term> }) {
+  const topic = r.termIds.map((id) => byId.get(id)).find((t) => t?.kind === "topic");
   return (
-    <div className="grid gap-1">
-      <h2 className="text-2xl font-semibold tracking-tight">{sub ?? config.settings.title}</h2>
-      {config.settings.notice && <p className="max-w-3xl text-sm text-muted-foreground">{config.settings.notice}</p>}
-    </div>
+    <article className="flex flex-col gap-2 rounded-xl border p-3" data-resource={r.id}>
+      <Link to={resourcePath(r.id)} tabIndex={-1} aria-hidden="true">
+        <Thumb r={r} />
+      </Link>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <TypeTags r={r} byId={byId} />
+        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+          <Icon name={FORMAT_ICON[r.format]} size={13} />
+          {FORMAT_LABEL[r.format]}
+        </span>
+        {r.featured && (
+          <Badge variant="secondary" className="font-normal">
+            Featured
+          </Badge>
+        )}
+      </div>
+      <Link to={resourcePath(r.id)} className="text-[0.95rem] font-semibold leading-snug text-foreground no-underline hover:underline">
+        {r.title}
+      </Link>
+      {r.summary && <p className="line-clamp-3 text-sm text-muted-foreground">{r.summary}</p>}
+      <div className="mt-auto flex flex-wrap gap-x-3 gap-y-1 pt-1 text-xs text-muted-foreground">
+        {sourceLine(r) && <span>{sourceLine(r)}</span>}
+        <span>{fmtDate(r.publishedAt)}</span>
+        {topic && <span>{topic.name}</span>}
+      </div>
+    </article>
   );
 }
 
-/** Search and one group of boxes per list that is on. */
-function Filters({ config, q, setQ, picked, setPicked, placeholder }: {
-  config: LibraryConfig;
-  q: string;
-  setQ: (v: string) => void;
-  picked: Picked;
-  setPicked: (p: Picked) => void;
-  placeholder: string;
-}) {
-  const s = config.settings;
-  const [open, setOpen] = useState(false);
-  const count = Object.values(picked).reduce((n, v) => n + v.length, 0);
-  return (
-    <aside aria-label="Filters" className="grid content-start gap-5 md:w-56 md:shrink-0">
-      <div className="grid gap-2">
-        <label htmlFor="library-q" className="text-sm font-medium">
-          Search
-        </label>
-        <Input id="library-q" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={placeholder} />
-      </div>
-      {TERM_KINDS.some((k) => s.lists[k].on && visibleTerms(config.terms, k).length) && (
-        <Button type="button" variant="outline" className="w-fit md:hidden" aria-expanded={open} aria-controls="library-filters" onClick={() => setOpen(!open)}>
-          <Icon name="flag" />
-          {open ? "Hide filters" : count ? `Filters (${count})` : "Filters"}
-        </Button>
-      )}
-      <div id="library-filters" className={`${open ? "grid" : "hidden"} gap-5 md:grid`}>
-        {TERM_KINDS.filter((k) => s.lists[k].on).map((k) => {
-          const terms = visibleTerms(config.terms, k);
-          if (!terms.length) return null;
-          return (
-            <fieldset key={k} className="grid gap-2" data-filter={k}>
-              <legend className="mb-1 text-sm font-medium">{s.lists[k].label}</legend>
-              {terms.map((t) => {
-                const on = picked[k].includes(t.id);
-                return (
-                  <label key={t.id} className="flex min-h-7 items-center gap-2 text-sm">
-                    <Checkbox
-                      checked={on}
-                      onCheckedChange={(v) => setPicked({ ...picked, [k]: v ? [...picked[k], t.id] : picked[k].filter((x) => x !== t.id) })}
-                    />
-                    {t.name}
-                  </label>
-                );
-              })}
-            </fieldset>
-          );
-        })}
-      </div>
-    </aside>
-  );
-}
-
-/** Loads a list with filters, and loads again 250 ms after the last change. */
-function useList<T>(path: string, companyId: string | null, q: string, picked: Picked) {
-  const [items, setItems] = useState<T[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+export function HomePage() {
+  const { config, companyId, error } = useLibrary();
+  const [f, setFState] = useState<Filters>(fromUrl);
+  const [items, setItems] = useState<Resource[] | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const setF = (next: Filters) => {
+    setFState(next);
+    history.replaceState(history.state, "", HOME + toQuery(next));
+  };
   useEffect(() => {
-    if (!companyId) return;
+    if (!companyId || !config) return;
     let live = true;
     const t = setTimeout(() => {
-      api<{ items: T[] }>(`${API}/companies/${companyId}/${path}${query(q, picked)}`).then(
-        (r) => live && (setItems(r.items), setError(null)),
-        (e) => live && setError(errorText(e))
+      api<{ items: Resource[] }>(`${API}/companies/${companyId}/resources${toQuery(f)}`).then(
+        (r) => live && (setItems(r.items), setLoadError(null)),
+        (e) => live && setLoadError(errorText(e))
       );
-    }, 250);
+    }, 200);
     return () => {
       live = false;
       clearTimeout(t);
     };
-  }, [path, companyId, q, picked]);
-  return { items, error };
-}
-
-function Loading({ title }: { title: string }) {
-  const { error } = useLibrary();
-  return (
-    <>
-      <SiteHeader title={title} />
-      <PageBody>{error ? <Notice tone="error">{error}</Notice> : <p className="text-sm text-muted-foreground">Loading…</p>}</PageBody>
-    </>
-  );
-}
-
-function Empty({ children }: { children: ReactNode }) {
-  return <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">{children}</div>;
-}
-
-function SourceCard({ s, config }: { s: PublishedSource; config: LibraryConfig }) {
-  return (
-    <article className="grid gap-2 rounded-lg border p-4" data-library-source={s.id}>
-      <Tags termIds={s.termIds} config={config}>
-        {s.updatedDate && <Badge className="font-semibold">Updated {fmtDate(s.updatedDate).replace(/, \d{4}$/, "")}</Badge>}
-      </Tags>
-      <Link to={`${HOME}/sources/${s.id}`} className="text-base font-semibold hover:underline">
-        {s.title}
-      </Link>
-      {s.summary && <p className="text-sm text-muted-foreground">{s.summary}</p>}
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-        {s.sourceUrl && (
-          <a href={s.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-foreground underline-offset-4 hover:underline">
-            {siteOf(s.sourceUrl)}
-            <Icon name="external" size={13} />
-          </a>
-        )}
-        {config.settings.showLastChecked && s.lastCheckedDate && <span>Last checked {fmtDate(s.lastCheckedDate)}</span>}
-      </div>
-    </article>
-  );
-}
-
-export function SourcesPage() {
-  const { config, companyId } = useLibrary();
-  const [q, setQ] = useState("");
-  const [picked, setPicked] = useState<Picked>(NONE);
-  const { items, error } = useList<PublishedSource>("sources", companyId, q, picked);
-  if (!config) return <Loading title="Library" />;
+  }, [companyId, config, f]);
+  const byId = useMemo(() => termMap(config?.terms ?? []), [config?.terms]);
+  if (error) return <PageBody><Notice tone="error">{error}</Notice></PageBody>;
+  if (!config) return null;
   const s = config.settings;
+  const filtered = !!(f.q || f.format || Object.values(f.terms).some(Boolean));
   return (
     <>
-      <SiteHeader title={s.sourcesName} />
-      <PageBody>
-        <Intro config={config} />
-        {config.canAsk && companyId && <AskPanel config={config} companyId={companyId} />}
-        {config.canAsk && <h3 className="mt-2 text-base font-semibold">Browse {s.sourcesName.toLowerCase()}</h3>}
-        <div className="flex flex-col gap-6 md:flex-row md:items-start">
-          <Filters config={config} q={q} setQ={setQ} picked={picked} setPicked={setPicked} placeholder={`Search ${s.sourcesName.toLowerCase()}`} />
-          <section aria-label={s.sourcesName} className="grid min-w-0 flex-1 gap-3">
-            {error && <Notice tone="error">{error}</Notice>}
-            {items && (
-              <p className="text-sm text-muted-foreground" data-library-count="">
-                {items.length === 1 ? "1 item" : `${items.length} items`}
-              </p>
+      <SiteHeader title={s.title} />
+      <PageBody className="max-w-6xl">
+        <section aria-label={s.title} className="grid max-w-3xl gap-3">
+          <h1 className="text-3xl font-semibold tracking-tight">{s.title}</h1>
+          {s.intro && <p className="text-muted-foreground">{s.intro}</p>}
+          {config.canAsk && <AskBox config={config} onAsk={(q) => navigate(`${HOME}/ask?q=${encodeURIComponent(q)}`)} />}
+        </section>
+        <FilterBar config={config} f={f} setF={setF} />
+        {loadError && <Notice tone="error">{loadError}</Notice>}
+        {items && items.length === 0 && (
+          <div className="grid justify-items-start gap-2 rounded-xl border border-dashed p-6 text-sm text-muted-foreground">
+            <span>{filtered ? "No resource matches these filters." : "The library has no resources yet."}</span>
+            {filtered && (
+              <Button variant="outline" size="sm" onClick={() => setF({ q: "", format: "", terms: { type: "", topic: "", audience: "" }, sort: f.sort })}>
+                Clear the filters
+              </Button>
             )}
-            {items?.map((it) => <SourceCard key={it.id} s={it} config={config} />)}
-            {items && !items.length && (
-              <Empty>{q || Object.values(picked).some((v) => v.length) ? "Nothing matches. Change the search or the filters." : "Nothing is published yet."}</Empty>
+            {!filtered && config.canManage && (
+              <Button size="sm" asChild>
+                <Link to={`${HOME}/manage/add`}>
+                  <Icon name="plus" />
+                  Add resource
+                </Link>
+              </Button>
             )}
-          </section>
-        </div>
+          </div>
+        )}
+        {items && items.length > 0 && (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Resources">
+            {items.map((r) => (
+              <Card key={r.id} r={r} byId={byId} />
+            ))}
+          </div>
+        )}
       </PageBody>
     </>
   );
 }
 
-function UpdateFieldsView({ u, config, full = false }: { u: PublishedUpdate; config: LibraryConfig; full?: boolean }) {
-  const l = config.settings.fieldLabels;
-  const rows: [string, ReactNode][] = [];
-  if (u.whatChanged) rows.push([l.whatChanged, u.whatChanged]);
-  if (u.whoAffected) rows.push([l.whoAffected, u.whoAffected]);
-  if (u.action || u.actionDueDate)
-    rows.push([
-      l.action,
-      <>
-        {u.action}
-        {u.actionDueDate && (
-          <>
-            {u.action ? " " : ""}
-            <strong className="font-semibold">
-              {l.dueDate}: {fmtDate(u.actionDueDate)}
-            </strong>
-          </>
-        )}
-      </>
-    ]);
-  if (full)
+/** The player, the preview or the text of a resource. Shared with the manager's preview. */
+export function ResourceMedia({ r, src, manage = false }: { r: Resource; src: string; manage?: boolean }) {
+  if (r.format === "video" && (r.videoProvider === "youtube" || r.videoProvider === "vimeo")) {
     return (
-      <div className="grid gap-5">
-        {rows.map(([k, v]) => (
-          <section key={k} className="grid gap-1.5">
-            <h3 className="text-base font-semibold">{k}</h3>
-            <p className="whitespace-pre-line text-[0.95rem] leading-relaxed">{v}</p>
-          </section>
-        ))}
+      <div className="aspect-video overflow-hidden rounded-xl bg-muted">
+        <iframe
+          src={embedUrl(r.videoProvider, r.videoRef)}
+          title={r.title}
+          className="size-full"
+          allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+          referrerPolicy="strict-origin-when-cross-origin"
+          sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
+          loading="lazy"
+        />
       </div>
     );
-  return (
-    <dl className="grid gap-x-4 gap-y-1.5 text-sm sm:grid-cols-[minmax(7rem,max-content)_1fr]">
-      {rows.map(([k, v]) => (
-        <div key={k} className="contents">
-          <dt className="font-medium text-muted-foreground">{k}</dt>
-          <dd className="line-clamp-3">{v}</dd>
-        </div>
-      ))}
-    </dl>
-  );
+  }
+  if (r.format === "video" && r.hasFile) return <video controls preload="metadata" src={src} className="aspect-video w-full rounded-xl bg-muted" />;
+  if (r.format === "document" && r.hasFile && r.fileType === "application/pdf")
+    return <iframe src={src} title={r.title} className="h-[70vh] w-full rounded-xl border bg-muted" />;
+  if (r.format !== "article" && r.imageUrl) return <Thumb r={r} className="max-h-80" manage={manage} />;
+  return null;
 }
 
-function UpdateCard({ u, config }: { u: PublishedUpdate; config: LibraryConfig }) {
-  return (
-    <article className={`grid gap-3 rounded-lg border p-4 ${u.isNew ? "border-primary/30" : ""}`} data-library-update={u.id}>
-      <Tags termIds={u.termIds} config={config}>
-        {u.isNew && <Badge className="font-semibold">New</Badge>}
-        {u.publishedDate && <span className="text-sm text-muted-foreground">{fmtDate(u.publishedDate)}</span>}
-      </Tags>
-      <Link to={`${HOME}/updates/${u.id}`} className="text-base font-semibold hover:underline">
-        {u.title}
-      </Link>
-      <UpdateFieldsView u={u} config={config} />
-      {u.sourceUrl && (
-        <a href={u.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex w-fit items-center gap-1 text-sm underline-offset-4 hover:underline">
-          {siteOf(u.sourceUrl)}
-          <Icon name="external" size={13} />
-        </a>
-      )}
-    </article>
-  );
-}
-
-export function UpdatesPage() {
+export function ResourcePage({ id }: { id: string }) {
   const { config, companyId } = useLibrary();
-  const [q, setQ] = useState("");
-  const [picked, setPicked] = useState<Picked>(NONE);
-  const { items, error } = useList<PublishedUpdate>("updates", companyId, q, picked);
-  if (!config) return <Loading title="Updates" />;
-  const s = config.settings;
-  const fresh = items?.filter((u) => u.isNew) ?? [];
-  const older = items?.filter((u) => !u.isNew) ?? [];
-  return (
-    <>
-      <SiteHeader title={s.updatesName} />
-      <PageBody>
-        <Intro config={config} sub={s.updatesName} />
-        <div className="flex flex-col gap-6 md:flex-row md:items-start">
-          <Filters config={config} q={q} setQ={setQ} picked={picked} setPicked={setPicked} placeholder={`Search ${s.updatesName.toLowerCase()}`} />
-          <section aria-label={s.updatesName} className="grid min-w-0 flex-1 gap-3">
-            {error && <Notice tone="error">{error}</Notice>}
-            {fresh.length > 0 && <h3 className="text-sm font-medium text-muted-foreground">New in the last {s.newDays} days</h3>}
-            {fresh.map((u) => <UpdateCard key={u.id} u={u} config={config} />)}
-            {older.length > 0 && fresh.length > 0 && <h3 className="mt-2 text-sm font-medium text-muted-foreground">Earlier</h3>}
-            {older.map((u) => <UpdateCard key={u.id} u={u} config={config} />)}
-            {items && !items.length && (
-              <Empty>{q || Object.values(picked).some((v) => v.length) ? "Nothing matches. Change the search or the filters." : "Nothing is published yet."}</Empty>
-            )}
-          </section>
-        </div>
-      </PageBody>
-    </>
-  );
-}
-
-function useDetail<T>(path: string) {
-  const { config, companyId } = useLibrary();
-  const [data, setData] = useState<T | null>(null);
+  const [d, setD] = useState<ResourceDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     if (!companyId) return;
-    setData(null);
-    api<T>(`${API}/companies/${companyId}/${path}`).then(setData, (e) => setError(errorText(e)));
-  }, [companyId, path]);
-  return { config, data, error };
-}
-
-function DetailShell({ back, backLabel, title, config, error, children, aside }: {
-  back: string;
-  backLabel: string;
-  title: string;
-  config: LibraryConfig | null;
-  error: string | null;
-  children?: ReactNode;
-  aside?: ReactNode;
-}) {
+    setD(null);
+    api<ResourceDetail>(`${API}/companies/${companyId}/resources/${id}`).then(setD, (e) => setError(errorText(e)));
+  }, [companyId, id]);
+  const byId = useMemo(() => termMap(config?.terms ?? []), [config?.terms]);
+  if (!config) return null;
+  const r = d?.item;
+  const src = r ? fileUrl(r, companyId) : "";
   return (
     <>
       <SiteHeader
         title={
-          <span className="flex items-center gap-2">
-            <Link to={back} className="text-muted-foreground hover:text-foreground">
-              {backLabel}
+          <span className="flex min-w-0 items-center gap-2">
+            <Link to={HOME} className="text-muted-foreground no-underline hover:text-foreground">
+              {config.settings.title}
             </Link>
             <span aria-hidden="true" className="text-muted-foreground">
               /
             </span>
-            <span className="truncate">{title}</span>
+            <span className="truncate">{r?.title ?? ""}</span>
           </span>
         }
-      />
-      <PageBody>
+      >
+        {config.canManage && r && (
+          <Button variant="outline" size="sm" className="ml-auto" asChild>
+            <Link to={`${HOME}/manage/r/${r.id}`}>
+              <Icon name="pencil" />
+              Edit
+            </Link>
+          </Button>
+        )}
+      </SiteHeader>
+      <PageBody className="max-w-6xl">
         {error && <Notice tone="error">{error}</Notice>}
-        {!error && !children && <p className="text-sm text-muted-foreground">Loading…</p>}
-        {children && config && (
-          <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
-            <article className="grid min-w-0 max-w-3xl flex-1 gap-6">{children}</article>
-            <aside className="grid gap-4 lg:w-72 lg:shrink-0">{aside}</aside>
+        {r && (
+          <div className="flex flex-wrap gap-8">
+            <article className="grid min-w-0 flex-[999_1_32rem] content-start gap-4">
+              <ResourceMedia r={r} src={src} />
+              <div className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
+                <TypeTags r={r} byId={byId} kinds={["type", "topic", "audience"]} />
+                <span className="inline-flex items-center gap-1">
+                  <Icon name={FORMAT_ICON[r.format]} size={14} />
+                  {[sourceLine(r), fmtDate(r.publishedAt)].filter(Boolean).join(" · ")}
+                </span>
+              </div>
+              <h1 className="text-2xl font-semibold leading-tight tracking-tight">{r.title}</h1>
+              {r.summary && <p className="text-[0.95rem] leading-relaxed">{r.summary}</p>}
+              {r.body && <div className="grid gap-3 whitespace-pre-line text-[0.95rem] leading-relaxed">{r.body}</div>}
+              <div className="flex flex-wrap gap-2">
+                {config.canAsk && (
+                  <Button variant="outline" asChild>
+                    <Link to={`${HOME}/ask?r=${encodeURIComponent(r.id)}&t=${encodeURIComponent(r.title)}`}>
+                      <Icon name="sparkle" />
+                      Ask about this {FORMAT_LABEL[r.format].toLowerCase()}
+                    </Link>
+                  </Button>
+                )}
+                {r.hasFile && (
+                  <Button variant="outline" asChild>
+                    <a href={src} target="_blank" rel="noreferrer">
+                      <Icon name="download" />
+                      Open the file
+                    </a>
+                  </Button>
+                )}
+                {r.sourceUrl && (
+                  <Button variant="ghost" asChild>
+                    <a href={r.sourceUrl} target="_blank" rel="noreferrer">
+                      <Icon name="external" />
+                      Open on {r.siteName || "the site"}
+                    </a>
+                  </Button>
+                )}
+              </div>
+            </article>
+            {d.related.length > 0 && (
+              <aside className="grid flex-[1_1_16rem] content-start gap-3 lg:max-w-xs" aria-label="Related">
+                <span className="text-sm font-medium text-muted-foreground">Related</span>
+                {d.related.map((x) => (
+                  <Link key={x.id} to={resourcePath(x.id)} className="flex items-center gap-3 rounded-lg border p-2.5 text-foreground no-underline hover:bg-accent">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted">
+                      <Icon name={FORMAT_ICON[x.format]} size={16} />
+                    </span>
+                    <span className="grid min-w-0 gap-0.5">
+                      <span className="line-clamp-2 text-sm font-medium">{x.title}</span>
+                      <span className="text-xs text-muted-foreground">{FORMAT_LABEL[x.format]}</span>
+                    </span>
+                  </Link>
+                ))}
+              </aside>
+            )}
           </div>
         )}
-        {config?.settings.notice && children && <p className="max-w-3xl text-xs text-muted-foreground">{config.settings.notice}</p>}
       </PageBody>
     </>
-  );
-}
-
-function Panel({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="grid gap-2 rounded-lg border p-4 text-sm">
-      <h3 className="font-semibold">{title}</h3>
-      {children}
-    </section>
-  );
-}
-
-function OfficialLink({ url }: { url: string }) {
-  return (
-    <Button asChild variant="outline" className="w-fit">
-      <a href={url} target="_blank" rel="noreferrer">
-        <Icon name="external" />
-        Open the source ({siteOf(url)})
-      </a>
-    </Button>
-  );
-}
-
-export function SourcePage({ id }: { id: string }) {
-  const { config, data, error } = useDetail<SourceDetail>(`sources/${encodeURIComponent(id)}`);
-  const s = data?.item;
-  return (
-    <DetailShell
-      back={HOME}
-      backLabel={config?.settings.sourcesName ?? "Sources"}
-      title={s?.title ?? ""}
-      config={config}
-      error={error}
-      aside={
-        s &&
-        config && (
-          <>
-            {data!.updates.length > 0 && (
-              <Panel title={config.settings.updatesName}>
-                {data!.updates.map((u) => (
-                  <Link key={u.id} to={`${HOME}/updates/${u.id}`} className="underline-offset-4 hover:underline">
-                    {u.title}
-                    {u.publishedDate && <span className="text-muted-foreground"> · {fmtDate(u.publishedDate)}</span>}
-                  </Link>
-                ))}
-              </Panel>
-            )}
-            <Panel title="About this item">
-              <span className="text-muted-foreground">Version {s.version}</span>
-              {config.settings.showLastChecked && s.lastCheckedDate && <span className="text-muted-foreground">Last checked {fmtDate(s.lastCheckedDate)}</span>}
-            </Panel>
-          </>
-        )
-      }
-    >
-      {s && config && (
-        <>
-          <div className="grid gap-3">
-            <Tags termIds={s.termIds} config={config}>
-              {s.updatedDate && <Badge className="font-semibold">Updated</Badge>}
-            </Tags>
-            <h2 className="text-2xl font-semibold leading-tight tracking-tight">{s.title}</h2>
-            {s.citation && <p className="text-sm text-muted-foreground">{s.citation}</p>}
-          </div>
-          {s.summary && <p className="text-base font-medium">{s.summary}</p>}
-          {s.details && <p className="whitespace-pre-line leading-relaxed">{s.details}</p>}
-          {s.sourceUrl && <OfficialLink url={s.sourceUrl} />}
-        </>
-      )}
-    </DetailShell>
-  );
-}
-
-export function UpdatePage({ id }: { id: string }) {
-  const { config, data, error } = useDetail<UpdateDetail>(`updates/${encodeURIComponent(id)}`);
-  const u = data?.item;
-  return (
-    <DetailShell
-      back={`${HOME}/updates`}
-      backLabel={config?.settings.updatesName ?? "Updates"}
-      title={u?.title ?? ""}
-      config={config}
-      error={error}
-      aside={
-        u &&
-        config && (
-          <>
-            {data!.sources.length > 0 && (
-              <Panel title={`${config.settings.sourcesName} it changes`}>
-                {data!.sources.map((s) => (
-                  <Link key={s.id} to={`${HOME}/sources/${s.id}`} className="underline-offset-4 hover:underline">
-                    {s.title}
-                  </Link>
-                ))}
-              </Panel>
-            )}
-            <Panel title="About this item">
-              <span className="text-muted-foreground">Version {u.version}</span>
-            </Panel>
-          </>
-        )
-      }
-    >
-      {u && config && (
-        <>
-          <div className="grid gap-3">
-            <Tags termIds={u.termIds} config={config}>
-              {u.isNew && <Badge className="font-semibold">New</Badge>}
-            </Tags>
-            <h2 className="text-2xl font-semibold leading-tight tracking-tight">{u.title}</h2>
-            {u.publishedDate && <p className="text-sm text-muted-foreground">Published {fmtDate(u.publishedDate)}</p>}
-          </div>
-          <UpdateFieldsView u={u} config={config} full />
-          {u.sourceUrl && <OfficialLink url={u.sourceUrl} />}
-        </>
-      )}
-    </DetailShell>
   );
 }

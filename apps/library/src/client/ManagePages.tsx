@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Field, Icon, Link, Notice, PageBody, SiteHeader, api, errorText, navigate, useToast } from "@openact/ui";
 import { Badge } from "@openact/ui/components/badge";
 import { Button } from "@openact/ui/components/button";
@@ -9,157 +9,187 @@ import { Switch } from "@openact/ui/components/switch";
 import { Textarea } from "@openact/ui/components/textarea";
 import {
   API,
-  EMPTY_SOURCE,
-  EMPTY_UPDATE,
+  EMPTY_FIELDS,
+  FORMATS,
+  FORMAT_LABEL,
   HOME,
-  KIND_PATH,
-  MAX_CHECKS,
+  MANAGE_TABS,
+  MANAGE_TAB_LABEL,
+  MAX_SUGGESTIONS,
+  ORIGIN_LABEL,
   STATUS_LABEL,
   TERM_KINDS,
-  kindFromPath,
-  type ItemKind,
-  type ManageItem,
-  type ManageRow,
-  type ReviewAction,
+  fileSizeLabel,
+  publishProblem,
+  type LinkPreview,
+  type ManageCounts,
+  type ManageState,
+  type ManageTab,
+  type Resource,
+  type ResourceFields,
   type Settings,
-  type SourceFields,
-  type Status,
   type Term,
-  type TermKind,
-  type UpdateFields
+  type TermKind
 } from "../shared/rules";
-import { fmtDate, localToday, reloadConfig, useLibrary, useManage } from "./state";
+import { FORMAT_ICON, ago, fileUrl, reloadConfig, resourcePath, useLibrary, useManage } from "./state";
+import { ResourceMedia } from "./ReadPages";
 
-/* The super admin pages. The server checks requireSuperAdmin on every call. The panel shows these pages to super admins only. */
+/* The manage pages, for super admins: To review and the other lists, Add resource, the editor and the settings. */
 
-const STATUS_STYLE: Record<Status, string> = {
-  draft: "bg-muted text-muted-foreground",
-  in_review: "border-warn-border bg-warn text-warn-foreground",
-  published: "bg-primary text-primary-foreground",
-  archived: "bg-muted text-muted-foreground"
-};
-
-function StatusBadge({ status, live }: { status: Status; live: number | null }) {
+function NoAccess() {
   return (
-    <span className="inline-flex flex-wrap items-center gap-1.5">
-      <Badge variant="outline" className={STATUS_STYLE[status]}>
-        {STATUS_LABEL[status]}
-      </Badge>
-      {status !== "published" && status !== "archived" && live !== null && <span className="hidden text-xs text-muted-foreground sm:inline">Readers see version {live}</span>}
-    </span>
+    <PageBody>
+      <Notice>Only a super admin of this site can manage the library.</Notice>
+    </PageBody>
   );
 }
 
-function NotAllowed({ title }: { title: string }) {
+function Origin({ r }: { r: Resource }) {
+  if (r.origin === "person") return <span className="text-muted-foreground">Person</span>;
   return (
-    <>
-      <SiteHeader title={title} />
-      <PageBody>
-        <Notice tone="info">Only super admins can manage the library.</Notice>
-      </PageBody>
-    </>
+    <Badge variant="secondary" className="font-normal">
+      {ORIGIN_LABEL[r.origin]}
+      {r.automationName ? `: ${r.automationName}` : ""}
+    </Badge>
   );
 }
 
-const FILTERS: (Status | "all")[] = ["all", "draft", "in_review", "published", "archived"];
+/* To review, Drafts, Published, Archived */
 
 export function ManagePage() {
   const { config } = useLibrary();
-  const { state, error } = useManage(!!config?.canManage);
-  const [filter, setFilter] = useState<Status | "all">("all");
-  if (config && !config.canManage) return <NotAllowed title="Manage" />;
-  const s = state?.settings;
-  const rows = state?.rows ?? [];
-  const count = (f: Status | "all") => (f === "all" ? rows.length : rows.filter((r) => r.status === f).length);
-  const shown = filter === "all" ? rows : rows.filter((r) => r.status === filter);
-  const kindName = (k: ItemKind) => (k === "source" ? s?.sourcesName : s?.updatesName) ?? k;
+  const toast = useToast();
+  const [tab, setTab] = useState<ManageTab>(() => {
+    const t = new URLSearchParams(location.search).get("tab");
+    return (MANAGE_TABS as string[]).includes(t ?? "") ? (t as ManageTab) : "review";
+  });
+  const [q, setQ] = useState("");
+  const [items, setItems] = useState<Resource[] | null>(null);
+  const [counts, setCounts] = useState<ManageCounts | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const load = () =>
+    api<{ items: Resource[]; counts: ManageCounts }>(`${API}/manage/resources?tab=${tab}&q=${encodeURIComponent(q)}`).then(
+      (r) => {
+        setItems(r.items);
+        setCounts(r.counts);
+        setError(null);
+      },
+      (e) => setError(errorText(e))
+    );
+  useEffect(() => {
+    if (!config?.canManage) return;
+    const t = setTimeout(load, q ? 200 : 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config?.canManage, tab, q]);
+
+  async function act(r: Resource, action: "publish" | "unpublish" | "archive" | "restore" | "dismiss") {
+    setBusy(r.id);
+    try {
+      if (action === "dismiss") await api(`${API}/manage/resources/${r.id}`, { method: "DELETE" });
+      else await api(`${API}/manage/resources/${r.id}/${action}`, { method: "POST" });
+      toast(action === "publish" ? `Published "${r.title}".` : action === "dismiss" ? `Dismissed "${r.title}".` : "Saved.");
+      await load();
+      reloadConfig();
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  if (!config) return null;
+  if (!config.canManage) return <NoAccess />;
   return (
     <>
-      <SiteHeader title="Manage">
-        <Button variant="outline" size="sm" asChild>
-          <Link to={`${HOME}/manage/sources/new`}>
+      <SiteHeader title="Manage the library">
+        <Button size="sm" className="ml-auto" asChild>
+          <Link to={`${HOME}/manage/add`}>
             <Icon name="plus" />
-            <span className="hidden sm:inline">Add to {s?.sourcesName ?? "Sources"}</span>
-            <span className="sm:hidden">Source</span>
-          </Link>
-        </Button>
-        <Button size="sm" asChild>
-          <Link to={`${HOME}/manage/updates/new`}>
-            <Icon name="plus" />
-            <span className="hidden sm:inline">Add to {s?.updatesName ?? "Updates"}</span>
-            <span className="sm:hidden">Update</span>
+            Add resource
           </Link>
         </Button>
       </SiteHeader>
-      <PageBody>
-        <div className="grid gap-1">
-          <h2 className="text-2xl font-semibold tracking-tight">Manage the library</h2>
-          <p className="max-w-3xl text-sm text-muted-foreground">
-            Only super admins see this page. Readers see an item only after it is published. An edit to a published item stays a draft until you publish it again.
-          </p>
+      <PageBody className="max-w-6xl">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div role="tablist" aria-label="Status" className="flex flex-wrap gap-1 rounded-lg bg-muted p-1">
+            {MANAGE_TABS.map((t) => (
+              <Button
+                key={t}
+                role="tab"
+                aria-selected={tab === t}
+                variant="ghost"
+                size="sm"
+                className={tab === t ? "bg-background shadow-sm hover:bg-background" : "text-muted-foreground"}
+                onClick={() => {
+                  setTab(t);
+                  history.replaceState(history.state, "", `${HOME}/manage?tab=${t}`);
+                }}
+              >
+                {MANAGE_TAB_LABEL[t]}
+                {counts ? ` ${counts[t]}` : ""}
+              </Button>
+            ))}
+          </div>
+          <Input type="search" aria-label="Search" placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} className="w-full sm:w-56" />
         </div>
+        {tab === "review" && <p className="text-sm text-muted-foreground">New resources from automations and AI agents wait here. Publish them, edit them, or dismiss them.</p>}
         {error && <Notice tone="error">{error}</Notice>}
-        <div role="tablist" aria-label="Status" className="flex w-fit flex-wrap gap-1 rounded-lg bg-muted p-1">
-          {FILTERS.map((f) => (
-            <button
-              key={f}
-              type="button"
-              role="tab"
-              aria-selected={filter === f}
-              onClick={() => setFilter(f)}
-              className={`min-h-9 rounded-md px-3 text-sm ${filter === f ? "bg-background font-medium shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              {f === "all" ? "All" : STATUS_LABEL[f]} {state ? count(f) : ""}
-            </button>
-          ))}
-        </div>
-        {!state && !error && <p className="text-sm text-muted-foreground">Loading…</p>}
-        {state && (
-          <div className="overflow-x-auto rounded-lg border">
-            <table className="w-full text-sm md:min-w-[44rem]" data-library-manage="">
-              <thead className="bg-muted/50 text-left text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-2.5 font-medium">Title</th>
-                  <th className="hidden px-4 py-2.5 font-medium md:table-cell">Kind</th>
-                  <th className="px-4 py-2.5 font-medium">Status</th>
-                  <th className="hidden px-4 py-2.5 font-medium md:table-cell">Last change</th>
-                  <th className="px-4 py-2.5 font-medium">
-                    <span className="sr-only">Open</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {shown.map((r: ManageRow) => (
-                  <tr key={`${r.kind}-${r.id}`} className="border-t">
-                    <td className="px-4 py-3">
-                      <div className="font-medium">{r.title}</div>
-                      <div className="text-xs text-muted-foreground md:hidden">{kindName(r.kind)}</div>
-                      {r.reviewNote && <div className="text-xs text-muted-foreground">Note: {r.reviewNote}</div>}
-                    </td>
-                    <td className="hidden px-4 py-3 md:table-cell">{kindName(r.kind)}</td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={r.status} live={r.liveVersion} />
-                    </td>
-                    <td className="hidden px-4 py-3 text-muted-foreground md:table-cell">
-                      {fmtDate(r.updatedAt)}
-                      {r.updatedByName ? ` · ${r.updatedByName}` : ""}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Link to={`${HOME}/manage/${KIND_PATH[r.kind]}/${r.id}`} className="underline-offset-4 hover:underline">
-                        {r.status === "in_review" ? "Review" : "Edit"}
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-                {!shown.length && (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">
-                      {rows.length ? "No items with this status." : "No items yet. Add a source or an update to start."}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+        {items && items.length === 0 && (
+          <p className="rounded-xl border border-dashed p-6 text-sm text-muted-foreground">
+            {q ? "Nothing matches your search." : tab === "review" ? "Nothing to review. New items from automations show up here." : `No ${MANAGE_TAB_LABEL[tab].toLowerCase()} resources.`}
+          </p>
+        )}
+        {items && items.length > 0 && (
+          <div className="overflow-hidden rounded-xl border">
+            <ul className="divide-y" aria-label={MANAGE_TAB_LABEL[tab]}>
+              {items.map((r) => (
+                <li key={r.id} className="flex flex-wrap items-center gap-3 p-3" data-manage-row={r.id}>
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted" aria-hidden="true">
+                    <Icon name={FORMAT_ICON[r.format]} size={16} />
+                  </span>
+                  <div className="grid min-w-0 flex-[1_1_16rem] gap-0.5">
+                    <Link to={`${HOME}/manage/r/${r.id}`} className="truncate font-medium text-foreground no-underline hover:underline">
+                      {r.title}
+                    </Link>
+                    <span className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+                      <span>{FORMAT_LABEL[r.format]}</span>
+                      {r.siteName && <span>{r.siteName}</span>}
+                      <span>{ago(r.updatedAt)}</span>
+                    </span>
+                  </div>
+                  <div className="text-sm">
+                    <Origin r={r} />
+                  </div>
+                  <div className="ml-auto flex flex-wrap gap-1.5">
+                    {r.status === "draft" && (
+                      <Button size="sm" disabled={busy === r.id} onClick={() => void act(r, "publish")}>
+                        Publish
+                      </Button>
+                    )}
+                    <Button size="sm" variant="outline" asChild>
+                      <Link to={`${HOME}/manage/r/${r.id}`}>Edit</Link>
+                    </Button>
+                    {tab === "review" && (
+                      <Button size="sm" variant="outline" disabled={busy === r.id} onClick={() => void act(r, "dismiss")}>
+                        Dismiss
+                      </Button>
+                    )}
+                    {r.status === "published" && (
+                      <Button size="sm" variant="ghost" disabled={busy === r.id} onClick={() => void act(r, "archive")}>
+                        Archive
+                      </Button>
+                    )}
+                    {r.status === "archived" && (
+                      <Button size="sm" variant="outline" disabled={busy === r.id} onClick={() => void act(r, "restore")}>
+                        Restore as draft
+                      </Button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
       </PageBody>
@@ -167,509 +197,457 @@ export function ManagePage() {
   );
 }
 
-/** One group of boxes per list, for the editor. Hidden items show only when the item already has them. */
-function TermPicker({ kind, settings, terms, value, onChange, single }: {
-  kind: TermKind;
-  settings: Settings;
-  terms: Term[];
-  value: string[];
-  onChange: (ids: string[]) => void;
-  single?: boolean;
-}) {
-  const list = terms.filter((t) => t.kind === kind && (!t.isHidden || value.includes(t.id))).sort((a, b) => a.sortOrder - b.sortOrder);
-  const l = settings.lists[kind];
+/* The fields of a resource */
+
+function TagPicker({ state, kind, value, onChange }: { state: ManageState; kind: TermKind; value: string[]; onChange: (ids: string[]) => void }) {
+  const list = state.settings.lists[kind];
+  const terms = state.terms.filter((t) => t.kind === kind && (!t.isHidden || value.includes(t.id))).sort((a, b) => a.sortOrder - b.sortOrder);
+  if (!list.on) return null;
   return (
-    <fieldset className="grid content-start gap-2" data-pick={kind}>
-      <legend className="mb-1 text-sm font-medium">
-        {l.label}
-        {!l.on && <span className="font-normal text-muted-foreground"> (list off)</span>}
-      </legend>
-      {!list.length && (
+    <fieldset className="grid gap-2" data-tags={kind}>
+      <legend className="mb-1 text-sm font-medium">{list.label}</legend>
+      {terms.length === 0 ? (
         <p className="text-xs text-muted-foreground">
-          No items yet. Add them in{" "}
+          The list is empty. Add values in{" "}
           <Link to={`${HOME}/manage/settings`} className="underline">
-            Lists and settings
+            Settings
           </Link>
           .
         </p>
+      ) : (
+        <div className="flex flex-wrap gap-1.5">
+          {terms.map((t) => {
+            const on = value.includes(t.id);
+            return (
+              <label
+                key={t.id}
+                className={`flex min-h-8 cursor-pointer items-center gap-2 rounded-full border px-3 text-sm ${on ? "border-primary bg-primary text-primary-foreground" : "hover:bg-accent"}`}
+              >
+                <Checkbox checked={on} onCheckedChange={(v) => onChange(v ? [...value, t.id] : value.filter((x) => x !== t.id))} className={on ? "border-primary-foreground" : ""} />
+                {t.name}
+              </label>
+            );
+          })}
+        </div>
       )}
-      {list.map((t) => {
-        const on = value.includes(t.id);
-        return (
-          <label key={t.id} className="flex min-h-7 items-center gap-2 text-sm">
-            <Checkbox
-              checked={on}
-              onCheckedChange={(v) => {
-                const rest = value.filter((x) => x !== t.id && (!single || terms.find((y) => y.id === x)?.kind !== kind));
-                onChange(v ? [...rest, t.id] : value.filter((x) => x !== t.id));
-              }}
-            />
-            {t.name}
-            {t.isHidden && <span className="text-xs text-muted-foreground">(hidden)</span>}
-          </label>
-        );
-      })}
     </fieldset>
   );
 }
 
-type AnyFields = SourceFields | UpdateFields;
-
-export function EditorPage({ kindPath, id }: { kindPath: string; id: string }) {
-  const kind = kindFromPath(kindPath);
-  const { config } = useLibrary();
-  const { state } = useManage(!!config?.canManage);
-  const toast = useToast();
-  const isNew = id === "new";
-  const [item, setItem] = useState<ManageItem | null>(null);
-  const [fields, setFields] = useState<AnyFields | null>(isNew ? (kind === "source" ? { ...EMPTY_SOURCE } : { ...EMPTY_UPDATE }) : null);
-  const [dirty, setDirty] = useState(false);
-  const [checks, setChecks] = useState<boolean[]>([]);
-  const [note, setNote] = useState("");
-  const [pubDate, setPubDate] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [problem, setProblem] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!kind || isNew) return;
-    api<ManageItem>(`${API}/manage/items/${kindPath}/${id}`).then(
-      (it) => {
-        setItem(it);
-        setFields(it.fields);
-        setDirty(false);
-      },
-      (e) => setProblem(errorText(e))
-    );
-  }, [kind, kindPath, id, isNew]);
-
-  useEffect(() => setChecks((state?.settings.checklist ?? []).map(() => false)), [state?.settings.checklist, item?.id, item?.status]);
-
-  if (!kind) return <NotAllowed title="Manage" />;
-  if (config && !config.canManage) return <NotAllowed title="Manage" />;
-  const s = state?.settings;
-  const kindName = kind === "source" ? (s?.sourcesName ?? "Sources") : (s?.updatesName ?? "Updates");
-  const set = (patch: Partial<AnyFields>) => {
-    setFields((f) => ({ ...(f as AnyFields), ...patch }) as AnyFields);
-    setDirty(true);
-  };
-
-  async function save(): Promise<ManageItem | null> {
-    if (!fields) return null;
-    setBusy(true);
-    setProblem(null);
-    try {
-      if (isNew) {
-        const it = await api<ManageItem>(`${API}/manage/items/${kindPath}`, { method: "POST", body: fields });
-        setDirty(false);
-        navigate(`${HOME}/manage/${kindPath}/${it.id}`, true);
-        return it;
-      }
-      const it = await api<ManageItem>(`${API}/manage/items/${kindPath}/${id}`, { method: "PUT", body: fields });
-      setItem(it);
-      setFields(it.fields);
-      setDirty(false);
-      return it;
-    } catch (e) {
-      setProblem(errorText(e));
-      return null;
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function act(action: ReviewAction) {
-    if (dirty && !(await save())) return;
-    setBusy(true);
-    setProblem(null);
-    try {
-      const body = action === "publish" ? { checks, publishedDate: kind === "update" ? pubDate || (fields as UpdateFields | null)?.publishedDate || localToday() : null } : action === "return" ? { note } : undefined;
-      const it = await api<ManageItem>(`${API}/manage/items/${kindPath}/${id}/${action}`, { method: "POST", body });
-      setItem(it);
-      setFields(it.fields);
-      setNote("");
-      if (action === "publish") {
-        toast(`Published version ${it.liveVersion}.`);
-        reloadConfig();
-      }
-    } catch (e) {
-      setProblem(errorText(e));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  const header = (
-    <SiteHeader
-      title={
-        <span className="flex items-center gap-2">
-          <Link to={`${HOME}/manage`} className="text-muted-foreground hover:text-foreground">
-            Manage
-          </Link>
-          <span aria-hidden="true" className="text-muted-foreground">
-            /
-          </span>
-          <span className="truncate">{isNew ? `Add to ${kindName}` : (item?.fields.title ?? "Edit")}</span>
-        </span>
-      }
-    >
-      {item && <StatusBadge status={item.status} live={item.liveVersion} />}
-      <Button size="sm" variant="outline" onClick={() => void save()} disabled={busy || !fields || (!dirty && !isNew) || item?.status === "archived"}>
-        Save draft
-      </Button>
-    </SiteHeader>
+function Fields({ state, f, set, hasFile, suggested }: { state: ManageState; f: ResourceFields; set: (f: ResourceFields) => void; hasFile: boolean; suggested: boolean }) {
+  return (
+    <div className="grid gap-5">
+      {suggested && (
+        <p className="flex items-center gap-2 text-sm text-primary">
+          <Icon name="sparkle" size={15} />
+          Filled from the link. Check each field.
+        </p>
+      )}
+      <div className="flex flex-wrap gap-4">
+        <Field label="Format" htmlFor="r-format" className="w-full sm:w-48">
+          <NativeSelect id="r-format" value={f.format} onChange={(e) => set({ ...f, format: e.target.value as ResourceFields["format"] })}>
+            {FORMATS.filter((x) => !hasFile || x === "document" || x === "video").map((x) => (
+              <NativeSelectOption key={x} value={x}>
+                {FORMAT_LABEL[x]}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+        </Field>
+        <Field label="Title" htmlFor="r-title" className="min-w-64 flex-1">
+          <Input id="r-title" value={f.title} maxLength={200} onChange={(e) => set({ ...f, title: e.target.value })} />
+        </Field>
+      </div>
+      <Field label="Summary" htmlFor="r-summary" help="Two or three sentences. Cards and Ask show it.">
+        <Textarea id="r-summary" rows={3} value={f.summary} maxLength={1000} onChange={(e) => set({ ...f, summary: e.target.value })} />
+      </Field>
+      {f.format !== "article" && (
+        <Field label={f.format === "video" ? "Video link (YouTube or Vimeo)" : hasFile ? "Link (optional)" : "Link"} htmlFor="r-url">
+          <Input id="r-url" type="url" value={f.sourceUrl} placeholder="https://" onChange={(e) => set({ ...f, sourceUrl: e.target.value })} />
+        </Field>
+      )}
+      <Field
+        label={f.format === "article" ? "Article" : "Notes (optional)"}
+        htmlFor="r-body"
+        help={f.format === "article" ? "Plain text. Leave a blank line between paragraphs." : "Readers see the notes under the summary. Ask reads them too."}
+      >
+        <Textarea id="r-body" rows={f.format === "article" ? 14 : 4} value={f.body} onChange={(e) => set({ ...f, body: e.target.value })} />
+      </Field>
+      <div className="flex flex-wrap gap-4">
+        <Field label="Image link (optional)" htmlFor="r-image" className="min-w-64 flex-1">
+          <Input id="r-image" type="url" value={f.imageUrl} placeholder="https://" onChange={(e) => set({ ...f, imageUrl: e.target.value })} />
+        </Field>
+        <Field label="Site name (optional)" htmlFor="r-site" className="w-full sm:w-56">
+          <Input id="r-site" value={f.siteName} onChange={(e) => set({ ...f, siteName: e.target.value })} />
+        </Field>
+      </div>
+      {TERM_KINDS.map((k) => (
+        <TagPicker key={k} state={state} kind={k} value={f.termIds} onChange={(ids) => set({ ...f, termIds: ids })} />
+      ))}
+      <label className="flex items-center gap-3 text-sm">
+        <Switch checked={f.featured} onCheckedChange={(v) => set({ ...f, featured: v })} />
+        Feature on the library page
+      </label>
+    </div>
   );
+}
 
-  if (!fields || !s || !state)
-    return (
-      <>
-        {header}
-        <PageBody>{problem ? <Notice tone="error">{problem}</Notice> : <p className="text-sm text-muted-foreground">Loading…</p>}</PageBody>
-      </>
-    );
+const fieldsOf = (r: Resource): ResourceFields => ({
+  format: r.format,
+  title: r.title,
+  summary: r.summary,
+  body: r.body,
+  sourceUrl: r.sourceUrl,
+  imageUrl: r.imageUrl,
+  siteName: r.siteName,
+  featured: r.featured,
+  termIds: r.termIds
+});
 
-  const src = kind === "source" ? (fields as SourceFields) : null;
-  const upd = kind === "update" ? (fields as UpdateFields) : null;
-  const allSources = state.rows.filter((r) => r.kind === "source" && r.status !== "archived");
-  const linked = upd ? upd.sourceIds.map((sid) => allSources.find((r) => r.id === sid)).filter((r): r is ManageRow => !!r) : [];
-  const archived = item?.status === "archived";
-  const allTicked = checks.length === s.checklist.length && checks.every(Boolean);
+/* Add resource */
 
+export function AddPage() {
+  const { config } = useLibrary();
+  const { state, error: stateError } = useManage(!!config?.canManage);
+  const toast = useToast();
+  const [link, setLink] = useState("");
+  const [f, setF] = useState<ResourceFields | null>(null);
+  const [preview, setPreview] = useState<LinkPreview | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  async function read() {
+    if (!link.trim()) return;
+    setBusy("read");
+    setError(null);
+    try {
+      const p = await api<LinkPreview>(`${API}/manage/preview`, { body: { url: link.trim() } });
+      setPreview(p);
+      setF({ ...EMPTY_FIELDS, format: p.format, title: p.title, summary: p.summary, sourceUrl: p.sourceUrl, imageUrl: p.imageUrl, siteName: p.siteName, termIds: p.termIds });
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function upload(file: File) {
+    setBusy("upload");
+    setError(null);
+    try {
+      const form = new FormData();
+      form.set("file", file);
+      const r = await api<{ item: Resource }>(`${API}/manage/files`, { method: "POST", form });
+      toast(`Uploaded ${file.name}. Check the fields, then publish.`);
+      navigate(`${HOME}/manage/r/${r.item.id}`);
+    } catch (e) {
+      setError(errorText(e));
+      setBusy(null);
+    }
+  }
+
+  async function save(publish: boolean) {
+    if (!f) return;
+    setBusy(publish ? "publish" : "save");
+    setError(null);
+    try {
+      const r = await api<{ item: Resource }>(`${API}/manage/resources`, { body: { fields: f, publish } });
+      toast(publish ? `Published "${r.item.title}".` : `Saved "${r.item.title}" as a draft.`);
+      reloadConfig();
+      navigate(publish ? resourcePath(r.item.id) : `${HOME}/manage?tab=drafts`);
+    } catch (e) {
+      setError(errorText(e));
+      setBusy(null);
+    }
+  }
+
+  if (!config) return null;
+  if (!config.canManage) return <NoAccess />;
+  const problem = f ? publishProblem({ ...f, hasFile: false }) : null;
   return (
     <>
-      {header}
-      <PageBody>
-        {problem && <Notice tone="error">{problem}</Notice>}
-        <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
-          <form className="grid min-w-0 max-w-3xl flex-1 gap-5" onSubmit={(e) => (e.preventDefault(), void save())} data-library-editor={kind}>
-            {item && item.liveVersion !== null && item.status !== "published" && !archived && (
-              <Notice tone="info">This is a new draft of a published item. Readers see version {item.liveVersion} until you publish.</Notice>
-            )}
-            {item?.reviewNote && <Notice tone="warn">Review note: {item.reviewNote}</Notice>}
-            <fieldset disabled={archived} className="grid gap-5">
-              <Field label="Title" htmlFor="lib-title">
-                <Input id="lib-title" value={fields.title} onChange={(e) => set({ title: e.target.value })} required maxLength={200} />
-              </Field>
-              {src && (
-                <>
-                  <Field label="Citation" htmlFor="lib-cite" help="For example, 42 CFR Part 483, Subpart I.">
-                    <Input id="lib-cite" value={src.citation} onChange={(e) => set({ citation: e.target.value })} maxLength={300} />
-                  </Field>
-                  <Field label="Summary (one line)" htmlFor="lib-sum">
-                    <Input id="lib-sum" value={src.summary} onChange={(e) => set({ summary: e.target.value })} maxLength={300} />
-                  </Field>
-                  <Field label="Details" htmlFor="lib-det">
-                    <Textarea id="lib-det" rows={5} value={src.details} onChange={(e) => set({ details: e.target.value })} maxLength={4000} />
-                  </Field>
-                </>
-              )}
-              {upd && (
-                <>
-                  <Field label={s.fieldLabels.whatChanged} htmlFor="lib-what">
-                    <Textarea id="lib-what" rows={3} value={upd.whatChanged} onChange={(e) => set({ whatChanged: e.target.value })} maxLength={4000} />
-                  </Field>
-                  <Field label={s.fieldLabels.whoAffected} htmlFor="lib-who">
-                    <Textarea id="lib-who" rows={2} value={upd.whoAffected} onChange={(e) => set({ whoAffected: e.target.value })} maxLength={4000} />
-                  </Field>
-                  <div className="grid gap-4 sm:grid-cols-[1fr_12rem]">
-                    <Field label={s.fieldLabels.action} htmlFor="lib-do">
-                      <Textarea id="lib-do" rows={3} value={upd.action} onChange={(e) => set({ action: e.target.value })} maxLength={4000} />
-                    </Field>
-                    <Field label={`${s.fieldLabels.dueDate} (optional)`} htmlFor="lib-due" help="Leave it empty when the source sets no date.">
-                      <Input id="lib-due" type="date" value={upd.actionDueDate ?? ""} onChange={(e) => set({ actionDueDate: e.target.value || null })} />
-                    </Field>
-                  </div>
-                </>
-              )}
-              <div className={`grid gap-4 ${src && s.showLastChecked ? "sm:grid-cols-[1fr_12rem]" : ""}`}>
-                <Field label="Official source link" htmlFor="lib-url" help="https only.">
-                  <Input id="lib-url" type="url" value={fields.sourceUrl} onChange={(e) => set({ sourceUrl: e.target.value })} placeholder="https://" maxLength={600} />
-                </Field>
-                {src && s.showLastChecked && (
-                  <Field label="Last checked" htmlFor="lib-checked">
-                    <Input id="lib-checked" type="date" value={src.lastCheckedDate ?? ""} onChange={(e) => set({ lastCheckedDate: e.target.value || null })} />
-                  </Field>
-                )}
-              </div>
-              <div className="grid gap-5 sm:grid-cols-3">
-                {TERM_KINDS.map((k) => (
-                  <TermPicker
-                    key={k}
-                    kind={k}
-                    settings={s}
-                    terms={state.terms}
-                    value={fields.termIds}
-                    onChange={(termIds) => set({ termIds })}
-                    single={kind === "source" && k === "category"}
-                  />
-                ))}
-              </div>
-              {upd && (
-                <div className="grid gap-2">
-                  <label htmlFor="lib-link" className="text-sm font-medium">
-                    {s.sourcesName} it changes
-                  </label>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {linked.map((r) => (
-                      <span key={r.id} className="inline-flex items-center gap-1 rounded-full border py-0.5 pl-3 pr-1 text-sm">
-                        {r.title}
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="size-7 rounded-full"
-                          aria-label={`Remove ${r.title}`}
-                          onClick={() => set({ sourceIds: upd.sourceIds.filter((x) => x !== r.id) })}
-                        >
-                          <Icon name="x" size={13} />
-                        </Button>
-                      </span>
-                    ))}
-                    <NativeSelect
-                      id="lib-link"
-                      value=""
-                      onChange={(e) => e.target.value && set({ sourceIds: [...upd.sourceIds, e.target.value] })}
-                      className="w-64"
-                    >
-                      <NativeSelectOption value="">Add a source…</NativeSelectOption>
-                      {allSources
-                        .filter((r) => !upd.sourceIds.includes(r.id))
-                        .map((r) => (
-                          <NativeSelectOption key={r.id} value={r.id}>
-                            {r.title}
-                          </NativeSelectOption>
-                        ))}
-                    </NativeSelect>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Each linked source shows "Updated" for {s.newDays} days after this update is published.</p>
-                </div>
-              )}
-            </fieldset>
-            {isNew && (
-              <div>
-                <Button type="submit" disabled={busy || !fields.title.trim()}>
-                  Save draft
-                </Button>
-              </div>
-            )}
+      <SiteHeader title="Add resource" />
+      <PageBody className="max-w-4xl">
+        <h1 className="text-2xl font-semibold tracking-tight">Add resource</h1>
+        {(error || stateError) && <Notice tone="error">{error ?? stateError}</Notice>}
+        <div className="grid gap-2">
+          <label htmlFor="add-link" className="text-sm font-medium">
+            Paste a link, or upload a file
+          </label>
+          <form
+            className="flex flex-wrap items-center gap-2 rounded-xl border border-dashed bg-muted/40 p-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void read();
+            }}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              const file = e.dataTransfer.files[0];
+              if (file) void upload(file);
+            }}
+          >
+            <Input id="add-link" type="url" value={link} placeholder="https://" onChange={(e) => setLink(e.target.value)} className="min-w-64 flex-1 bg-background" />
+            <Button type="submit" disabled={!link.trim() || !!busy}>
+              {busy === "read" ? "Reading…" : "Read the link"}
+            </Button>
+            <Button type="button" variant="outline" disabled={!!busy} onClick={() => fileInput.current?.click()}>
+              <Icon name="upload" />
+              {busy === "upload" ? "Uploading…" : "Upload a file"}
+            </Button>
+            <input
+              ref={fileInput}
+              type="file"
+              className="hidden"
+              accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.md,.csv,.mp4,.webm,.mov"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void upload(file);
+              }}
+            />
           </form>
-
-          {item && (
-            <aside className="grid gap-4 lg:w-80 lg:shrink-0">
-              <ReviewPanel
-                item={item}
-                settings={s}
-                checks={checks}
-                setChecks={setChecks}
-                allTicked={allTicked}
-                note={note}
-                setNote={setNote}
-                pubDate={pubDate}
-                setPubDate={setPubDate}
-                busy={busy}
-                dirty={dirty}
-                act={act}
-              />
-              <section className="grid gap-1.5 rounded-lg border p-4 text-sm" data-library-history="">
-                <h3 className="font-semibold">History</h3>
-                {item.updatedByName && (
-                  <span className="text-muted-foreground">
-                    Last change {fmtDate(item.updatedAt)} · {item.updatedByName}
-                  </span>
-                )}
-                {item.history.map((h) => (
-                  <span key={h.version} className="text-muted-foreground">
-                    Version {h.version} published {fmtDate(h.publishedAt)}
-                    {h.publishedByName ? ` · ${h.publishedByName}` : ""}
-                  </span>
-                ))}
-                {!item.history.length && <span className="text-muted-foreground">Never published.</span>}
-              </section>
-            </aside>
-          )}
+          <p className="text-xs text-muted-foreground">
+            Documents (PDF, Word, slides, sheets) and videos up to 100 MB. A YouTube or Vimeo link plays in the page.{" "}
+            {!f && (
+              <button type="button" className="underline" onClick={() => setF({ ...EMPTY_FIELDS, format: "article" })}>
+                Or write an article.
+              </button>
+            )}
+          </p>
         </div>
+        {f && state && (
+          <div className="grid gap-5 rounded-xl border p-4 sm:p-5">
+            <Fields state={state} f={f} set={setF} hasFile={false} suggested={!!preview} />
+            <div className="flex flex-wrap items-center gap-2">
+              {!state.settings.reviewOn && (
+                <Button disabled={!!busy || !!problem} onClick={() => void save(true)}>
+                  {busy === "publish" ? "Publishing…" : "Publish"}
+                </Button>
+              )}
+              <Button variant="outline" disabled={!!busy || !f.title.trim()} onClick={() => void save(false)}>
+                {busy === "save" ? "Saving…" : "Save draft"}
+              </Button>
+              {problem && f.title && <span className="text-xs text-muted-foreground">{problem}</span>}
+              {state.settings.reviewOn && <span className="text-xs text-muted-foreground">Review before publish is on. Another manager publishes this draft.</span>}
+            </div>
+          </div>
+        )}
       </PageBody>
     </>
   );
 }
 
-function ReviewPanel(p: {
-  item: ManageItem;
-  settings: Settings;
-  checks: boolean[];
-  setChecks: (c: boolean[]) => void;
-  allTicked: boolean;
-  note: string;
-  setNote: (v: string) => void;
-  pubDate: string;
-  setPubDate: (v: string) => void;
-  busy: boolean;
-  dirty: boolean;
-  act: (a: ReviewAction) => void;
-}) {
-  const { item, settings: s } = p;
-  if (item.status === "archived")
-    return (
-      <section className="grid gap-3 rounded-lg border p-4">
-        <h3 className="text-base font-semibold">Archived</h3>
-        <p className="text-sm text-muted-foreground">Readers do not see this item. Its versions stay.</p>
-        <Button variant="outline" onClick={() => p.act("restore")} disabled={p.busy}>
-          Restore
-        </Button>
-      </section>
+/* Edit a resource */
+
+export function EditPage({ id }: { id: string }) {
+  const { config } = useLibrary();
+  const { state } = useManage(!!config?.canManage);
+  const toast = useToast();
+  const [r, setR] = useState<Resource | null>(null);
+  const [f, setF] = useState<ResourceFields | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!config?.canManage) return;
+    api<{ item: Resource }>(`${API}/manage/resources/${id}`).then(
+      (x) => {
+        setR(x.item);
+        setF(fieldsOf(x.item));
+      },
+      (e) => setError(errorText(e))
     );
-  const nothingNew = item.status === "published" && !p.dirty;
+  }, [config?.canManage, id]);
+
+  async function run(what: string, fn: () => Promise<{ item: Resource } | null>, done: string) {
+    setBusy(what);
+    setError(null);
+    try {
+      const x = await fn();
+      if (x) {
+        setR(x.item);
+        setF(fieldsOf(x.item));
+      }
+      toast(done);
+      reloadConfig();
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+  const saveFields = () => api<{ item: Resource }>(`${API}/manage/resources/${id}`, { method: "PUT", body: f });
+  const status = (action: string) => async () => {
+    await saveFields();
+    return api<{ item: Resource }>(`${API}/manage/resources/${id}/${action}`, { method: "POST" });
+  };
+
+  if (!config) return null;
+  if (!config.canManage) return <NoAccess />;
+  const dirty = !!(r && f && JSON.stringify(fieldsOf(r)) !== JSON.stringify(f));
   return (
-    <section className="grid gap-3 rounded-lg border border-warn-border bg-warn/40 p-4" data-library-review="">
-      <h3 className="text-base font-semibold">Review and publish</h3>
-      {item.status === "in_review" && item.submittedByName && <p className="text-sm text-muted-foreground">Sent for review by {item.submittedByName}.</p>}
-      {nothingNew ? (
-        <p className="text-sm text-muted-foreground">Readers see this version. Edit the item to make a new draft.</p>
-      ) : (
-        <>
-          {s.checklist.length > 0 && (
-            <fieldset className="grid gap-2 text-sm">
-              <legend className="mb-1 text-sm font-medium">Check before you publish</legend>
-              {s.checklist.map((c, i) => (
-                <label key={i} className="flex items-start gap-2">
-                  <Checkbox className="mt-0.5" checked={!!p.checks[i]} onCheckedChange={(v) => p.setChecks(p.checks.map((x, j) => (j === i ? !!v : x)))} />
-                  {c}
-                </label>
-              ))}
-            </fieldset>
-          )}
-          {item.kind === "update" && (
-            <Field label="Published date" htmlFor="lib-pub" help="Empty: today, or the date already set.">
-              <Input id="lib-pub" type="date" value={p.pubDate || ((item.fields as UpdateFields).publishedDate ?? "")} onChange={(e) => p.setPubDate(e.target.value)} />
-            </Field>
-          )}
-          {item.publishBlock && !p.dirty && <p className="text-sm text-muted-foreground">{item.publishBlock}</p>}
-          <div className="flex flex-wrap gap-2">
-            {item.status === "draft" && (
-              <Button variant="outline" onClick={() => p.act("submit")} disabled={p.busy}>
-                Send for review
-              </Button>
-            )}
-            <Button onClick={() => p.act("publish")} disabled={p.busy || !p.allTicked || (!item.canPublish && !p.dirty)}>
-              Publish version {(item.liveVersion ?? 0) + 1}
-            </Button>
-          </div>
-          {item.status === "in_review" && (
-            <div className="grid gap-2">
-              <label htmlFor="lib-note" className="text-sm font-medium">
-                Note to the writer
-              </label>
-              <Textarea id="lib-note" rows={2} value={p.note} onChange={(e) => p.setNote(e.target.value)} placeholder="What to fix" maxLength={300} />
-              <Button variant="outline" onClick={() => p.act("return")} disabled={p.busy || !p.note.trim()}>
-                Send back to draft
-              </Button>
+    <>
+      <SiteHeader
+        title={
+          <span className="flex min-w-0 items-center gap-2">
+            <Link to={`${HOME}/manage`} className="text-muted-foreground no-underline hover:text-foreground">
+              Manage
+            </Link>
+            <span aria-hidden="true" className="text-muted-foreground">
+              /
+            </span>
+            <span className="truncate">{r?.title ?? ""}</span>
+          </span>
+        }
+      >
+        {r?.status === "published" && (
+          <Button variant="outline" size="sm" className="ml-auto" asChild>
+            <Link to={resourcePath(r.id)}>View</Link>
+          </Button>
+        )}
+      </SiteHeader>
+      <PageBody className="max-w-4xl">
+        {error && <Notice tone="error">{error}</Notice>}
+        {r && f && state && (
+          <>
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <Badge variant={r.status === "published" ? "default" : "secondary"}>{STATUS_LABEL[r.status]}</Badge>
+              <Origin r={r} />
+              <span className="text-muted-foreground">Changed {ago(r.updatedAt)}</span>
+              {r.hasFile && (
+                <a href={fileUrl(r, null, true)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-muted-foreground underline-offset-4 hover:underline">
+                  <Icon name="clip" size={14} />
+                  {r.fileName} · {fileSizeLabel(r.fileSize)}
+                </a>
+              )}
             </div>
-          )}
-          <p className="text-xs text-muted-foreground">
-            {s.requireSecondReviewer
-              ? "This site needs a second reviewer: a different super admin must publish."
-              : "Publish turns on when every check is ticked."}
-          </p>
-        </>
-      )}
-      <Button variant="ghost" className="w-fit" onClick={() => p.act("archive")} disabled={p.busy}>
-        <Icon name="archive" />
-        Archive
-      </Button>
-    </section>
+            <ResourceMedia r={r} src={fileUrl(r, null, true)} manage />
+            <div className="grid gap-5 rounded-xl border p-4 sm:p-5">
+              <Fields state={state} f={f} set={setF} hasFile={r.hasFile} suggested={false} />
+              <div className="flex flex-wrap items-center gap-2">
+                {r.status !== "published" && (
+                  <Button disabled={!!busy} onClick={() => void run("publish", status("publish"), `Published "${f.title}".`)}>
+                    {busy === "publish" ? "Publishing…" : "Publish"}
+                  </Button>
+                )}
+                <Button variant={r.status === "published" ? "default" : "outline"} disabled={!!busy || !dirty} onClick={() => void run("save", saveFields, "Saved.")}>
+                  {busy === "save" ? "Saving…" : r.status === "published" ? "Save changes" : "Save draft"}
+                </Button>
+                {r.status === "published" && (
+                  <Button variant="outline" disabled={!!busy} onClick={() => void run("unpublish", status("unpublish"), "Moved back to drafts.")}>
+                    Unpublish
+                  </Button>
+                )}
+                {r.status !== "archived" ? (
+                  <Button variant="ghost" disabled={!!busy} onClick={() => void run("archive", status("archive"), "Archived.")}>
+                    Archive
+                  </Button>
+                ) : (
+                  <Button variant="outline" disabled={!!busy} onClick={() => void run("restore", status("restore"), "Restored as a draft.")}>
+                    Restore as draft
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  className="ml-auto text-destructive hover:text-destructive"
+                  disabled={!!busy}
+                  onClick={() => {
+                    if (!confirm(`Delete "${r.title}"? This cannot be undone.`)) return;
+                    void api(`${API}/manage/resources/${r.id}`, { method: "DELETE" }).then(
+                      () => {
+                        toast("Deleted.");
+                        reloadConfig();
+                        navigate(`${HOME}/manage`);
+                      },
+                      (e) => setError(errorText(e))
+                    );
+                  }}
+                >
+                  <Icon name="trash" />
+                  Delete
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
+      </PageBody>
+    </>
   );
 }
 
-/* Lists and settings */
+/* Settings */
 
-function ListCard({ kind, settings, setSettings, terms, onChanged }: {
-  kind: TermKind;
-  settings: Settings;
-  setSettings: (s: Settings) => void;
-  terms: Term[];
-  onChanged: (terms: Term[]) => void;
-}) {
+function ListCard({ state, kind, settings, setSettings, onTerms }: { state: ManageState; kind: TermKind; settings: Settings; setSettings: (s: Settings) => void; onTerms: (t: Term[]) => void }) {
   const toast = useToast();
   const [name, setName] = useState("");
-  const [problem, setProblem] = useState<string | null>(null);
-  const list = terms.filter((t) => t.kind === kind).sort((a, b) => a.sortOrder - b.sortOrder);
-  const l = settings.lists[kind];
-
-  async function patch(id: string, body: Record<string, unknown>) {
-    setProblem(null);
+  const [error, setError] = useState<string | null>(null);
+  const list = settings.lists[kind];
+  const terms = state.terms.filter((t) => t.kind === kind).sort((a, b) => a.sortOrder - b.sortOrder);
+  const change = async (id: string, body: Record<string, unknown>) => {
+    setError(null);
     try {
       const r = await api<{ terms: Term[] }>(`${API}/manage/terms/${id}`, { method: "PATCH", body });
-      onChanged(r.terms);
+      onTerms(r.terms);
     } catch (e) {
-      setProblem(errorText(e));
+      setError(errorText(e));
     }
-  }
-  async function add() {
-    if (!name.trim()) return;
-    setProblem(null);
-    try {
-      const r = await api<{ term: Term }>(`${API}/manage/terms`, { method: "POST", body: { kind, name } });
-      onChanged([...terms, r.term]);
-      setName("");
-      toast(`Added ${r.term.name}.`);
-    } catch (e) {
-      setProblem(errorText(e));
-    }
-  }
-
+  };
   return (
-    <section className="grid content-start gap-3 rounded-lg border p-4" data-library-list={kind}>
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-xs text-muted-foreground">List: {kind}</span>
-        <label className="flex items-center gap-2 text-sm">
-          <Switch checked={l.on} onCheckedChange={(on) => setSettings({ ...settings, lists: { ...settings.lists, [kind]: { ...l, on } } })} />
+    <section className="grid flex-[1_1_18rem] content-start gap-3 rounded-xl border p-4" data-list={kind}>
+      <div className="flex items-end gap-3">
+        <Field label="List label" htmlFor={`l-${kind}`} className="flex-1">
+          <Input id={`l-${kind}`} value={list.label} maxLength={40} onChange={(e) => setSettings({ ...settings, lists: { ...settings.lists, [kind]: { ...list, label: e.target.value } } })} />
+        </Field>
+        <label className="flex h-9 items-center gap-2 text-sm">
+          <Switch checked={list.on} onCheckedChange={(v) => setSettings({ ...settings, lists: { ...settings.lists, [kind]: { ...list, on: v } } })} />
           On
         </label>
       </div>
-      <Field label="Label readers see" htmlFor={`lib-label-${kind}`}>
-        <Input
-          id={`lib-label-${kind}`}
-          value={l.label}
-          maxLength={40}
-          onChange={(e) => setSettings({ ...settings, lists: { ...settings.lists, [kind]: { ...l, label: e.target.value } } })}
-        />
-      </Field>
-      {problem && <Notice tone="error">{problem}</Notice>}
-      <ul className="divide-y rounded-md border text-sm">
-        {list.map((t, i) => (
-          <li key={t.id} className="flex items-center gap-1 py-1 pl-1 pr-1">
-            <Input
-              aria-label={`Name of ${t.name}`}
-              defaultValue={t.name}
-              maxLength={60}
-              className={`h-8 border-transparent shadow-none ${t.isHidden ? "text-muted-foreground" : ""}`}
-              onBlur={(e) => e.target.value.trim() && e.target.value.trim() !== t.name && void patch(t.id, { name: e.target.value })}
-            />
-            <Button variant="ghost" size="icon" className="size-8 shrink-0" aria-label={`Move ${t.name} up`} disabled={i === 0} onClick={() => void patch(t.id, { move: "up" })}>
-              <Icon name="chevron" className="rotate-180" size={14} />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-8 shrink-0"
-              aria-label={`Move ${t.name} down`}
-              disabled={i === list.length - 1}
-              onClick={() => void patch(t.id, { move: "down" })}
-            >
-              <Icon name="chevron" size={14} />
-            </Button>
-            <Button variant="ghost" size="sm" className="h-8 shrink-0 px-2 text-xs" onClick={() => void patch(t.id, { isHidden: !t.isHidden })}>
-              {t.isHidden ? "Show" : "Hide"}
-            </Button>
-          </li>
-        ))}
-        {!list.length && <li className="px-3 py-2 text-muted-foreground">No items yet.</li>}
-      </ul>
-      <form className="flex gap-2" onSubmit={(e) => (e.preventDefault(), void add())}>
-        <label htmlFor={`lib-add-${kind}`} className="sr-only">
-          New item for {l.label}
-        </label>
-        <Input id={`lib-add-${kind}`} value={name} onChange={(e) => setName(e.target.value)} placeholder="New item" maxLength={60} />
+      {error && <Notice tone="error">{error}</Notice>}
+      {terms.length > 0 && (
+        <ul className="divide-y rounded-lg border text-sm">
+          {terms.map((t, i) => (
+            <li key={t.id} className="flex items-center gap-1 py-1 pl-3 pr-1">
+              <span className={`flex-1 truncate ${t.isHidden ? "text-muted-foreground" : ""}`}>{t.name}</span>
+              {t.isHidden && (
+                <Badge variant="secondary" className="font-normal">
+                  Hidden
+                </Badge>
+              )}
+              <Button variant="ghost" size="icon-sm" aria-label={`Move ${t.name} up`} disabled={i === 0} onClick={() => void change(t.id, { move: "up" })}>
+                <Icon name="chevron" className="rotate-180" />
+              </Button>
+              <Button variant="ghost" size="icon-sm" aria-label={`Rename ${t.name}`} onClick={() => {
+                const next = prompt(`New name for "${t.name}"`, t.name);
+                if (next && next.trim() !== t.name) void change(t.id, { name: next });
+              }}>
+                <Icon name="pencil" />
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => void change(t.id, { isHidden: !t.isHidden })}>
+                {t.isHidden ? "Show" : "Hide"}
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <form
+        className="flex gap-2"
+        onSubmit={async (e) => {
+          e.preventDefault();
+          if (!name.trim()) return;
+          setError(null);
+          try {
+            const r = await api<{ term: Term }>(`${API}/manage/terms`, { body: { kind, name } });
+            onTerms([...state.terms, r.term]);
+            setName("");
+            toast(`Added ${r.term.name}.`);
+          } catch (err) {
+            setError(errorText(err));
+          }
+        }}
+      >
+        <Input aria-label={`New value for ${list.label}`} placeholder="New value" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} />
         <Button type="submit" variant="outline" disabled={!name.trim()}>
+          <Icon name="plus" />
           Add
         </Button>
       </form>
@@ -677,198 +655,118 @@ function ListCard({ kind, settings, setSettings, terms, onChanged }: {
   );
 }
 
-function Toggle({ id, title, help, checked, onChange }: { id: string; title: string; help: string; checked: boolean; onChange: (v: boolean) => void }) {
+function SwitchRow({ title, help, checked, onChange }: { title: string; help: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
-    <div className="flex items-start justify-between gap-4 rounded-lg border p-4">
-      <label htmlFor={id} className="grid gap-1 text-sm">
+    <label className="flex items-start justify-between gap-4 rounded-xl border p-4 text-sm">
+      <span className="grid gap-1">
         <span className="font-medium">{title}</span>
         <span className="text-muted-foreground">{help}</span>
-      </label>
-      <Switch id={id} checked={checked} onCheckedChange={onChange} />
-    </div>
-  );
-}
-
-function Group({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="grid gap-4">
-      <h3 className="text-base font-semibold">{title}</h3>
-      {children}
-    </section>
+      </span>
+      <Switch checked={checked} onCheckedChange={onChange} />
+    </label>
   );
 }
 
 export function SettingsPage() {
   const { config } = useLibrary();
-  const { state, setState, error } = useManage(!!config?.canManage);
+  const { state, setState, error: loadError } = useManage(!!config?.canManage);
   const toast = useToast();
-  const [draft, setDraft] = useState<Settings | null>(null);
+  const [s, setS] = useState<Settings | null>(null);
   const [busy, setBusy] = useState(false);
-  const [problem, setProblem] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   useEffect(() => {
-    if (state && !draft) setDraft(structuredClone(state.settings));
-  }, [state, draft]);
-  const changed = useMemo(() => !!draft && !!state && JSON.stringify(draft) !== JSON.stringify(state.settings), [draft, state]);
-  if (config && !config.canManage) return <NotAllowed title="Lists and settings" />;
-
-  async function save() {
-    if (!draft) return;
+    if (state && !s) setS(state.settings);
+  }, [state, s]);
+  if (!config) return null;
+  if (!config.canManage) return <NoAccess />;
+  const save = async () => {
+    if (!s) return;
     setBusy(true);
-    setProblem(null);
+    setError(null);
     try {
-      const next = await api<NonNullable<typeof state>>(`${API}/manage/settings`, { method: "PUT", body: draft });
+      const next = await api<ManageState>(`${API}/manage/settings`, { method: "PUT", body: s });
       setState(next);
-      setDraft(structuredClone(next.settings));
+      setS(next.settings);
       reloadConfig();
       toast("Settings saved.");
     } catch (e) {
-      setProblem(errorText(e));
+      setError(errorText(e));
     } finally {
       setBusy(false);
     }
-  }
-
-  const header = (
-    <SiteHeader title="Lists and settings">
-      <Button size="sm" onClick={() => void save()} disabled={busy || !changed}>
-        Save
-      </Button>
-    </SiteHeader>
-  );
-  if (!state || !draft)
-    return (
-      <>
-        {header}
-        <PageBody>{error ? <Notice tone="error">{error}</Notice> : <p className="text-sm text-muted-foreground">Loading…</p>}</PageBody>
-      </>
-    );
-  const d = draft;
-  const set = (patch: Partial<Settings>) => setDraft({ ...d, ...patch });
-  const label = (k: keyof Settings["fieldLabels"], v: string) => set({ fieldLabels: { ...d.fieldLabels, [k]: v } });
-
+  };
+  const suggestions = [...(s?.suggestions ?? []), "", "", ""].slice(0, MAX_SUGGESTIONS);
   return (
     <>
-      {header}
+      <SiteHeader title="Library settings">
+        <Button size="sm" className="ml-auto" disabled={busy || !s} onClick={() => void save()}>
+          {busy ? "Saving…" : "Save"}
+        </Button>
+      </SiteHeader>
       <PageBody className="max-w-5xl">
-        <div className="grid gap-1">
-          <h2 className="text-2xl font-semibold tracking-tight">Lists and settings</h2>
-          <p className="max-w-3xl text-sm text-muted-foreground">
-            Each site sets its own words and lists, so the Library fits its brand. A hidden list item stays on the items that use it, but readers cannot filter by it.
-            Changes to lists save at once. Press Save for the rest.
-          </p>
-        </div>
-        {problem && <Notice tone="error">{problem}</Notice>}
-        <Group title="Lists">
-          <div className="grid gap-4 md:grid-cols-3">
-            {TERM_KINDS.map((k) => (
-              <ListCard
-                key={k}
-                kind={k}
-                settings={d}
-                setSettings={setDraft}
-                terms={state.terms}
-                onChanged={(terms) => {
-                  setState({ ...state, terms });
-                  reloadConfig();
-                }}
-              />
-            ))}
-          </div>
-        </Group>
-        <Group title="Names">
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Field className="content-start" label="Page title" htmlFor="lib-s-title" help='The app is named "Library". This title shows on its pages.'>
-              <Input id="lib-s-title" value={d.title} maxLength={40} onChange={(e) => set({ title: e.target.value })} />
-            </Field>
-            <Field className="content-start" label="Name for sources" htmlFor="lib-s-src">
-              <Input id="lib-s-src" value={d.sourcesName} maxLength={40} onChange={(e) => set({ sourcesName: e.target.value })} />
-            </Field>
-            <Field className="content-start" label="Name for updates" htmlFor="lib-s-upd">
-              <Input id="lib-s-upd" value={d.updatesName} maxLength={40} onChange={(e) => set({ updatesName: e.target.value })} />
-            </Field>
-          </div>
-        </Group>
-        <Group title="Update field labels">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Field label="Field 1" htmlFor="lib-f1">
-              <Input id="lib-f1" value={d.fieldLabels.whatChanged} maxLength={40} onChange={(e) => label("whatChanged", e.target.value)} />
-            </Field>
-            <Field label="Field 2" htmlFor="lib-f2">
-              <Input id="lib-f2" value={d.fieldLabels.whoAffected} maxLength={40} onChange={(e) => label("whoAffected", e.target.value)} />
-            </Field>
-            <Field label="Field 3" htmlFor="lib-f3">
-              <Input id="lib-f3" value={d.fieldLabels.action} maxLength={40} onChange={(e) => label("action", e.target.value)} />
-            </Field>
-            <Field label="Date field" htmlFor="lib-f4">
-              <Input id="lib-f4" value={d.fieldLabels.dueDate} maxLength={40} onChange={(e) => label("dueDate", e.target.value)} />
-            </Field>
-          </div>
-        </Group>
-        <Group title="Notice and review">
-          <Field label="Notice under the title" htmlFor="lib-s-notice" help="Leave it empty to show no notice.">
-            <Textarea id="lib-s-notice" rows={2} value={d.notice} maxLength={300} onChange={(e) => set({ notice: e.target.value })} />
-          </Field>
-          <div className="grid gap-2">
-            <span className="text-sm font-medium">Review checklist</span>
-            {d.checklist.map((c, i) => (
-              <div key={i} className="flex gap-2">
-                <label htmlFor={`lib-check-${i}`} className="sr-only">
-                  Check {i + 1}
-                </label>
-                <Input
-                  id={`lib-check-${i}`}
-                  value={c}
-                  maxLength={160}
-                  onChange={(e) => set({ checklist: d.checklist.map((x, j) => (j === i ? e.target.value : x)) })}
-                />
-                <Button variant="ghost" size="icon" aria-label={`Remove check ${i + 1}`} onClick={() => set({ checklist: d.checklist.filter((_, j) => j !== i) })}>
-                  <Icon name="trash" />
-                </Button>
+        {(error || loadError) && <Notice tone="error">{error ?? loadError}</Notice>}
+        {state && s && (
+          <>
+            <div className="flex flex-wrap gap-4">
+              {TERM_KINDS.map((k) => (
+                <ListCard key={k} state={state} kind={k} settings={s} setSettings={setS} onTerms={(terms) => { setState({ ...state, terms }); reloadConfig(); }} />
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-4">
+              <Field label="Page title" htmlFor="s-title" className="flex-[1_1_16rem]">
+                <Input id="s-title" value={s.title} maxLength={40} onChange={(e) => setS({ ...s, title: e.target.value })} />
+              </Field>
+              <Field label="Line under the title" htmlFor="s-intro" className="flex-[2_1_24rem]">
+                <Input id="s-intro" value={s.intro} maxLength={300} onChange={(e) => setS({ ...s, intro: e.target.value })} />
+              </Field>
+            </div>
+            <fieldset className="grid gap-2">
+              <legend className="mb-1 text-sm font-medium">Suggested questions under the Ask box</legend>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {suggestions.map((q, i) => (
+                  <Input
+                    key={i}
+                    aria-label={`Suggested question ${i + 1}`}
+                    value={q}
+                    maxLength={120}
+                    placeholder="For example: What is new this month?"
+                    onChange={(e) => {
+                      const next = [...suggestions];
+                      next[i] = e.target.value;
+                      setS({ ...s, suggestions: next.map((x) => x.trim()).filter(Boolean) });
+                    }}
+                  />
+                ))}
               </div>
-            ))}
-            <Button variant="outline" className="w-fit" disabled={d.checklist.length >= MAX_CHECKS} onClick={() => set({ checklist: [...d.checklist, ""] })}>
-              <Icon name="plus" />
-              Add a check
-            </Button>
-          </div>
-          <Field label='"New" window (days)' htmlFor="lib-s-new" className="max-w-48">
-            <Input
-              id="lib-s-new"
-              type="number"
-              min={1}
-              max={365}
-              value={d.newDays}
-              onChange={(e) => set({ newDays: Math.max(1, Math.min(365, Math.round(Number(e.target.value) || 1))) })}
-            />
-          </Field>
-          <Toggle
-            id="lib-s-checked"
-            title='"Last checked" date on sources'
-            help="Shows when someone last checked each source against the official page. Turn it off for content that is not rules."
-            checked={d.showLastChecked}
-            onChange={(v) => set({ showLastChecked: v })}
-          />
-          <Toggle
-            id="lib-s-chat"
-            title="Ask (AI chat)"
-            help="An AI chat on the home page that answers from the published items only, with links to them. It uses each person's own AI key, then the company key, then the site default."
-            checked={d.chatOn}
-            onChange={(v) => set({ chatOn: v })}
-          />
-          {d.chatOn && (
-            <Field label="Line under the Ask box" htmlFor="lib-s-intro">
-              <Input id="lib-s-intro" value={d.chatIntro} maxLength={300} onChange={(e) => set({ chatIntro: e.target.value })} />
+            </fieldset>
+            <Field label="Notice under each answer (optional)" htmlFor="s-notice">
+              <Input id="s-notice" value={s.notice} maxLength={300} placeholder="For example: We give guidance, not legal advice." onChange={(e) => setS({ ...s, notice: e.target.value })} />
             </Field>
-          )}
-          <Toggle
-            id="lib-s-second"
-            title="Require a second reviewer"
-            help="When on, a different super admin must publish each item. Off: the writer can publish after the review checklist."
-            checked={d.requireSecondReviewer}
-            onChange={(v) => set({ requireSecondReviewer: v })}
-          />
-        </Group>
+            <SwitchRow
+              title="Ask (AI chat)"
+              help="An AI chat at the top of the library that answers only from the resources, with links. It uses each person's own AI key, then the company key, then the site default."
+              checked={s.askOn}
+              onChange={(v) => setS({ ...s, askOn: v })}
+            />
+            <SwitchRow
+              title="Fill in new items with AI"
+              help="Writes the summary and suggests the type and topics for each new link, file and automation item. Uses the site's AI."
+              checked={s.aiFill}
+              onChange={(v) => setS({ ...s, aiFill: v })}
+            />
+            <SwitchRow
+              title="Review before publish"
+              help="A second manager must publish each resource that a person adds. Each automation has its own setting."
+              checked={s.reviewOn}
+              onChange={(v) => setS({ ...s, reviewOn: v })}
+            />
+            <p className="text-sm text-muted-foreground">
+              Who can read the library and use Ask is set per company, in Company settings, on the Permissions tab. Guests cannot read it unless a company owner allows it there.
+            </p>
+          </>
+        )}
       </PageBody>
     </>
   );
 }
+

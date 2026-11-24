@@ -1,17 +1,30 @@
-import { useRef, useState, type ReactNode } from "react";
-import { AgentState, Icon, Link, api, errorText } from "@openact/ui";
-import { Textarea } from "@openact/ui/arc/textarea";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { AgentState, Icon, Link, PageBody, SiteHeader, navigate } from "@openact/ui";
+import { Textarea } from "@openact/ui/components/textarea";
 import { Button } from "@openact/ui/components/button";
-import { COMPANY_AI_PROVIDER_LABELS } from "@openact/core/shared";
-import { API, HOME, KIND_PATH, MAX_HISTORY, MAX_QUESTION, siteOf, type AiChoice, type AskAnswer, type AskCitation, type AskTurn, type LibraryConfig } from "../shared/rules";
+import { COMPANY_AI_PROVIDER_LABELS, runAguiAgent, type AguiEvent } from "@openact/core/shared";
+
+const newIdLike = () => crypto.randomUUID();
+import {
+  API,
+  ASK_EVENT,
+  FORMAT_LABEL,
+  HOME,
+  MAX_HISTORY,
+  MAX_QUESTION,
+  type AiChoice,
+  type AskCitation,
+  type AskCitations,
+  type AskSearched,
+  type LibraryConfig
+} from "../shared/rules";
+import { FORMAT_ICON, resourcePath, useLibrary } from "./state";
 
 /*
- * Ask: the library's AI chat. Each answer comes from the published items only, with numbered links to them.
- * The server picks the items (keyword search) and asks the model with the person's own AI rules:
- * their own key, then the company key, then the site default.
+ * Ask: the library's AI chat, over AG-UI. Each answer comes from the published resources only, with numbered links to them.
+ * The server ranks the resources' text (keyword search), asks the model with the person's own AI rules,
+ * and streams AG-UI events: the search step, the answer, and the resources it cites.
  */
-
-type Turn = { q: string; a: AskAnswer | null; error: string | null };
 
 const providerLabel = (p: string) =>
   (COMPANY_AI_PROVIDER_LABELS as Record<string, string>)[p] ?? (p === "workers-ai" ? "Cloudflare Workers AI" : p === "dev-scripted" ? "test answers" : p);
@@ -19,16 +32,69 @@ const providerLabel = (p: string) =>
 /** Whose AI answers, in plain words. */
 export function aiLine(ai: AiChoice | null): string {
   if (!ai) return "";
-  const who =
-    ai.source === "user"
-      ? "your own AI key, which bills your account"
-      : ai.source === "company"
-        ? "your company's AI key"
-        : "the site's default AI";
+  const who = ai.source === "user" ? "your own AI key, which bills your account" : ai.source === "company" ? "your company's AI key" : "the site's default AI";
   return `Answers use ${providerLabel(ai.provider)}, through ${who}.`;
 }
 
-/** The answer text, with each [n] as a link to its item. */
+/** The question box. On the home page it opens the Ask page. On the Ask page it asks a follow-up. */
+export function AskBox({ config, onAsk, followUp = false, resourceTitle }: { config: LibraryConfig; onAsk: (q: string) => void; followUp?: boolean; resourceTitle?: string }) {
+  const [q, setQ] = useState("");
+  const box = useRef<HTMLTextAreaElement>(null);
+  const s = config.settings;
+  const submit = (text = q) => {
+    const question = text.trim();
+    if (!question) return;
+    setQ("");
+    onAsk(question);
+  };
+  return (
+    <form
+      className="grid gap-2.5"
+      aria-label="Ask"
+      data-library-ask=""
+      onSubmit={(e) => {
+        e.preventDefault();
+        submit();
+      }}
+    >
+      <div className="flex items-end gap-2 rounded-xl border bg-card p-2 pl-3 shadow-sm focus-within:ring-2 focus-within:ring-ring/40">
+        <Textarea
+          ref={box}
+          aria-label={followUp ? "Ask a follow-up" : resourceTitle ? `Ask about ${resourceTitle}` : "Ask the library"}
+          value={q}
+          rows={followUp ? 1 : 2}
+          maxLength={MAX_QUESTION}
+          placeholder={resourceTitle ? "Ask about this resource" : "Ask about any resource in the library"}
+          className="min-h-0 flex-1 resize-none border-0 bg-transparent px-0 text-[0.95rem] shadow-none focus-visible:ring-0 dark:bg-transparent"
+          onChange={(e) => setQ(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+              e.preventDefault();
+              submit();
+            }
+          }}
+        />
+        <Button type="submit" size="icon" aria-label="Ask" disabled={!q.trim()}>
+          <Icon name="send" />
+        </Button>
+      </div>
+      {!followUp && s.suggestions.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {s.suggestions.map((sq) => (
+            <Button key={sq} type="button" variant="outline" size="sm" className="rounded-full font-normal" onClick={() => submit(sq)}>
+              {sq}
+            </Button>
+          ))}
+        </div>
+      )}
+      <p className="text-xs text-muted-foreground">
+        Answers come only from the resources here, with a link to each one. {aiLine(config.ai)} AI answers can be wrong.
+      </p>
+    </form>
+  );
+}
+
+/** The answer text, with each [n] as a link to its resource. */
 function AnswerText({ text, cites }: { text: string; cites: AskCitation[] }) {
   const byN = new Map(cites.map((c) => [c.n, c]));
   const parts: ReactNode[] = text
@@ -41,9 +107,9 @@ function AnswerText({ text, cites }: { text: string; cites: AskCitation[] }) {
       return (
         <Link
           key={i}
-          to={`${HOME}/${KIND_PATH[c.kind]}/${c.id}`}
-          className="mx-0.5 inline-flex min-w-5 items-center justify-center rounded bg-muted px-1 align-super text-[0.7rem] font-semibold no-underline hover:bg-accent"
-          aria-label={`Item ${c.n}: ${c.title}`}
+          to={resourcePath(c.id)}
+          className="mx-0.5 inline-flex min-w-5 items-center justify-center rounded bg-muted px-1 align-super text-[0.7rem] font-semibold text-foreground no-underline hover:bg-accent"
+          aria-label={`Source ${c.n}: ${c.title}`}
         >
           {c.n}
         </Link>
@@ -52,123 +118,157 @@ function AnswerText({ text, cites }: { text: string; cites: AskCitation[] }) {
   return <p className="whitespace-pre-line text-[0.95rem] leading-relaxed">{parts}</p>;
 }
 
-function CiteList({ title, cites, config }: { title: string; cites: AskCitation[]; config: LibraryConfig }) {
+function CiteCards({ cites, label }: { cites: AskCitation[]; label: string }) {
   if (!cites.length) return null;
   return (
-    <div className="grid gap-1.5">
-      <h4 className="text-xs font-medium text-muted-foreground">{title}</h4>
-      <ol className="grid gap-1.5">
-        {cites.map((c) => (
-          <li key={`${c.n}-${c.id}`} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
-            <span className="inline-flex min-w-5 justify-center rounded bg-muted px-1 text-xs font-semibold">{c.n}</span>
-            <Link to={`${HOME}/${KIND_PATH[c.kind]}/${c.id}`} className="font-medium underline-offset-4 hover:underline">
-              {c.title}
-            </Link>
-            <span className="text-xs text-muted-foreground">{c.kind === "source" ? config.settings.sourcesName : config.settings.updatesName}</span>
-            {c.sourceUrl && (
-              <a href={c.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-muted-foreground underline-offset-4 hover:underline">
-                {siteOf(c.sourceUrl)}
-                <Icon name="external" size={12} />
-              </a>
-            )}
-          </li>
-        ))}
-      </ol>
-    </div>
+    <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3" aria-label={label}>
+      {cites.map((c) => (
+        <li key={`${c.n}-${c.id}`}>
+          <Link to={resourcePath(c.id)} className="flex h-full items-center gap-3 rounded-lg border p-2.5 text-foreground no-underline hover:bg-accent">
+            <span className="rounded bg-muted px-1.5 text-xs font-semibold">{c.n}</span>
+            <span className="grid min-w-0 gap-0.5">
+              <span className="truncate text-sm font-medium">{c.title}</span>
+              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                <Icon name={FORMAT_ICON[c.format]} size={12} />
+                {FORMAT_LABEL[c.format]}
+              </span>
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }
 
-export function AskPanel({ config, companyId }: { config: LibraryConfig; companyId: string }) {
-  const [turns, setTurns] = useState<Turn[]>([]);
-  const [q, setQ] = useState("");
-  const [busy, setBusy] = useState(false);
-  const box = useRef<HTMLTextAreaElement>(null);
-  const s = config.settings;
+type Turn = {
+  q: string;
+  status: "search" | "answer" | "done" | "fail";
+  searched: AskSearched | null;
+  text: string;
+  cites: AskCitations | null;
+  error: string;
+};
 
-  async function send() {
-    const question = q.trim();
-    if (!question || busy) return;
-    const history: AskTurn[] = turns
-      .filter((t) => t.a)
+/** The Ask page: a thread of questions and answers. It starts with ?q= and, for one resource, ?r=. */
+export function AskPage() {
+  const { config, companyId } = useLibrary();
+  const [turns, setTurns] = useState<Turn[]>([]);
+  const [busy, setBusy] = useState(false);
+  const thread = useRef(newIdLike());
+  const started = useRef(false);
+  const params = new URLSearchParams(location.search);
+  const resourceId = params.get("r");
+  const resourceTitle = params.get("t") ?? undefined;
+
+  const ask = async (question: string) => {
+    if (!companyId || busy) return;
+    const history = turns
+      .filter((t) => t.status === "done")
       .flatMap((t) => [
-        { role: "user" as const, content: t.q },
-        { role: "assistant" as const, content: t.a!.answer }
+        { id: newIdLike(), role: "user" as const, content: t.q },
+        { id: newIdLike(), role: "assistant" as const, content: t.text }
       ])
       .slice(-MAX_HISTORY);
-    setTurns((all) => [...all, { q: question, a: null, error: null }]);
-    setQ("");
+    const at = turns.length;
+    setTurns((all) => [...all, { q: question, status: "search", searched: null, text: "", cites: null, error: "" }]);
     setBusy(true);
-    try {
-      const a = await api<AskAnswer>(`${API}/companies/${companyId}/ask`, { method: "POST", body: { question, history } });
-      setTurns((all) => all.map((t, i) => (i === all.length - 1 ? { ...t, a } : t)));
-    } catch (e) {
-      setTurns((all) => all.map((t, i) => (i === all.length - 1 ? { ...t, error: errorText(e) } : t)));
-    } finally {
-      setBusy(false);
-      box.current?.focus();
-    }
-  }
+    const patch = (p: Partial<Turn>) => setTurns((all) => all.map((t, i) => (i === at ? { ...t, ...p } : t)));
+    const onEvent = (e: AguiEvent) => {
+      if (e.type === "STEP_STARTED" && e.stepName === "answer") patch({ status: "answer" });
+      else if (e.type === "CUSTOM" && e.name === ASK_EVENT.searched) patch({ searched: e.value as AskSearched });
+      else if (e.type === "TEXT_MESSAGE_CONTENT") setTurns((all) => all.map((t, i) => (i === at ? { ...t, text: t.text + e.delta } : t)));
+      else if (e.type === "CUSTOM" && e.name === ASK_EVENT.citations) patch({ cites: e.value as AskCitations });
+      else if (e.type === "RUN_FINISHED") patch({ status: "done" });
+      else if (e.type === "RUN_ERROR") patch({ status: "fail", error: e.message });
+    };
+    await runAguiAgent(
+      `${API}/companies/${companyId}/ask`,
+      {
+        threadId: thread.current,
+        runId: newIdLike(),
+        state: {},
+        tools: [],
+        context: [],
+        forwardedProps: resourceId ? { resourceId } : {},
+        messages: [...history, { id: newIdLike(), role: "user", content: question }]
+      },
+      onEvent
+    );
+    setBusy(false);
+  };
 
+  useEffect(() => {
+    const q = params.get("q");
+    if (q && companyId && config && !started.current) {
+      started.current = true;
+      void ask(q);
+    }
+    // Start once, with the question in the address.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyId, config]);
+
+  if (!config) return null;
   return (
-    <section aria-label="Ask" className="grid gap-4 rounded-xl border bg-card p-4 shadow-sm sm:p-6" data-library-ask="">
-      {turns.length > 0 && (
-        <div className="grid gap-5" aria-live="polite">
+    <>
+      <SiteHeader
+        title={
+          <span className="flex items-center gap-2">
+            <Link to={HOME} className="text-muted-foreground no-underline hover:text-foreground">
+              {config.settings.title}
+            </Link>
+            <span aria-hidden="true" className="text-muted-foreground">
+              /
+            </span>
+            <span>Ask</span>
+          </span>
+        }
+      >
+        <Button
+          variant="outline"
+          size="sm"
+          className="ml-auto"
+          onClick={() => {
+            setTurns([]);
+            thread.current = newIdLike();
+            navigate(`${HOME}/ask`, true);
+          }}
+          disabled={busy}
+        >
+          New question
+        </Button>
+      </SiteHeader>
+      <PageBody className="max-w-4xl">
+        {!config.canAsk && <AgentState state="fail">Ask is off for you. Your company or the site turned it off. Use the search on the library page.</AgentState>}
+        <div className="grid gap-6" aria-live="polite">
           {turns.map((t, i) => (
             <div key={i} className="grid gap-3" data-ask-turn={i}>
-              <p className="w-fit max-w-full justify-self-end rounded-lg bg-muted px-3 py-2 text-sm">{t.q}</p>
-              {!t.a && !t.error && <AgentState state="think">Reading the library…</AgentState>}
-              {t.error && <AgentState state="fail">{t.error}</AgentState>}
-              {t.a && (
+              <p className="w-fit max-w-[85%] justify-self-end rounded-xl bg-muted px-3.5 py-2.5 text-[0.95rem]">{t.q}</p>
+              {t.searched && (
+                <AgentState state={t.status === "search" ? "act" : "done"}>
+                  Searched {t.searched.searched} resource{t.searched.searched === 1 ? "" : "s"}. Read {t.searched.read}.
+                </AgentState>
+              )}
+              {t.status === "search" && !t.searched && <AgentState state="act">Searching the library…</AgentState>}
+              {t.status === "answer" && <AgentState state="think">Writing the answer…</AgentState>}
+              {t.status === "fail" && <AgentState state="fail">{t.error}</AgentState>}
+              {t.text && (
                 <div className="grid gap-3" data-ask-answer="">
-                  <AnswerText text={t.a.answer} cites={t.a.citations} />
-                  <CiteList title="From the library" cites={t.a.citations} config={config} />
-                  <CiteList title={t.a.citations.length ? "Also related" : "Related items"} cites={t.a.related} config={config} />
+                  <AnswerText text={t.text} cites={t.cites?.citations ?? []} />
+                  <CiteCards cites={t.cites?.citations ?? []} label="Sources for this answer" />
+                  {t.cites && t.cites.related.length > 0 && (
+                    <>
+                      <span className="text-xs font-medium text-muted-foreground">{t.cites.citations.length ? "Also related" : "Related resources"}</span>
+                      <CiteCards cites={t.cites.related} label="Related resources" />
+                    </>
+                  )}
+                  {config.settings.notice && t.status === "done" && <p className="text-xs text-muted-foreground">{config.settings.notice}</p>}
                 </div>
               )}
             </div>
           ))}
         </div>
-      )}
-      <form
-        className="grid gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void send();
-        }}
-      >
-        <Textarea
-          ref={box}
-          label={turns.length ? "Ask a follow-up question" : `Ask ${s.title}`}
-          description={s.chatIntro}
-          value={q}
-          rows={turns.length ? 2 : 3}
-          maxLength={MAX_QUESTION}
-          placeholder={`For example: what changed in the ${s.updatesName.toLowerCase()} this month?`}
-          onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
-              e.preventDefault();
-              void send();
-            }
-          }}
-        />
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-xs text-muted-foreground">
-            {aiLine(config.ai)} AI answers can be wrong. Always check the source.
-          </p>
-          <div className="flex gap-2">
-            {turns.length > 0 && (
-              <Button type="button" variant="ghost" onClick={() => setTurns([])} disabled={busy}>
-                New question
-              </Button>
-            )}
-            <Button type="submit" disabled={busy || !q.trim()}>
-              <Icon name="sparkle" />
-              Ask
-            </Button>
-          </div>
-        </div>
-      </form>
-    </section>
+        {config.canAsk && <AskBox config={config} followUp={turns.length > 0} resourceTitle={turns.length ? undefined : resourceTitle} onAsk={(q) => void ask(q)} />}
+      </PageBody>
+    </>
   );
 }

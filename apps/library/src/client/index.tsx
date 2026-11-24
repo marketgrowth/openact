@@ -13,22 +13,24 @@ import { HOME } from "../shared/rules";
 import { useLibrary } from "./state";
 
 /*
- * The Library in the web app. Readers see the sources and the updates. Super admins also see Manage.
- * Every word in the panel and the pages comes from the site's brand settings.
+ * The Library in the web app. Readers see the library and Ask. Super admins also see Manage:
+ * To review, Add resource, Automations and Settings. Every brand word comes from the site's settings.
  */
 
-const SourcesPage = lazy(() => import("./ReadPages").then((m) => ({ default: m.SourcesPage })));
-const UpdatesPage = lazy(() => import("./ReadPages").then((m) => ({ default: m.UpdatesPage })));
-const SourcePage = lazy(() => import("./ReadPages").then((m) => ({ default: m.SourcePage })));
-const UpdatePage = lazy(() => import("./ReadPages").then((m) => ({ default: m.UpdatePage })));
+const HomePage = lazy(() => import("./ReadPages").then((m) => ({ default: m.HomePage })));
+const ResourcePage = lazy(() => import("./ReadPages").then((m) => ({ default: m.ResourcePage })));
+const AskPage = lazy(() => import("./Ask").then((m) => ({ default: m.AskPage })));
 const ManagePage = lazy(() => import("./ManagePages").then((m) => ({ default: m.ManagePage })));
-const EditorPage = lazy(() => import("./ManagePages").then((m) => ({ default: m.EditorPage })));
+const AddPage = lazy(() => import("./ManagePages").then((m) => ({ default: m.AddPage })));
+const EditPage = lazy(() => import("./ManagePages").then((m) => ({ default: m.EditPage })));
 const SettingsPage = lazy(() => import("./ManagePages").then((m) => ({ default: m.SettingsPage })));
+const AutomationsPage = lazy(() => import("./AutomationPages").then((m) => ({ default: m.AutomationsPage })));
+const NewAutomationPage = lazy(() => import("./AutomationPages").then((m) => ({ default: m.NewAutomationPage })));
 
-function Item({ to, icon, label, badge, exact = true }: { to: string; icon: string; label: string; badge?: string; exact?: boolean }) {
+function Item({ to, icon, label, badge, match }: { to: string; icon: string; label: string; badge?: string; match?: (path: string) => boolean }) {
   const path = usePath();
   const done = useCloseOnPhone();
-  const active = exact ? path === to : path === to || path.startsWith(to + "/");
+  const active = match ? match(path) : path === to;
   return (
     <SidebarMenuItem>
       <SidebarMenuButton asChild isActive={active}>
@@ -45,37 +47,30 @@ function Item({ to, icon, label, badge, exact = true }: { to: string; icon: stri
 function LibrarySection() {
   const { config } = useLibrary();
   const s = config?.settings;
-  const path = usePath();
   return (
     <>
       <SidebarGroup>
         <SidebarGroupContent>
           <SidebarMenu aria-label={s?.title ?? "Library"} data-nav="library">
-            <Item to={HOME} icon="library" label={s?.sourcesName ?? "Sources"} />
-            <Item
-              to={`${HOME}/updates`}
-              icon="bell"
-              label={s?.updatesName ?? "Updates"}
-              badge={config?.newCount ? `${config.newCount} new` : undefined}
-              exact={false}
-            />
+            <Item to={HOME} icon="library" label={s?.title ?? "Library"} match={(p) => p === HOME || p.startsWith(`${HOME}/r/`) || p.startsWith(`${HOME}/ask`)} />
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
       {config?.canManage && (
         <SidebarGroup>
-          <SidebarGroupLabel>Manage · super admins</SidebarGroupLabel>
+          <SidebarGroupLabel>Manage</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu aria-label="Manage the library" data-nav="library-manage">
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={path === `${HOME}/manage` || /^\/a\/library\/manage\/(sources|updates)\//.test(path)}>
-                  <Link to={`${HOME}/manage`}>
-                    <Icon name="pencil" />
-                    <span className="truncate">Items</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <Item to={`${HOME}/manage/settings`} icon="gear" label="Lists and settings" />
+              <Item
+                to={`${HOME}/manage`}
+                icon="inbox"
+                label="To review"
+                badge={config.toReview ? String(config.toReview) : undefined}
+                match={(p) => p === `${HOME}/manage` || p.startsWith(`${HOME}/manage/r/`)}
+              />
+              <Item to={`${HOME}/manage/add`} icon="plus" label="Add resource" />
+              <Item to={`${HOME}/manage/automations`} icon="plug" label="Automations" match={(p) => p.startsWith(`${HOME}/manage/automations`)} />
+              <Item to={`${HOME}/manage/settings`} icon="gear" label="Settings" />
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -90,13 +85,15 @@ export default defineClientApp({
   icon: "library",
   home: HOME,
   routes: [
-    { path: "/a/library", render: () => <SourcesPage /> },
-    { path: "/a/library/updates", render: () => <UpdatesPage /> },
-    { path: "/a/library/sources/:id", render: ({ id }) => <SourcePage id={id!} /> },
-    { path: "/a/library/updates/:id", render: ({ id }) => <UpdatePage id={id!} /> },
+    { path: "/a/library", render: () => <HomePage /> },
+    { path: "/a/library/ask", render: () => <AskPage /> },
+    { path: "/a/library/r/:id", render: ({ id }) => <ResourcePage id={id!} /> },
     { path: "/a/library/manage", render: () => <ManagePage /> },
-    { path: "/a/library/manage/settings", render: () => <SettingsPage /> },
-    { path: "/a/library/manage/:kind/:id", render: ({ kind, id }) => <EditorPage kindPath={kind!} id={id!} /> }
+    { path: "/a/library/manage/add", render: () => <AddPage /> },
+    { path: "/a/library/manage/r/:id", render: ({ id }) => <EditPage id={id!} /> },
+    { path: "/a/library/manage/automations", render: () => <AutomationsPage /> },
+    { path: "/a/library/manage/automations/new", render: () => <NewAutomationPage /> },
+    { path: "/a/library/manage/settings", render: () => <SettingsPage /> }
   ],
   SidebarSection: LibrarySection
 });

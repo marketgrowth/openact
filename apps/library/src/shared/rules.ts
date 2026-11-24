@@ -1,163 +1,142 @@
 /*
  * The Library's shared types, defaults and rules, for the server and the web app.
- * The app holds no brand words. Each site sets its own words in the brand settings.
+ * The app holds no brand words and no fixed workflow. Each site sets its own words and lists.
  */
 
 export const API = "/api/apps/library";
 export const HOME = "/a/library";
 
-export type ItemKind = "source" | "update";
-export const ITEM_KINDS: readonly ItemKind[] = ["source", "update"];
-/** The path part for each kind, in the API and in the web app: /a/library/sources/<id>. */
-export const KIND_PATH: Record<ItemKind, "sources" | "updates"> = { source: "sources", update: "updates" };
-export const kindFromPath = (p: string | undefined): ItemKind | null => (p === "sources" ? "source" : p === "updates" ? "update" : null);
+/* Resources */
 
-export type TermKind = "category" | "audience" | "topic";
-export const TERM_KINDS: readonly TermKind[] = ["category", "audience", "topic"];
+export type Format = "document" | "link" | "video" | "article";
+export const FORMATS: readonly Format[] = ["document", "link", "video", "article"];
+export const FORMAT_LABEL: Record<Format, string> = { document: "Document", link: "Link", video: "Video", article: "Article" };
+export const FORMAT_PLURAL: Record<Format, string> = { document: "Documents", link: "Links", video: "Videos", article: "Articles" };
 
-export type Status = "draft" | "in_review" | "published" | "archived";
-export const STATUSES: readonly Status[] = ["draft", "in_review", "published", "archived"];
-export const STATUS_LABEL: Record<Status, string> = { draft: "Draft", in_review: "In review", published: "Published", archived: "Archived" };
+export type Status = "draft" | "published" | "archived";
+export const STATUSES: readonly Status[] = ["draft", "published", "archived"];
+export const STATUS_LABEL: Record<Status, string> = { draft: "Draft", published: "Published", archived: "Archived" };
 
-export type ReviewAction = "submit" | "return" | "publish" | "archive" | "restore";
-export const REVIEW_ACTIONS: readonly ReviewAction[] = ["submit", "return", "publish", "archive", "restore"];
+/** Who added a resource. Everything but "person" lands in To review, unless its automation publishes. */
+export type Origin = "person" | "feed" | "video_channel" | "webhook" | "agent";
+export const ORIGIN_LABEL: Record<Origin, string> = { person: "Person", feed: "Feed", video_channel: "Video channel", webhook: "Webhook", agent: "AI agent" };
 
-/* Limits. */
+/** The tabs of the manage list. "review" holds drafts that automations or agents added. */
+export type ManageTab = "review" | "drafts" | "published" | "archived";
+export const MANAGE_TABS: readonly ManageTab[] = ["review", "drafts", "published", "archived"];
+export const MANAGE_TAB_LABEL: Record<ManageTab, string> = { review: "To review", drafts: "Drafts", published: "Published", archived: "Archived" };
+
+export type TermKind = "type" | "topic" | "audience";
+export const TERM_KINDS: readonly TermKind[] = ["type", "topic", "audience"];
+
+/* Limits */
 export const MAX_TITLE = 200;
 export const MAX_SHORT = 300;
-export const MAX_TEXT = 4000;
-export const MAX_URL = 600;
+export const MAX_SUMMARY = 1000;
+export const MAX_BODY = 40000;
+export const MAX_URL = 800;
 export const MAX_TERMS_PER_KIND = 60;
 export const MAX_TERM_NAME = 60;
-export const MAX_CHECKS = 8;
-export const MAX_CHECK = 160;
-export const MAX_ITEMS = 1000;
-export const MAX_LINKED_SOURCES = 20;
+export const MAX_RESOURCES = 5000;
+export const MAX_FILE_BYTES = 100 * 1024 * 1024;
 export const MAX_QUESTION = 1000;
 export const MAX_HISTORY = 6;
-/** How many library items go to the model with each question. */
-export const ASK_ITEMS = 6;
+export const MAX_SUGGESTIONS = 3;
+export const MAX_AUTOMATIONS = 20;
+/** New entries one automation may add in one run. */
+export const MAX_ENTRIES_PER_RUN = 10;
+/** Webhook calls one key may make in one hour. */
+export const WEBHOOK_PER_HOUR = 60;
+/** An automation pauses after this many failed runs in a row. */
+export const PAUSE_AFTER_FAILS = 3;
+export const EVERY_CHOICES: readonly number[] = [60, 1440, 10080];
+export const EVERY_LABEL: Record<number, string> = { 60: "Every hour", 1440: "Every day", 10080: "Every week" };
+
+/* Ask */
+/** Words in one chunk of the Ask index. */
+export const CHUNK_WORDS = 300;
+/** Chunks of one resource, at most. Longer text is cut. */
+export const MAX_CHUNKS = 40;
+/** Chunks that go to the model with each question, and the resources they may come from. */
+export const ASK_CHUNKS = 8;
+export const ASK_RESOURCES = 6;
+
+/* Lists and settings */
 
 export interface Term {
   id: string;
   kind: TermKind;
   name: string;
   sortOrder: number;
+  /** A hidden value stays on the resources that use it, but readers cannot filter by it. */
   isHidden: boolean;
 }
 
 export interface ListSetting {
-  /** The word readers see for the list, such as "Facility type". */
   label: string;
-  /** Off hides the list's filter and tags. The data stays. */
   on: boolean;
 }
 
-/** Every word and switch that a site can set. */
 export interface Settings {
+  /** The page title, such as "Resources". */
   title: string;
-  sourcesName: string;
-  updatesName: string;
+  /** One line under the title. */
+  intro: string;
   lists: Record<TermKind, ListSetting>;
-  fieldLabels: { whatChanged: string; whoAffected: string; action: string; dueDate: string };
-  showLastChecked: boolean;
+  /** Up to three questions under the Ask box. */
+  suggestions: string[];
+  askOn: boolean;
+  /** A line under each answer, such as "We give guidance, not legal advice." */
   notice: string;
-  checklist: string[];
-  newDays: number;
-  requireSecondReviewer: boolean;
-  /** Ask: an AI chat that answers from the published items only. Off hides it. */
-  chatOn: boolean;
-  /** The line under the Ask box. */
-  chatIntro: string;
+  /** Write the summary and pick the type and topics of new resources with AI. */
+  aiFill: boolean;
+  /** A second manager must publish each resource that a person adds. */
+  reviewOn: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   title: "Library",
-  sourcesName: "Sources",
-  updatesName: "Updates",
-  lists: {
-    category: { label: "Category", on: true },
-    audience: { label: "Audience", on: true },
-    topic: { label: "Topic", on: true }
-  },
-  fieldLabels: { whatChanged: "What changed", whoAffected: "Who it affects", action: "What to do", dueDate: "By when" },
-  showLastChecked: true,
+  intro: "",
+  lists: { type: { label: "Type", on: true }, topic: { label: "Topic", on: true }, audience: { label: "Audience", on: true } },
+  suggestions: [],
+  askOn: true,
   notice: "",
-  checklist: ["I read the official source, and the summary matches it.", "The dates and numbers match the source."],
-  newDays: 30,
-  requireSecondReviewer: false,
-  chatOn: true,
-  chatIntro: "Ask a question. Answers come only from the published items, with a link to each one."
+  aiFill: false,
+  reviewOn: false
 };
-
 export const SETTING_KEYS = Object.keys(DEFAULT_SETTINGS) as (keyof Settings)[];
 
-export interface SourceFields {
+/** What a manager can edit on a resource. */
+export interface ResourceFields {
+  format: Format;
   title: string;
-  citation: string;
   summary: string;
-  details: string;
+  /** The article text, or notes for other formats. Plain text with blank lines between paragraphs. */
+  body: string;
   sourceUrl: string;
-  lastCheckedDate: string | null;
+  imageUrl: string;
+  siteName: string;
+  featured: boolean;
   termIds: string[];
 }
 
-export interface UpdateFields {
-  title: string;
-  whatChanged: string;
-  whoAffected: string;
-  action: string;
-  actionDueDate: string | null;
-  sourceUrl: string;
-  publishedDate: string | null;
-  termIds: string[];
-  sourceIds: string[];
-}
+export const EMPTY_FIELDS: ResourceFields = { format: "link", title: "", summary: "", body: "", sourceUrl: "", imageUrl: "", siteName: "", featured: false, termIds: [] };
 
-export type ItemFields<K extends ItemKind> = K extends "source" ? SourceFields : UpdateFields;
-
-export const EMPTY_SOURCE: SourceFields = { title: "", citation: "", summary: "", details: "", sourceUrl: "", lastCheckedDate: null, termIds: [] };
-export const EMPTY_UPDATE: UpdateFields = {
-  title: "",
-  whatChanged: "",
-  whoAffected: "",
-  action: "",
-  actionDueDate: null,
-  sourceUrl: "",
-  publishedDate: null,
-  termIds: [],
-  sourceIds: []
-};
-
-/** A published source, as readers see it. */
-export interface PublishedSource extends SourceFields {
+export interface Resource extends ResourceFields {
   id: string;
-  version: number;
-  publishedAt: string;
-  /** The newest published date of an update that changes this source, inside the "new" window. Null when none. */
-  updatedDate: string | null;
-}
-
-/** A published update, as readers see it. */
-export interface PublishedUpdate extends UpdateFields {
-  id: string;
-  version: number;
-  publishedAt: string;
-  isNew: boolean;
-}
-
-/** What the read pages need first. */
-export interface LibraryConfig {
-  settings: Settings;
-  /** Visible list items of the lists that are on. */
-  terms: Term[];
-  canManage: boolean;
-  /** Published updates inside the "new" window. */
-  newCount: number;
-  /** True when Ask is on and this person has library.ask. */
-  canAsk: boolean;
-  /** Whose AI answers: the person's own key, the company key, or the site default. Null when canAsk is false. */
-  ai: AiChoice | null;
+  status: Status;
+  origin: Origin;
+  automationName: string;
+  videoProvider: "" | "youtube" | "vimeo" | "upload";
+  videoRef: string;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  hasFile: boolean;
+  publishedAt: string | null;
+  createdBy: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface AiChoice {
@@ -166,97 +145,146 @@ export interface AiChoice {
   source: "user" | "company" | "deploy";
 }
 
-/** One turn of an Ask conversation, as the web app sends it back with the next question. */
-export interface AskTurn {
-  role: "user" | "assistant";
-  content: string;
+export interface LibraryConfig {
+  settings: Settings;
+  /** The values of the lists that are on, hidden ones included (they still show as tags). */
+  terms: Term[];
+  canManage: boolean;
+  canAsk: boolean;
+  ai: AiChoice | null;
+  /** Drafts from automations that wait for a manager. Zero for readers. */
+  toReview: number;
 }
 
-/** A library item that an answer used. n is the number in the answer, such as [2]. */
+export interface ResourceDetail {
+  item: Resource;
+  related: Resource[];
+}
+
+export interface ManageCounts {
+  review: number;
+  drafts: number;
+  published: number;
+  archived: number;
+}
+
+export interface ManageState {
+  settings: Settings;
+  terms: Term[];
+  counts: ManageCounts;
+}
+
+/** What the server reads from a link before the manager saves it. */
+export interface LinkPreview {
+  format: Format;
+  title: string;
+  summary: string;
+  imageUrl: string;
+  siteName: string;
+  sourceUrl: string;
+  /** Text of the page, for the Ask index. Never shown. */
+  text?: string;
+  /** Type and topic ids that AI suggests, when AI fill is on. */
+  termIds: string[];
+  aiFilled: boolean;
+}
+
+/* Automations */
+
+export type AutomationKind = "feed" | "video_channel" | "webhook";
+export const AUTOMATION_KINDS: readonly AutomationKind[] = ["feed", "video_channel", "webhook"];
+export const AUTOMATION_LABEL: Record<AutomationKind, string> = { feed: "Feed or blog", video_channel: "Video channel", webhook: "Webhook" };
+
+export interface Automation {
+  id: string;
+  kind: AutomationKind;
+  name: string;
+  /** What the manager typed: a feed, a blog or a channel address. Empty for a webhook. */
+  url: string;
+  /** The feed the server found and reads. */
+  feedUrl: string;
+  keyLast4: string;
+  everyMinutes: number;
+  termIds: string[];
+  autoPublish: boolean;
+  paused: boolean;
+  failCount: number;
+  lastRunAt: string | null;
+  lastError: string;
+  lastNote: string;
+}
+
+export interface Run {
+  id: string;
+  automationId: string;
+  automationName: string;
+  ranAt: string;
+  addedCount: number;
+  published: boolean;
+  note: string;
+  error: string;
+}
+
+export interface FeedEntry {
+  url: string;
+  title: string;
+  summary: string;
+  date: string | null;
+  imageUrl: string;
+}
+
+export interface FeedPreview {
+  feedUrl: string;
+  feedTitle: string;
+  entries: FeedEntry[];
+}
+
+/* Ask: AG-UI custom events. */
+
 export interface AskCitation {
   n: number;
-  kind: ItemKind;
   id: string;
   title: string;
+  format: Format;
   sourceUrl: string;
 }
 
-export interface AskAnswer {
-  answer: string;
-  /** The items the answer cites, in the order of their numbers. */
+/** CUSTOM event "library.searched": what the search found, for the step line. */
+export interface AskSearched {
+  searched: number;
+  read: number;
+}
+
+/** CUSTOM event "library.citations": the resources the answer cites, and others that may help. */
+export interface AskCitations {
   citations: AskCitation[];
-  /** Items that matched the question but the answer did not cite. */
   related: AskCitation[];
-  /** Null when no item matched, so no model was asked. */
   ai: AiChoice | null;
 }
 
-export interface SourceDetail {
-  item: PublishedSource;
-  updates: { id: string; title: string; publishedDate: string | null }[];
-}
-export interface UpdateDetail {
-  item: PublishedUpdate;
-  sources: { id: string; title: string }[];
-}
+export const ASK_EVENT = { searched: "library.searched", citations: "library.citations" } as const;
 
-/** One row of the Manage list. */
-export interface ManageRow {
-  kind: ItemKind;
-  id: string;
-  title: string;
-  status: Status;
-  /** The newest published version, or null when it was never published. */
-  liveVersion: number | null;
-  updatedAt: string;
-  updatedByName: string | null;
-  reviewNote: string;
-}
+/* Rules */
 
-export interface ManageItem<K extends ItemKind = ItemKind> {
-  kind: K;
-  id: string;
-  status: Status;
-  fields: ItemFields<K>;
-  liveVersion: number | null;
-  reviewNote: string;
-  submittedByName: string | null;
-  updatedByName: string | null;
-  updatedAt: string;
-  history: { version: number; publishedAt: string; publishedByName: string | null }[];
-  /** True when this person may publish now. False with a reason in publishBlock. */
-  canPublish: boolean;
-  publishBlock: string | null;
-}
-
-/** The Manage list, the settings and every list item, hidden ones too. */
-export interface ManageState {
-  rows: ManageRow[];
-  settings: Settings;
-  terms: Term[];
-}
-
-/* Rules that the server and the web app share. */
-
-/** A web address for an official source: https only. Empty is allowed for a draft. */
-export function cleanUrl(raw: unknown): { url: string } | { problem: string } {
+/** A web address: https only, no user name or password. Empty is allowed. */
+export function cleanUrl(raw: unknown, label = "The link"): { url: string } | { problem: string } {
   if (raw === undefined || raw === null) return { url: "" };
-  if (typeof raw !== "string") return { problem: "The source link must be text." };
+  if (typeof raw !== "string") return { problem: `${label} must be text.` };
   const s = raw.trim();
   if (!s) return { url: "" };
-  if (s.length > MAX_URL) return { problem: `The source link is too long. Use ${MAX_URL} characters or fewer.` };
+  if (s.length > MAX_URL) return { problem: `${label} is too long. Use ${MAX_URL} characters or fewer.` };
   let u: URL;
   try {
     u = new URL(/^[a-z][a-z0-9+.-]*:/i.test(s) ? s : `https://${s}`);
   } catch {
-    return { problem: "The source link is not a web address. Use an address like https://www.example.gov/page." };
+    return { problem: `${label} is not a web address. Use an address like https://www.example.com/page.` };
   }
-  if (u.protocol !== "https:") return { problem: "The source link must start with https://." };
-  if (u.username || u.password) return { problem: "The source link must not hold a user name or password." };
+  if (u.protocol !== "https:") return { problem: `${label} must start with https://.` };
+  if (u.username || u.password) return { problem: `${label} must not hold a user name or password.` };
   return { url: u.toString() };
 }
 
-/** The site name of a link, such as dhcs.ca.gov, for the cards. */
+/** The site name of a link, such as example.com, for the cards. */
 export function siteOf(url: string): string {
   try {
     return new URL(url).hostname.replace(/^www\./, "");
@@ -265,13 +293,41 @@ export function siteOf(url: string): string {
   }
 }
 
-/** The first day inside the "new" window, as YYYY-MM-DD. */
-export function newSince(today: string, days: number): string {
-  const t = Date.parse(today + "T00:00:00Z") - Math.max(0, days - 1) * 86400000;
-  return new Date(t).toISOString().slice(0, 10);
+/** A YouTube or Vimeo video in a link, or null. */
+export function videoOf(url: string): { provider: "youtube" | "vimeo"; ref: string } | null {
+  let u: URL;
+  try {
+    u = new URL(url);
+  } catch {
+    return null;
+  }
+  const host = u.hostname.replace(/^(www|m)\./, "");
+  const yt = /^[A-Za-z0-9_-]{11}$/;
+  if (host === "youtu.be") {
+    const id = u.pathname.slice(1).split("/")[0] ?? "";
+    return yt.test(id) ? { provider: "youtube", ref: id } : null;
+  }
+  if (host === "youtube.com" || host === "youtube-nocookie.com") {
+    const v = u.searchParams.get("v");
+    if (v && yt.test(v)) return { provider: "youtube", ref: v };
+    const m = u.pathname.match(/^\/(?:embed|shorts|live)\/([A-Za-z0-9_-]{11})/);
+    return m ? { provider: "youtube", ref: m[1]! } : null;
+  }
+  if (host === "vimeo.com" || host === "player.vimeo.com") {
+    const m = u.pathname.match(/\/(?:video\/)?(\d{5,12})(?:\/|$)/);
+    return m ? { provider: "vimeo", ref: m[1]! } : null;
+  }
+  return null;
 }
 
-/** True when a published item matches a search: every word must be in its text. Case does not matter. */
+/** The player address for a linked video. */
+export function embedUrl(provider: string, ref: string): string {
+  if (provider === "youtube") return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(ref)}`;
+  if (provider === "vimeo") return `https://player.vimeo.com/video/${encodeURIComponent(ref)}`;
+  return "";
+}
+
+/** True when a resource matches a search: every word must be in its text. Case does not matter. */
 export function matches(text: string, q: string): boolean {
   const words = q.toLowerCase().split(/\s+/).filter(Boolean);
   if (!words.length) return true;
@@ -279,10 +335,7 @@ export function matches(text: string, q: string): boolean {
   return words.every((w) => t.includes(w));
 }
 
-export const sourceText = (s: SourceFields) => [s.title, s.citation, s.summary, s.details].join(" ");
-export const updateText = (u: UpdateFields) => [u.title, u.whatChanged, u.whoAffected, u.action].join(" ");
-
-/** True when an item has at least one term of each kind in `want`. An empty list for a kind means any. */
+/** True when a resource has at least one term of each kind in `want`. An empty list for a kind means any. */
 export function hasTerms(termIds: readonly string[], want: Partial<Record<TermKind, readonly string[]>>): boolean {
   for (const k of TERM_KINDS) {
     const ids = want[k];
@@ -291,11 +344,25 @@ export function hasTerms(termIds: readonly string[], want: Partial<Record<TermKi
   return true;
 }
 
-/** What is missing before an item can be published, or null when nothing is. */
-export function publishProblem(kind: ItemKind, f: SourceFields | UpdateFields): string | null {
-  if (!f.title.trim()) return "Add a title before you publish.";
-  if (!f.sourceUrl) return "Add the official source link before you publish.";
-  if (kind === "update" && !(f as UpdateFields).whatChanged.trim()) return "Say what changed before you publish.";
-  if (kind === "source" && !(f as SourceFields).summary.trim()) return "Add a summary before you publish.";
+/** What is missing before a resource can be published, or null when nothing is. */
+export function publishProblem(r: Pick<Resource, "format" | "title" | "body" | "sourceUrl" | "hasFile">): string | null {
+  if (!r.title.trim()) return "Add a title before you publish.";
+  if (r.format === "article" && !r.body.trim()) return "Write the article before you publish.";
+  if (r.format === "document" && !r.hasFile && !r.sourceUrl) return "Upload the file, or add a link to it, before you publish.";
+  if ((r.format === "link" || r.format === "video") && !r.sourceUrl && !r.hasFile) return "Add the link before you publish.";
   return null;
+}
+
+/** File size for people: 220 KB, 4.1 MB. */
+export function fileSizeLabel(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/** Cuts text into chunks of about CHUNK_WORDS words for the Ask index. */
+export function chunksOf(text: string, size = CHUNK_WORDS, max = MAX_CHUNKS): string[] {
+  const words = text.split(/\s+/).filter(Boolean);
+  const out: string[] = [];
+  for (let i = 0; i < words.length && out.length < max; i += size) out.push(words.slice(i, i + size).join(" "));
+  return out;
 }

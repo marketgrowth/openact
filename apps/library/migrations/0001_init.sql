@@ -1,12 +1,11 @@
--- Library: one body of reference content for the whole site.
--- The site owns these rows, not a company. Only super admins write them, and every company with the app on reads them.
--- So the content tables have no company_id. `npm run sync` warns about each one. That is expected.
--- Readers see only the newest row of library_versions for each item that is not archived. An edit stays a draft until it is published.
+-- Library: a resource library for the whole site.
+-- The site owns these rows, not a company. Only super admins manage them, and every company with the app on reads them.
+-- So the tables have no company_id. `npm run sync` warns about each one. That is expected.
 
--- One row per list item. kind: category, audience or topic. Each site names the lists in its settings.
+-- One row per list value. kind: type, topic or audience. Each site names the lists in its settings.
 CREATE TABLE library_terms (
   id          TEXT PRIMARY KEY,
-  kind        TEXT NOT NULL CHECK (kind IN ('category', 'audience', 'topic')),
+  kind        TEXT NOT NULL CHECK (kind IN ('type', 'topic', 'audience')),
   name        TEXT NOT NULL,
   sort_order  INTEGER NOT NULL DEFAULT 0,
   is_hidden   INTEGER NOT NULL DEFAULT 0,
@@ -15,77 +14,97 @@ CREATE TABLE library_terms (
 );
 CREATE INDEX idx_library_terms_kind ON library_terms (kind, sort_order);
 
--- Sources: the working copy that super admins edit. status: draft, in_review, published, archived.
-CREATE TABLE library_sources (
-  id                 TEXT PRIMARY KEY,
-  title              TEXT NOT NULL,
-  citation           TEXT NOT NULL DEFAULT '',
-  summary            TEXT NOT NULL DEFAULT '',
-  details            TEXT NOT NULL DEFAULT '',
-  source_url         TEXT NOT NULL DEFAULT '',
-  last_checked_date  TEXT,
-  status             TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'in_review', 'published', 'archived')),
-  review_note        TEXT NOT NULL DEFAULT '',
-  submitted_by       TEXT REFERENCES users (id) ON DELETE SET NULL,
-  created_by         TEXT REFERENCES users (id) ON DELETE SET NULL,
-  updated_by         TEXT REFERENCES users (id) ON DELETE SET NULL,
-  created_at         TEXT NOT NULL,
-  updated_at         TEXT NOT NULL
+-- Automations add resources without a person: a feed, a video channel or a webhook.
+-- kind: feed, video_channel, webhook. A webhook keeps only the hash of its key.
+CREATE TABLE library_automations (
+  id                TEXT PRIMARY KEY,
+  kind              TEXT NOT NULL CHECK (kind IN ('feed', 'video_channel', 'webhook')),
+  name              TEXT NOT NULL,
+  url               TEXT NOT NULL DEFAULT '',
+  feed_url          TEXT NOT NULL DEFAULT '',
+  key_hash          TEXT,
+  key_last4         TEXT NOT NULL DEFAULT '',
+  every_minutes     INTEGER NOT NULL DEFAULT 60,
+  terms_json        TEXT NOT NULL DEFAULT '[]',
+  is_auto_publish   INTEGER NOT NULL DEFAULT 0,
+  is_paused         INTEGER NOT NULL DEFAULT 0,
+  fail_count        INTEGER NOT NULL DEFAULT 0,
+  last_run_at       TEXT,
+  last_error        TEXT NOT NULL DEFAULT '',
+  created_by        TEXT REFERENCES users (id) ON DELETE SET NULL,
+  created_at        TEXT NOT NULL,
+  updated_at        TEXT NOT NULL
 );
-CREATE INDEX idx_library_sources_status ON library_sources (status, updated_at);
+CREATE UNIQUE INDEX idx_library_automations_key_hash ON library_automations (key_hash);
 
-CREATE TABLE library_source_terms (
-  source_id  TEXT NOT NULL REFERENCES library_sources (id) ON DELETE CASCADE,
-  term_id    TEXT NOT NULL REFERENCES library_terms (id) ON DELETE CASCADE,
-  PRIMARY KEY (source_id, term_id)
+-- Resources. format: document, link, video, article. status: draft, published, archived.
+-- origin: person, feed, video_channel, webhook, agent. A file lives in R2 at file_key.
+CREATE TABLE library_resources (
+  id                TEXT PRIMARY KEY,
+  format            TEXT NOT NULL CHECK (format IN ('document', 'link', 'video', 'article')),
+  title             TEXT NOT NULL,
+  summary           TEXT NOT NULL DEFAULT '',
+  body              TEXT NOT NULL DEFAULT '',
+  source_url        TEXT NOT NULL DEFAULT '',
+  image_url         TEXT NOT NULL DEFAULT '',
+  site_name         TEXT NOT NULL DEFAULT '',
+  video_provider    TEXT NOT NULL DEFAULT '',
+  video_ref         TEXT NOT NULL DEFAULT '',
+  file_key          TEXT,
+  file_name         TEXT NOT NULL DEFAULT '',
+  file_type         TEXT NOT NULL DEFAULT '',
+  file_size         INTEGER NOT NULL DEFAULT 0,
+  extracted_text    TEXT NOT NULL DEFAULT '',
+  status            TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'published', 'archived')),
+  is_featured       INTEGER NOT NULL DEFAULT 0,
+  origin            TEXT NOT NULL DEFAULT 'person' CHECK (origin IN ('person', 'feed', 'video_channel', 'webhook', 'agent')),
+  automation_id     TEXT REFERENCES library_automations (id) ON DELETE SET NULL,
+  published_at      TEXT,
+  created_by        TEXT REFERENCES users (id) ON DELETE SET NULL,
+  updated_by        TEXT REFERENCES users (id) ON DELETE SET NULL,
+  created_at        TEXT NOT NULL,
+  updated_at        TEXT NOT NULL
+);
+CREATE INDEX idx_library_resources_status ON library_resources (status, published_at);
+CREATE INDEX idx_library_resources_source_url ON library_resources (source_url);
+
+CREATE TABLE library_resource_terms (
+  resource_id  TEXT NOT NULL REFERENCES library_resources (id) ON DELETE CASCADE,
+  term_id      TEXT NOT NULL REFERENCES library_terms (id) ON DELETE CASCADE,
+  PRIMARY KEY (resource_id, term_id)
+);
+CREATE INDEX idx_library_resource_terms_term ON library_resource_terms (term_id);
+
+-- The Ask index: each resource's text in parts of about 300 words. Rebuilt on every save.
+CREATE TABLE library_chunks (
+  resource_id  TEXT NOT NULL REFERENCES library_resources (id) ON DELETE CASCADE,
+  seq          INTEGER NOT NULL,
+  text         TEXT NOT NULL,
+  PRIMARY KEY (resource_id, seq)
 );
 
--- Updates: what changed, who it affects, what to do by when. Same status steps as sources.
-CREATE TABLE library_updates (
-  id               TEXT PRIMARY KEY,
-  title            TEXT NOT NULL,
-  what_changed     TEXT NOT NULL DEFAULT '',
-  who_affected     TEXT NOT NULL DEFAULT '',
-  action           TEXT NOT NULL DEFAULT '',
-  action_due_date  TEXT,
-  source_url       TEXT NOT NULL DEFAULT '',
-  published_date   TEXT,
-  status           TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'in_review', 'published', 'archived')),
-  review_note      TEXT NOT NULL DEFAULT '',
-  submitted_by     TEXT REFERENCES users (id) ON DELETE SET NULL,
-  created_by       TEXT REFERENCES users (id) ON DELETE SET NULL,
-  updated_by       TEXT REFERENCES users (id) ON DELETE SET NULL,
-  created_at       TEXT NOT NULL,
-  updated_at       TEXT NOT NULL
-);
-CREATE INDEX idx_library_updates_status ON library_updates (status, updated_at);
-
-CREATE TABLE library_update_terms (
-  update_id  TEXT NOT NULL REFERENCES library_updates (id) ON DELETE CASCADE,
-  term_id    TEXT NOT NULL REFERENCES library_terms (id) ON DELETE CASCADE,
-  PRIMARY KEY (update_id, term_id)
+-- The entries an automation has already taken, so a dismissed entry does not come back.
+CREATE TABLE library_automation_entries (
+  automation_id  TEXT NOT NULL REFERENCES library_automations (id) ON DELETE CASCADE,
+  entry_url      TEXT NOT NULL,
+  seen_at        TEXT NOT NULL,
+  PRIMARY KEY (automation_id, entry_url)
 );
 
--- The sources that an update changes.
-CREATE TABLE library_update_sources (
-  update_id  TEXT NOT NULL REFERENCES library_updates (id) ON DELETE CASCADE,
-  source_id  TEXT NOT NULL REFERENCES library_sources (id) ON DELETE CASCADE,
-  PRIMARY KEY (update_id, source_id)
+-- One row per run of an automation, for the "Recent runs" log and the webhook rate limit.
+CREATE TABLE library_runs (
+  id             TEXT PRIMARY KEY,
+  automation_id  TEXT NOT NULL REFERENCES library_automations (id) ON DELETE CASCADE,
+  ran_at         TEXT NOT NULL,
+  added_count    INTEGER NOT NULL DEFAULT 0,
+  is_published   INTEGER NOT NULL DEFAULT 0,
+  note           TEXT NOT NULL DEFAULT '',
+  error          TEXT NOT NULL DEFAULT ''
 );
+CREATE INDEX idx_library_runs_automation ON library_runs (automation_id, ran_at);
+CREATE INDEX idx_library_runs_ran ON library_runs (ran_at);
 
--- The published copies. The newest version of an item is what readers see.
--- item_kind: source or update. snapshot_json holds the published fields and the term and source ids.
-CREATE TABLE library_versions (
-  item_kind      TEXT NOT NULL CHECK (item_kind IN ('source', 'update')),
-  item_id        TEXT NOT NULL,
-  version        INTEGER NOT NULL,
-  snapshot_json  TEXT NOT NULL,
-  published_by   TEXT REFERENCES users (id) ON DELETE SET NULL,  -- the reviewer who published it
-  published_at   TEXT NOT NULL,
-  PRIMARY KEY (item_kind, item_id, version)
-);
-
--- Brand settings: the page title, the names, the list labels, the notice, the review checklist.
+-- Site settings for the Library, one row per key. value_json holds the value.
 CREATE TABLE library_settings (
   key         TEXT PRIMARY KEY,
   value_json  TEXT NOT NULL,
