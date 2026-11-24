@@ -4,7 +4,7 @@ import { Button } from "@openact/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@openact/ui/components/card";
 import { Input } from "@openact/ui/components/input";
 import { cn } from "@openact/ui/lib/utils";
-import { PUNCH_LABELS, durationText, localDate, type MyTime } from "../shared/rules";
+import { PUNCH_LABELS, durationText, localDate, type MyTime, type UpcomingShift } from "../shared/rules";
 import { FlagBadges, companyApi, dayText, periodText, timeText, useCompanyData } from "./lib";
 
 /** My time: your own hours this pay period, and the fixes a manager made to them. */
@@ -30,6 +30,8 @@ export default function MyTimePage() {
             Hello, {d.person.name.replace(/\.$/, "")}. You clock in with your PIN on the time clock device at your location. These are your hours. Your payroll provider keeps your pay rate.
           </p>
         )}
+
+        {d?.person && <MySchedule upcoming={d.upcoming} />}
 
         {open.length > 0 && mine.companyId && (
           <Card>
@@ -168,5 +170,56 @@ function Respond({ companyId, changes, onDone }: { companyId: string; changes: C
         )}
       </div>
     </div>
+  );
+}
+
+/** The published shifts of the person: the next one first, then the next 3 weeks by day. */
+function MySchedule({ upcoming }: { upcoming: UpcomingShift[] }) {
+  const now = Date.now();
+  const next = upcoming.find((u) => Date.parse(u.endsAt) > now);
+  const rest = upcoming.filter((u) => u !== next && Date.parse(u.endsAt) > now);
+  const when = (u: UpcomingShift) => `${timeText(u.startsAt, u.timeZone)} to ${timeText(u.endsAt, u.timeZone)}`;
+  const day = (u: UpcomingShift) => dayText(localDate(Date.parse(u.startsAt), u.timeZone));
+  const minutes = (u: UpcomingShift) => Math.max(0, Math.round((Date.parse(u.endsAt) - Date.parse(u.startsAt)) / 60_000) - u.breakMinutes);
+  const startsIn = next ? Math.round((Date.parse(next.startsAt) - now) / 60_000) : 0;
+  return (
+    <Card data-my-schedule="">
+      <CardHeader>
+        <CardTitle>My schedule</CardTitle>
+        <CardDescription>The shifts a manager set for you. Clock in with your PIN when you arrive.</CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-3">
+        {!next && <p className="text-sm text-muted-foreground">No shifts in the next 3 weeks.</p>}
+        {next && (
+          <div className="grid gap-1 rounded-lg bg-primary p-4 text-primary-foreground">
+            <span className="text-xs opacity-80">{startsIn > 0 ? `Next shift · starts in ${durationText(startsIn)}` : "Now · on your shift"}</span>
+            <span className="text-lg font-semibold">
+              {day(next)}, {when(next)}
+            </span>
+            <span className="text-sm opacity-90">
+              {next.locationName} · {next.breakMinutes ? `${next.breakMinutes} min meal break · ` : ""}
+              {durationText(minutes(next))}
+            </span>
+            {next.note && <span className="text-sm opacity-90">Note: {next.note}</span>}
+          </div>
+        )}
+        {rest.length > 0 && (
+          <ul className="grid gap-1.5">
+            {rest.map((u, i) => (
+              <li key={i} className="flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm">
+                <span>
+                  <span className="font-medium">{day(u)}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {when(u)} · {u.locationName}
+                    {u.note ? ` · ${u.note}` : ""}
+                  </span>
+                </span>
+                <span className="shrink-0 tabular-nums text-muted-foreground">{durationText(minutes(u))}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
   );
 }

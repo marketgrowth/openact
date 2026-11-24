@@ -2,6 +2,7 @@ import { defineServerApp, type Env } from "@openact/core/server";
 import { API } from "../shared/rules.ts";
 import { deviceRoutes } from "./device.ts";
 import { companyRoutes } from "./routes.ts";
+import { scheduleRoutes } from "./schedule.ts";
 import { sync } from "./service.ts";
 
 /*
@@ -17,6 +18,7 @@ async function deleteCompany(env: Env, companyId: string): Promise<void> {
   // Children first, so the foreign keys never block a delete.
   await env.DB.batch(
     [
+      "workspent_shifts",
       "workspent_changes",
       "workspent_periods",
       "workspent_punches",
@@ -53,6 +55,7 @@ export default defineServerApp({
   routes: (api) => {
     api.route(`${API}/device`, deviceRoutes);
     api.route(API, companyRoutes);
+    api.route(API, scheduleRoutes);
   },
   services: { sync },
   hooks: {

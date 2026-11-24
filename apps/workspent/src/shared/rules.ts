@@ -200,14 +200,16 @@ function offsetAt(ms: number, tz: string): number {
  */
 export function zonedToUtc(date: string, time: string, tz: string): number {
   const guess = Date.parse(`${date}T${time}:00Z`);
-  let ms = guess - offsetAt(guess, tz);
-  const second = guess - offsetAt(ms, tz);
-  if (second !== ms) {
-    // Near a change. Prefer the earlier instant that shows the same wall clock.
-    const w = wallClock(second, tz);
-    ms = w.date === date && w.time === time ? Math.min(ms, second) : Math.max(ms, second);
-  }
-  return ms;
+  const a = guess - offsetAt(guess, tz);
+  const b = guess - offsetAt(a, tz);
+  const shows = (ms: number) => {
+    const w = wallClock(ms, tz);
+    return w.date === date && w.time === time;
+  };
+  const hits = [a, b].filter(shows);
+  if (hits.length) return Math.min(...hits);
+  // The hour that the clock skips: move forward.
+  return Math.max(a, b);
 }
 
 /* ------------------------------------------------------------------ */
@@ -643,8 +645,20 @@ export interface PersonDetail {
   state: { state: ClockState; since: string | null };
 }
 
+/** A published shift of the person who asks, for My time. */
+export interface UpcomingShift {
+  startsAt: string;
+  endsAt: string;
+  breakMinutes: number;
+  note: string;
+  locationName: string;
+  timeZone: string;
+}
+
 export interface MyTime {
   person: { id: string; name: string } | null;
+  /** Published shifts from 12 hours ago to 3 weeks ahead. */
+  upcoming: UpcomingShift[];
   locations: Array<{
     location: { id: string; name: string; timeZone: string };
     period: Period;

@@ -21,6 +21,7 @@ type Ids = {
   periodStart: string;
   betaLocationId: string;
   betaDeviceKey: string;
+  shiftId: string;
 };
 const ids: Ids = {
   locationId: "00000000-0000-4000-8000-000000000001",
@@ -31,7 +32,8 @@ const ids: Ids = {
   changeId: "00000000-0000-4000-8000-000000000005",
   periodStart: "2026-01-04",
   betaLocationId: "00000000-0000-4000-8000-000000000006",
-  betaDeviceKey: "none"
+  betaDeviceKey: "none",
+  shiftId: "00000000-0000-4000-8000-000000000007"
 };
 const ALPHA_PIN = "4826";
 
@@ -85,6 +87,15 @@ export async function seed(d: Deploy, alpha: Side, beta: Side): Promise<void> {
   await ok(d, alpha.owner, "POST", `${a.c}/locations/${a.locationId}/periods/${prev}/approve`);
   // A member of Alpha who is linked to the person, so My time has data.
   await ok(d, alpha.owner, "PATCH", `${a.c}/people/${a.personId}`, { userId: alpha.member.id });
+  // A published shift next week.
+  const shift = (await ok(d, alpha.owner, "POST", `${a.c}/locations/${a.locationId}/schedule`, {
+    personId: a.personId,
+    date: sundayBefore(day(8)),
+    startTime: "07:00",
+    endTime: "15:30",
+    note: "ALPHASECRET med pass"
+  })) as { ids: string[] };
+  await ok(d, alpha.owner, "POST", `${a.c}/locations/${a.locationId}/schedule/publish`, { from: sundayBefore(day(8)), to: sundayBefore(day(8)) });
   const p = d.one<{ id: string }>("SELECT id FROM workspent_punches WHERE company_id = ? AND source = 'device'", alpha.companyId);
   const ch = d.one<{ id: string }>("SELECT id FROM workspent_changes WHERE company_id = ? LIMIT 1", alpha.companyId);
   Object.assign(ids, {
@@ -96,13 +107,14 @@ export async function seed(d: Deploy, alpha: Side, beta: Side): Promise<void> {
     changeId: ch.id,
     periodStart: prev,
     betaLocationId: b.locationId,
-    betaDeviceKey: b.deviceKey
+    betaDeviceKey: b.deviceKey,
+    shiftId: shift.ids[0]
   });
 }
 
 export function snapshot(d: Deploy, alpha: Side): string {
   if (!installed(d)) return "";
-  const tables = ["workspent_locations", "workspent_people", "workspent_person_locations", "workspent_devices", "workspent_punches", "workspent_changes", "workspent_periods", "workspent_location_managers"];
+  const tables = ["workspent_shifts", "workspent_locations", "workspent_people", "workspent_person_locations", "workspent_devices", "workspent_punches", "workspent_changes", "workspent_periods", "workspent_location_managers"];
   return tables.map((t) => JSON.stringify(d.all(`SELECT * FROM ${t} WHERE company_id = ? ORDER BY 1, 2`, alpha.companyId))).join("\n");
 }
 
@@ -282,6 +294,52 @@ export const cases: Case[] = [
   },
   { route: "GET /api/apps/workspent/companies/:id/my-time", path: (a) => `${A(a)}/my-time`, expect: "denied" },
   { route: "GET /api/apps/workspent/companies/:id/my-time", path: (_a, b) => `${B(b)}/my-time`, expect: "any", why: "Beta's own My time must hold no Alpha hours." },
+  // Schedules.
+  { route: "GET /api/apps/workspent/companies/:id/locations/:lid/schedule", path: (a) => `${A(a)}/locations/${ids.locationId}/schedule?from=2026-01-04&to=2026-01-10`, expect: "denied" },
+  {
+    route: "GET /api/apps/workspent/companies/:id/locations/:lid/schedule",
+    path: (_a, b) => `${B(b)}/locations/${ids.locationId}/schedule?from=2026-01-04&to=2026-01-10`,
+    expect: "denied",
+    why: "Beta's company with an Alpha location."
+  },
+  {
+    route: "POST /api/apps/workspent/companies/:id/locations/:lid/schedule",
+    path: (a) => `${A(a)}/locations/${ids.locationId}/schedule`,
+    body: () => ({ personId: ids.personId, date: "2030-01-07", startTime: "07:00", endTime: "15:00" }),
+    expect: "denied"
+  },
+  {
+    route: "POST /api/apps/workspent/companies/:id/locations/:lid/schedule",
+    path: (_a, b) => `${B(b)}/locations/${ids.betaLocationId}/schedule`,
+    body: () => ({ personId: ids.personId, date: "2030-01-07", startTime: "07:00", endTime: "15:00" }),
+    expect: "denied",
+    why: "Beta's own location with an Alpha person."
+  },
+  { route: "PATCH /api/apps/workspent/companies/:id/schedule/:sid", path: (a) => `${A(a)}/schedule/${ids.shiftId}`, body: () => ({ note: "Taken" }), expect: "denied" },
+  { route: "PATCH /api/apps/workspent/companies/:id/schedule/:sid", path: (_a, b) => `${B(b)}/schedule/${ids.shiftId}`, body: () => ({ note: "Taken" }), expect: "denied", why: "Beta's company with an Alpha shift." },
+  { route: "DELETE /api/apps/workspent/companies/:id/schedule/:sid", path: (a) => `${A(a)}/schedule/${ids.shiftId}`, expect: "denied" },
+  { route: "DELETE /api/apps/workspent/companies/:id/schedule/:sid", path: (_a, b) => `${B(b)}/schedule/${ids.shiftId}`, expect: "denied", why: "Beta's company with an Alpha shift." },
+  {
+    route: "POST /api/apps/workspent/companies/:id/locations/:lid/schedule/publish",
+    path: (a) => `${A(a)}/locations/${ids.locationId}/schedule/publish`,
+    body: () => ({ from: "2026-01-04", to: "2026-01-10" }),
+    expect: "denied"
+  },
+  {
+    route: "POST /api/apps/workspent/companies/:id/locations/:lid/schedule/publish",
+    path: (_a, b) => `${B(b)}/locations/${ids.locationId}/schedule/publish`,
+    body: () => ({ from: "2026-01-04", to: "2026-01-10" }),
+    expect: "denied",
+    why: "Beta's company with an Alpha location."
+  },
+  { route: "POST /api/apps/workspent/companies/:id/locations/:lid/schedule/copy", path: (a) => `${A(a)}/locations/${ids.locationId}/schedule/copy`, body: () => ({ weekStart: "2030-01-06" }), expect: "denied" },
+  {
+    route: "POST /api/apps/workspent/companies/:id/locations/:lid/schedule/copy",
+    path: (_a, b) => `${B(b)}/locations/${ids.locationId}/schedule/copy`,
+    body: () => ({ weekStart: "2030-01-06" }),
+    expect: "denied",
+    why: "Beta's company with an Alpha location."
+  },
   { route: "POST /api/apps/workspent/companies/:id/changes/:cid/respond", path: (a) => `${A(a)}/changes/${ids.changeId}/respond`, body: () => ({ response: "questioned" }), expect: "denied" },
   {
     route: "POST /api/apps/workspent/companies/:id/changes/:cid/respond",

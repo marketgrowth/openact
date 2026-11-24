@@ -54,6 +54,7 @@ import {
   type DeviceRow,
   type LocationRow
 } from "./store.ts";
+import { upcomingShifts } from "./schedule.ts";
 
 /*
  * WorkSpent routes for signed-in people, all under /api/apps/workspent/companies/:id.
@@ -807,9 +808,10 @@ companyRoutes.get("/companies/:id/my-time", async (c) => {
   const { companyId, access } = await ctx(c);
   requireClock(access);
   const person = await personOfUser(c.env, companyId, access.userId);
-  const out: MyTime = { person: person ? { id: person.id, name: person.name } : null, locations: [], changes: [] };
+  const out: MyTime = { person: person ? { id: person.id, name: person.name } : null, upcoming: [], locations: [], changes: [] };
   if (!person) return c.json(out);
   const now = Date.now();
+  out.upcoming = await upcomingShifts(c.env, companyId, person.id, now);
   const locIds = (
     await c.env.DB.prepare(
       `SELECT location_id FROM workspent_person_locations WHERE person_id = ? AND company_id = ?
