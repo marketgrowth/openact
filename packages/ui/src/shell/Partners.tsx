@@ -77,7 +77,8 @@ export function SitePartners() {
         <ul className="grid gap-2" data-site-partners="">
           {domains.map((d) => (
             <li key={d.host} className="flex flex-wrap items-center gap-3 rounded-lg border p-3" data-site-partner={d.host}>
-              <div className="min-w-0 flex-1">
+              {/* A minimum width lets the buttons wrap below the text on a phone. */}
+              <div className="min-w-56 flex-1">
                 <p className="flex flex-wrap items-center gap-2 text-sm font-medium">
                   <span className="truncate">{d.host}</span>
                   {d.paused && <Badge variant="destructive">Paused</Badge>}
