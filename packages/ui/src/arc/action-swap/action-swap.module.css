@@ -1,0 +1,40 @@
+/* Arc (MIT, Copyright (c) 2026 Elia Kuratli): registry/components/action-swap/action-swap.module.css at 8302b52ed9dc. Written by `npm run arc`. Do not edit. */
+/* The pill hugs its content: tone, icon, and letters morph together while width and padding follow on one spring.
+   While an action runs without a pending label, --fold (0 to 1) eases the padding down until the pill is a circle around its spinner.
+   The pill clips its own content, so letters that run ahead of the width are revealed by the growing shape rather than a hard inner edge. */
+.button { --swap-height: var(--arc-control-height-md); --swap-pad: var(--arc-space-5); position: relative; display: inline-flex; min-width: var(--swap-height); min-height: var(--swap-height); align-items: center; justify-content: center; padding: 0 calc(var(--swap-pad) + ((var(--swap-height) - 18px) / 2 - var(--swap-pad)) * var(--fold, 0)); border: 1px solid var(--arc-foreground); border-radius: var(--arc-radius-pill); background: var(--arc-foreground); color: var(--arc-background); font: inherit; font-size: var(--arc-text-sm); font-weight: 500; line-height: var(--arc-leading-body); overflow: clip; white-space: nowrap; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background-color var(--arc-duration-standard) var(--arc-ease-standard), border-color var(--arc-duration-standard) var(--arc-ease-standard), color var(--arc-duration-standard) var(--arc-ease-standard), opacity var(--arc-duration-fast) var(--arc-ease-standard); }
+.sm { --swap-height: var(--arc-control-height-sm); --swap-pad: var(--arc-space-4); }
+.md { --swap-height: var(--arc-control-height-md); --swap-pad: var(--arc-space-5); }
+.lg { --swap-height: var(--arc-control-height-lg); --swap-pad: var(--arc-space-6); }
+.button:disabled { cursor: default; opacity: .6; }
+.button[aria-busy="true"] { cursor: progress; }
+/* Filled tones carry the primary action; tinted tones confirm a result with most of the color on the icon. */
+.neutral { border-color: var(--arc-foreground); background: var(--arc-foreground); color: var(--arc-background); }
+.accent { border-color: var(--arc-accent); background: var(--arc-accent); color: var(--arc-accent-foreground); }
+.quiet { border-color: var(--arc-border); background: var(--arc-surface); color: var(--arc-foreground); }
+.success { border-color: color-mix(in oklab, var(--arc-success) 25%, var(--arc-border)); background: color-mix(in oklab, var(--arc-success) 10%, var(--arc-surface)); color: var(--arc-foreground); }
+.warning { border-color: color-mix(in oklab, var(--arc-warning) 30%, var(--arc-border)); background: color-mix(in oklab, var(--arc-warning) 12%, var(--arc-surface)); color: var(--arc-foreground); }
+.danger { border-color: color-mix(in oklab, var(--arc-danger) 25%, var(--arc-border)); background: color-mix(in oklab, var(--arc-danger) 10%, var(--arc-surface)); color: var(--arc-foreground); }
+@media (hover: hover) and (pointer: fine) {
+  .neutral:hover:not(:disabled, [aria-busy="true"]) { border-color: var(--arc-text-secondary); background: var(--arc-text-secondary); }
+  .accent:hover:not(:disabled, [aria-busy="true"]) { border-color: var(--arc-accent-strong); background: var(--arc-accent-strong); }
+  .quiet:hover:not(:disabled, [aria-busy="true"]) { border-color: var(--arc-border-strong); background: var(--arc-surface-muted); }
+  .success:hover:not(:disabled) { border-color: color-mix(in oklab, var(--arc-success) 42%, var(--arc-border)); }
+  .warning:hover:not(:disabled) { border-color: color-mix(in oklab, var(--arc-warning) 48%, var(--arc-border)); }
+  .danger:hover:not(:disabled) { border-color: color-mix(in oklab, var(--arc-danger) 42%, var(--arc-border)); }
+}
+.icon { position: relative; display: grid; height: 16px; flex: none; place-items: center; }
+.iconPhase { grid-area: 1 / 1; display: inline-flex; align-items: center; justify-content: center; }
+.iconPhase svg { flex: none; }
+.iconPhase[data-tone="success"] { color: var(--arc-success); }
+.iconPhase[data-tone="warning"] { color: var(--arc-warning); }
+.iconPhase[data-tone="danger"] { color: var(--arc-danger); }
+/* A quiet ring: a faint full track with one bright arc turning around it. */
+.spinner { display: block; width: 14px; height: 14px; border: 1.5px solid color-mix(in oklab, currentColor 24%, transparent); border-top-color: currentColor; border-radius: 50%; animation: swap-spin .75s linear infinite; }
+@keyframes swap-spin { to { transform: rotate(360deg); } }
+.morph { display: inline-flex; min-width: 0; }
+.glyphs { position: relative; display: inline-flex; flex: none; white-space: pre; }
+.glyphs[data-gap] { padding-left: var(--arc-space-2); }
+.glyph { display: inline-block; }
+.srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { .button { transition: none; } .spinner { animation: none; } }

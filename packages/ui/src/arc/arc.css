@@ -1,0 +1,141 @@
+/* Arc tokens for OpenAct.
+   Arc components (packages/ui/src/arc, copied in by `npm run arc`) read `--arc-*` tokens. This file maps each one to an
+   OpenAct Promptbook token in packages/ui/src/theme.css. So Arc components take the OpenAct colors, fonts and radius,
+   and they follow the light and dark themes with no extra values.
+
+   To change how Arc components look, change the Promptbook token, not this file. Change this file only to point an Arc
+   token at a different Promptbook token. Every color here is a Promptbook token or a mix of Promptbook tokens.
+   The only literal values are shadows, which are black at low opacity, as in Arc. */
+
+:root {
+  /* Surfaces and text */
+  --arc-background: var(--background);
+  --arc-surface: var(--card);
+  --arc-surface-raised: var(--popover);
+  --arc-surface-muted: var(--muted);
+  --arc-foreground: var(--foreground);
+  --arc-text-secondary: color-mix(in oklab, var(--foreground) 50%, var(--muted-foreground));
+  --arc-text-muted: var(--muted-foreground);
+  --arc-border: var(--border);
+  --arc-border-subtle: color-mix(in oklab, var(--border) 60%, transparent);
+  --arc-border-strong: color-mix(in oklab, var(--border), var(--foreground) 18%);
+
+  /* Neutral steps from the page color (0) to the text color (11). They flip with the theme. */
+  --arc-neutral-0: var(--background);
+  --arc-neutral-1: color-mix(in oklab, var(--foreground) 1%, var(--background));
+  --arc-neutral-2: color-mix(in oklab, var(--foreground) 2.5%, var(--background));
+  --arc-neutral-3: color-mix(in oklab, var(--foreground) 5%, var(--background));
+  --arc-neutral-4: color-mix(in oklab, var(--foreground) 10%, var(--background));
+  --arc-neutral-5: color-mix(in oklab, var(--foreground) 18%, var(--background));
+  --arc-neutral-6: color-mix(in oklab, var(--foreground) 33%, var(--background));
+  --arc-neutral-7: color-mix(in oklab, var(--foreground) 48%, var(--background));
+  --arc-neutral-8: color-mix(in oklab, var(--foreground) 63%, var(--background));
+  --arc-neutral-9: color-mix(in oklab, var(--foreground) 77%, var(--background));
+  --arc-neutral-10: color-mix(in oklab, var(--foreground) 90%, var(--background));
+  --arc-neutral-11: var(--foreground);
+
+  /* Action. Arc's accent is the main action color, which is `primary` in OpenAct. */
+  --arc-accent: var(--primary);
+  --arc-accent-strong: color-mix(in oklab, var(--primary), var(--foreground) 25%);
+  --arc-accent-subtle: color-mix(in oklab, var(--primary) 10%, transparent);
+  --arc-accent-foreground: var(--primary-foreground);
+
+  /* Selection controls: switch, checkbox, radio, slider */
+  --arc-control-on: var(--primary);
+  --arc-control-glyph: var(--primary-foreground);
+  --arc-control-track: var(--input);
+  --arc-control-track-hover: color-mix(in oklab, var(--input), var(--foreground) 8%);
+  --arc-control-thumb: var(--background);
+  --arc-control-thumb-on: var(--primary-foreground);
+  --arc-control-thumb-shadow: 0 0 0 .5px oklch(0 0 0 / .07), 0 1px 2px oklch(0 0 0 / .14), 0 2px 6px oklch(0 0 0 / .06);
+  --arc-control-on-subtle: color-mix(in oklab, var(--arc-control-on) 10%, transparent);
+  --arc-control-fill: var(--primary);
+
+  /* Focus. Pointer focus draws no ring. Keyboard focus draws an outline in the OpenAct ring color. */
+  --arc-focus-ring: transparent;
+  --arc-focus-outline: var(--ring);
+
+  /* Meaning. Arc tones are identity colors (tags, chart series). They map to the OpenAct project and avatar colors. */
+  --arc-tone-teal: var(--pc-teal);
+  --arc-tone-sky: var(--av-5);
+  --arc-tone-orchid: var(--av-7);
+  --arc-tone-violet: var(--pc-violet);
+  --arc-tone-rose: var(--pc-rose);
+  --arc-tone-amber: var(--pc-amber);
+  --arc-tone-green: var(--s-done);
+  --arc-success: var(--s-done);
+  --arc-warning: var(--p-med);
+  --arc-danger: var(--destructive);
+  --arc-info: var(--s-todo);
+
+  /* Chart series */
+  --arc-series-1: var(--pc-indigo);
+  --arc-series-2: var(--pc-violet);
+  --arc-series-3: var(--pc-amber);
+  --arc-series-4: var(--pc-teal);
+
+  /* Arc's brand gradient becomes a quiet wash with the OpenAct stage gold. */
+  --arc-gradient-from: color-mix(in oklab, var(--brand-gold) 16%, var(--background));
+  --arc-gradient-to: var(--muted);
+  --arc-gradient: linear-gradient(100deg, var(--arc-gradient-from), var(--arc-gradient-to));
+  --arc-gradient-foreground: var(--foreground);
+  --arc-gradient-soft: linear-gradient(135deg, color-mix(in oklab, var(--brand-gold) 5%, var(--background)), var(--background));
+  --arc-gradient-line: linear-gradient(100deg, var(--border), color-mix(in oklab, var(--brand-gold) 45%, var(--border)));
+  --arc-gradient-ink: linear-gradient(100deg, var(--foreground), var(--brand-gold));
+
+  /* Elevation */
+  --arc-shadow-resting: 0 1px 2px oklch(0 0 0 / .035);
+  --arc-shadow-raised: 0 6px 18px oklch(0 0 0 / .065), 0 1px 3px oklch(0 0 0 / .035);
+  --arc-shadow-floating: 0 20px 48px oklch(0 0 0 / .105), 0 3px 10px oklch(0 0 0 / .045);
+
+  /* Shape. Radius and control heights match the shadcn/ui components, so both kinds line up in one row. */
+  --arc-radius-control: calc(var(--radius) - 2px);
+  --arc-radius-panel: calc(var(--radius) + 4px);
+  --arc-radius-surface: calc(var(--radius) + 8px);
+  --arc-radius-pill: 9999px;
+  --arc-control-height-sm: 2rem;
+  --arc-control-height-md: 2.25rem;
+  --arc-control-height-lg: 2.5rem;
+
+  /* Space */
+  --arc-space-1: .25rem; --arc-space-2: .5rem; --arc-space-3: .75rem; --arc-space-4: 1rem;
+  --arc-space-5: 1.25rem; --arc-space-6: 1.5rem; --arc-space-8: 2rem; --arc-space-10: 2.5rem;
+  --arc-space-12: 3rem; --arc-space-16: 4rem; --arc-space-20: 5rem; --arc-space-24: 6rem;
+
+  /* Type. The app font is Open Sans. */
+  --arc-font-display: "Open Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --arc-font-body: "Open Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --arc-text-xs: .75rem; --arc-text-sm: .875rem; --arc-text-base: 1rem; --arc-text-lg: 1.125rem;
+  --arc-text-xl: 1.375rem; --arc-text-2xl: 1.75rem; --arc-text-3xl: 2.25rem;
+  --arc-text-4xl: 3.25rem; --arc-text-5xl: 4.5rem;
+  --arc-tracking-display: -.02em; --arc-tracking-body: 0;
+  --arc-leading-display: 1.1; --arc-leading-body: 1.4;
+
+  /* Motion. Arc keeps its own curves and times. Reduced motion stops them through the rule in theme.css (cue C11). */
+  --arc-ease-enter: cubic-bezier(.16,1,.3,1);
+  --arc-ease-standard: cubic-bezier(.22,1,.36,1);
+  --arc-ease-exit: cubic-bezier(.7,0,.84,0);
+  --arc-ease-in-out: cubic-bezier(.65,0,.35,1);
+  --arc-ease-spring: linear(0, 0.0213, 0.0739, 0.1443, 0.2235, 0.305, 0.3849, 0.4606, 0.5305, 0.594, 0.6508, 0.7011, 0.7452, 0.7836, 0.8168, 0.8454, 0.8699, 0.8907, 0.9084, 0.9234, 0.9361, 0.9467, 0.9557, 0.9632, 0.9694, 0.9747, 0.979, 0.9826, 0.9857, 0.9882, 0.9902, 0.992, 0.9934, 0.9946, 0.9955, 0.9963, 1);
+  --arc-duration-instant: 120ms; --arc-duration-fast: 160ms; --arc-duration-standard: 240ms; --arc-duration-considered: 480ms; --arc-duration-spring: 580ms;
+}
+
+.dark {
+  /* In dark mode a light thumb sits on the track when off, and a dark thumb sits on the light primary when on. */
+  --arc-control-thumb: var(--foreground);
+  --arc-control-fill: var(--muted-foreground);
+  --arc-control-thumb-shadow: 0 0 0 .5px oklch(0 0 0 / .3), 0 1px 2px oklch(0 0 0 / .35), 0 2px 6px oklch(0 0 0 / .2);
+  --arc-shadow-resting: 0 1px 2px oklch(0 0 0 / .18);
+  --arc-shadow-raised: 0 8px 22px oklch(0 0 0 / .22);
+  --arc-shadow-floating: 0 22px 55px oklch(0 0 0 / .34);
+  --arc-gradient-from: color-mix(in oklab, var(--brand-gold) 22%, var(--background));
+}
+
+/* Keyboard focus for Arc components, as in Arc. Vite gives Arc classes an `arc_` prefix (vite.config.ts), so this rule
+   touches only Arc elements and their children. shadcn/ui components carry `data-slot` and draw their own ring, so the
+   rule skips them. Text fields, menu items, options and script-only focus targets show focus in their own way. */
+:is([class*="arc_"], [class*="arc_"] *):focus:not(:focus-visible) { outline: none !important; }
+:is([class*="arc_"], [class*="arc_"] *):focus-visible:not([data-slot], input:not([type="button"], [type="checkbox"], [type="color"], [type="file"], [type="image"], [type="radio"], [type="range"], [type="reset"], [type="submit"]), textarea, [contenteditable]:not([contenteditable="false"]), [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="option"], [tabindex="-1"]) {
+  outline: var(--arc-focus-outline-width, 2px) solid var(--arc-focus-outline, var(--ring)) !important;
+  outline-offset: var(--arc-focus-outline-offset, 2px) !important;
+}
