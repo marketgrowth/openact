@@ -1,0 +1,6 @@
+/* Arc (MIT, Copyright (c) 2026 Elia Kuratli): registry/components/icon-morph/icon-morph.module.css at 8302b52ed9dc. Written by `npm run arc`. Do not edit. */
+.icon { display: block; flex: none; overflow: visible; }
+
+/* Liked hearts take the like color; it defaults to the danger role, the conventional red of a like. */
+.heart { transition: color var(--arc-duration-fast) var(--arc-ease-standard); }
+.heart[data-on] { color: var(--icon-morph-like, var(--arc-danger)); }

@@ -1,0 +1,39 @@
+/* Arc (MIT, Copyright (c) 2026 Elia Kuratli): registry/components/chip-group/chip-group.module.css at 8302b52ed9dc. Written by `npm run arc`. Do not edit. */
+/* The frame follows the chip rows' height on a spring; the rows re-flow once and every chip glides to its new place. */
+.frame { min-width: 0; }
+.content { position: relative; }
+.group { position: relative; isolation: isolate; display: flex; flex-wrap: wrap; gap: var(--arc-space-2); }
+
+/* The button is only the hit area and the layout box. What you see is the surface, which trails the box on a spring while the width morphs. */
+.chip { position: relative; display: inline-flex; max-width: 100%; padding: 0; border: 0; border-radius: var(--arc-radius-pill); background: none; color: var(--arc-text-secondary); font: inherit; font-size: var(--arc-text-sm); font-weight: 500; letter-spacing: var(--arc-tracking-body); line-height: 20px; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: color var(--arc-duration-fast) var(--arc-ease-standard); }
+/* Press answers on the body with the individual scale property, so it never fights the layout transform on the button. */
+.body { position: relative; isolation: isolate; display: inline-flex; min-width: 0; height: var(--arc-control-height-sm); align-items: center; padding: 0 14px; transition: scale var(--arc-duration-spring) var(--arc-ease-spring); }
+.chip:active .body { scale: .97; transition-duration: var(--arc-duration-instant); transition-timing-function: var(--arc-ease-standard); }
+.surface { position: absolute; z-index: -1; top: 0; bottom: 0; left: 0; border: 1px solid var(--arc-border); border-radius: var(--arc-radius-pill); background: var(--arc-surface); transition: background-color var(--arc-duration-fast) var(--arc-ease-standard), border-color var(--arc-duration-fast) var(--arc-ease-standard); }
+/* The check grows from its left edge where the label started; the slot hands its width to the label in one layout step, and the label's offset springs it over. */
+.check { position: absolute; top: calc(50% - 7px); left: 12px; display: grid; width: 14px; height: 14px; place-items: center; color: var(--arc-accent-strong); transform-origin: 0 50%; }
+.check svg { display: block; overflow: visible; }
+.slot { width: 0; flex: none; }
+.body[data-selected="true"] .slot { width: 18px; }
+.label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Selected reads as a quiet tint of the accent (neutral by default) plus the check, never color alone. */
+.body[data-selected="true"] .surface { border-color: color-mix(in oklab, var(--arc-accent) 42%, var(--arc-border)); background: color-mix(in oklab, var(--arc-accent) 11%, var(--arc-surface)); }
+.chip[aria-pressed="true"] { color: var(--arc-foreground); }
+@media (hover: hover) and (pointer: fine) {
+  .chip:hover { color: var(--arc-foreground); }
+  .chip:hover .surface { border-color: var(--arc-border-strong); }
+  .chip[aria-pressed="true"]:hover .surface { border-color: color-mix(in oklab, var(--arc-accent) 60%, var(--arc-border)); background: color-mix(in oklab, var(--arc-accent) 16%, var(--arc-surface)); }
+}
+
+/* The overflow chip travels under the chips it reveals, so they seem to come out of it. */
+.chip:not(.more) { z-index: 1; }
+.more { color: var(--arc-text-muted); }
+.more .surface { border-color: var(--arc-border); background: var(--arc-surface-muted); }
+.moreText { position: relative; display: inline-flex; justify-content: center; font-variant-numeric: tabular-nums; }
+.moreLine { display: block; white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .chip, .body, .surface { transition: none; }
+  .chip:active .body { scale: none; }
+}

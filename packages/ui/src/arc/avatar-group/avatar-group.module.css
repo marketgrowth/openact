@@ -1,0 +1,24 @@
+/* Arc (MIT, Copyright (c) 2026 Elia Kuratli): registry/components/avatar-group/avatar-group.module.css at 8302b52ed9dc. Written by `npm run arc`. Do not edit. */
+.group { --avatar-size: 36px; display: inline-flex; height: var(--avatar-size); align-items: center; padding-left: 6px; }
+.group.sm { --avatar-size: 28px; }
+.group.lg { --avatar-size: 48px; }
+/* Each slot is the avatar's visible width, so a slot that opens or closes moves the rest of the stack smoothly. */
+.slot { position: relative; display: inline-flex; flex: 0 0 auto; height: var(--avatar-size); align-items: center; }
+/* One wrapper per person holds the overlap. Avatars never move on hover or focus; only the ring and name answer the pointer. */
+.lift { position: relative; display: inline-flex; margin-left: -6px; border-radius: var(--arc-radius-pill); }
+.avatar, .overflow { border: 2px solid var(--arc-surface); box-shadow: 0 0 0 1px var(--arc-border); transition: box-shadow var(--arc-duration-fast) var(--arc-ease-standard); }
+.overflow { position: relative; display: inline-grid; place-items: center; overflow: hidden; border-radius: var(--arc-radius-pill); background: var(--arc-surface-muted); color: var(--arc-text-secondary); font-size: var(--arc-text-xs); font-weight: 500; font-variant-numeric: tabular-nums; }
+.count { display: inline-block; }
+.overflow.sm { width: 28px; height: 28px; font-size: 10px; }
+.overflow.md { width: 36px; height: 36px; }
+.overflow.lg { width: 48px; height: 48px; font-size: var(--arc-text-sm); }
+/* The name floats above the stack, outside the layout, so showing it never moves anything. */
+.tip { position: absolute; z-index: 2; bottom: calc(100% + 8px); left: 50%; padding: 4px 8px; border-radius: var(--arc-radius-pill); background: var(--arc-foreground); color: var(--arc-background); font-size: var(--arc-text-xs); font-weight: 500; line-height: var(--arc-leading-body); white-space: nowrap; pointer-events: none; opacity: 0; transform: translate(-50%, 3px); transition: opacity var(--arc-duration-fast) var(--arc-ease-standard), transform var(--arc-duration-fast) var(--arc-ease-standard); }
+/* The person under the pointer comes to the front with a crisp ring and names themselves; nothing in the stack moves. */
+@media (hover: hover) and (pointer: fine) {
+  .slot:hover { z-index: 1; }
+  .slot:hover .avatar, .slot:hover .overflow { box-shadow: 0 0 0 1px var(--arc-border-strong); }
+  .slot:hover .tip { opacity: 1; transform: translate(-50%, 0); transition-delay: 60ms; }
+}
+/* Reduced motion shows the name without its small rise. */
+@media (prefers-reduced-motion: reduce) { .tip { transform: translate(-50%, 0); transition: none; } }
