@@ -92,7 +92,7 @@
     {
       "id": "workspent",
       "name": "WorkSpent",
-      "summary": "A time clock. People clock in with a PIN on a tablet at the location. Managers fix and approve the hours, then export them to payroll.",
+      "summary": "Time tracking. Track time on client projects with a timer, rates and client approval, and clock staff in with a PIN at a location, with schedules and payroll export.",
       "category": "Work",
       "status": "built-in",
       "publisher": "MarketGrowth",

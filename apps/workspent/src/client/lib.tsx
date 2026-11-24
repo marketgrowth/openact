@@ -31,8 +31,19 @@ export function useCompanyData<T>(path: string | null): { data: T | null; error:
   return { data, error, reload, companyId };
 }
 
+const ME_EVENT = "openact.workspent.me";
+
+/** Asks every useMe() on the page to load again, such as the side panel after a settings change. */
+export const refreshMe = () => window.dispatchEvent(new Event(ME_EVENT));
+
 export function useMe() {
-  return useCompanyData<Me>("/me");
+  const me = useCompanyData<Me>("/me");
+  const { reload } = me;
+  useEffect(() => {
+    window.addEventListener(ME_EVENT, reload);
+    return () => window.removeEventListener(ME_EVENT, reload);
+  }, [reload]);
+  return me;
 }
 
 /** "7:02 AM" in a time zone. */

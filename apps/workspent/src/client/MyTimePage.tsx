@@ -5,10 +5,30 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@open
 import { Input } from "@openact/ui/components/input";
 import { cn } from "@openact/ui/lib/utils";
 import { PUNCH_LABELS, durationText, localDate, type MyTime, type UpcomingShift } from "../shared/rules";
-import { FlagBadges, companyApi, dayText, periodText, timeText, useCompanyData } from "./lib";
+import { FlagBadges, companyApi, dayText, periodText, timeText, useCompanyData, useMe } from "./lib";
+import { ProjectTime } from "./ProjectTime";
 
-/** My time: your own hours this pay period, and the fixes a manager made to them. */
+/**
+ * My time: the timer and this week's project time (Projects), then your shifts, your hours this pay period
+ * and the fixes a manager made to them (Shifts). Each part shows when its kind of work is on.
+ */
 export default function MyTimePage() {
+  const me = useMe();
+  const kinds = me.data;
+  return (
+    <>
+      <SiteHeader title="My time" />
+      <PageBody className="max-w-5xl">
+        {me.error && <Notice tone="error">{me.error}</Notice>}
+        {kinds?.projects && kinds.canTrack && <ProjectTime />}
+        {kinds?.projects && kinds.shifts && kinds.canTrack && <h2 className="mt-2 text-base font-semibold">Shifts</h2>}
+        {kinds?.shifts && <ShiftTime />}
+      </PageBody>
+    </>
+  );
+}
+
+function ShiftTime() {
   const mine = useCompanyData<MyTime>("/my-time");
   const d = mine.data;
   const open = d?.changes.filter((c) => !c.response) ?? [];
@@ -16,87 +36,84 @@ export default function MyTimePage() {
 
   return (
     <>
-      <SiteHeader title="My time" />
-      <PageBody className="max-w-4xl">
-        {mine.error && <Notice tone="error">{mine.error}</Notice>}
-        {d && !d.person && (
-          <Notice tone="info">
-            Your account is not linked to a person in WorkSpent. Ask a company owner or admin to link it in People and PINs. You can still clock in with your PIN on a time
-            clock device.
-          </Notice>
-        )}
-        {d?.person && (
-          <p className="text-sm text-muted-foreground">
-            Hello, {d.person.name.replace(/\.$/, "")}. You clock in with your PIN on the time clock device at your location. These are your hours. Your payroll provider keeps your pay rate.
-          </p>
-        )}
+      {mine.error && <Notice tone="error">{mine.error}</Notice>}
+      {d && !d.person && (
+        <Notice tone="info">
+          Your account is not linked to a person in WorkSpent. Ask a company owner or admin to link it in Team. You can still clock in with your PIN on a time
+          clock device.
+        </Notice>
+      )}
+      {d?.person && (
+        <p className="text-sm text-muted-foreground">
+          Hello, {d.person.name.replace(/\.$/, "")}. You clock in with your PIN on the time clock device at your location. These are your hours. Your payroll provider keeps your pay rate.
+        </p>
+      )}
 
-        {d?.person && <MySchedule upcoming={d.upcoming} />}
+      {d?.person && <MySchedule upcoming={d.upcoming} />}
 
-        {open.length > 0 && mine.companyId && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Fixes to check</CardTitle>
-              <CardDescription>A manager changed your hours. Confirm each fix, or question it.</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-3">
-              {groups(open).map((g) => (
-                <Respond key={g[0]!.id} companyId={mine.companyId!} changes={g} onDone={mine.reload} />
-              ))}
-            </CardContent>
-          </Card>
-        )}
+      {open.length > 0 && mine.companyId && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Fixes to check</CardTitle>
+            <CardDescription>A manager changed your hours. Confirm each fix, or question it.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3">
+            {groups(open).map((g) => (
+              <Respond key={g[0]!.id} companyId={mine.companyId!} changes={g} onDone={mine.reload} />
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
-        {d?.locations.map((l) => (
-          <Card key={l.location.id}>
-            <CardHeader>
-              <CardTitle>{l.location.name}</CardTitle>
-              <CardDescription>
-                {periodText(l.period)} · {durationText(l.sheet.minutes)}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-3">
-              {l.sheet.days.length === 0 && <p className="text-sm text-muted-foreground">No hours in this pay period yet.</p>}
-              {l.sheet.days.map((day) => {
-                const shifts = l.sheet.shifts.filter((s) => s.date === day.date);
-                const punches = l.punches.filter((p) => localDate(Date.parse(p.at), l.location.timeZone) === day.date);
-                return (
-                  <section key={day.date} className="grid gap-1 rounded-md border p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className="text-sm font-medium">{dayText(day.date)}</h3>
-                      <span className="text-sm tabular-nums">{durationText(day.minutes)}</span>
-                    </div>
-                    <FlagBadges flags={shifts.flatMap((s) => s.flags).filter((f) => f !== "over_day" && f !== "over_week")} />
-                    <ul className="grid gap-0.5 text-sm text-muted-foreground">
-                      {punches.map((p) => (
-                        <li key={p.id} className={cn(p.isDeleted && "line-through")}>
-                          {PUNCH_LABELS[p.kind]}, {timeText(p.at, l.location.timeZone)}
-                          {p.source === "manager" ? " · added by a manager" : ""}
-                        </li>
-                      ))}
-                    </ul>
-                  </section>
-                );
-              })}
-            </CardContent>
-          </Card>
-        ))}
+      {d?.locations.map((l) => (
+        <Card key={l.location.id}>
+          <CardHeader>
+            <CardTitle>{l.location.name}</CardTitle>
+            <CardDescription>
+              {periodText(l.period)} · {durationText(l.sheet.minutes)}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3">
+            {l.sheet.days.length === 0 && <p className="text-sm text-muted-foreground">No hours in this pay period yet.</p>}
+            {l.sheet.days.map((day) => {
+              const shifts = l.sheet.shifts.filter((s) => s.date === day.date);
+              const punches = l.punches.filter((p) => localDate(Date.parse(p.at), l.location.timeZone) === day.date);
+              return (
+                <section key={day.date} className="grid gap-1 rounded-md border p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-sm font-medium">{dayText(day.date)}</h3>
+                    <span className="text-sm tabular-nums">{durationText(day.minutes)}</span>
+                  </div>
+                  <FlagBadges flags={shifts.flatMap((s) => s.flags).filter((f) => f !== "over_day" && f !== "over_week")} />
+                  <ul className="grid gap-0.5 text-sm text-muted-foreground">
+                    {punches.map((p) => (
+                      <li key={p.id} className={cn(p.isDeleted && "line-through")}>
+                        {PUNCH_LABELS[p.kind]}, {timeText(p.at, l.location.timeZone)}
+                        {p.source === "manager" ? " · added by a manager" : ""}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              );
+            })}
+          </CardContent>
+        </Card>
+      ))}
 
-        {done.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Fixes you answered</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-2 text-sm">
-              {done.map((c) => (
-                <p key={c.id}>
-                  {changeText(c)} · {c.response === "confirmed" ? "You confirmed it." : `You questioned it${c.responseNote ? `: ${c.responseNote}` : "."}`}
-                </p>
-              ))}
-            </CardContent>
-          </Card>
-        )}
-      </PageBody>
+      {done.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Fixes you answered</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-2 text-sm">
+            {done.map((c) => (
+              <p key={c.id}>
+                {changeText(c)} · {c.response === "confirmed" ? "You confirmed it." : `You questioned it${c.responseNote ? `: ${c.responseNote}` : "."}`}
+              </p>
+            ))}
+          </CardContent>
+        </Card>
+      )}
     </>
   );
 }

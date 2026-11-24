@@ -232,7 +232,7 @@ export default function SchedulePage() {
             {view !== "day" && <Legend />}
             {d.people.length === 0 && d.shifts.length === 0 && (
               <Notice tone="info">
-                Nobody is at this location yet. Add people in <Link to={`${HOME}/people`} className="underline">People and PINs</Link>, then add their shifts.
+                Nobody is at this location yet. Add people in <Link to={`${HOME}/people`} className="underline">Team</Link>, then add their shifts.
               </Notice>
             )}
             {view === "week" && <WeekView data={d} from={range.from} onAdd={(personId, date) => setEdit({ personId, date })} onEdit={(shift) => setEdit({ shift })} />}

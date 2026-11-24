@@ -97,7 +97,7 @@ export default function LocationsPage() {
           <LocationEditor key={current.id} companyId={locs.companyId} location={current} canSetup={canSetup} onChanged={locs.reload} />
         )}
         <p className="text-xs text-muted-foreground">
-          PINs have 4 to 6 digits. Set them on each person in People and PINs. {PIN_TRIES} wrong PINs in a row lock the PIN pad of a device for{" "}
+          PINs have 4 to 6 digits. Set them on each person in Team. {PIN_TRIES} wrong PINs in a row lock the PIN pad of a device for{" "}
           {PIN_LOCK_MS / 60_000} minutes. A manager can unlock it here.
         </p>
       </PageBody>

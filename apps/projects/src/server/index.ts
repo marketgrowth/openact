@@ -71,6 +71,27 @@ async function acceptInvitations(env: Env, user: User): Promise<void> {
   await env.DB.batch(stmts);
 }
 
+/**
+ * The projects a person can see in a company, for other apps such as WorkSpent.
+ * It checks that the projects app is on, the person's roles and each project's visibility.
+ */
+async function visibleProjects(env: Env, companyId: string, userId: string): Promise<Array<{ id: string; name: string; color: string }>> {
+  const ids = await visibleProjectIds(env, companyId, userId);
+  if (!ids.length) return [];
+  const rows = await env.DB.prepare(`SELECT id, name, color FROM projects WHERE company_id = ? AND id IN (${ids.map(() => "?").join(", ")}) ORDER BY name COLLATE NOCASE`)
+    .bind(companyId, ...ids.map((p) => p.id))
+    .all<{ id: string; name: string; color: string }>();
+  return rows.results;
+}
+
+/** The tasks of a project. The caller checks first that the person can see the project. */
+async function projectTasks(env: Env, projectId: string): Promise<Array<{ id: string; title: string; done: boolean }>> {
+  const rows = await env.DB.prepare("SELECT id, title, status FROM tasks WHERE project_id = ? ORDER BY status = 'done', sort_order LIMIT 500")
+    .bind(projectId)
+    .all<{ id: string; title: string; status: string }>();
+  return rows.results.map((t) => ({ id: t.id, title: t.title, done: t.status === "done" }));
+}
+
 export default defineServerApp({
   id: "projects",
   name: "Projects",
@@ -87,6 +108,8 @@ export default defineServerApp({
       locked: ["owner", "admin"]
     }
   },
+  // Other apps call these with appService("projects", name). Read docs/apps.md.
+  services: { visibleProjects, projectTasks },
   routes: (api) => {
     api.route("/api/projects", liveRoutes);
     api.route("/api/projects", projectRoutes);

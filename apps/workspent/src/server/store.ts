@@ -44,6 +44,8 @@ export interface Access {
   managed: Set<string>;
   /** workspent.clock: My time. */
   clock: boolean;
+  /** workspent.track: log time on projects. Guests can have it. */
+  track: boolean;
 }
 
 /** Checks that the person is in the company and that WorkSpent is on. Returns what they can do. */
@@ -66,7 +68,8 @@ export async function loadAccess(env: Env, companyId: string, userId: string): P
     setup: has("workspent.setup"),
     manageAll: has("workspent.manage"),
     managed: new Set(managed),
-    clock: has("workspent.clock")
+    clock: has("workspent.clock"),
+    track: has("workspent.track")
   };
 }
 
