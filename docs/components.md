@@ -61,6 +61,14 @@ To change how Arc components look, change the Promptbook token in `theme.css`. D
 
 The pinned Arc commit and the installed components are in `packages/ui/arc.json`. After an update, run `npm run typecheck`, `npm test` and `npm run build`, and look at the changed components in both themes.
 
+## Components built here
+
+These are in `packages/ui/src/components`, because neither Arc nor shadcn/ui has them.
+
+| Component | Use | Import |
+| --- | --- | --- |
+| Radial cluster | Many small items in a few groups, as wedges around a hub, with a dot per item on rings. Colors come from the project identity tokens, one per group. Show a table view next to it. | `@openact/ui/components/radial-cluster` |
+
 ## What is not here
 
 - **Arc blocks.** Arc also has page sections, such as hero sections and footers. Some need Next.js. They are not installed. Public pages are built with the Pages app.
