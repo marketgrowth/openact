@@ -146,10 +146,14 @@ const PALETTE_CLASS = new RegExp(`\\b(?:bg|text|border|ring|fill|stroke|from|via
 const LITERAL = /(["'`\s(:])#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\b|\b(?:rgba?|hsla?|oklch|oklab)\(/;
 const ALLOW = "promptbook-allow";
 
+/** Arc components, copied in by `npm run arc`. Some hold colors as data (a color picker, signature ink).
+    The script maps their tokens to the Promptbook through packages/ui/src/arc/arc.css and takes out em dashes. */
+const VENDORED = "packages/ui/src/arc/";
+
 /** The client code that cue C01 checks. */
 export function clientFiles() {
   const apps = existsSync(join(ROOT, "apps")) ? readdirSync(join(ROOT, "apps")).map((a) => `apps/${a}/src/client`) : [];
-  return [...walk("packages/ui/src", [".tsx", ".ts"]), ...walk("src/client", [".tsx", ".ts"]), ...apps.flatMap((d) => walk(d, [".tsx", ".ts"]))];
+  return [...walk("packages/ui/src", [".tsx", ".ts"]), ...walk("src/client", [".tsx", ".ts"]), ...apps.flatMap((d) => walk(d, [".tsx", ".ts"]))].filter((f) => !f.replace(/\\/g, "/").startsWith(VENDORED));
 }
 
 /** Runs every script check. Returns a list of problems. An empty list means the cues pass. */
