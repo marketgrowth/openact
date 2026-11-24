@@ -5,7 +5,7 @@ import { api, errorText } from "../api";
 import { navigate, usePath } from "../router";
 import { Notice } from "../ui";
 import { useWorkspace } from "../workspace";
-import { ACCOUNT_SECTIONS, CONTRIBUTE_SECTION, SITE_SECTIONS, companySections, parseSettingsPath, settingsPath, type SettingsSection } from "../settings-paths";
+import { ACCOUNT_SECTIONS, CLIENTS_SECTION, CONTRIBUTE_SECTION, SITE_SECTIONS, companySections, parseSettingsPath, settingsPath, type SettingsSection } from "../settings-paths";
 import { PageBody, SiteHeader } from "./SiteHeader";
 import { CompanyMark } from "./Sidebar";
 import { GeneralTab, PeopleTab } from "./CompanyDialogs";
@@ -16,6 +16,7 @@ import { SitePlan } from "./Plan";
 import { SiteSettingsSection, type SiteSection } from "./SiteSettings";
 import { SiteGrants } from "./SiteGrants";
 import { SiteDuplicate } from "./SiteDuplicate";
+import { PartnerClientsTab, SitePartners } from "./Partners";
 import { ConnectedAgentsSection, ProfileSection, SecuritySection } from "./AccountSettings";
 
 /*
@@ -48,7 +49,8 @@ export function SettingsPage({
   const current = ws.current;
   const manager = canManageCompany(current?.role ?? null);
   const where = parseSettingsPath(path);
-  const sections = companySections(apps);
+  // Clients shows on a partner host, for the partner company (docs/partners.md).
+  const sections = [...companySections(apps), CLIENTS_SECTION];
 
   // "/settings" alone opens the company settings for owners and admins, and the profile for everyone else.
   const start = manager ? settingsPath("company", "general") : settingsPath("account", "profile");
@@ -100,6 +102,8 @@ export function SettingsPage({
           <SitePlan />
         ) : section.id === "companies" ? (
           <SiteDuplicate />
+        ) : section.id === "partners" ? (
+          <SitePartners />
         ) : (
           <SiteSettingsSection key={section.id} section={section.id as SiteSection} onSaved={onSite} />
         )}
@@ -171,6 +175,7 @@ function CompanySection({ companyId, me, apps, section }: { companyId: string; m
   else if (section.id === "apps") body = <AppsTab companyId={companyId} />;
   else if (section.id === "permissions") body = <PermissionsTab companyId={companyId} />;
   else if (section.id === "ai") body = <CompanyAiTab companyId={companyId} />;
+  else if (section.id === "clients") body = <PartnerClientsTab companyId={companyId} />;
   else if (appTab) body = <appTab.Tab key={appTab.id} detail={detail} onChanged={changed} />;
 
   return (

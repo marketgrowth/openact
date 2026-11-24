@@ -43,12 +43,15 @@ export function requireUser(c: Context<AppEnv>): User {
 }
 
 export function appUrl(c: Context<AppEnv>): string {
+  // On a partner host, links in emails and redirects stay on that host.
+  if (c.get("partner")) return new URL(c.req.url).origin;
   const configured = (c.env.APP_URL || "").trim().replace(/\/+$/, "");
   return configured || new URL(c.req.url).origin;
 }
 
-/** The app name: the one a super admin set, or APP_NAME. */
+/** The app name: the partner's name on a partner host, else the one a super admin set, or APP_NAME. */
 export function appName(env: Env): string {
+  if (env.PARTNER_NAME) return env.PARTNER_NAME;
   return (siteState()?.name || env.APP_NAME || "OpenAct").trim();
 }
 

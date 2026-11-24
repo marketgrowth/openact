@@ -77,5 +77,6 @@ export {
   type CompanyAppState
 } from "./permissions.ts";
 export { companyPlan, type CompanyPlanState } from "./plans.ts";
+export { partnerClientCompanies, type PartnerClientCompany, type Partner } from "./partners.ts";
 export { checkLicense, deployLicense, type LicenseCheck } from "./license.ts";
 export { verifyStripeSignature } from "./stripe.ts";
