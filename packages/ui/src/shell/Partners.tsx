@@ -243,7 +243,7 @@ export function PartnerClientsTab({ companyId }: { companyId: string }) {
     <div className="grid gap-6" data-partner-clients="">
       <div className="grid gap-2 text-sm text-muted-foreground">
         <p>{data.hosts.length ? `Your clients sign in at ${data.hosts.join(" or ")}. They see your name and logo.` : "This company has no partner domain on this site."}</p>
-        <p>To add a client, make a new company from the company menu, then invite the client to it in Company settings &gt; People. Each client sees only their own company.</p>
+        <p>To add a client, make a new company from the company menu, then invite the client to it in Company settings &gt; People.</p>
       </div>
       {!data.clients.length ? (
         <p className="text-sm text-muted-foreground">You have no client companies yet.</p>
