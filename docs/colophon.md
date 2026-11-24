@@ -101,6 +101,8 @@ A small set of dependencies. The Worker has one runtime dependency, Hono.
 | [Hono](https://hono.dev) | 4.13.16 | The API router on the Worker |
 | [React](https://react.dev) | 19.3.1 | The web app. No state library. |
 | [shadcn/ui](https://ui.shadcn.com) | New York style | The UI components, copied into `packages/ui/src/components` and owned by this project. Neutral colors. |
+| [Arc](https://uiarc.dev) | MIT, by Elia Kuratli | 118 React components with motion built in, copied into `packages/ui/src/arc` by `npm run arc`. Their tokens map to the Promptbook. |
+| [Motion](https://motion.dev) | MIT | Animation for the Arc components. |
 | [Radix UI](https://www.radix-ui.com) | 1.8.1 | Accessible parts under the components: dialogs, menus, tooltips, tabs and switches |
 | [Tailwind CSS](https://tailwindcss.com) | 4.3.4 | Styles, with the theme as CSS variables in `packages/ui/src/theme.css` |
 | [Vite](https://vite.dev) | 8.3.6 | Builds the web app |

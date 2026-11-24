@@ -668,7 +668,7 @@
     },
     {
       "id": "C08",
-      "rule": "Build from the shadcn/ui components in @openact/ui. Use Lucide icons through Icon.",
+      "rule": "Build from the @openact/ui components: Arc first, then shadcn/ui. Build a new component in @openact/ui only when neither has one. Use Lucide icons through Icon.",
       "check": "review"
     },
     {

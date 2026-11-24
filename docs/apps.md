@@ -6,7 +6,7 @@ OpenAct is a core plus apps. The core gives every app sign-in, people, companies
 
 ```
 packages/core      @openact/core   Sign-in, sessions, companies, roles, live rooms, email, the app system
-packages/ui        @openact/ui     The web shell, the side panel, sign-in, company settings, shadcn/ui components
+packages/ui        @openact/ui     The web shell, the side panel, sign-in, company settings, Arc and shadcn/ui components
 apps/projects      @openact/app-projects   Projects, tasks, board, timeline, calendar, AI agent, task search
 apps/<your-app>    Your app
 src/               The host: the Worker entry, the web app entry, and this deploy's own pages
@@ -222,7 +222,7 @@ An app shows in the rail when it has an `icon` or a `Mark`. Its pages live under
 
 Do not assume that your app owns `/`. Another app, such as a host's own app, can own the home page. To link to your home page, use `/a/<id>`. When your app owns `/`, the shell sends `/a/<id>` there. Do not set `ownsPath` to claim `/`: the default rules give your app `/` only when it is the home app.
 
-Use `useShell()` for the person and the config, `useWorkspace()` for the current company, and the shadcn/ui components at `@openact/ui/components/<name>`. Load pages with `lazy()`, so new apps do not slow the first page.
+Use `useShell()` for the person and the config, `useWorkspace()` for the current company, and the components in `@openact/ui`: Arc at `@openact/ui/arc/<name>` first, then shadcn/ui at `@openact/ui/components/<name>` (read [Components](/components)). Load pages with `lazy()`, so new apps do not slow the first page.
 
 ### Migrations
 
@@ -233,5 +233,5 @@ Put numbered SQL files in `migrations/`, such as `0001_init.sql`. `npm run sync`
 1. **Prefix everything with your id.** Tables (`inventory_items`), routes (`/api/apps/inventory`), R2 keys (`inventory/...`), room kinds and command ids. The projects app made some tables before apps had prefixes: `projects`, `project_members`, `tasks`, `attachments`, `board_columns`, `invitations`, `agent_actions`, `access_requests` and `vector_outbox`. Never use these names.
 2. **Scope your data to a company.** Every row has a `company_id`. Check access with `requirePermission`, or your own item check built on it.
 3. **Use the core for people.** Never read or write `users`, `sessions`, `companies` or `company_members` directly, except for read-only joins. Never handle sign-in yourself.
-4. **Follow the UI rules** in AGENTS.md and the [design system](/design-system): shadcn/ui components, Tailwind token classes, Lucide icons, `SiteHeader`, `PageBody` and `AgentState` for agent work.
+4. **Follow the UI rules** in AGENTS.md, [Components](/components) and the [design system](/design-system): Arc and shadcn/ui components, Tailwind token classes, Lucide icons, `SiteHeader`, `PageBody` and `AgentState` for agent work.
 5. **Clean up through hooks.** When a person leaves a company, or a company is deleted, your hooks remove their access and data.

@@ -18,6 +18,7 @@ Rules for AI coding agents (Claude Code, Cursor, Codex and others) that work in 
 | Check the design cues | `npm run design -- check` (`npm test` runs it too) |
 | Make an app accent | `npm run design -- seed <app-id> <hue>` |
 | Publish the Promptbook | `npm run design -- build` |
+| Add or update Arc components | `npm run arc -- add <name>`, `npm run arc -- update` |
 
 Run `npm run typecheck`, `npm test` and `npm run build` before you say a task is done.
 
@@ -28,7 +29,7 @@ OpenAct is a core plus apps. Read `docs/apps.md` before you add or move code.
 - Core server (`@openact/core`): `packages/core/src/server/`. Sign-in, sessions, companies, roles, live rooms, email, the app system (`apps.ts`) and the Worker factory (`worker.ts`). Apps import only from `@openact/core/server` and `@openact/core/shared`.
 - Core types and rules: `packages/core/src/shared/`. People, companies and config.
 - Core migrations: `packages/core/migrations/`. Never edit a released migration.
-- Web shell and UI kit (`@openact/ui`): `packages/ui/src/`. The shell, side panel, sign-in and company settings are in `shell/`. shadcn/ui components are in `components/`. The theme is `theme.css`.
+- Web shell and UI kit (`@openact/ui`): `packages/ui/src/`. The shell, side panel, sign-in and company settings are in `shell/`. shadcn/ui components are in `components/`. Arc components are in `arc/` (written by `npm run arc`, token map in `arc/arc.css`). The theme is `theme.css`.
 - The projects app: `apps/projects/`. Server code in `src/server/`, web code in `src/client/`, types and rules in `src/shared/`, new migrations in `migrations/`.
 - The docs app: `apps/docs/`. A paid app in OpenAct Director (`"plan": "director"`), under the OpenAct Director License in `apps/docs/LICENSE`, not Apache 2.0. A company library with folders, categories and tags. Routes check `docs.view`, `docs.edit`, `docs.organize` or `docs.share` with `requirePermission`. Doc content is cleaned by `src/shared/content.ts` on every save. Never send saved doc HTML to a browser: render from the cleaned JSON. Uploaded PDFs are rows in `docs_docs` with `kind = 'pdf'`. Routes for text (content, comments, AI, live editing, images) refuse them with `requireTextDoc`. Send a PDF only through `sendPdf`.
 - The advisory app: `apps/advisory/`. A paid app in OpenAct Director, under the OpenAct Director License in `apps/advisory/LICENSE`. It needs Projects (`"requiresApps": ["projects"]`) and opens engagement projects only through `@openact/app-projects/api`. Routes check `advisory.browse`, `advisory.sell` or `advisory.manage`. Payments use Stripe Connect with its own key (`ADVISORY_STRIPE_SECRET_KEY`), never the plans key. Payment confirmation (`fulfill` in `src/server/payments.ts`) must stay safe to run twice. Read `docs/advisory-app.md`.
@@ -60,7 +61,7 @@ The core must never import from an app. If the core needs something from apps, a
 
 13. **Live messages carry no data.** `ProjectRoom` sends only revision numbers and viewer names. Pages load data through the API, which checks access. Check the `Origin` header on every WebSocket upgrade.
 
-14. **Use shadcn/ui.** Build UI from the components in `packages/ui/src/components` (import `@openact/ui/components/<name>`) and Tailwind classes. Add a component by running `npx shadcn@latest add <name>` in `packages/ui`. Do not add another UI kit, CSS framework or icon set. Use Lucide icons through `Icon` from `@openact/ui`. Keep the dashboard-01 layout: every signed-in page starts with `SiteHeader` and puts its content in `PageBody`.
+14. **Use the @openact/ui components, Arc first.** Read `docs/components.md` before you build UI. Look for the component in this order: Arc (`packages/ui/src/arc/CATALOG.md`, import `@openact/ui/arc/<name>`), then shadcn/ui (`@openact/ui/components/<name>`). If neither has one, build it in `packages/ui/src/components` from Promptbook tokens, never inside one app. Use one component for one job in a screen. Never edit `packages/ui/src/arc/<name>/`: `npm run arc` writes it. Do not add another UI kit, CSS framework or icon set. Use Lucide icons through `Icon` from `@openact/ui`. Keep the dashboard-01 layout: every signed-in page starts with `SiteHeader` and puts its content in `PageBody`.
 
 15. **Apps stay in their lane.** Prefix an app's tables, routes, file keys, room kinds and command ids with its id. An app reads people and companies through the core. It cleans up its data in the `companyMemberRemoved` and `companyDeleting` hooks. It declares its permissions in `defineServerApp({ permissions })` and never hard-codes company roles in a route. App ids in `directory/apps.json` with `"reserved": true`, and the ids in `systemIds`, belong to official apps and to OpenAct. Never give a new app one of them.
 
