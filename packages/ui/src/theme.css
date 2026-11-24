@@ -6,6 +6,8 @@
 
 @import "tailwindcss";
 @import "tw-animate-css";
+/* Arc components read --arc-* tokens. arc.css maps them to the tokens in this file. */
+@import "./arc/arc.css";
 
 @custom-variant dark (&:is(.dark *));
 

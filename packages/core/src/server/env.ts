@@ -37,6 +37,12 @@ export interface Env {
    */
   AGENT_ACCESS?: string;
 
+  /**
+   * Not a Worker setting. On a partner host (docs/partners.md), each request gets its own copy of env with the
+   * partner's name here, so appName(env) and the emails of that request show the partner.
+   */
+  PARTNER_NAME?: string;
+
   /** Plans: the Stripe Price ids of the annual Director and Producer prices. A plan is for sale when its price is set. */
   STRIPE_PRICE_DIRECTOR?: string;
   STRIPE_PRICE_PRODUCER?: string;
@@ -61,5 +67,5 @@ export interface Env {
 
 export type AppEnv = {
   Bindings: Env;
-  Variables: { user: User | null };
+  Variables: { user: User | null; partner: import("./partners").Partner | null };
 };

@@ -17,6 +17,7 @@ import { siteState } from "./site-state";
 import { accountRoutes } from "./account";
 import { billingRoutes, companyPlanRoutes } from "./billing";
 import { agentAccessOn, agentAccountRoutes, agentApiRoutes, agentRoutes, cleanupAgentAccess } from "./agents";
+import { companyPartnerRoutes, partnerMiddleware, partnerRoutes, partnerSignInPage, sitePartnerRoutes } from "./partners";
 
 const securityHeaders: MiddlewareHandler<AppEnv> = async (c, next) => {
   await next();
@@ -84,20 +85,23 @@ export function createApp({ apps, catalog }: { apps: ServerApp[]; catalog?: AppI
   setCatalog(catalog ?? apps.map((a) => ({ id: a.id, name: a.name, enabledByDefault: true })));
   const app = new Hono<AppEnv>();
 
-  app.use("/api/*", securityHeaders, sameOrigin, sessionMiddleware, siteMiddleware, liveChanges);
+  app.use("/api/*", securityHeaders, sameOrigin, sessionMiddleware, siteMiddleware, partnerMiddleware, liveChanges);
   for (const a of apps) for (const m of a.middleware ?? []) app.use("/api/*", m);
 
   app.get("/api/config", (c) => {
+    // A partner host shows the partner's name and logo, and none of the site's own links. See docs/partners.md.
+    const partner = c.get("partner");
     const config: AppConfig = {
       appName: appName(c.env),
-      logoUrl: siteLogo(),
-      issuesUrl: siteState()?.issuesUrl || null,
+      logoUrl: partner ? partner.logoUrl : siteLogo(),
+      issuesUrl: partner ? null : siteState()?.issuesUrl || null,
       emailEnabled: !!c.env.RESEND_API_KEY,
       signupMode: (c.env.SIGNUP_MODE || "open").trim() === "invite" ? "invite" : "open",
       aiProvider: (c.env.AI_PROVIDER || "workers-ai").trim(),
       apps: getCatalog().map((a) => ({ id: a.id, name: a.name, scope: a.scope ?? "company" })),
-      signIn: signInPage(),
-      agentAccess: agentAccessOn(c.env)
+      signIn: partner ? partnerSignInPage(partner) : signInPage(),
+      agentAccess: agentAccessOn(c.env),
+      partner: partner ? { name: partner.name, companyId: partner.companyId } : null
     };
     return c.json(config);
   });
@@ -107,12 +111,15 @@ export function createApp({ apps, catalog }: { apps: ServerApp[]; catalog?: AppI
   app.route("/api/me", accountRoutes);
   app.route("/api/me", userAiRoutes);
   app.route("/api/site/director", directorRoutes);
+  app.route("/api/site/partners", sitePartnerRoutes);
   app.route("/api/site", siteRoutes);
+  app.route("/api/partner", partnerRoutes);
   app.route("/api/companies", companyRoutes);
   app.route("/api/companies", workspaceRoutes);
   app.route("/api/companies", companyAppRoutes);
   app.route("/api/companies", companyAiRoutes);
   app.route("/api/companies", companyPlanRoutes);
+  app.route("/api/companies", companyPartnerRoutes);
   app.route("/api/billing", billingRoutes);
   app.route("/api/oauth", agentApiRoutes);
   app.route("/api/me", agentAccountRoutes);

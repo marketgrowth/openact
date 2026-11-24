@@ -236,7 +236,7 @@
     { "id": "C05", "rule": "Pick a token by its intent. Do not pick a token by its color.", "check": "review" },
     { "id": "C06", "rule": "Use one primary action on a screen.", "check": "review" },
     { "id": "C07", "rule": "Every signed-in page starts with SiteHeader and puts its content in PageBody.", "check": "review" },
-    { "id": "C08", "rule": "Build from the shadcn/ui components in @openact/ui. Use Lucide icons through Icon.", "check": "review" },
+    { "id": "C08", "rule": "Build from the @openact/ui components: Arc first, then shadcn/ui. Build a new component in @openact/ui only when neither has one. Use Lucide icons through Icon.", "check": "review" },
     { "id": "C09", "rule": "Show agent work with the five agent states and the AgentState component. Never show agent work in the brand colors.", "check": "script", "test": "brand-distance" },
     { "id": "C10", "rule": "An agent change that deletes data or changes people waits for a person. Show Approve and Reject.", "check": "test", "test": "test/agent.test.ts" },
     { "id": "C11", "rule": "Use the motion tokens. Stop every animation when the person asks for reduced motion.", "check": "review" },

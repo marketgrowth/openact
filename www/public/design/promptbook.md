@@ -21,6 +21,7 @@ Promptbook at https://openact.ing/design/promptbook.md and AGENTS.md.
 
 - Pick colors by intent from the Promptbook tokens. Never write a hex value.
 - Build screens from the blocking patterns and the @openact/ui components.
+  Look in Arc first (packages/ui/src/arc/CATALOG.md), then shadcn/ui.
 - Show agent work with the AgentState component and its five states.
 - Write all text in ASD-STE100 style: short sentences, active voice.
 - If the app needs an accent, run: npm run design -- seed <app-id> <hue>
@@ -146,7 +147,7 @@ A cue is a rule with a check. The script checks run with `npm test`. A person ch
 | C05 | Pick a token by its intent. Do not pick a token by its color. | review |
 | C06 | Use one primary action on a screen. | review |
 | C07 | Every signed-in page starts with SiteHeader and puts its content in PageBody. | review |
-| C08 | Build from the shadcn/ui components in @openact/ui. Use Lucide icons through Icon. | review |
+| C08 | Build from the @openact/ui components: Arc first, then shadcn/ui. Build a new component in @openact/ui only when neither has one. Use Lucide icons through Icon. | review |
 | C09 | Show agent work with the five agent states and the AgentState component. Never show agent work in the brand colors. Agent states must look different from the brand and from each other. | script |
 | C10 | An agent change that deletes data or changes people waits for a person. Show Approve and Reject. | test |
 | C11 | Use the motion tokens. Stop every animation when the person asks for reduced motion. | review |

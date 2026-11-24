@@ -1,0 +1,59 @@
+/* Arc (MIT, Copyright (c) 2026 Elia Kuratli): registry/components/ridgeline/ridgeline.module.css at 8302b52ed9dc. Written by `npm run arc`. Do not edit. */
+.figure { display: grid; min-width: 0; margin: 0; color: var(--arc-foreground); font-family: var(--arc-font-body); letter-spacing: var(--arc-tracking-body); }
+
+/* Series colors (--arc-series-1 to --arc-series-4) come from registry/foundation.css. */
+
+.plot { position: relative; min-width: 0; outline: none; touch-action: pan-y; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; cursor: crosshair; }
+.svg { position: absolute; inset: 0; display: block; overflow: visible; }
+
+/* Ridges are opaque, so each one hides the valleys of the row behind it. */
+.ridge { transition: opacity var(--arc-duration-standard) var(--arc-ease-standard); }
+.fill { fill: color-mix(in oklab, var(--ridge) 34%, var(--arc-surface)); stroke: none; transition: fill var(--arc-duration-considered) var(--arc-ease-standard); }
+.line { fill: none; stroke: var(--ridge); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; transition: stroke var(--arc-duration-considered) var(--arc-ease-standard); }
+.median { stroke: color-mix(in oklab, var(--ridge) 55%, var(--arc-surface)); stroke-width: 1; transition: stroke var(--arc-duration-considered) var(--arc-ease-standard); }
+.plot[data-active] .ridge[data-dim] { opacity: .38; }
+.ridge[data-lifted] { opacity: 0; transition-duration: var(--arc-duration-instant); }
+
+/* The lifted ridge is a copy drawn above the rest, so it can rise over its neighbours. */
+.lens { opacity: 0; pointer-events: none; transform: translateY(0); transition: opacity var(--arc-duration-fast) var(--arc-ease-standard), transform var(--arc-duration-spring) var(--arc-ease-spring); }
+.lens[data-on] { opacity: 1; transform: translateY(-6px); }
+.lensFill { fill: color-mix(in oklab, var(--ridge) 18%, var(--arc-surface)); stroke: none; }
+.lensBand { fill: color-mix(in oklab, var(--ridge) 48%, var(--arc-surface)); stroke: none; }
+.lensMedian { stroke: var(--arc-foreground); stroke-width: 1.5; stroke-linecap: round; }
+.lensLine { fill: none; stroke: var(--ridge); stroke-width: 2.25; stroke-linejoin: round; stroke-linecap: round; }
+
+.ticks { position: absolute; top: 0; right: 0; left: 0; pointer-events: none; }
+.tick { position: absolute; bottom: 0; left: 0; width: 1px; background: var(--arc-border-subtle); will-change: transform; animation: tickIn var(--arc-duration-standard) var(--arc-ease-standard); }
+.tickLabel { position: absolute; bottom: 0; left: 0; color: var(--arc-text-muted); font-size: var(--arc-text-xs); line-height: 1; white-space: nowrap; font-variant-numeric: tabular-nums; translate: -50% 0; }
+@keyframes tickIn { from { opacity: 0; } }
+
+.crosshair { position: absolute; left: 0; width: 1px; background: var(--arc-foreground); opacity: 0; pointer-events: none; transition: opacity var(--arc-duration-instant) var(--arc-ease-standard); }
+.plot[data-cursor] .crosshair { opacity: .35; }
+
+.labels { position: absolute; inset: 0; pointer-events: none; }
+.rowLabel { position: absolute; left: 0; overflow: hidden; color: var(--arc-text-secondary); font-size: var(--arc-text-xs); line-height: 18px; text-overflow: ellipsis; white-space: nowrap; transition: color var(--arc-duration-fast) var(--arc-ease-standard); }
+.rowLabel[data-active] { color: var(--arc-foreground); font-weight: 500; }
+
+.message { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: var(--arc-text-muted); font-size: var(--arc-text-sm); pointer-events: none; }
+
+.tooltip { position: absolute; top: 0; left: 0; z-index: 2; display: grid; min-width: 170px; max-width: min(240px, 100%); gap: 2px; padding: 10px 12px; border: 1px solid var(--arc-border); border-radius: 14px; background: var(--arc-surface-raised); box-shadow: var(--arc-shadow-floating); opacity: 0; pointer-events: none; scale: .96; transition: opacity var(--arc-duration-fast) var(--arc-ease-standard), scale var(--arc-duration-fast) var(--arc-ease-standard); }
+.plot[data-active] .tooltip { opacity: 1; scale: 1; }
+.tipTitle { margin: 0 0 2px; color: var(--arc-text-secondary); font-size: var(--arc-text-xs); line-height: var(--arc-leading-body); }
+.tipValue, .tipRow { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tipValue { color: var(--arc-foreground); font-size: var(--arc-text-sm); font-weight: 500; line-height: 1.4; }
+.tipRow { color: var(--arc-foreground); font-size: var(--arc-text-xs); line-height: var(--arc-leading-body); }
+.tipKey { color: var(--arc-text-muted); font-weight: 400; }
+.tipValue .tipKey { font-size: var(--arc-text-xs); }
+.tipNote { margin: 4px 0 0; color: var(--arc-text-muted); font-size: var(--arc-text-xs); line-height: var(--arc-leading-body); font-variant-numeric: tabular-nums; }
+
+.scale { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; margin-top: var(--arc-space-3); color: var(--arc-text-muted); font-size: var(--arc-text-xs); line-height: var(--arc-leading-body); font-variant-numeric: tabular-nums; }
+.scaleLabel { margin-right: 4px; color: var(--arc-text-secondary); }
+.steps { display: inline-flex; gap: 2px; }
+.step { width: 18px; height: 10px; border-radius: 3px; background: var(--ridge); }
+
+.srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ridge, .lens, .crosshair, .tooltip, .rowLabel { transition: none; }
+  .tick { animation: none; }
+}

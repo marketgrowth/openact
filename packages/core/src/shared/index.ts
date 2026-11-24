@@ -8,3 +8,4 @@ export * from "./plans.ts";
 export * from "./store.ts";
 export * from "./grants.ts";
 export * from "./agent-safety.ts";
+export * from "./partners.ts";

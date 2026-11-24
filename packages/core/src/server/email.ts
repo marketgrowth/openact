@@ -9,6 +9,18 @@ export interface EmailMessage {
 }
 
 /**
+ * The sender. On a partner host (docs/partners.md), the partner's name replaces the display name of EMAIL_FROM.
+ * The address stays the same, so the domain that Resend verified still sends the email.
+ */
+export function senderFor(env: Pick<Env, "EMAIL_FROM" | "PARTNER_NAME">): string {
+  const from = (env.EMAIL_FROM || "").trim();
+  if (!env.PARTNER_NAME) return from;
+  const address = from.match(/<([^<>]+)>\s*$/)?.[1] ?? from;
+  const name = env.PARTNER_NAME.replace(/["\\<>\r\n]/g, "").trim();
+  return name ? `"${name}" <${address}>` : from;
+}
+
+/**
  * Sends one email through the Resend API.
  * Without RESEND_API_KEY (local development), the message is printed to the terminal instead.
  */
@@ -23,7 +35,7 @@ export async function sendEmail(env: Env, msg: EmailMessage): Promise<"sent" | "
       Authorization: `Bearer ${env.RESEND_API_KEY}`,
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({ from: env.EMAIL_FROM, to: [msg.to], subject: msg.subject, text: msg.text, html: msg.html })
+    body: JSON.stringify({ from: senderFor(env), to: [msg.to], subject: msg.subject, text: msg.text, html: msg.html })
   });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
