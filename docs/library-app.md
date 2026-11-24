@@ -27,9 +27,11 @@ The app holds no brand words. A super admin sets them in **Library > Lists and s
 | Update field labels | What changed, Who it affects, What to do, By when | Same |
 | "Last checked" date on sources | On | On |
 | Notice under the title | Empty | "We give guidance, not legal advice." |
-| Review checklist | 2 checks | Add "No resident data" |
+| Review checklist | 2 checks | Add "No personal data" |
 | "New" window | 30 days | 30 days |
 | Require a second reviewer | Off | Off |
+| Ask (AI chat) | On | On |
+| Line under the Ask box | "Ask a question. Answers come only from the published items, with a link to each one." | Same |
 
 Each list can be off. A list that is off shows no filter and no tags. Its data stays.
 
@@ -44,6 +46,21 @@ Readers need the **Read the library** permission (`library.view`). Owners, admin
 - Each item has its own page with its official link and its links to other items.
 
 Readers only see published copies.
+
+## Ask
+
+Ask is an AI chat at the top of the home page. A reader types a question, and the answer comes only from the published items, with a numbered link to each item it uses. Follow-up questions keep the thread.
+
+How it works (retrieval-augmented generation):
+
+1. The server ranks the published sources and updates for the question with keyword search (BM25). It counts the title twice. A follow-up also uses the question before it.
+2. It sends the best 6 items to the model as numbered, labeled data. Drafts, review notes and archived items never go to the model.
+3. The model answers with item numbers, such as [1]. The page turns each number into a link. Numbers that do not match an item are removed.
+4. When no item matches, the server asks no model and says that the library does not cover the question yet.
+
+Ask uses the same AI as the rest of OpenAct: the person's own key (when the company allows personal keys), then the company key, then the deploy default. The page says which one answers. A personal key bills the person's own account. AI answers can be wrong, so the page tells readers to check the source.
+
+Readers need the **Ask the library** permission (`library.ask`). Owners, admins and members have it. A super admin can turn Ask off for the whole site in **Lists and settings**.
 
 ## Write, review and publish
 
@@ -94,7 +111,7 @@ An item matches a list when it has any of the ids you give for that list. Store 
 | `library_sources`, `library_updates` | The working copies |
 | `library_source_terms`, `library_update_terms`, `library_update_sources` | Their links |
 | `library_versions` | The published copies. Readers see the newest one. |
-| `library_settings` | The brand settings |
+| `library_settings` | The brand settings, and the Ask switch |
 
 These tables have no `company_id`, because the site owns the content. `npm run sync` warns about each one. That is expected for this app. Every write route calls `requireSuperAdmin`, and every read route calls `requirePermission` with `library.view`.
 
@@ -102,3 +119,4 @@ These tables have no `company_id`, because the site owns the content. `npm run s
 
 - **Make a task** from an update, in Projects, and "new since your last visit" for each person.
 - Public pages for search, under `/a/library/`, with a Public switch for each item.
+- Ask: answers that stream as the model writes, and semantic search with Vectorize next to keyword search.

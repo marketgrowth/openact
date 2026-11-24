@@ -18,6 +18,7 @@ import {
   type UpdateDetail
 } from "../shared/rules";
 import { fmtDate, useLibrary, visibleTerms } from "./state";
+import { AskPanel } from "./Ask";
 
 /* The read pages: the sources, the updates, and one page for each. Readers see published copies only. */
 
@@ -183,6 +184,8 @@ export function SourcesPage() {
       <SiteHeader title={s.sourcesName} />
       <PageBody>
         <Intro config={config} />
+        {config.canAsk && companyId && <AskPanel config={config} companyId={companyId} />}
+        {config.canAsk && <h3 className="mt-2 text-base font-semibold">Browse {s.sourcesName.toLowerCase()}</h3>}
         <div className="flex flex-col gap-6 md:flex-row md:items-start">
           <Filters config={config} q={q} setQ={setQ} picked={picked} setPicked={setPicked} placeholder={`Search ${s.sourcesName.toLowerCase()}`} />
           <section aria-label={s.sourcesName} className="grid min-w-0 flex-1 gap-3">

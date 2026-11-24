@@ -117,5 +117,7 @@ export function cleanSettings(raw: unknown, current: Settings): Settings {
     next.newDays = b.newDays;
   }
   if (b.requireSecondReviewer !== undefined) next.requireSecondReviewer = bool(b.requireSecondReviewer, "Require a second reviewer");
+  if (b.chatOn !== undefined) next.chatOn = bool(b.chatOn, "Ask");
+  if (b.chatIntro !== undefined) next.chatIntro = text(b.chatIntro, "Ask intro", { max: MAX_SHORT });
   return next;
 }

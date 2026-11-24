@@ -55,6 +55,7 @@ export const cases: Case[] = [
   ...read("updates"),
   ...read(`sources/${SOURCE}`),
   ...read(`updates/${UPDATE}`),
+  { route: `POST ${L}/companies/:id/ask`, path: (a) => `${L}/companies/${a.companyId}/ask`, body: () => ({ question: "Site source" }), expect: "denied" },
 
   // Writes and working copies: super admins only. Beta's owner and member are not super admins.
   { route: `GET ${L}/manage`, path: () => `${L}/manage`, expect: "denied" },

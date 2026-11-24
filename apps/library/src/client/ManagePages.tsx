@@ -849,6 +849,18 @@ export function SettingsPage() {
             onChange={(v) => set({ showLastChecked: v })}
           />
           <Toggle
+            id="lib-s-chat"
+            title="Ask (AI chat)"
+            help="An AI chat on the home page that answers from the published items only, with links to them. It uses each person's own AI key, then the company key, then the site default."
+            checked={d.chatOn}
+            onChange={(v) => set({ chatOn: v })}
+          />
+          {d.chatOn && (
+            <Field label="Line under the Ask box" htmlFor="lib-s-intro">
+              <Input id="lib-s-intro" value={d.chatIntro} maxLength={300} onChange={(e) => set({ chatIntro: e.target.value })} />
+            </Field>
+          )}
+          <Toggle
             id="lib-s-second"
             title="Require a second reviewer"
             help="When on, a different super admin must publish each item. Off: the writer can publish after the review checklist."

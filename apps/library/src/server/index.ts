@@ -1,7 +1,9 @@
 import { Hono, type Context } from "hono";
 import {
   HttpError,
+  companyAiChoice,
   dateOrNull,
+  hasPermission,
   defineServerApp,
   isSuperAdmin,
   oneOf,
@@ -33,6 +35,7 @@ import {
 } from "../shared/rules.ts";
 import type { LibraryContentService } from "./service.ts";
 import { cleanFields, cleanSettings } from "./validate.ts";
+import { ask, cleanHistory, cleanQuestion, docsFrom } from "./ask.ts";
 import {
   addTerm,
   archiveItem,
@@ -95,11 +98,15 @@ routes.get("/companies/:id/config", async (c) => {
   const settings = await loadSettings(c.env);
   const since = newSince(todayIso(), settings.newDays);
   const updates = await publishedUpdates(c.env, settings);
+  const companyId = c.req.param("id")!;
+  const canAsk = settings.chatOn && (await hasPermission(c.env, companyId, user.id, "library.ask"));
   const out: LibraryConfig = {
     settings,
     terms: readerTerms(await listAllTerms(c.env), settings),
     canManage: isSuperAdmin(c.env, user),
-    newCount: updates.filter((u) => !!u.publishedDate && u.publishedDate >= since).length
+    newCount: updates.filter((u) => !!u.publishedDate && u.publishedDate >= since).length,
+    canAsk,
+    ai: canAsk ? await companyAiChoice(c.env, companyId, user.id) : null
   };
   return c.json(out);
 });
@@ -136,6 +143,21 @@ routes.get("/companies/:id/updates/:itemId", async (c) => {
   const live = new Map((await publishedSources(c.env, settings)).map((s) => [s.id, s.title]));
   const out: UpdateDetail = { item: one, sources: one.sourceIds.filter((id) => live.has(id)).map((id) => ({ id, title: live.get(id)! })) };
   return c.json(out);
+});
+
+/* Ask: an AI answer from the published items, with the person's own AI rules. */
+
+routes.post("/companies/:id/ask", async (c) => {
+  const user = requireUser(c);
+  const companyId = c.req.param("id")!;
+  await requirePermission(c.env, companyId, user.id, "library.ask");
+  const settings = await loadSettings(c.env);
+  if (!settings.chatOn) throw new HttpError(409, "Ask is off on this site. Use the search instead.");
+  const b = await readJson(c);
+  const question = cleanQuestion(b.question);
+  const history = cleanHistory(b.history);
+  const docs = docsFrom(await publishedSources(c.env, settings), await publishedUpdates(c.env, settings), settings);
+  return c.json(await ask(c.env, companyId, user.id, settings, docs, question, history));
 });
 
 /* Super admins: the working copies, the lists and the settings. */
@@ -242,6 +264,11 @@ export default defineServerApp({
       description: "Read the sources and updates that the site owner publishes.",
       roles: ["owner", "admin", "member"],
       locked: ["owner"]
+    },
+    "library.ask": {
+      label: "Ask the library",
+      description: "Ask questions that AI answers from the published items. It uses your own AI key, the company key, or the site default, in that order.",
+      roles: ["owner", "admin", "member"]
     }
   },
   services: { content },

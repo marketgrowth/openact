@@ -33,6 +33,10 @@ export const MAX_CHECKS = 8;
 export const MAX_CHECK = 160;
 export const MAX_ITEMS = 1000;
 export const MAX_LINKED_SOURCES = 20;
+export const MAX_QUESTION = 1000;
+export const MAX_HISTORY = 6;
+/** How many library items go to the model with each question. */
+export const ASK_ITEMS = 6;
 
 export interface Term {
   id: string;
@@ -61,6 +65,10 @@ export interface Settings {
   checklist: string[];
   newDays: number;
   requireSecondReviewer: boolean;
+  /** Ask: an AI chat that answers from the published items only. Off hides it. */
+  chatOn: boolean;
+  /** The line under the Ask box. */
+  chatIntro: string;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -77,7 +85,9 @@ export const DEFAULT_SETTINGS: Settings = {
   notice: "",
   checklist: ["I read the official source, and the summary matches it.", "The dates and numbers match the source."],
   newDays: 30,
-  requireSecondReviewer: false
+  requireSecondReviewer: false,
+  chatOn: true,
+  chatIntro: "Ask a question. Answers come only from the published items, with a link to each one."
 };
 
 export const SETTING_KEYS = Object.keys(DEFAULT_SETTINGS) as (keyof Settings)[];
@@ -144,6 +154,41 @@ export interface LibraryConfig {
   canManage: boolean;
   /** Published updates inside the "new" window. */
   newCount: number;
+  /** True when Ask is on and this person has library.ask. */
+  canAsk: boolean;
+  /** Whose AI answers: the person's own key, the company key, or the site default. Null when canAsk is false. */
+  ai: AiChoice | null;
+}
+
+export interface AiChoice {
+  provider: string;
+  model: string;
+  source: "user" | "company" | "deploy";
+}
+
+/** One turn of an Ask conversation, as the web app sends it back with the next question. */
+export interface AskTurn {
+  role: "user" | "assistant";
+  content: string;
+}
+
+/** A library item that an answer used. n is the number in the answer, such as [2]. */
+export interface AskCitation {
+  n: number;
+  kind: ItemKind;
+  id: string;
+  title: string;
+  sourceUrl: string;
+}
+
+export interface AskAnswer {
+  answer: string;
+  /** The items the answer cites, in the order of their numbers. */
+  citations: AskCitation[];
+  /** Items that matched the question but the answer did not cite. */
+  related: AskCitation[];
+  /** Null when no item matched, so no model was asked. */
+  ai: AiChoice | null;
 }
 
 export interface SourceDetail {

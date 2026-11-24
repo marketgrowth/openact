@@ -63,6 +63,7 @@ export {
   type CompanyAiOverride,
   type CompanyAiChoice
 } from "./company-ai.ts";
+export { aiText, type AiTextMessage, type AiTextRequest, type AiTextResult } from "./ai-text.ts";
 export {
   requirePermission,
   hasPermission,
