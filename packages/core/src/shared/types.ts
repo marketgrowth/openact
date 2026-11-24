@@ -119,6 +119,11 @@ export interface AppConfig {
   signIn: SignInPage;
   /** True when AI agents can sign in with OAuth and use the apps' tools (AGENT_ACCESS is "on"). */
   agentAccess: boolean;
+  /**
+   * Set on a partner host (docs/partners.md): the partner whose name and logo this host shows. The web app then
+   * hides the site's own links, such as Contribute. Null on the site's own host.
+   */
+  partner?: { name: string; companyId: string } | null;
 }
 
 /** The sign-in page settings. Empty values use the defaults. */
