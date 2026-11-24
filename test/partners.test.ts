@@ -149,3 +149,19 @@ test("only super admins manage partner domains, and a host belongs to one partne
   assert.equal(gone.status, 200);
   assert.equal(d.all("SELECT host FROM partner_domains").length, 0);
 });
+
+test("an app lists only the partner's clients that the person is still in", async () => {
+  const { d, agency, partnerId, onHost } = await setup();
+  const { partnerClientCompanies } = await import("../packages/core/src/server/partners.ts");
+  const a = await onHost(agency, "POST", "/api/companies", { name: "Alder Dental" });
+  const b = await onHost(agency, "POST", "/api/companies", { name: "Birch Law" });
+  const aId = (a.json!.company as { id: string }).id;
+  assert.deepEqual((await partnerClientCompanies(d.env as never, partnerId, agency.id)).map((k) => k.name), ["Alder Dental", "Birch Law"]);
+  // The client removes the agency: Alder Dental drops off the list.
+  d.db.prepare("DELETE FROM company_members WHERE company_id = ? AND user_id = ?").run(aId, agency.id);
+  assert.deepEqual((await partnerClientCompanies(d.env as never, partnerId, agency.id)).map((k) => k.name), ["Birch Law"]);
+  // Someone else sees none of them.
+  const other = d.person("other@else.test");
+  assert.deepEqual(await partnerClientCompanies(d.env as never, partnerId, other.id), []);
+  void b;
+});

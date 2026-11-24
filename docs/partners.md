@@ -62,3 +62,4 @@ Choose **Remove** next to the host name. The host goes back to your own name and
 - `appName(env)` returns the partner name on a partner host. Use it for every name that people see in emails.
 - `appUrl(c)` returns the partner host on a partner host. Use it for every link in an email.
 - `c.get("partner")` holds the partner of the request, or null. Use it only for branding. Never use it for access.
+- `partnerClientCompanies(env, partnerId, userId)` lists the partner's client companies that the person is a member of. Use it for a dashboard across clients. Check a permission in the partner company first, then check your app's permission in each client before you read its data.

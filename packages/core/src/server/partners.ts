@@ -4,7 +4,7 @@ import { HttpError, nowIso, readJson, requireUser } from "./util";
 import { requireCompanyRole } from "./data";
 import { requireSuperAdmin } from "./site";
 import { PARTNER_HOSTS_MAX, cleanHost, cleanPartnerName, partnerLogoUrl, type PartnerClients, type PartnerDomain } from "../shared/partners";
-import type { SignInPage } from "../shared/types";
+import type { CompanyRole, SignInPage } from "../shared/types";
 
 /*
  * Partner domains: white label for agencies and other partners. See docs/partners.md.
@@ -92,6 +92,35 @@ export async function partnerForNewCompany(env: Env, partner: Partner | null, us
     .bind(partner.companyId, userId)
     .first<{ role: string }>();
   return row && (row.role === "owner" || row.role === "admin") ? partner.companyId : null;
+}
+
+/** A client company of a partner that one person is in, for an app's partner dashboard. */
+export interface PartnerClientCompany {
+  id: string;
+  name: string;
+  /** The person's role in the client company. */
+  role: CompanyRole;
+  createdAt: string;
+}
+
+/**
+ * The client companies of a partner that this person is a member of (not a guest), by name. Up to 500.
+ * Apps use it for a dashboard across clients, such as the A/GEO Answers client view.
+ * It does not check the person's role in the partner company, and it does not check app permissions in each client.
+ * The caller checks both: a permission in the partner company first, then a permission in each client before it
+ * reads that client's data. A client that removes the person drops off the list.
+ */
+export async function partnerClientCompanies(env: Env, partnerId: string, userId: string): Promise<PartnerClientCompany[]> {
+  const rows = await readPartners(() =>
+    env.DB.prepare(
+      `SELECT k.id, k.name, k.created_at, m.role FROM companies k
+       JOIN company_members m ON m.company_id = k.id AND m.user_id = ?
+       WHERE k.partner_id = ? AND m.role != 'guest' ORDER BY k.name COLLATE NOCASE LIMIT 500`
+    )
+      .bind(userId, partnerId)
+      .all<{ id: string; name: string; created_at: string; role: CompanyRole }>()
+  );
+  return rows.results.map((r) => ({ id: r.id, name: r.name, role: r.role, createdAt: r.created_at }));
 }
 
 async function readPartners<T>(run: () => Promise<T>): Promise<T> {
