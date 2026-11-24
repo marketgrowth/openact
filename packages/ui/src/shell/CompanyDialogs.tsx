@@ -181,7 +181,7 @@ export function GeneralTab({ detail, me, onChanged }: { detail: CompanyDetail; m
 export function PeopleTab({ detail, me, onChanged }: { detail: CompanyDetail; me: User; onChanged: () => Promise<void> }) {
   const toast = useToast();
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<"member" | "admin">("member");
+  const [role, setRole] = useState<"member" | "admin" | "owner">("member");
   const [busy, setBusy] = useState(false);
   const isOwner = detail.role === "owner";
   const ownerCount = detail.members.filter((m) => m.role === "owner").length;
@@ -252,9 +252,11 @@ export function PeopleTab({ detail, me, onChanged }: { detail: CompanyDetail; me
           />
           {/* Every native select fills its parent (see theme.css), so this div sets the role width. */}
           <div className="sm:w-36 sm:shrink-0">
-            <NativeSelect aria-label="Company role" value={role} onChange={(e) => setRole(e.target.value as "member" | "admin")}>
+            <NativeSelect aria-label="Company role" value={role} onChange={(e) => setRole(e.target.value as "member" | "admin" | "owner")}>
               <NativeSelectOption value="member">Member</NativeSelectOption>
               <NativeSelectOption value="admin">Admin</NativeSelectOption>
+              {/* Only owners can add owners. The server checks it too. */}
+              {isOwner && <NativeSelectOption value="owner">Owner</NativeSelectOption>}
             </NativeSelect>
           </div>
           <Button type="submit" disabled={busy}>

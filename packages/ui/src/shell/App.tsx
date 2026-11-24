@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import type { AppConfig, SiteSettings, User } from "@openact/core/shared";
 import { api } from "../api";
 import { Link, Redirect, RouteParamsContext, navigate, usePath } from "../router";
-import { ToastProvider } from "../ui";
+import { Logo, ToastProvider } from "../ui";
 import { WorkspaceProvider, useWorkspace } from "../workspace";
 import { settingsPath } from "../settings-paths";
 import { iconLinks, setFavicon } from "../favicon";
@@ -150,6 +150,8 @@ function Root({ apps, directory, primary }: { apps: ClientApp[]; directory: read
         </ShellContext.Provider>
       );
   }
+  // A paused partner host shows only the paused page. Its API answers nothing else (docs/partners.md).
+  if (config.partner?.paused) return <PausedHost config={config} />;
   if (me === undefined) return <div className="min-h-dvh bg-background" aria-busy="true" />;
   if (!me) return <SignIn config={config} onSignedIn={setMe} />;
   // An AI agent asks to connect. The person signs in first, then answers on this page.
@@ -314,6 +316,8 @@ function SignedIn({
     else if (ws.access) page = <AppOff name="" />;
   }
   if (!page) page = ws.access || path !== "/" ? <NotFound /> : null;
+  // While the company's partner is paused, every app is off. Settings still open, so people can switch companies.
+  if (ws.access?.pausedBy && !isSettingsPath(path)) page = <Paused name={ws.access.pausedBy} />;
 
   const activeCommand = dialog && typeof dialog === "object" ? commands.find((c) => c.id === dialog.command) : undefined;
 
@@ -403,6 +407,40 @@ function AppOff({ name, locked = false, blocked = false, superAdmin = false }: {
         </div>
       </PageBody>
     </>
+  );
+}
+
+/** The text for a paused partner, in the app and on the partner's host. */
+function pausedText(name: string) {
+  return `The service is paused for ${name} and its clients. Your data is safe, and it comes back when the service starts again. Ask ${name} about your account.`;
+}
+
+function Paused({ name }: { name: string }) {
+  return (
+    <>
+      <SiteHeader title="Paused" />
+      <PageBody>
+        <div className="mx-auto flex w-full max-w-lg flex-col items-center gap-3 rounded-xl border border-dashed p-8 text-center" data-partner-paused="">
+          <h2 className="text-lg font-semibold">This service is paused</h2>
+          <p className="text-sm text-muted-foreground">{pausedText(name)}</p>
+          <p className="text-sm text-muted-foreground">To use another company, switch companies in the side panel.</p>
+        </div>
+      </PageBody>
+    </>
+  );
+}
+
+/** The whole page on a paused partner host. */
+function PausedHost({ config }: { config: AppConfig }) {
+  const name = config.partner?.name ?? config.appName;
+  return (
+    <main className="grid min-h-dvh place-items-center bg-background p-4" data-partner-paused="">
+      <div className="flex w-full max-w-md flex-col items-center gap-4 rounded-xl border bg-card p-8 text-center text-card-foreground">
+        <Logo size={40} src={config.logoUrl} />
+        <h1 className="text-xl font-semibold">{name} is paused</h1>
+        <p className="text-sm text-muted-foreground">{pausedText(name)}</p>
+      </div>
+    </main>
   );
 }
 

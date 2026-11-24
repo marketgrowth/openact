@@ -97,6 +97,14 @@ const CASES: Case[] = [
   { route: "POST /api/site/partners", path: () => "/api/site/partners", body: (a) => ({ host: "app.beta-agency.test", companyId: a.companyId }), expect: "denied" },
   { route: "PATCH /api/site/partners/:host", path: () => "/api/site/partners/app.alpha-agency.test", body: () => ({ name: "Taken" }), expect: "denied" },
   { route: "DELETE /api/site/partners/:host", path: () => "/api/site/partners/app.alpha-agency.test", expect: "denied" },
+  { route: "PUT /api/site/partners/company/:companyId", path: (a) => `/api/site/partners/company/${a.companyId}`, body: () => ({ paused: true }), expect: "denied" },
+  { route: "GET /api/site/partners/company/:companyId/clients", path: (a) => `/api/site/partners/company/${a.companyId}/clients`, expect: "denied" },
+  {
+    route: "POST /api/site/partners/clients/:companyId/handover",
+    path: (a) => `/api/site/partners/clients/${a.companyId}/handover`,
+    body: (_a, b) => ({ userId: b.owner.id }),
+    expect: "denied"
+  },
   {
     route: "GET /api/partner/logo",
     path: () => "/api/partner/logo",
@@ -143,6 +151,9 @@ const CASES: Case[] = [
   { route: "GET /api/companies/:id/ai", path: (a) => `/api/companies/${a.companyId}/ai`, expect: "denied" },
   { route: "PUT /api/companies/:id/ai", path: (a) => `/api/companies/${a.companyId}/ai`, body: () => ({ provider: "anthropic", apiKey: "sk-test" }), expect: "denied" },
   { route: "DELETE /api/companies/:id/ai", path: (a) => `/api/companies/${a.companyId}/ai`, expect: "denied" },
+  { route: "GET /api/companies/:id/keys", path: (a) => `/api/companies/${a.companyId}/keys`, expect: "denied" },
+  { route: "PUT /api/companies/:id/keys/:service", path: (a) => `/api/companies/${a.companyId}/keys/typesafe`, body: () => ({ apiKey: "ts-planted-key-0000000000" }), expect: "denied" },
+  { route: "DELETE /api/companies/:id/keys/:service", path: (a) => `/api/companies/${a.companyId}/keys/typesafe`, expect: "denied" },
   { route: "PUT /api/companies/:id/ai/member-keys", path: (a) => `/api/companies/${a.companyId}/ai/member-keys`, body: () => ({ allowed: false }), expect: "denied" },
   { route: "GET /api/companies/:id/plan", path: (a) => `/api/companies/${a.companyId}/plan`, expect: "denied" },
   { route: "POST /api/companies/:id/plan/checkout", path: (a) => `/api/companies/${a.companyId}/plan/checkout`, body: () => ({ planId: "director" }), expect: "denied" },

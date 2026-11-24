@@ -5,6 +5,8 @@ import { requireCompanyRole } from "./data";
 import { requireSuperAdmin } from "./site";
 import { PARTNER_HOSTS_MAX, cleanHost, cleanPartnerName, partnerLogoUrl, type PartnerClients, type PartnerDomain } from "../shared/partners";
 import type { CompanyRole, SignInPage } from "../shared/types";
+import { partnerLink } from "./partner-link";
+import { pausedError } from "./permissions";
 
 /*
  * Partner domains: white label for agencies and other partners. See docs/partners.md.
@@ -25,6 +27,8 @@ export interface Partner {
   /** The name people see: the partner name, or the company name. */
   name: string;
   logoUrl: string | null;
+  /** True while a super admin has the partner paused. Set per request by partnerMiddleware. */
+  paused?: boolean;
 }
 
 const TTL_MS = 30_000;
@@ -71,11 +75,18 @@ export async function partnerForHost(env: Env, host: string): Promise<Partner | 
  * same isolate, keep the site name.
  */
 export const partnerMiddleware: MiddlewareHandler<AppEnv> = async (c, next) => {
-  const partner = await partnerForHost(c.env, new URL(c.req.url).hostname);
+  const url = new URL(c.req.url);
+  const found = await partnerForHost(c.env, url.hostname);
+  // While the partner is paused, its host answers only what the paused page needs. See docs/partners.md.
+  const partner = found ? { ...found, paused: !!(await partnerLink(c.env, found.companyId))?.paused } : null;
+  if (partner?.paused && !PAUSED_OPEN.has(url.pathname)) throw pausedError(partner.name);
   c.set("partner", partner);
   if (partner) c.env = { ...c.env, PARTNER_NAME: partner.name };
   await next();
 };
+
+/** The API paths that a paused partner host still answers: the paused page needs the name and the logo. */
+const PAUSED_OPEN = new Set(["/api/config", "/api/partner/logo", "/api/health"]);
 
 /** What the sign-in page shows on a partner host: the partner's name, and none of the site's own text or links. */
 export function partnerSignInPage(p: Partner): SignInPage {
@@ -158,10 +169,20 @@ partnerRoutes.get("/logo", async (c) => {
 export const sitePartnerRoutes = new Hono<AppEnv>();
 
 const DOMAIN_SELECT = `SELECT p.host, p.company_id, p.name, p.created_at, c.name AS company_name,
-    (SELECT COUNT(*) FROM companies k WHERE k.partner_id = p.company_id) AS clients
-  FROM partner_domains p JOIN companies c ON c.id = p.company_id`;
+    (SELECT COUNT(*) FROM companies k WHERE k.partner_id = p.company_id) AS clients,
+    s.paused_at, s.is_own_ai_required
+  FROM partner_domains p JOIN companies c ON c.id = p.company_id LEFT JOIN partners s ON s.company_id = p.company_id`;
 
-type DomainRow = { host: string; company_id: string; name: string | null; created_at: string; company_name: string; clients: number };
+type DomainRow = {
+  host: string;
+  company_id: string;
+  name: string | null;
+  created_at: string;
+  company_name: string;
+  clients: number;
+  paused_at: string | null;
+  is_own_ai_required: number | null;
+};
 
 const toDomain = (r: DomainRow): PartnerDomain => ({
   host: r.host,
@@ -169,7 +190,9 @@ const toDomain = (r: DomainRow): PartnerDomain => ({
   companyName: r.company_name,
   name: r.name,
   clients: r.clients,
-  createdAt: r.created_at
+  createdAt: r.created_at,
+  paused: !!r.paused_at,
+  ownAiRequired: r.is_own_ai_required !== 0
 });
 
 async function oneDomain(env: Env, host: string): Promise<PartnerDomain> {

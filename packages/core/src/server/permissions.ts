@@ -3,6 +3,7 @@ import { HttpError } from "./util";
 import { companyRole } from "./data";
 import { getApps } from "./apps";
 import { siteState } from "./site-state";
+import { partnerLink } from "./partner-link";
 import { companyPlan, grantCeiling, ownerGrants } from "./plans";
 import { COMPANY_ROLES, type AppScope, type CompanyRole } from "../shared/types";
 import { PLANS, fallbackCovers, planIncludes, type PaidPlan, type PlanId } from "../shared/plans";
@@ -17,6 +18,8 @@ import { permissionApp, rolesWithPermission, type CompanyAccess, type Permission
  * An app that needs a plan, such as Docs with Director, is locked in a company without that plan,
  * unless a super admin granted the app to an owner of the company (app_grants).
  * A locked app is off: its routes, share links and live rooms stop, and its data stays.
+ * While a super admin has a partner paused (docs/partners.md), every app is off in the partner's company and in its
+ * client companies. Their data stays.
  * Permissions come from each server app's `permissions`.
  */
 
@@ -65,6 +68,8 @@ export interface CompanyAppState {
   fallback: (appId: string) => boolean;
   /** True when a super admin turned the app off for this company only. The company cannot turn it on. */
   blocked: (appId: string) => boolean;
+  /** Set while the company's partner is paused: the partner's name. Every app is off. */
+  pausedBy: string | null;
   enabled: (appId: string) => boolean;
   /** The roles that have a permission in this company. */
   roles: (permission: string) => CompanyRole[];
@@ -75,15 +80,17 @@ export const appPlan = (appId: string): PaidPlan | undefined => catalog.find((a)
 
 export async function companyAppState(env: Env, companyId: string): Promise<CompanyAppState> {
   const paid = catalog.some((a) => a.plan);
-  const [rows, blocks, planState, ownerApps] = await Promise.all([
+  const [rows, blocks, planState, ownerApps, link] = await Promise.all([
     env.DB.prepare("SELECT app_id, enabled, permissions FROM company_apps WHERE company_id = ?")
       .bind(companyId)
       .all<{ app_id: string; enabled: number; permissions: string }>(),
     companyBlocks(env, companyId),
     // Read the plan and the grants only when an installed app needs a plan.
     paid ? companyPlan(env, companyId) : Promise.resolve(null),
-    paid ? ownerGrants(env, companyId) : Promise.resolve(new Set<string>())
+    paid ? ownerGrants(env, companyId) : Promise.resolve(new Set<string>()),
+    partnerLink(env, companyId)
   ]);
+  const pausedBy = link?.paused ? link.name : null;
   const plan: PlanId = planState?.plan ?? "free";
   // A grant counts only when the deploy's license key allows grants for the app's plan.
   const ceiling = grantCeiling(planState?.license ?? null);
@@ -102,7 +109,9 @@ export async function companyAppState(env: Env, companyId: string): Promise<Comp
     granted,
     fallback,
     blocked,
+    pausedBy,
     enabled: (appId) => {
+      if (pausedBy) return false;
       if (siteAppOff(appId)) return false;
       if (blocked(appId)) return false;
       if (locked(appId)) return false;
@@ -160,12 +169,18 @@ export function planRequiredError(appId: string): HttpError {
  * The error for an app that is off in a company. Apps can throw it from their own access checks.
  * Pass the company's state to get the plan message for a locked app.
  */
-export function appOffError(appId: string, state?: Pick<CompanyAppState, "locked" | "blocked">): HttpError {
-  if (state?.locked(appId)) return planRequiredError(appId);
+export function appOffError(appId: string, state?: Partial<Pick<CompanyAppState, "locked" | "blocked" | "pausedBy">>): HttpError {
+  if (state?.pausedBy) return pausedError(state.pausedBy);
+  if (state?.locked?.(appId)) return planRequiredError(appId);
   if (siteAppOff(appId))
     return new HttpError(403, `The ${appName(appId)} app is off for this site. A super admin can turn it on in Site settings.`, "app_off");
-  if (state?.blocked(appId)) return blockedError(appId);
+  if (state?.blocked?.(appId)) return blockedError(appId);
   return new HttpError(403, `The ${appName(appId)} app is off for this company. A company owner or admin can turn it on in Company settings.`, "app_off");
+}
+
+/** The error while a company's partner is paused. */
+export function pausedError(partnerName: string): HttpError {
+  return new HttpError(403, `This service is paused for ${partnerName} and its clients. Your data is safe. Ask ${partnerName} about your account.`, "partner_paused");
 }
 
 /** The error for an app that a super admin turned off for one company. */
@@ -225,7 +240,7 @@ export async function companyAccess(env: Env, companyId: string, role: CompanyRo
     if (!state.enabled(app.id)) continue;
     for (const id of Object.keys(app.permissions ?? {})) if (state.roles(id).includes(role)) permissions.push(id);
   }
-  return { role, plan: state.plan, disabledApps, lockedApps, blockedApps, permissions };
+  return { role, plan: state.plan, disabledApps, lockedApps, blockedApps, permissions, pausedBy: state.pausedBy };
 }
 
 export const isCompanyRole = (r: unknown): r is CompanyRole => (COMPANY_ROLES as readonly unknown[]).includes(r);
