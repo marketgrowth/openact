@@ -89,7 +89,10 @@
         "today": "The line for today on a timeline.",
         "warn": "The fill of a warning.",
         "warn-foreground": "The text of a warning.",
-        "warn-border": "The edge of a warning."
+        "warn-border": "The edge of a warning.",
+        "shift-day": "A scheduled shift that starts in the day (5 AM to 1 PM).",
+        "shift-evening": "A scheduled shift that starts in the evening (1 PM to 9 PM).",
+        "shift-night": "A scheduled shift that starts at night (9 PM to 5 AM)."
       }
     },
     "agent": {
@@ -179,7 +182,10 @@
       ["p-high", "card"],
       ["live", "background"],
       ["today", "background"],
-      ["brand-gold", "background"]
+      ["brand-gold", "background"],
+      ["shift-day", "card"],
+      ["shift-evening", "card"],
+      ["shift-night", "card"]
     ]
   },
   "agentStates": [
