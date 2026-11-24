@@ -39,7 +39,7 @@ Business apps need the same parts: sign-in, company accounts, roles, invitations
 | Sign-in, sessions and email | The framework core, `@openact/core` |
 | Companies, people, roles and invitations | The core |
 | Apps on or off per company, and permissions for each role | The core |
-| The app rail, side panel, page layout and shadcn/ui components | The UI kit, `@openact/ui` |
+| The app rail, side panel, page layout, and Arc and shadcn/ui components | The UI kit, `@openact/ui` |
 | Kanban, Gantt, calendar, AI agent and search | The Projects app |
 | Your features | Your app, in `apps/<id>` |
 

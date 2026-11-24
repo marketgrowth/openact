@@ -1,6 +1,6 @@
 import { ALL_WORKSPACES, COMPANY_ROLE_LABELS, WORKSPACE_KIND_LABELS, type Company, type User } from "@openact/core/shared";
-import { APPS_PATH, SETTINGS_PATH, activeApp, appHome, isSettingsPath, railGroups, railOrder, resolveAppPath, type ClientApp } from "../apps";
-import { ACCOUNT_SECTIONS, CONTRIBUTE_SECTION, SITE_SECTIONS, companySections, parseSettingsPath, settingsPath, type SettingsSection } from "../settings-paths";
+import { APPS_PATH, SETTINGS_PATH, activeApp, appHome, isSettingsPath, railGroups, railOrder, resolveAppPath, useShell, type ClientApp } from "../apps";
+import { ACCOUNT_SECTIONS, CLIENTS_SECTION, CONTRIBUTE_SECTION, SITE_SECTIONS, companySections, parseSettingsPath, settingsPath, type SettingsSection } from "../settings-paths";
 import { canManageCompany } from "@openact/core/shared";
 import { Link, navigate, usePath } from "../router";
 import { Avatar, Icon } from "../ui";
@@ -332,6 +332,10 @@ export function AppSidebar(p: AppSidebarProps) {
  */
 function SettingsNav({ apps, path, company, site, onPick }: { apps: readonly ClientApp[]; path: string; company: boolean; site: boolean; onPick: () => void }) {
   const here = parseSettingsPath(path);
+  const { config } = useShell();
+  const ws = useWorkspace();
+  // On a partner host, the partner company's owners and admins see their client companies.
+  const clients = company && !!config.partner && config.partner.companyId === ws.current?.id ? [CLIENTS_SECTION] : [];
   const group = (label: string, sections: readonly SettingsSection[]) => (
     <SidebarGroup key={label}>
       <SidebarGroupLabel>{label}</SidebarGroupLabel>
@@ -356,7 +360,7 @@ function SettingsNav({ apps, path, company, site, onPick }: { apps: readonly Cli
   );
   return (
     <>
-      {(company || site) && group("Company settings", [...(company ? companySections(apps) : []), ...(site ? [CONTRIBUTE_SECTION] : [])])}
+      {(company || site) && group("Company settings", [...(company ? companySections(apps) : []), ...clients, ...(site && !config.partner ? [CONTRIBUTE_SECTION] : [])])}
       {group("Personal account", ACCOUNT_SECTIONS)}
       {site && group("Site settings", SITE_SECTIONS)}
     </>

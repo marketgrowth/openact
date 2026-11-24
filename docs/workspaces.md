@@ -67,4 +67,4 @@ Migration `0013_workspaces` makes one default workspace for each company. Migrat
 
 - **Linked companies:** a parent company over subsidiaries or client companies, with parent admins who can open the child. Planned next.
 - **Roles per workspace**, such as a manager who sees one brand only. Planned only for a real case.
-- **Custom domains** for a workspace or a white-label partner. The `website` field leaves room for it.
+- **Custom domains for a workspace.** The `website` field leaves room for it. For a white-label partner, such as an agency, use [partner domains](partners.md).
