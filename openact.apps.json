@@ -10,6 +10,11 @@
       "id": "cms",
       "path": "apps/cms",
       "source": "local"
+    },
+    {
+      "id": "workspent",
+      "path": "apps/workspent",
+      "source": "local"
     }
   ]
 }
