@@ -67,6 +67,9 @@ test("local dates and times follow the time zone, also across daylight saving ti
   assert.equal(wallClock(skipped, "America/Los_Angeles").time, "03:30");
   // 1:30 AM happens twice on November 1, 2026. The first one (PDT) wins.
   assert.equal(new Date(zonedToUtc("2026-11-01", "01:30", "America/Los_Angeles")).toISOString(), "2026-11-01T08:30:00.000Z");
+  // After the change on the same day, the time is in standard time.
+  assert.equal(new Date(zonedToUtc("2026-11-01", "07:00", "America/Los_Angeles")).toISOString(), "2026-11-01T15:00:00.000Z");
+  assert.equal(new Date(zonedToUtc("2026-03-08", "09:00", "America/Los_Angeles")).toISOString(), "2026-03-08T16:00:00.000Z");
 });
 
 test("a shift with a meal break counts the worked minutes", () => {

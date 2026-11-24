@@ -10,6 +10,7 @@ WorkSpent (id `workspent`) is a time clock. It records when people start and sto
 - People clock in and out with a PIN on a time clock device at the location. They need no account and no email.
 - Managers see who is on the clock, fix missed clock-ins with a reason, and approve the pay period.
 - An approved period exports a CSV for your payroll provider.
+- Managers plan shifts for each person on **Schedule**, then publish them. Staff see their shifts on **My time**.
 
 This release covers on-site locations. Phone clock-in with a QR code and remote teams come in later releases.
 
@@ -91,6 +92,45 @@ A manager can add a missed clock-in, clock-out or break, change a time, add a wh
 
 Times in a fix are in the location's time zone. A clock-out time before the clock-in time is on the next day.
 
+## Schedule
+
+**Schedule** plans who works when at a location. It plans the work. Hours for payroll still come from the time clock.
+
+### Views
+
+| View | Shows |
+| --- | --- |
+| Week | A roster: one row for each person, one column for each day. An Open shifts row on top, each person's week hours, and coverage at the bottom. |
+| Day | A timeline from 12 AM to 12 AM. Each shift shows against the real clock-ins, with a status: on time, late, not in yet, or not on the schedule. Coverage shows the people on shift in each hour. |
+| Month | A calendar. Each day shows the scheduled hours, the hours worked for past days, open shifts, drafts, and the Day, Evening and Night cover. Select a day to see its shifts. |
+| List | The shifts of two weeks, by day. Filter by open shifts or by changes not published. It is the default view on a phone. |
+
+A shift belongs to a part of the day by its local start time: Day (5 AM to 1 PM), Evening (1 PM to 9 PM) or Night (9 PM to 5 AM). A gap shows when a part of the day has no shift, while the location has that part on another day of the view. So an office with no night shifts never shows night gaps.
+
+### Add and change shifts
+
+1. In the Week view, select **+** in a person's row on a day. Or select a shift to change it.
+2. Pick the person, or **Open shift** when nobody is assigned yet.
+3. Set the date, the start and end times and the meal break. **Quick times** fill in a Day, Evening or Night shift. An end time before the start time is on the next day.
+4. Optional: repeat the shift every week, for up to 12 weeks.
+5. Select **Add the shift**.
+
+A person cannot have two shifts at the same time, at any location of the company. The editor shows the person's hours for the week and warns when they go over the week flag limit of the location.
+
+**Copy last week** copies the shifts of the week before into the week on screen, as drafts. It keeps the local times. It skips a shift that would overlap another shift, and the shifts of people who are turned off.
+
+### Publish
+
+A new or changed shift is a draft. Staff do not see it. **Publish** sends every draft, change and delete in the view to staff. Until then:
+
+- A changed shift shows as changed. Staff still see the published version.
+- A deleted shift shows as deleted. Staff still see it.
+- A draft that was never published goes at once when you delete it.
+
+Staff with an account see their published shifts for the next 3 weeks on **My time**, with the next shift on top.
+
+The schedule is for managers of the location only: `workspent.manage`, or a location manager. Other people see only their own shifts.
+
 ## Approve and export
 
 Select **Approve the period** after its last day. WorkSpent refuses while a missed clock-in or clock-out is not fixed. Then select **Export CSV**.
@@ -145,7 +185,7 @@ The other app keeps its own record. WorkSpent keeps the PIN and the hours. A sec
 
 ## Data
 
-All tables start with `workspent_` and carry `company_id`: `locations`, `location_managers`, `devices`, `people`, `person_locations`, `punches`, `changes` and `periods`. Read [Naming rules for data](naming.md).
+All tables start with `workspent_` and carry `company_id`: `locations`, `location_managers`, `devices`, `people`, `person_locations`, `punches`, `changes`, `periods` and `shifts`. A shift keeps the version that staff see in `published_json`. Read [Naming rules for data](naming.md).
 
 When a person leaves the company, their WorkSpent person keeps the hours and loses the link to the account. Deleting a company deletes its WorkSpent rows.
 

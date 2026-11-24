@@ -84,6 +84,10 @@
   --warn-foreground: oklch(0.42 0.09 70);
   --warn-border: oklch(0.86 0.09 85);
   --live: #2c9662;
+  /* Parts of the day, for scheduled shifts */
+  --shift-day: #12847a;
+  --shift-evening: #3a63c9;
+  --shift-night: #7353c4;
   /* Project colors */
   --pc-indigo: #3247cf;
   --pc-teal: #12847a;
@@ -182,6 +186,9 @@
   --warn-foreground: oklch(0.86 0.1 85);
   --warn-border: oklch(0.42 0.07 75);
   --live: #4abc82;
+  --shift-day: #3cc0b3;
+  --shift-evening: #7ea2ff;
+  --shift-night: #a886e6;
   --pc-indigo: #7e90ff;
   --pc-teal: #3cc0b3;
   --pc-amber: #e8a138;
@@ -259,6 +266,9 @@
   --color-warn: var(--warn);
   --color-warn-foreground: var(--warn-foreground);
   --color-warn-border: var(--warn-border);
+  --color-shift-day: var(--shift-day);
+  --color-shift-evening: var(--shift-evening);
+  --color-shift-night: var(--shift-night);
   --color-live: var(--live);
   --color-today: var(--today);
   --color-weekend: var(--weekend);
