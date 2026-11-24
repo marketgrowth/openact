@@ -148,7 +148,8 @@ export function SignIn({ config, onSignedIn }: { config: AppConfig; onSignedIn: 
             <Stage page={config.signIn} className="hidden md:block md:min-h-[520px]" />
           </CardContent>
         </Card>
-        <LegalNotice page={config.signIn} />
+        {/* A partner host has no legal pages of its own yet, so it does not promise any. */}
+        {!(config.partner && !config.signIn.termsUrl && !config.signIn.privacyUrl) && <LegalNotice page={config.signIn} />}
       </main>
     </div>
   );

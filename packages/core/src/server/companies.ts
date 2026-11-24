@@ -9,6 +9,7 @@ import { hasRenewingSubscription } from "./billing";
 import { companyInviteEmail, sendEmail } from "./email";
 import { removeAgentGrants } from "./agent-grants";
 import { listWorkspaces } from "./workspaces";
+import { forgetPartners, partnerForNewCompany } from "./partners";
 import { HttpError, appUrl, isEmail, newId, normalizeEmail, nowIso, oneOf, readJson, requireUser, text } from "./util";
 
 export const companyRoutes = new Hono<AppEnv>();
@@ -67,8 +68,12 @@ companyRoutes.post("/", async (c) => {
     throw new HttpError(400, `You own ${MAX_COMPANIES_PER_PERSON} companies, which is the limit. Delete one first.`);
   const id = newId();
   const iso = nowIso();
+  // On a partner host, a company that the partner's owners or admins make is a client company of the partner.
+  const partnerId = await partnerForNewCompany(c.env, c.get("partner") ?? null, user.id);
   await c.env.DB.batch([
-    c.env.DB.prepare("INSERT INTO companies (id, name, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?)").bind(id, name, user.id, iso, iso),
+    partnerId
+      ? c.env.DB.prepare("INSERT INTO companies (id, name, partner_id, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)").bind(id, name, partnerId, user.id, iso, iso)
+      : c.env.DB.prepare("INSERT INTO companies (id, name, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?)").bind(id, name, user.id, iso, iso),
     c.env.DB.prepare("INSERT INTO company_members (company_id, user_id, role, created_at) VALUES (?, ?, 'owner', ?)").bind(id, user.id, iso),
     c.env.DB.prepare("UPDATE users SET current_company_id = ? WHERE id = ?").bind(id, user.id)
   ]);
@@ -212,6 +217,7 @@ companyRoutes.put("/:id/logo", async (c) => {
   await c.env.DB.prepare("UPDATE companies SET logo_key = ?, logo_type = ?, logo_updated_at = ?, updated_at = ? WHERE id = ?")
     .bind(key, file.type, iso, iso, id)
     .run();
+  forgetPartners();
   return c.json({ logoUrl: logoUrl({ id, logo_key: key, logo_updated_at: iso }) });
 });
 
@@ -223,6 +229,7 @@ companyRoutes.delete("/:id/logo", async (c) => {
   await c.env.DB.prepare("UPDATE companies SET logo_key = NULL, logo_type = NULL, logo_updated_at = NULL, updated_at = ? WHERE id = ?")
     .bind(nowIso(), id)
     .run();
+  forgetPartners();
   return c.json({ ok: true });
 });
 

@@ -32,6 +32,18 @@ export const COMPANY_SECTIONS: readonly SettingsSection[] = [
   { scope: "company", id: "ai", label: "AI provider", icon: "bot" }
 ];
 
+/**
+ * Clients, in Company settings. It shows on a partner host (docs/partners.md), for the partner company's owners and
+ * admins: the client companies that they made on their host.
+ */
+export const CLIENTS_SECTION: SettingsSection = {
+  scope: "company",
+  id: "clients",
+  label: "Clients",
+  icon: "briefcase",
+  description: "The client companies that you made on your own domain. Each client sees only their own company."
+};
+
 /** Contribute, in Company settings. Only the site owner (the super admin) sees it. It links to openact.ing/contribute. */
 export const CONTRIBUTE_SECTION: SettingsSection = {
   scope: "company",
@@ -70,6 +82,13 @@ export const SITE_SECTIONS: readonly SettingsSection[] = [
     label: "Duplicate a company",
     icon: "copy",
     description: "Make a new company with a copy of another company's projects and docs. Use it to start a company from a template."
+  },
+  {
+    scope: "site",
+    id: "partners",
+    label: "Partner domains",
+    icon: "website",
+    description: "Give a partner, such as an agency, its own address for this site. Its clients see the partner's name and logo."
   },
   {
     scope: "site",
