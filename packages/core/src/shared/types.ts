@@ -22,6 +22,8 @@ export interface Company {
   logoUrl: string | null;
   /** The company's active workspaces, the default one first. GET /api/companies fills it. Every company has at least one. */
   workspaces?: Workspace[];
+  /** Set while the company's partner is paused (docs/partners.md): the partner's name. Every app is off. */
+  pausedBy?: string | null;
 }
 
 /*
@@ -122,8 +124,10 @@ export interface AppConfig {
   /**
    * Set on a partner host (docs/partners.md): the partner whose name and logo this host shows. The web app then
    * hides the site's own links, such as Contribute. Null on the site's own host.
+   * `paused` is true while a super admin has the partner paused: the web app shows a paused page, and every other
+   * API request on the host fails with "partner_paused".
    */
-  partner?: { name: string; companyId: string } | null;
+  partner?: { name: string; companyId: string; paused?: boolean } | null;
 }
 
 /** The sign-in page settings. Empty values use the defaults. */

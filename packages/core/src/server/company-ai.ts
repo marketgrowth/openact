@@ -13,6 +13,7 @@ import {
   type UserAiSettings
 } from "../shared/ai.ts";
 import { requireCompanyRole } from "./data.ts";
+import { partnerLink, type PartnerLink } from "./partner-link.ts";
 import { HttpError, nowIso, readJson, requireUser } from "./util.ts";
 import { openKey, sealKey } from "./secret-box.ts";
 
@@ -24,7 +25,11 @@ import { openKey, sealKey } from "./secret-box.ts";
  * Personal AI: GET, PUT and DELETE /api/me/ai. Each person sets their own. Their key bills them.
  *
  * Order for each request: the person's own AI (when their company allows member keys), then the company AI,
- * then the deploy default. Apps get the result from aiOverride().
+ * then, for a client company of a partner, the partner's AI, then the deploy default. Apps get the result from aiOverride().
+ *
+ * Partners bring their own AI (docs/partners.md). A partner company and its client companies never fall back to the
+ * deploy default while the partner's ownAiRequired is on: aiOverride() throws "ai_key_required" instead, so the site
+ * never pays for a partner's AI.
  *
  * API keys are encrypted with AES-GCM before they go into D1. They never go back to the web app.
  * The encryption key comes from AUTH_SECRET. A company key is bound to the company id, and a personal key
@@ -37,15 +42,17 @@ export interface CompanyAiOverride {
   model: string;
   scopeModel: string;
   apiKey: string;
-  /** Whose key it is. */
+  /** Whose key it is. A partner's key counts as "company", with `partner` set. */
   source: "user" | "company";
+  /** Set when the key is the partner's: the partner's name. */
+  partner?: string;
 }
 
 /** Where the AI of a request comes from, without the key. For labels in the web app. */
 export interface CompanyAiChoice {
   provider: string;
   model: string;
-  source: "user" | "company" | "deploy";
+  source: "user" | "company" | "partner" | "deploy" | "none";
 }
 
 type Row = { provider: string; model: string; key_cipher: string; key_hint: string };
@@ -132,8 +139,21 @@ export async function userAi(env: Env, userId: string | null | undefined): Promi
   return { provider: row.provider, model: row.model, scopeModel: COMPANY_AI_SCOPE_MODELS[row.provider], apiKey, source: "user" };
 }
 
+/** The error when a company of a partner has no AI key. The site's own AI never runs for a partner. */
+export function ownAiRequiredError(link: PartnerLink): HttpError {
+  return new HttpError(
+    403,
+    link.isClient
+      ? `This company has no AI key yet. ${link.name} provides the AI for its clients: ask them to add a key in Company settings, under AI provider. A company owner can also add the company's own key there.`
+      : "Your company has no AI key yet. Add one in Company settings, under AI provider. Your client companies use it too.",
+    "ai_key_required"
+  );
+}
+
 /**
- * The AI for one request: the person's own AI when the company allows it, then the company AI, or null for the deploy default.
+ * The AI for one request: the person's own AI when the company allows it, then the company AI, then the partner's AI
+ * for a client company, or null for the deploy default.
+ * Throws "ai_key_required" for a company of a partner that must bring its own AI and has none.
  * Every app that calls a model should use this, so the rules are the same everywhere.
  */
 export async function aiOverride(env: Env, companyId: string | null | undefined, userId: string | null | undefined): Promise<CompanyAiOverride | null> {
@@ -141,7 +161,21 @@ export async function aiOverride(env: Env, companyId: string | null | undefined,
     const own = await userAi(env, userId);
     if (own) return own;
   }
-  return companyAi(env, companyId);
+  const company = await companyAi(env, companyId);
+  if (company) return company;
+  const link = await partnerLink(env, companyId);
+  if (link?.isClient) {
+    const theirs = await companyAi(env, link.partnerId);
+    if (theirs) return { ...theirs, partner: link.name };
+  }
+  if (link?.ownAiRequired) throw ownAiRequiredError(link);
+  return null;
+}
+
+/** True when the company may use the deploy's own AI and keys. False for a partner that brings its own. */
+export async function deployAiAllowed(env: Env, companyId: string | null | undefined): Promise<boolean> {
+  const link = await partnerLink(env, companyId);
+  return !link?.ownAiRequired;
 }
 
 /** The deploy default provider and model, from AI_PROVIDER and AI_MODEL. */
@@ -158,6 +192,12 @@ export async function companyAiChoice(env: Env, companyId: string | null | undef
   }
   const row = companyId ? await readCompanyRow(env, companyId) : null;
   if (row && isCompanyAiProvider(row.provider)) return { provider: row.provider, model: row.model, source: "company" };
+  const link = await partnerLink(env, companyId);
+  if (link?.isClient) {
+    const theirs = await readCompanyRow(env, link.partnerId);
+    if (theirs && isCompanyAiProvider(theirs.provider)) return { provider: theirs.provider, model: theirs.model, source: "partner" };
+  }
+  if (link?.ownAiRequired) return { provider: "none", model: "", source: "none" };
   return { ...deployAiDefault(env), source: "deploy" };
 }
 
@@ -258,9 +298,20 @@ async function companySettings(env: Env, companyId: string, canEdit: boolean): P
   const row = await readCompanyRow(env, companyId);
   const deployDefault = deployAiDefault(env);
   const memberKeys = await companyAllowsMemberKeys(env, companyId);
-  if (!row || !isCompanyAiProvider(row.provider)) return { provider: "default", model: null, keyHint: null, keyBroken: false, deployDefault, memberKeys, canEdit };
+  const link = await partnerLink(env, companyId);
+  let partner: CompanyAiSettings["partner"] = null;
+  if (link) {
+    const theirs = link.isClient ? await readCompanyRow(env, link.partnerId) : null;
+    partner = {
+      name: link.name,
+      isClient: link.isClient,
+      ownAiRequired: link.ownAiRequired,
+      partnerAi: theirs && isCompanyAiProvider(theirs.provider) ? { provider: theirs.provider, model: theirs.model } : null
+    };
+  }
+  if (!row || !isCompanyAiProvider(row.provider)) return { provider: "default", model: null, keyHint: null, keyBroken: false, deployDefault, memberKeys, canEdit, partner };
   const broken = !(await openCompanyKey(env, companyId, row));
-  return { provider: row.provider, model: row.model, keyHint: row.key_hint, keyBroken: broken, deployDefault, memberKeys, canEdit };
+  return { provider: row.provider, model: row.model, keyHint: row.key_hint, keyBroken: broken, deployDefault, memberKeys, canEdit, partner };
 }
 
 export const companyAiRoutes = new Hono<AppEnv>();

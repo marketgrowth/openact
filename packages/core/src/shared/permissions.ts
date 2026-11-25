@@ -69,6 +69,8 @@ export interface CompanyAccess {
   blockedApps: string[];
   /** The permissions this person has in this company. */
   permissions: string[];
+  /** Set while the company's partner is paused (docs/partners.md): the partner's name. Every app is off. */
+  pausedBy?: string | null;
 }
 
 /** One app in Company settings. GET /api/companies/:id/apps */
