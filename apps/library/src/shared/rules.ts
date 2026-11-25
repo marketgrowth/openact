@@ -142,7 +142,8 @@ export interface Resource extends ResourceFields {
 export interface AiChoice {
   provider: string;
   model: string;
-  source: "user" | "company" | "deploy";
+  /** "partner": the partner's AI for a client company. "none": the company must add its own AI key first. */
+  source: "user" | "company" | "partner" | "deploy" | "none";
 }
 
 export interface LibraryConfig {

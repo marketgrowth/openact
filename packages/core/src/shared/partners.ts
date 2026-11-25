@@ -17,6 +17,37 @@ export interface PartnerDomain {
   /** Client companies that the partner made on its hosts. */
   clients: number;
   createdAt: string;
+  /** The partner's settings. They belong to its company, so every host of the company shows the same values. */
+  paused: boolean;
+  ownAiRequired: boolean;
+}
+
+/** GET /api/site/partners/company/:companyId/clients. For super admins: one partner's client companies and their people. */
+export interface PartnerClientPeople {
+  partner: { companyId: string; name: string };
+  clients: Array<{
+    id: string;
+    name: string;
+    createdAt: string;
+    people: Array<{
+      userId: string;
+      name: string;
+      email: string;
+      role: "owner" | "admin" | "member" | "guest";
+      /** True when the person is also in the partner's company: one of the partner's people. */
+      partnerPerson: boolean;
+    }>;
+  }>;
+}
+
+/** POST /api/site/partners/clients/:companyId/handover */
+export interface PartnerHandover {
+  /** The person who becomes an owner. They must be in the company, and not as a guest. */
+  userId: string;
+  /** Removes the partner's people from the company. The new owner stays. */
+  removePartnerPeople?: boolean;
+  /** Takes the company away from the partner: it stops counting as the partner's client, and a pause no longer applies. */
+  release?: boolean;
 }
 
 /** One client company of a partner, as the partner's Company settings shows it. */

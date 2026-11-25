@@ -24,7 +24,7 @@ Each section has its own address, such as `/settings/company/people`, so you can
 | Company | Every company member, as a viewer. Company owners and admins manage it. People on the project keep their project role. |
 | Secret | Only the people on the project. Company owners and admins do not see it unless they are on it. |
 
-- **Invite to the company** from **Company settings > People**. People join as members or admins.
+- **Invite to the company** from **Company settings > People**. People join as members, admins or owners. Only an owner can invite an owner.
 - **Invite to one project** from that project's **People** tab. Someone from outside the company joins as a guest and sees only that project.
 - **Email domain auto-join.** Set a domain such as `acme.com` in **Company settings > General**. People who sign in with that domain join as members. Public domains such as gmail.com are refused, your own email must use the domain, and each domain belongs to one company.
 - **Request access.** A person who opens a project link without access sees a request form. The project owners get an email and approve (with a role) or decline in the **People** tab. Approving someone from outside the company makes them a guest. The page never shows the project's name.
@@ -69,7 +69,8 @@ Every OpenAct app brings its own AI. The AI for each request comes from the firs
 
 1. **The person's own AI**, from **Settings > Personal account > My AI**, when the company allows personal keys. Read [Your own AI](#your-own-ai).
 2. **The company AI**, from **Company settings > AI provider**.
-3. **The deploy default.** The person who runs the deploy sets it with `AI_PROVIDER` and `AI_MODEL`. Read [Settings](getting-started.md#settings). Without them, it is a free Workers AI model.
+3. **For a client company of a partner, the partner's AI.** A partner and its clients never get the deploy default: read [The partner brings its own AI](partners.md#the-partner-brings-its-own-ai).
+4. **The deploy default.** The person who runs the deploy sets it with `AI_PROVIDER` and `AI_MODEL`. Read [Settings](getting-started.md#settings). Without them, it is a free Workers AI model.
 
 A site owner can leave the deploy default as it is. Each company and each person can then choose their own.
 

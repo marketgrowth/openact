@@ -82,6 +82,60 @@ export interface CompanyAiSettings {
   memberKeys: boolean;
   /** True when this person can change the setting. Only company owners can. */
   canEdit: boolean;
+  /**
+   * Set when the company belongs to a partner (docs/partners.md). With ownAiRequired, the site's own AI never runs
+   * here: the person's key, the company key or, for a client company, the partner's key must be set.
+   */
+  partner?: {
+    name: string;
+    /** True for a client company of the partner. */
+    isClient: boolean;
+    ownAiRequired: boolean;
+    /** For a client company: the AI that the partner set, which runs when the company has none. */
+    partnerAi: { provider: CompanyAiProvider; model: string } | null;
+  } | null;
+}
+
+/* Keys for other services, such as TypeSafe (Jev). Company settings, under AI provider. */
+
+export const COMPANY_KEY_SERVICES = ["typesafe"] as const;
+export type CompanyKeyService = (typeof COMPANY_KEY_SERVICES)[number];
+
+export const COMPANY_KEY_INFO: Record<CompanyKeyService, { label: string; use: string; url: string; name: string }> = {
+  typesafe: {
+    label: "TypeSafe (Jev)",
+    use: "Jev is a judgment model. Apps use it for fast yes-or-no checks, such as whether a page answers a search.",
+    url: "https://console.typesafe.ai/keys",
+    name: "console.typesafe.ai"
+  }
+};
+
+export function isCompanyKeyService(v: unknown): v is CompanyKeyService {
+  return typeof v === "string" && (COMPANY_KEY_SERVICES as readonly string[]).includes(v);
+}
+
+/** Cleans a pasted service key. */
+export function cleanServiceKey(raw: unknown): { key: string } | { problem: string } {
+  if (typeof raw !== "string") return { problem: "Paste the API key as text." };
+  const key = raw.trim();
+  if (!key) return { problem: "Paste the API key." };
+  if (key.length < 16 || key.length > AI_KEY_MAX || /\s/.test(key)) return { problem: "This does not look like an API key. Copy it again, without spaces." };
+  return { key };
+}
+
+/** GET /api/companies/:id/keys. Keys never come back, only their last 4 characters. */
+export interface CompanyKeySettings {
+  keys: Array<{
+    service: CompanyKeyService;
+    /** The last 4 characters of this company's own key, or null. */
+    keyHint: string | null;
+    keyBroken: boolean;
+    /** Whose key runs now. "none": the service is off for this company. */
+    source: "company" | "partner" | "deploy" | "none";
+  }>;
+  /** The partner's name, when the company belongs to a partner. */
+  partnerName: string | null;
+  canEdit: boolean;
 }
 
 /** GET /api/me/ai. A person's own AI. The key never comes back, only its last 4 characters. */

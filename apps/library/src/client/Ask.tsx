@@ -32,7 +32,9 @@ const providerLabel = (p: string) =>
 /** Whose AI answers, in plain words. */
 export function aiLine(ai: AiChoice | null): string {
   if (!ai) return "";
-  const who = ai.source === "user" ? "your own AI key, which bills your account" : ai.source === "company" ? "your company's AI key" : "the site's default AI";
+  if (ai.source === "none") return "Your company needs an AI key before Ask can answer. A company owner adds it in Company settings, under AI provider.";
+  const who =
+    ai.source === "user" ? "your own AI key, which bills your account" : ai.source === "company" ? "your company's AI key" : ai.source === "partner" ? "your partner's AI key" : "the site's default AI";
   return `Answers use ${providerLabel(ai.provider)}, through ${who}.`;
 }
 

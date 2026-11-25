@@ -16,6 +16,8 @@ export interface ProjectAccess {
   companyId: string | null;
   /** True when the company turned the projects app off. */
   appOff: boolean;
+  /** Set while the company's partner is paused: the partner's name. */
+  pausedBy?: string | null;
   companyRole: CompanyRole | null;
   visibility: Visibility;
 }
@@ -36,7 +38,7 @@ export async function projectAccess(env: Env, projectId: string, userId: string)
   const appOff = !!state && !state.enabled("projects");
   const canBrowse = !!state && !!row.company_role && state.roles("projects.browse").includes(row.company_role);
   const a = { visibility: row.visibility, projectRole: row.project_role, companyRole: row.company_role, canBrowse };
-  return { ...a, companyId: row.company_id, appOff, role: appOff ? null : effectiveProjectRole(a) };
+  return { ...a, companyId: row.company_id, appOff, pausedBy: state?.pausedBy ?? null, role: appOff ? null : effectiveProjectRole(a) };
 }
 
 /**
@@ -46,7 +48,7 @@ export async function projectAccess(env: Env, projectId: string, userId: string)
 export async function requireRole(env: Env, projectId: string, userId: string, min: Role): Promise<Role> {
   const access = await projectAccess(env, projectId, userId);
   if (!access) throw new HttpError(404, "This project does not exist.");
-  if (access.appOff) throw appOffError("projects");
+  if (access.appOff) throw appOffError("projects", { pausedBy: access.pausedBy });
   if (!access.role) throw new HttpError(403, "You do not have access to this project. You can ask an owner for access.", "no_access");
   if (RANK[access.role] < RANK[min]) {
     throw new HttpError(403, min === "owner" ? "Only a project owner can do this." : "Your role in this project is view only.");

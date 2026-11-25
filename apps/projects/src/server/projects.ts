@@ -260,7 +260,16 @@ export async function loadProject(env: Env, projectId: string, role: Role, userI
     columns: (columns.results as unknown as Parameters<typeof toColumn>[0][]).map(toColumn),
     aiPolicy,
     agentLevel: effectiveLevel(role, aiPolicy),
-    aiLabel: ai.source === "user" ? `${aiModelLabel(ai.model)} (your key)` : ai.source === "company" ? `${aiModelLabel(ai.model)} (company key)` : ai.provider,
+    aiLabel:
+      ai.source === "user"
+        ? `${aiModelLabel(ai.model)} (your key)`
+        : ai.source === "company"
+          ? `${aiModelLabel(ai.model)} (company key)`
+          : ai.source === "partner"
+            ? `${aiModelLabel(ai.model)} (partner key)`
+            : ai.source === "none"
+              ? "No AI key"
+              : ai.provider,
     members: (members.results as Array<{ user_id: string; email: string; name: string; role: Role }>).map(
       (m): Member => ({ userId: m.user_id, email: m.email, name: m.name, role: m.role })
     ),

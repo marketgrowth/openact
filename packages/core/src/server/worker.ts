@@ -10,6 +10,8 @@ import { HttpError, appName } from "./util";
 import { setApps, type ServerApp } from "./apps";
 import { companyAppRoutes } from "./company-apps";
 import { companyAiRoutes, userAiRoutes } from "./company-ai";
+import { companyKeyRoutes } from "./company-keys";
+import { sitePartnerAdminRoutes } from "./partner-admin";
 import { getCatalog, setCatalog, type AppInfo } from "./permissions";
 import { loadSite, signInPage, siteLogo, siteMiddleware, siteRoutes } from "./site";
 import { directorRoutes, refreshStoreLicense } from "./director.ts";
@@ -101,7 +103,7 @@ export function createApp({ apps, catalog }: { apps: ServerApp[]; catalog?: AppI
       apps: getCatalog().map((a) => ({ id: a.id, name: a.name, scope: a.scope ?? "company" })),
       signIn: partner ? partnerSignInPage(partner) : signInPage(),
       agentAccess: agentAccessOn(c.env),
-      partner: partner ? { name: partner.name, companyId: partner.companyId } : null
+      partner: partner ? { name: partner.name, companyId: partner.companyId, paused: !!partner.paused } : null
     };
     return c.json(config);
   });
@@ -112,12 +114,14 @@ export function createApp({ apps, catalog }: { apps: ServerApp[]; catalog?: AppI
   app.route("/api/me", userAiRoutes);
   app.route("/api/site/director", directorRoutes);
   app.route("/api/site/partners", sitePartnerRoutes);
+  app.route("/api/site/partners", sitePartnerAdminRoutes);
   app.route("/api/site", siteRoutes);
   app.route("/api/partner", partnerRoutes);
   app.route("/api/companies", companyRoutes);
   app.route("/api/companies", workspaceRoutes);
   app.route("/api/companies", companyAppRoutes);
   app.route("/api/companies", companyAiRoutes);
+  app.route("/api/companies", companyKeyRoutes);
   app.route("/api/companies", companyPlanRoutes);
   app.route("/api/companies", companyPartnerRoutes);
   app.route("/api/billing", billingRoutes);

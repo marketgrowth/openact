@@ -5,7 +5,8 @@ import { DEFAULT_JEV_MODEL, buildJevRequest, decideScope, type JevAnswers } from
 
 /*
  * Runs the scope check with the best decider that is set up:
- *   1. Jev (TypeSafe), when the TYPESAFE_API_KEY secret is set. Typed answers, fast and low cost.
+ *   1. Jev (TypeSafe), when the company has a TypeSafe key (its own, its partner's, or the TYPESAFE_API_KEY secret).
+ *      Typed answers, fast and low cost.
  *   2. dev-scripted, for local tests without AI.
  *   3. A small language model through AI Gateway (AI_SCOPE_MODEL).
  * Any failure passes the request to the agent. A failed check never blocks work.
@@ -20,17 +21,20 @@ export interface ScopeResult {
 const PASS: ScopeDecision = { route: "project", topic: "" };
 const JEV_TIMEOUT_MS = 3000;
 
+/** The TypeSafe key for this request. A partner that brings its own AI never gets the deploy's key. */
+const jevKeyOf = (env: Env, setup: AiSetup): string => ((setup.jevKey === undefined ? env.TYPESAFE_API_KEY : setup.jevKey) || "").trim();
+
 export function scopeDecider(env: Env, setup: AiSetup): "jev" | "dev-scripted" | "llm" {
-  if ((env.TYPESAFE_API_KEY || "").trim()) return "jev";
+  if (jevKeyOf(env, setup)) return "jev";
   return setup.provider === "dev-scripted" ? "dev-scripted" : "llm";
 }
 
-async function runJev(env: Env, input: ScopeInput): Promise<ScopeResult> {
+async function runJev(env: Env, key: string, input: ScopeInput): Promise<ScopeResult> {
   const base = (env.TYPESAFE_BASE_URL || "https://api.typesafe.ai").replace(/\/+$/, "");
   const { request, options } = buildJevRequest(input, (env.TYPESAFE_MODEL || "").trim() || DEFAULT_JEV_MODEL);
   const res = await fetch(`${base}/v1/systemone`, {
     method: "POST",
-    headers: { authorization: `Bearer ${env.TYPESAFE_API_KEY}`, "content-type": "application/json" },
+    headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
     body: JSON.stringify(request),
     signal: AbortSignal.timeout(JEV_TIMEOUT_MS)
   });
@@ -53,7 +57,7 @@ export async function checkScope(env: Env, setup: AiSetup, input: ScopeInput): P
   const kind = scopeDecider(env, setup);
   if (kind === "dev-scripted") return { decision: devScriptedScope(input.message, input.otherProjects), decider: "dev-scripted" };
   try {
-    return kind === "jev" ? await runJev(env, input) : await runLlm(env, setup, input);
+    return kind === "jev" ? await runJev(env, jevKeyOf(env, setup), input) : await runLlm(env, setup, input);
   } catch (err) {
     console.warn("[openact] The scope check failed, so the request went to the agent:", err);
     return { decision: PASS, decider: "failed" };
