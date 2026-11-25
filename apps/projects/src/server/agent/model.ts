@@ -1,5 +1,5 @@
 import type { Env } from "../env";
-import { HttpError, aiOverride } from "../util";
+import { HttpError, aiOverride, companyServiceKey } from "../util";
 import {
   parseProvider,
   parseWorkersAi,
@@ -43,6 +43,11 @@ export interface AiSetup {
   apiKey: string;
   /** "user" for the person's own key, "company" when a company owner set the AI, "deploy" for the deploy default. */
   source: "user" | "company" | "deploy";
+  /**
+   * The TypeSafe key for the scope check, from companyServiceKey: the company's, its partner's or the deploy's.
+   * Null when Jev is off for this company. Undefined: use the TYPESAFE_API_KEY secret, as before.
+   */
+  jevKey?: string | null;
 }
 
 export function agentProvider(env: Env): string {
@@ -71,9 +76,11 @@ export function deployAi(env: Env): AiSetup {
  */
 export async function aiSetup(env: Env, companyId: string | null | undefined, userId?: string | null): Promise<AiSetup> {
   if (agentProvider(env) === "dev-scripted") return deployAi(env);
+  // aiOverride throws "ai_key_required" for a partner that must bring its own AI. The deploy default never runs there.
   const own = await aiOverride(env, companyId, userId);
-  if (own) return { provider: own.provider, model: own.model, scopeModel: own.scopeModel, apiKey: own.apiKey, source: own.source };
-  return deployAi(env);
+  const jevKey = (await companyServiceKey(env, companyId, "typesafe")).key;
+  if (own) return { provider: own.provider, model: own.model, scopeModel: own.scopeModel, apiKey: own.apiKey, source: own.source, jevKey };
+  return { ...deployAi(env), jevKey };
 }
 
 /** Says who must add the key: the person, a company owner, or the person who runs the deploy. */

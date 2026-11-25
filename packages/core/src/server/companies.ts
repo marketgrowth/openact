@@ -10,6 +10,7 @@ import { companyInviteEmail, sendEmail } from "./email";
 import { removeAgentGrants } from "./agent-grants";
 import { listWorkspaces } from "./workspaces";
 import { forgetPartners, partnerForNewCompany } from "./partners";
+import { forgetPartnerLinks, partnerLink } from "./partner-link";
 import { HttpError, appUrl, isEmail, newId, normalizeEmail, nowIso, oneOf, readJson, requireUser, text } from "./util";
 
 export const companyRoutes = new Hono<AppEnv>();
@@ -34,8 +35,8 @@ export async function listCompanies(env: Env, userId: string): Promise<Company[]
     .all<CompanyRow>();
   // Workspaces for the switcher. Guests get none: they see what they are invited to, in every workspace.
   const ids = rows.results.filter((r) => r.role !== "guest").map((r) => r.id);
-  const workspaces = await listWorkspaces(env, ids);
-  return rows.results.map((r) => ({ ...toCompany(r), workspaces: workspaces.get(r.id) ?? [] }));
+  const [workspaces, links] = await Promise.all([listWorkspaces(env, ids), Promise.all(rows.results.map((r) => partnerLink(env, r.id)))]);
+  return rows.results.map((r, i) => ({ ...toCompany(r), workspaces: workspaces.get(r.id) ?? [], pausedBy: links[i]?.paused ? links[i]!.name : null }));
 }
 
 /** The company the person last used, or their first one. */
@@ -242,8 +243,9 @@ companyRoutes.post("/:id/members", async (c) => {
   const body = await readJson(c);
   const email = normalizeEmail(body.email);
   if (!isEmail(email)) throw new HttpError(400, "Type a valid email address.");
-  const role = body.role === undefined ? "member" : oneOf(body.role, "Role", ["admin", "member"] as const);
+  const role = body.role === undefined ? "member" : oneOf(body.role, "Role", ["owner", "admin", "member"] as const);
   if (role === "admin" && actorRole !== "owner" && actorRole !== "admin") throw new HttpError(403, "Only company owners and admins can add admins.");
+  if (role === "owner" && actorRole !== "owner") throw new HttpError(403, "Only a company owner can add owners.");
   const co = await c.env.DB.prepare("SELECT name FROM companies WHERE id = ?").bind(id).first<{ name: string }>();
   const url = `${appUrl(c)}/?company=${id}`;
   const iso = nowIso();

@@ -54,6 +54,8 @@ export {
   companyAi,
   userAi,
   aiOverride,
+  deployAiAllowed,
+  ownAiRequiredError,
   companyAllowsMemberKeys,
   checkAiKey,
   companyAiChoice,
@@ -63,6 +65,8 @@ export {
   type CompanyAiOverride,
   type CompanyAiChoice
 } from "./company-ai.ts";
+export { companyServiceKey, type ServiceKey } from "./company-keys.ts";
+export { partnerLink, type PartnerLink } from "./partner-link.ts";
 export {
   requirePermission,
   hasPermission,

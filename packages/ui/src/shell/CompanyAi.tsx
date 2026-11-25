@@ -5,9 +5,11 @@ import {
   COMPANY_AI_MODELS,
   COMPANY_AI_PROVIDERS,
   COMPANY_AI_PROVIDER_LABELS,
+  COMPANY_KEY_INFO,
   aiModelLabel,
   type CompanyAiProvider,
   type CompanyAiSettings,
+  type CompanyKeySettings,
   type UserAiSettings
 } from "@openact/core/shared";
 import { api, errorText } from "../api";
@@ -21,6 +23,8 @@ import { Switch } from "@openact/ui/components/switch";
  * Bring your own AI.
  * Company settings, AI provider tab: owners choose the company AI and if members can use their own key. Admins can only look.
  * Personal account, My AI: each person can use their own provider, model and key.
+ * A partner and its client companies bring their own AI (docs/partners.md): the page says whose key runs, and the
+ * deploy default is not offered to them.
  */
 
 type Choice = CompanyAiProvider | "default";
@@ -197,16 +201,34 @@ export function CompanyAiTab({ companyId }: { companyId: string }) {
   if (!s) return <p className="text-sm text-muted-foreground">Loading…</p>;
 
   const deployLabel = s.deployDefault.model ? `${s.deployDefault.provider}, ${aiModelLabel(s.deployDefault.model)}` : s.deployDefault.provider;
+  // A partner and its clients never use the deploy default. Say whose AI runs instead.
+  const own = s.partner?.ownAiRequired ? s.partner : null;
+  const partnerAi = own?.isClient ? own.partnerAi : null;
+  const defaultLabel = own ? (partnerAi ? `${own.name}'s AI (${aiModelLabel(partnerAi.model)})` : "No AI (add a key)") : `Deploy default (${deployLabel})`;
 
   const current =
-    s.provider === "default" ? (
-      <>
-        This company uses the deploy default: <span className="font-medium text-foreground">{deployLabel}</span>.
-      </>
-    ) : (
+    s.provider !== "default" ? (
       <>
         This company uses <span className="font-medium text-foreground">{aiModelLabel(s.model ?? "")}</span> with its own API key, ending in{" "}
         <span className="font-mono text-foreground">{s.keyHint}</span>.
+      </>
+    ) : !own ? (
+      <>
+        This company uses the deploy default: <span className="font-medium text-foreground">{deployLabel}</span>.
+      </>
+    ) : partnerAi ? (
+      <>
+        This company uses <span className="font-medium text-foreground">{aiModelLabel(partnerAi.model)}</span> with the API key of {own.name}. {own.name} pays the
+        provider. Add the company's own key below to use it instead.
+      </>
+    ) : own.isClient ? (
+      <>
+        This company has no AI yet. {own.name} provides the AI for its clients, but has not added a key. Ask {own.name}, or add the company's own key below.
+      </>
+    ) : (
+      <>
+        Your company has no AI key yet, so AI features are off. This site does not provide AI for partners. Add your key below. Your client companies use it too,
+        unless they add their own.
       </>
     );
 
@@ -220,6 +242,7 @@ export function CompanyAiTab({ companyId }: { companyId: string }) {
         <p className="text-sm text-muted-foreground">{current}</p>
         <p className="text-sm text-muted-foreground">{memberLine}</p>
         <Notice tone="info">Only a company owner can change the AI provider, because the API key bills the company.</Notice>
+        <CompanyKeysSection companyId={companyId} />
       </div>
     );
   }
@@ -241,22 +264,23 @@ export function CompanyAiTab({ companyId }: { companyId: string }) {
       <p className="text-sm text-muted-foreground">{current}</p>
       {s.keyBroken && (
         <Notice tone="warn">
-          This deploy cannot read the saved key, so the deploy default runs. This happens when the server secret changes. Paste the key again.
+          This deploy cannot read the saved key, so {own ? "it does not run" : "the deploy default runs"}. This happens when the server secret changes. Paste the key
+          again.
         </Notice>
       )}
       <AiChoiceForm
         saved={s}
-        defaultLabel={`Deploy default (${deployLabel})`}
+        defaultLabel={defaultLabel}
         providerHelp="The agent, task drafts and summaries in every project of this company use this AI, unless a member uses their own key."
         payer="Your company"
-        clearLabel="Use the deploy default"
+        clearLabel={own ? "Remove the company's key" : "Use the deploy default"}
         onSave={async (provider, model, apiKey) => {
           setS(await api<CompanyAiSettings>(`/api/companies/${companyId}/ai`, { method: "PUT", body: { provider, model, apiKey } }));
           toast("The key works. The AI provider is saved.");
         }}
         onClear={async () => {
           setS(await api<CompanyAiSettings>(`/api/companies/${companyId}/ai`, { method: "DELETE" }));
-          toast("The company uses the deploy default now. The saved key is deleted.");
+          toast(own ? "The saved key is deleted." : "The company uses the deploy default now. The saved key is deleted.");
         }}
       />
       <div className="flex items-start justify-between gap-4 rounded-md border p-3">
@@ -269,6 +293,100 @@ export function CompanyAiTab({ companyId }: { companyId: string }) {
         </div>
         <Switch checked={s.memberKeys} disabled={switching} onCheckedChange={setMemberKeys} aria-label="Members can use their own AI key" />
       </div>
+      <CompanyKeysSection companyId={companyId} />
+    </div>
+  );
+}
+
+/** Keys for other services, such as TypeSafe (Jev). Owners change them. Admins can only look. */
+function CompanyKeysSection({ companyId }: { companyId: string }) {
+  const toast = useToast();
+  const [s, setS] = useState<CompanyKeySettings | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [draft, setDraft] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState<string | null>(null);
+
+  useEffect(() => {
+    api<CompanyKeySettings>(`/api/companies/${companyId}/keys`).then(setS, (e) => setError(errorText(e)));
+  }, [companyId]);
+
+  if (error) return <Notice tone="error">{error}</Notice>;
+  if (!s) return null;
+
+  const save = async (service: string, remove: boolean) => {
+    setBusy(service);
+    try {
+      const path = `/api/companies/${companyId}/keys/${service}`;
+      setS(await api<CompanyKeySettings>(path, remove ? { method: "DELETE" } : { method: "PUT", body: { apiKey: draft[service] ?? "" } }));
+      setDraft((d) => ({ ...d, [service]: "" }));
+      toast(remove ? "The key is deleted." : "The key is saved.");
+    } catch (err) {
+      toast(errorText(err));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <div className="grid gap-4 border-t pt-6" data-company-keys="">
+      <h3 className="text-sm font-medium">Other services</h3>
+      {s.keys.map((k) => {
+        const info = COMPANY_KEY_INFO[k.service];
+        const status =
+          k.source === "company"
+            ? `On, with this company's key, ending in ${k.keyHint}.`
+            : k.source === "partner"
+              ? `On, with the key of ${s.partnerName}.`
+              : k.source === "deploy"
+                ? "On, with this site's key."
+                : "Off. Add a key to turn it on.";
+        return (
+          <div key={k.service} className="grid gap-3 rounded-md border p-3">
+            <div className="grid gap-1">
+              <span className="text-sm font-medium">{info.label}</span>
+              <span className="text-xs text-muted-foreground">{info.use}</span>
+              <span className="text-xs text-muted-foreground">{status}</span>
+            </div>
+            {k.keyBroken && <Notice tone="warn">This deploy cannot read the saved key. Paste the key again.</Notice>}
+            {s.canEdit && (
+              <form
+                className="flex flex-col gap-2 sm:flex-row"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  save(k.service, false);
+                }}
+              >
+                <Input
+                  type="password"
+                  autoComplete="off"
+                  spellCheck={false}
+                  maxLength={300}
+                  aria-label={`${info.label} API key`}
+                  className="sm:flex-1"
+                  placeholder={k.keyHint ? `Saved key ending in ${k.keyHint}. Paste a new one to replace it.` : `Paste a key from ${info.name}`}
+                  value={draft[k.service] ?? ""}
+                  onChange={(e) => setDraft((d) => ({ ...d, [k.service]: e.target.value }))}
+                />
+                <Button type="submit" disabled={busy === k.service || !(draft[k.service] ?? "").trim()}>
+                  Save
+                </Button>
+                {k.keyHint && (
+                  <ConfirmButton label="Delete" confirmLabel="Click again to delete the key" onConfirm={() => save(k.service, true)} disabled={busy === k.service} size="default" />
+                )}
+              </form>
+            )}
+            {s.canEdit && (
+              <p className="text-xs text-muted-foreground">
+                Make a key at{" "}
+                <a href={info.url} target="_blank" rel="noreferrer" className="underline underline-offset-2">
+                  {info.name}
+                </a>
+                . Your company pays for each request. The key is encrypted on the server, and nobody can see it again.
+              </p>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
