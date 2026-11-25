@@ -84,7 +84,7 @@ async function checkPerson(env: Env, companyId: string, v: unknown): Promise<str
   if (typeof v !== "string" || !UUIDISH.test(v)) throw new HttpError(404, "This person does not exist. They may belong to another company.");
   const p = await env.DB.prepare("SELECT is_active FROM workspent_people WHERE id = ? AND company_id = ?").bind(v, companyId).first<{ is_active: number }>();
   if (!p) throw new HttpError(404, "This person does not exist. They may belong to another company.");
-  if (!p.is_active) throw new HttpError(409, "This person is turned off in People and PINs. Turn them on first.");
+  if (!p.is_active) throw new HttpError(409, "This person is turned off in Team. Turn them on first.");
   return v;
 }
 

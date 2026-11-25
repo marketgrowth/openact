@@ -8,6 +8,7 @@ export const APP_ID = "workspent";
 export const API = "/api/apps/workspent";
 export const HOME = "/a/workspent";
 export const CLOCK_PATH = "/a/workspent/clock";
+export const APPROVE_PATH = "/a/workspent/approve";
 /** The header that carries the device key on time clock device requests. */
 export const DEVICE_HEADER = "x-workspent-device";
 /** Where the time clock device keeps its key and its offline queue. */
@@ -588,6 +589,11 @@ export interface Me {
   /** The WorkSpent person linked to this account, if any. */
   personId: string | null;
   canClock: boolean;
+  /** workspent.track: log time on projects. */
+  canTrack: boolean;
+  /** Which kinds of work are on for the company. */
+  projects: boolean;
+  shifts: boolean;
 }
 
 export interface ChangeInfo {

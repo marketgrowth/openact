@@ -22,6 +22,10 @@ type Ids = {
   betaLocationId: string;
   betaDeviceKey: string;
   shiftId: string;
+  clientId: string;
+  projectId: string;
+  entryId: string;
+  week: string;
 };
 const ids: Ids = {
   locationId: "00000000-0000-4000-8000-000000000001",
@@ -33,7 +37,11 @@ const ids: Ids = {
   periodStart: "2026-01-04",
   betaLocationId: "00000000-0000-4000-8000-000000000006",
   betaDeviceKey: "none",
-  shiftId: "00000000-0000-4000-8000-000000000007"
+  shiftId: "00000000-0000-4000-8000-000000000007",
+  clientId: "00000000-0000-4000-8000-000000000008",
+  projectId: "00000000-0000-4000-8000-000000000009",
+  entryId: "00000000-0000-4000-8000-00000000000a",
+  week: "2026-01-04"
 };
 const ALPHA_PIN = "4826";
 
@@ -96,6 +104,22 @@ export async function seed(d: Deploy, alpha: Side, beta: Side): Promise<void> {
     note: "ALPHASECRET med pass"
   })) as { ids: string[] };
   await ok(d, alpha.owner, "POST", `${a.c}/locations/${a.locationId}/schedule/publish`, { from: sundayBefore(day(8)), to: sundayBefore(day(8)) });
+  // Projects: a client, a project with a rate, an entry with a note, and a sent week.
+  const client = (await ok(d, alpha.owner, "POST", `${a.c}/clients`, { name: "ALPHASECRET Client", approverEmail: "approver@alpha.test", rate: 75 })) as {
+    client: { id: string };
+  };
+  // A deploy without the Projects app has no project. The Projects cases then use the planted ids and stay denied.
+  const project = d.all<{ id: string }>("SELECT id FROM projects WHERE company_id = ? ORDER BY created_at LIMIT 1", alpha.companyId)[0];
+  const entryDay = day(-7);
+  let entryId = ids.entryId;
+  if (project) {
+    await ok(d, alpha.owner, "PUT", `${a.c}/projects/${project.id}`, { clientId: client.client.id, budgetHours: 10 });
+    const entry = (await ok(d, alpha.owner, "POST", `${a.c}/entries`, { projectId: project.id, date: entryDay, minutes: 90, note: "ALPHASECRET work" })) as {
+      entry: { id: string };
+    };
+    entryId = entry.entry.id;
+    await ok(d, alpha.owner, "POST", `${a.c}/weeks/${entryDay}/send`);
+  }
   const p = d.one<{ id: string }>("SELECT id FROM workspent_punches WHERE company_id = ? AND source = 'device'", alpha.companyId);
   const ch = d.one<{ id: string }>("SELECT id FROM workspent_changes WHERE company_id = ? LIMIT 1", alpha.companyId);
   Object.assign(ids, {
@@ -108,13 +132,21 @@ export async function seed(d: Deploy, alpha: Side, beta: Side): Promise<void> {
     periodStart: prev,
     betaLocationId: b.locationId,
     betaDeviceKey: b.deviceKey,
-    shiftId: shift.ids[0]
+    shiftId: shift.ids[0],
+    clientId: client.client.id,
+    projectId: project?.id ?? ids.projectId,
+    entryId,
+    week: sundayBefore(entryDay)
   });
 }
 
 export function snapshot(d: Deploy, alpha: Side): string {
   if (!installed(d)) return "";
-  const tables = ["workspent_shifts", "workspent_locations", "workspent_people", "workspent_person_locations", "workspent_devices", "workspent_punches", "workspent_changes", "workspent_periods", "workspent_location_managers"];
+  const tables = [
+    ...["workspent_settings", "workspent_clients", "workspent_projects", "workspent_members", "workspent_entries", "workspent_weeks"],
+    ...["workspent_shifts", "workspent_locations", "workspent_people", "workspent_person_locations", "workspent_devices", "workspent_punches", "workspent_changes"],
+    ...["workspent_periods", "workspent_location_managers"]
+  ];
   return tables.map((t) => JSON.stringify(d.all(`SELECT * FROM ${t} WHERE company_id = ? ORDER BY 1, 2`, alpha.companyId))).join("\n");
 }
 
@@ -339,6 +371,111 @@ export const cases: Case[] = [
     body: () => ({ weekStart: "2030-01-06" }),
     expect: "denied",
     why: "Beta's company with an Alpha location."
+  },
+  // Projects.
+  { route: "GET /api/apps/workspent/companies/:id/settings", path: (a) => `${A(a)}/settings`, expect: "denied" },
+  { route: "PUT /api/apps/workspent/companies/:id/settings", path: (a) => `${A(a)}/settings`, body: () => ({ projects: false, shifts: true }), expect: "denied" },
+  { route: "PUT /api/apps/workspent/companies/:id/site-kinds", path: (a) => `${A(a)}/site-kinds`, body: () => ({ projects: false, shifts: true }), expect: "denied" },
+  {
+    route: "PUT /api/apps/workspent/companies/:id/site-kinds",
+    path: (_a, b) => `${B(b)}/site-kinds`,
+    body: () => ({ projects: false, shifts: true }),
+    expect: "denied",
+    why: "Beta's owner is not the site owner."
+  },
+  { route: "GET /api/apps/workspent/companies/:id/clients", path: (a) => `${A(a)}/clients`, expect: "denied" },
+  { route: "POST /api/apps/workspent/companies/:id/clients", path: (a) => `${A(a)}/clients`, body: () => ({ name: "Planted" }), expect: "denied" },
+  { route: "PATCH /api/apps/workspent/companies/:id/clients/:cid", path: (a) => `${A(a)}/clients/${ids.clientId}`, body: () => ({ name: "Taken" }), expect: "denied" },
+  { route: "PATCH /api/apps/workspent/companies/:id/clients/:cid", path: (_a, b) => `${B(b)}/clients/${ids.clientId}`, body: () => ({ name: "Taken" }), expect: "denied", why: "Beta's company with an Alpha client." },
+  { route: "GET /api/apps/workspent/companies/:id/projects", path: (a) => `${A(a)}/projects`, expect: "denied" },
+  { route: "GET /api/apps/workspent/companies/:id/projects", path: (_a, b) => `${B(b)}/projects`, expect: "any", why: "Beta's own list must hold no Alpha project." },
+  { route: "PUT /api/apps/workspent/companies/:id/projects/:pid", path: (a) => `${A(a)}/projects/${ids.projectId}`, body: () => ({ rate: 1 }), expect: "denied" },
+  { route: "PUT /api/apps/workspent/companies/:id/projects/:pid", path: (_a, b) => `${B(b)}/projects/${ids.projectId}`, body: () => ({ rate: 1 }), expect: "denied", why: "Beta's company with an Alpha project." },
+  { route: "GET /api/apps/workspent/companies/:id/projects/:pid/tasks", path: (a) => `${A(a)}/projects/${ids.projectId}/tasks`, expect: "denied" },
+  { route: "GET /api/apps/workspent/companies/:id/projects/:pid/tasks", path: (_a, b) => `${B(b)}/projects/${ids.projectId}/tasks`, expect: "denied", why: "Beta's company with an Alpha project." },
+  { route: "GET /api/apps/workspent/companies/:id/team", path: (a) => `${A(a)}/team`, expect: "denied" },
+  { route: "PUT /api/apps/workspent/companies/:id/team/:uid", path: (a) => `${A(a)}/team/${a.member.id}`, body: () => ({ kind: "staff", rate: 1 }), expect: "denied" },
+  { route: "PUT /api/apps/workspent/companies/:id/team/:uid", path: (a, b) => `${B(b)}/team/${a.member.id}`, body: () => ({ kind: "staff", rate: 1 }), expect: "denied", why: "Beta's company with an Alpha account." },
+  { route: "GET /api/apps/workspent/companies/:id/my-projects", path: (a) => `${A(a)}/my-projects?week=2026-01-04`, expect: "denied" },
+  { route: "POST /api/apps/workspent/companies/:id/entries", path: (a) => `${A(a)}/entries`, body: () => ({ projectId: ids.projectId, date: "2026-01-05", minutes: 10 }), expect: "denied" },
+  {
+    route: "POST /api/apps/workspent/companies/:id/entries",
+    path: (_a, b) => `${B(b)}/entries`,
+    body: () => ({ projectId: ids.projectId, date: "2026-01-05", minutes: 10 }),
+    expect: "denied",
+    why: "Beta's company with an Alpha project."
+  },
+  { route: "PATCH /api/apps/workspent/companies/:id/entries/:eid", path: (a) => `${A(a)}/entries/${ids.entryId}`, body: () => ({ minutes: 1 }), expect: "denied" },
+  { route: "PATCH /api/apps/workspent/companies/:id/entries/:eid", path: (_a, b) => `${B(b)}/entries/${ids.entryId}`, body: () => ({ minutes: 1 }), expect: "denied", why: "Beta's company with an Alpha entry." },
+  { route: "DELETE /api/apps/workspent/companies/:id/entries/:eid", path: (a) => `${A(a)}/entries/${ids.entryId}`, expect: "denied" },
+  { route: "DELETE /api/apps/workspent/companies/:id/entries/:eid", path: (_a, b) => `${B(b)}/entries/${ids.entryId}`, expect: "denied", why: "Beta's company with an Alpha entry." },
+  { route: "POST /api/apps/workspent/companies/:id/timer/start", path: (a) => `${A(a)}/timer/start`, body: () => ({ projectId: ids.projectId, date: "2026-01-05" }), expect: "denied" },
+  {
+    route: "POST /api/apps/workspent/companies/:id/timer/start",
+    path: (_a, b) => `${B(b)}/timer/start`,
+    body: () => ({ projectId: ids.projectId, date: "2026-01-05" }),
+    expect: "denied",
+    why: "Beta's company with an Alpha project."
+  },
+  { route: "POST /api/apps/workspent/companies/:id/timer/stop", path: (a) => `${A(a)}/timer/stop`, expect: "denied" },
+  { route: "GET /api/apps/workspent/companies/:id/time-log", path: (a) => `${A(a)}/time-log?week=${ids.week}`, expect: "denied" },
+  {
+    route: "GET /api/apps/workspent/companies/:id/time-log",
+    path: (a, b) => `${B(b)}/time-log?week=${ids.week}&userId=${a.owner.id}`,
+    expect: "denied",
+    why: "Beta's company with an Alpha account."
+  },
+  { route: "POST /api/apps/workspent/companies/:id/weeks/:week/send", path: (a) => `${A(a)}/weeks/${ids.week}/send`, expect: "denied" },
+  {
+    route: "POST /api/apps/workspent/companies/:id/weeks/:week/decide",
+    path: (a) => `${A(a)}/weeks/${ids.week}/decide`,
+    body: (a) => ({ userId: a.owner.id, clientId: ids.clientId, action: "approve" }),
+    expect: "denied"
+  },
+  {
+    route: "POST /api/apps/workspent/companies/:id/weeks/:week/decide",
+    path: (_a, b) => `${B(b)}/weeks/${ids.week}/decide`,
+    body: (a) => ({ userId: a.owner.id, clientId: ids.clientId, action: "approve" }),
+    expect: "denied",
+    why: "Beta's company with an Alpha week."
+  },
+  { route: "POST /api/apps/workspent/companies/:id/weeks/:week/link", path: (a) => `${A(a)}/weeks/${ids.week}/link`, body: (a) => ({ userId: a.owner.id, clientId: ids.clientId }), expect: "denied" },
+  {
+    route: "POST /api/apps/workspent/companies/:id/weeks/:week/link",
+    path: (_a, b) => `${B(b)}/weeks/${ids.week}/link`,
+    body: (a) => ({ userId: a.owner.id, clientId: ids.clientId }),
+    expect: "denied",
+    why: "Beta's company with an Alpha week and client."
+  },
+  { route: "POST /api/apps/workspent/companies/:id/weeks/:week/reopen", path: (a) => `${A(a)}/weeks/${ids.week}/reopen`, body: (a) => ({ userId: a.owner.id, clientId: ids.clientId }), expect: "denied" },
+  {
+    route: "POST /api/apps/workspent/companies/:id/weeks/:week/reopen",
+    path: (_a, b) => `${B(b)}/weeks/${ids.week}/reopen`,
+    body: (a) => ({ userId: a.owner.id, clientId: ids.clientId }),
+    expect: "denied",
+    why: "Beta's company with an Alpha week."
+  },
+  { route: "GET /api/apps/workspent/companies/:id/reports", path: (a) => `${A(a)}/reports?from=2026-01-01&to=2026-12-31`, expect: "denied" },
+  {
+    route: "GET /api/apps/workspent/companies/:id/reports",
+    path: (a, b) => `${B(b)}/reports?from=2026-01-01&to=2026-12-31&userId=${a.owner.id}`,
+    expect: "any",
+    why: "Beta's report must hold no Alpha hours."
+  },
+  { route: "GET /api/apps/workspent/companies/:id/reports/export", path: (a) => `${A(a)}/reports/export?from=2026-01-01&to=2026-12-31`, expect: "denied" },
+  {
+    route: "GET /api/apps/workspent/companies/:id/reports/export",
+    path: (a, b) => `${B(b)}/reports/export?from=2026-01-01&to=2026-12-31&userId=${a.owner.id}`,
+    expect: "any",
+    why: "Beta's export must hold no Alpha hours."
+  },
+  { route: "POST /api/apps/workspent/approve/view", path: () => `${API}/approve/view`, who: "none", body: () => ({ token: "forgedforgedforgedforgedforgedforged" }), expect: "denied" },
+  {
+    route: "POST /api/apps/workspent/approve/decide",
+    path: () => `${API}/approve/decide`,
+    who: "none",
+    body: () => ({ token: "forgedforgedforgedforgedforgedforged", action: "approve" }),
+    expect: "denied"
   },
   { route: "POST /api/apps/workspent/companies/:id/changes/:cid/respond", path: (a) => `${A(a)}/changes/${ids.changeId}/respond`, body: () => ({ response: "questioned" }), expect: "denied" },
   {

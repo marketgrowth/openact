@@ -196,7 +196,7 @@ export default function TimesheetsPage() {
               <CardContent className="px-0 sm:px-6">
                 {d.rows.length === 0 ? (
                   <p className="px-6 text-sm text-muted-foreground sm:px-0">
-                    Nobody clocks in at this location yet. Add people in People and PINs.
+                    Nobody clocks in at this location yet. Add people in Team.
                   </p>
                 ) : (
                   <Table>

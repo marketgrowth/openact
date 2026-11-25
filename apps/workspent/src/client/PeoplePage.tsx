@@ -9,15 +9,18 @@ import { NativeSelect, NativeSelectOption } from "@openact/ui/components/native-
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@openact/ui/components/table";
 import { PIN_MAX, PIN_MIN, type LocationInfo, type PersonInfo } from "../shared/rules";
 import { companyApi, useCompanyData, useMe } from "./lib";
+import { TeamRates } from "./TeamRates";
 
 type Member = { userId: string; name: string; email: string; role: string };
 
-/** People and PINs: who clocks in, where, and with which PIN. */
+/** Team: people on projects and their rates (Projects), and who clocks in, where, with which PIN (Shifts). */
 export default function PeoplePage() {
   const me = useMe();
   const canSetup = !!me.data?.canSetup;
-  const people = useCompanyData<{ people: PersonInfo[] }>(canSetup ? "/people" : null);
-  const locs = useCompanyData<{ locations: LocationInfo[] }>(canSetup ? "/locations" : null);
+  const shifts = !!me.data?.shifts;
+  const projects = !!me.data?.projects;
+  const people = useCompanyData<{ people: PersonInfo[] }>(canSetup && shifts ? "/people" : null);
+  const locs = useCompanyData<{ locations: LocationInfo[] }>(canSetup && shifts ? "/locations" : null);
   const [members, setMembers] = useState<Member[]>([]);
   const [editing, setEditing] = useState<PersonInfo | "new" | null>(null);
   const [shownPin, setShownPin] = useState<{ name: string; pin: string } | null>(null);
@@ -55,8 +58,8 @@ export default function PeoplePage() {
 
   return (
     <>
-      <SiteHeader title="People and PINs">
-        {canSetup && (
+      <SiteHeader title="Team">
+        {canSetup && shifts && (
           <Button size="sm" onClick={() => setEditing("new")}>
             <Icon name="plus" />
             <span className="hidden sm:inline">Add a person</span>
@@ -67,12 +70,14 @@ export default function PeoplePage() {
       <PageBody>
         {(me.error || people.error || locs.error || error) && <Notice tone="error">{me.error || people.error || locs.error || error}</Notice>}
         {me.data && !canSetup && <Notice tone="info">Your role does not allow this: Set up WorkSpent. Ask a company owner or admin.</Notice>}
+        {canSetup && projects && <TeamRates />}
+        {canSetup && projects && shifts && <h2 className="mt-2 text-base font-semibold">Shift staff and PINs</h2>}
         {shownPin && (
           <Notice tone="info">
             The PIN of {shownPin.name} is <strong className="font-mono text-base tracking-widest">{shownPin.pin}</strong>. Give it to them now. WorkSpent does not show it again.
           </Notice>
         )}
-        {canSetup && (
+        {canSetup && shifts && (
           <p className="text-sm text-muted-foreground">
             A person clocks in with a PIN of {PIN_MIN} to {PIN_MAX} digits. They need no account and no email. Link an account when the person also uses OpenAct, so they can see
             their own hours on My time.
@@ -126,7 +131,7 @@ export default function PeoplePage() {
             </Table>
           </Card>
         )}
-        {canSetup && (
+        {canSetup && shifts && (
           <p className="text-xs text-muted-foreground">
             Turn off a person who left. Their hours stay. A person who is off cannot clock in. PINs are stored as a secure hash, so nobody can read a PIN later.
           </p>

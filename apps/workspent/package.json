@@ -1,7 +1,7 @@
 {
   "name": "@openact/app-workspent",
   "version": "0.1.0",
-  "description": "WorkSpent, the OpenAct time clock app: people clock in and out with a PIN on a time clock device, managers fix and approve hours, and the hours export to payroll.",
+  "description": "WorkSpent, OpenAct time tracking: Projects for client work with a timer, rates and client approval, and Shifts for PIN clock-in, schedules and payroll export.",
   "license": "Apache-2.0",
   "type": "module",
   "exports": {
@@ -14,7 +14,8 @@
     "server": "./src/server/index.ts",
     "client": "./src/client/index.tsx",
     "migrations": "./migrations",
-    "enabledByDefault": false
+    "enabledByDefault": false,
+    "optionalApps": ["projects"]
   },
   "dependencies": {
     "@openact/core": "0.2.0",

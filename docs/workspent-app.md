@@ -1,18 +1,23 @@
 ---
 title: WorkSpent
-description: A time clock for OpenAct. People clock in with a PIN on a tablet at the location. Managers fix, approve and export the hours.
+description: Time tracking for OpenAct. Projects for client work with a timer, rates and client approval. Shifts for PIN clock-in at a location, schedules and pay periods.
 ---
 
 # WorkSpent
 
-WorkSpent (id `workspent`) is a time clock. It records when people start and stop work. It keeps hours only. Pay, pay rates and taxes stay with your payroll provider. WorkSpent is a free app.
+WorkSpent (id `workspent`) records the time people spend on work. It is a free app. It has two kinds of work. A company turns on one or both in **Settings**:
+
+- **Projects:** time on projects for clients. People use a timer or type in hours. Each hour has a rate. A client approves their hours from a link, or a manager approves them. Freelancers use it for their own clients, and companies use it for the freelancers they hire.
+- **Shifts:** time at a location on a schedule. The rest of this page up to [Projects](#projects) is about Shifts. Taxes and payroll stay with your payroll provider.
+
+The side panel shows **My time** for everyone, then a section for each kind of work that is on, then **Manage** (Team and Settings) for owners and admins.
 
 - People clock in and out with a PIN on a time clock device at the location. They need no account and no email.
 - Managers see who is on the clock, fix missed clock-ins with a reason, and approve the pay period.
 - An approved period exports a CSV for your payroll provider.
 - Managers plan shifts for each person on **Schedule**, then publish them. Staff see their shifts on **My time**.
 
-This release covers on-site locations. Phone clock-in with a QR code and remote teams come in later releases.
+Phone clock-in with a QR code comes in a later release.
 
 ## Turn it on
 
@@ -21,7 +26,7 @@ The app is off in each company until an owner or admin turns it on.
 1. Go to **Company settings > Apps** and turn on **WorkSpent**.
 2. Open WorkSpent from the app rail (the clock icon).
 3. Go to **Locations and devices** and select **Add a location**. Give it a name, a time zone and a pay period.
-4. Go to **People and PINs** and add each person. Pick their locations. Type a PIN, or leave it empty and WorkSpent makes one. WorkSpent shows the PIN once. Give it to the person.
+4. Go to **Team** and add each person. Pick their locations. Type a PIN, or leave it empty and WorkSpent makes one. WorkSpent shows the PIN once. Give it to the person.
 5. On the tablet or computer at the location, sign in, open **Locations and devices** and select **Set up this device as the time clock**. The device then shows the PIN pad. You can sign out.
 
 ## Key terms
@@ -149,21 +154,54 @@ The file opens in Excel and Google Sheets. A cell that starts with `=`, `+`, `-`
 
 ## My time
 
-People with an OpenAct account see their own hours on **My time**, once an admin links their account in **People and PINs**. They also confirm or question each fix of their hours.
+People with an OpenAct account see their own hours on **My time**, once an admin links their account in **Team**. They also confirm or question each fix of their hours.
 
 ## Who can do what
 
 | Permission | Default roles | What it allows |
 | --- | --- | --- |
 | `workspent.clock` | Owners, admins, members | See My time, and confirm or question a fix |
-| `workspent.manage` | Owners, admins | See every timesheet, fix hours, approve periods and export |
-| `workspent.setup` | Owners, admins | Add locations, devices, people and PINs, and set the rules |
+| `workspent.track` | Owners, admins, members, guests | Log time on projects they can see, and send their week |
+| `workspent.manage` | Owners, admins | See every timesheet and time log, fix hours, approve periods and project weeks, and export |
+| `workspent.setup` | Owners, admins | Turn Projects and Shifts on or off. Add clients, rates, locations, devices, people and PINs, and set the rules |
 
 A **location manager** gets `workspent.manage` for one location only, such as a house manager for one home. Pick location managers on each location in **Locations and devices**. A location manager must be an owner, admin or member.
 
 People without an account have no role. They can only use a PIN on a time clock device.
 
 Change the roles in **Company settings > Permissions**.
+
+## Projects
+
+Projects come from the Projects app. WorkSpent adds a client, a rate and a budget in hours to each project. A person logs time only on projects they can see in the Projects app. A guest logs time only on the projects shared with them.
+
+1. In **Clients and projects**, add your clients. A client with an approver email approves their own hours. Leave the email empty when a manager approves them.
+2. Edit each project: pick its client, and set a rate and a budget if you need them. Turn off **Track time on this project** for projects without time.
+3. In **Team**, set each person's kind (staff or freelancer), rate and the hours planned each week.
+
+The rate of an hour comes from the project, then the client, then the person.
+
+### My time and the timer
+
+People start the timer on **My time**, or select **Add time** and type the time as `1:30`, `1.5` or `90m`. One timer runs at a time. Starting a new one stops the last one. **Settings** can round each entry to 6 or 15 minutes.
+
+### Send and approve a week
+
+A person selects **Send week for approval**. The week splits into one part for each client, and one for hours with no client.
+
+- On **Time log**, a manager selects a person and then, for each part, **Approve**, **Return** with a note, or **Send to** the client.
+- **Send to** emails the client's approver a link. The link works for 14 days and once. The client sees only their own hours, then approves them or asks a question. WorkSpent stores only a hash of the link.
+- Nobody approves their own week.
+- Approved hours lock, and each entry keeps the rate it had. An owner or admin selects **Reopen** to unlock them.
+- A change to sent hours takes them back, so the person sends them again.
+
+### Reports
+
+**Reports** totals hours, billable hours and amounts for any dates, by client, project, person or task. **Export CSV** gives one row per entry. Members see only their own time. Invoices come in a later release.
+
+### Settings
+
+**Settings** turns Projects and Shifts on or off for the company, and sets the currency and rounding. The site owner (super admin) also sets the **Site default**: the kinds of work that companies get until they choose.
 
 ## For app builders: the sync service
 
@@ -185,7 +223,7 @@ The other app keeps its own record. WorkSpent keeps the PIN and the hours. A sec
 
 ## Data
 
-All tables start with `workspent_` and carry `company_id`: `locations`, `location_managers`, `devices`, `people`, `person_locations`, `punches`, `changes`, `periods` and `shifts`. A shift keeps the version that staff see in `published_json`. Read [Naming rules for data](naming.md).
+All tables start with `workspent_` and carry `company_id`: `locations`, `location_managers`, `devices`, `people`, `person_locations`, `punches`, `changes`, `periods` and `shifts` for Shifts, and `settings`, `clients`, `projects`, `members`, `entries` and `weeks` for Projects. A shift keeps the version that staff see in `published_json`. An entry keeps no foreign key to its project, so deleting a project never deletes approved hours. WorkSpent reads the projects a person can see through the Projects app's `visibleProjects` service. Read [Naming rules for data](naming.md).
 
 When a person leaves the company, their WorkSpent person keeps the hours and loses the link to the account. Deleting a company deletes its WorkSpent rows.
 

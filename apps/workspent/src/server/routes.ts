@@ -55,6 +55,7 @@ import {
   type LocationRow
 } from "./store.ts";
 import { upcomingShifts } from "./schedule.ts";
+import { companyKinds } from "./projects.ts";
 
 /*
  * WorkSpent routes for signed-in people, all under /api/apps/workspent/companies/:id.
@@ -105,13 +106,16 @@ function notSelf(a: Access, person: { user_id: string | null }) {
 
 companyRoutes.get("/companies/:id/me", async (c) => {
   const { companyId, access } = await ctx(c);
-  const person = await personOfUser(c.env, companyId, access.userId);
+  const [person, k] = await Promise.all([personOfUser(c.env, companyId, access.userId), companyKinds(c.env, companyId)]);
   const me: Me = {
     canSetup: access.setup,
     canManageAll: access.manageAll,
     managedLocationIds: [...access.managed],
     personId: person?.id ?? null,
-    canClock: access.clock
+    canClock: access.clock,
+    canTrack: access.track,
+    projects: k.kinds.projects,
+    shifts: k.kinds.shifts
   };
   return c.json(me);
 });

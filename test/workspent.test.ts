@@ -55,7 +55,7 @@ test("WorkSpent is off until a company turns it on", async () => {
   assert.match(r.text, /off for this company/);
   await w.ok(w.owner, "PATCH", `/api/companies/${w.companyId}/apps/workspent`, { enabled: true });
   const me = await w.ok(w.owner, "GET", `${w.c}/me`);
-  assert.deepEqual(me, { canSetup: true, canManageAll: true, managedLocationIds: [], personId: null, canClock: true });
+  assert.deepEqual(me, { canSetup: true, canManageAll: true, managedLocationIds: [], personId: null, canClock: true, canTrack: true, projects: true, shifts: true });
   const m = await w.ok(w.member, "GET", `${w.c}/me`);
   assert.equal(m.canSetup, false);
   assert.equal(m.canManageAll, false);
