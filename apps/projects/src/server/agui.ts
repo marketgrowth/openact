@@ -32,9 +32,8 @@ import { UNTRUSTED_TEXT_RULE } from "@openact/core/shared";
 const MAX_STEPS = 6;
 const UI_TOOL_NAMES = new Set(UI_TOOLS.map((t) => t.name));
 
-export function encodeSse(event: AguiEvent): string {
-  return `data: ${JSON.stringify({ ...event, timestamp: event.timestamp ?? Date.now() })}\n\n`;
-}
+import { encodeSse } from "@openact/core/shared";
+export { encodeSse };
 
 function systemPrompt(user: User, role: Role, level: AgentLevel, policy: AiPolicy, snap: Snapshot, rows: Array<Record<string, unknown>>, ctx: string, hidden = 0): string {
   const scope = policy.scope;

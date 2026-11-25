@@ -12,6 +12,11 @@
       "source": "local"
     },
     {
+      "id": "library",
+      "path": "apps/library",
+      "source": "local"
+    },
+    {
       "id": "workspent",
       "path": "apps/workspent",
       "source": "local"

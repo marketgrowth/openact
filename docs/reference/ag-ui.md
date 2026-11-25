@@ -2,6 +2,8 @@
 
 OpenAct is AI-native. Every project has an AI agent that can answer questions and change the project. What the agent may do depends on who uses it. The agent talks to the web app with [AG-UI](https://docs.ag-ui.com), the Agent-User Interaction protocol.
 
+The AG-UI event types and helpers are in the core, so every app uses one copy: `AguiEvent`, `EventType`, `encodeSse` (server), and `SseParser` and `runAguiAgent` (web app), all from `@openact/core/shared`. The [Library](../library-app.md) uses them for Ask.
+
 ## Who can tell the agent to do what
 
 Three rules decide what the agent may do:

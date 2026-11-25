@@ -65,6 +65,7 @@ export {
   type CompanyAiOverride,
   type CompanyAiChoice
 } from "./company-ai.ts";
+export { aiText, type AiTextMessage, type AiTextRequest, type AiTextResult } from "./ai-text.ts";
 export { companyServiceKey, type ServiceKey } from "./company-keys.ts";
 export { partnerLink, type PartnerLink } from "./partner-link.ts";
 export {

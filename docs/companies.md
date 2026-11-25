@@ -137,3 +137,5 @@ The company AI is in the `company_ai` table (migration `0007_company_ai.sql`). P
 ### For app builders
 
 Call `aiOverride(env, companyId, userId)` from `@openact/core/server` for every model request. It returns the person's AI, the company AI, or `null` for the deploy default, and it applies the company switch. Use `companyAiChoice(env, companyId, userId)` for labels. Never read `user_ai` or `company_ai` yourself.
+
+For one text answer with no tools, call `aiText(env, companyId, userId, { system, messages, maxTokens })`. It applies the same order, calls the provider through AI Gateway (or the Workers AI binding), and returns the text with the provider, the model and whose AI answered. Check the person's access first. Put text that other people wrote inside `untrustedText()` labels, with `UNTRUSTED_TEXT_RULE` in the instructions. With `AI_PROVIDER=dev-scripted`, it returns a fixed test answer. The [Library](library-app.md) app uses it for Ask.

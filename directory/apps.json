@@ -90,6 +90,17 @@
       "repo": "https://github.com/marketgrowth/openact/tree/main/apps/cms"
     },
     {
+      "id": "library",
+      "name": "Library",
+      "summary": "A resource library for the whole site: documents, links, videos and articles. Readers filter or ask an AI chat that answers from the library. Automations can add new resources. Each site sets its own words and lists.",
+      "category": "Content",
+      "status": "built-in",
+      "publisher": "MarketGrowth",
+      "reserved": true,
+      "source": "local",
+      "repo": "https://github.com/marketgrowth/openact/tree/main/apps/library"
+    },
+    {
       "id": "workspent",
       "name": "WorkSpent",
       "summary": "Time tracking. Track time on client projects with a timer, rates and client approval, and clock staff in with a PIN at a location, with schedules and payroll export.",
