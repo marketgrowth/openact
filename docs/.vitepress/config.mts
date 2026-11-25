@@ -24,7 +24,7 @@ export default defineConfig({
     logo: { light: "/logo.svg", dark: "/logo-dark.svg", alt: "OpenAct" },
     siteTitle: "OpenAct",
     nav: [
-      { text: "Guide", link: "/getting-started", activeMatch: "^/(getting-started|companies|workspaces|partners|apps|permissions|agent-access|docs-app|advisory-app|esign-app|cms-app|components|design-system|plans|security|naming)" },
+      { text: "Guide", link: "/getting-started", activeMatch: "^/(getting-started|companies|workspaces|partners|apps|permissions|agent-access|docs-app|advisory-app|esign-app|cms-app|workspent-app|components|design-system|plans|security|naming)" },
       { text: "App directory", link: "/directory" },
       { text: "Reference", link: "/reference/sdk", activeMatch: "^/reference/" },
       { text: "Colophon", link: "/colophon" }
@@ -49,6 +49,7 @@ export default defineConfig({
           { text: "Advisory (Director)", link: "/advisory-app" },
           { text: "eSign (Director)", link: "/esign-app" },
           { text: "CMS", link: "/cms-app" },
+          { text: "WorkSpent", link: "/workspent-app" },
           { text: "Build an app", link: "/apps" },
           { text: "Naming rules for data", link: "/naming" },
           { text: "Components", link: "/components" },

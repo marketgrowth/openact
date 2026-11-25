@@ -34,7 +34,7 @@ The directory also tells the shell which apps are official. Official apps, the h
 
 ## Reserved names
 
-These ids are reserved for official apps from MarketGrowth: `projects`, `docs`, `timetrack`, `directory`, `profiles`, `groups`, `tasks`, `contacts`, `events`, `learn`, `workflow` and `support`. The app tool installs an app with one of these ids only from its official source.
+These ids are reserved for official apps from MarketGrowth: `projects`, `docs`, `workspent`, `timetrack`, `directory`, `profiles`, `groups`, `tasks`, `contacts`, `events`, `learn`, `workflow` and `support`. The app tool installs an app with one of these ids only from its official source.
 
 Some ids are reserved for OpenAct itself, because app ids become table, route and file prefixes. Examples are `core`, `api`, `admin`, `company` and `users`.
 

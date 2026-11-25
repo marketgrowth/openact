@@ -90,9 +90,20 @@
       "repo": "https://github.com/marketgrowth/openact/tree/main/apps/cms"
     },
     {
+      "id": "workspent",
+      "name": "WorkSpent",
+      "summary": "A time clock. People clock in with a PIN on a tablet at the location. Managers fix and approve the hours, then export them to payroll.",
+      "category": "Work",
+      "status": "built-in",
+      "publisher": "MarketGrowth",
+      "reserved": true,
+      "source": "local",
+      "repo": "https://github.com/marketgrowth/openact/tree/main/apps/workspent"
+    },
+    {
       "id": "timetrack",
       "name": "TimeTrack",
-      "summary": "Track time on projects and tasks. Timesheets, approvals and reports.",
+      "summary": "Replaced by WorkSpent. The id stays reserved for MarketGrowth.",
       "category": "Work",
       "status": "planned",
       "publisher": "MarketGrowth",
