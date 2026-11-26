@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { api, errorText, useWorkspace } from "@openact/ui";
-import { API, HOME, type Format, type LibraryConfig, type ManageState, type Resource, type Term, type TermKind } from "../shared/rules";
+import { API, HOME, type Format, type LibraryConfig, type ManageState, type MineState, type Resource, type Term, type TermKind } from "../shared/rules";
 
 /*
  * The Library's state in the web app. The config (settings, list values, canManage) loads once per company
@@ -50,15 +50,15 @@ export function useLibrary(): { config: LibraryConfig | null; error: string | nu
 /** Visible values of one list, in order. */
 export const visibleTerms = (terms: Term[], kind: TermKind) => terms.filter((t) => t.kind === kind && !t.isHidden).sort((a, b) => a.sortOrder - b.sortOrder);
 
-/** The Manage state (super admins only). Pass enabled once the config says the person can manage, so readers make no call. */
-export function useManage(enabled: boolean) {
+/** The Manage state of one level. Pass the level's API base once the person may manage it, or null, so others make no call. */
+export function useManage(base: string | null) {
   const [state, setState] = useState<ManageState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const load = useCallback(() => {
-    if (!enabled) return;
+    if (!base) return;
     setError(null);
-    api<ManageState>(`${API}/manage`).then(setState, (e) => setError(errorText(e)));
-  }, [enabled]);
+    api<ManageState>(base).then(setState, (e) => setError(errorText(e)));
+  }, [base]);
   useEffect(load, [load]);
   return { state, setState, error, reload: load };
 }
@@ -90,13 +90,57 @@ export const FORMAT_ICON: Record<Format, string> = { document: "doc", link: "lin
 /** The page of a resource in the web app. */
 export const resourcePath = (id: string) => `${HOME}/r/${encodeURIComponent(id)}`;
 
-/** Where a reader opens the file of a published resource. Managers use the manage route, which also serves drafts. */
-export const fileUrl = (r: Pick<Resource, "id">, companyId: string | null, manage = false) =>
-  manage || !companyId ? `${API}/manage/files/${r.id}` : `${API}/companies/${companyId}/files/${r.id}`;
+export const fileUrl = (r: Pick<Resource, "id">, companyId: string | null, manage?: string | null) =>
+  manage ? `${manage}/files/${r.id}` : `${API}/companies/${companyId}/files/${r.id}`;
 
-/** The image of a resource, through the app: the site's image policy allows only its own address. */
-export const imageUrl = (r: Pick<Resource, "id" | "imageUrl">, companyId: string | null, manage = false) =>
-  !r.imageUrl ? "" : manage || !companyId ? `${API}/manage/images/${r.id}` : `${API}/companies/${companyId}/images/${r.id}`;
+/* My Library */
+
+type MineEntry = { companyId: string; state: MineState | null };
+let mineEntry: MineEntry | null = null;
+const mineListeners = new Set<() => void>();
+
+async function fetchMine(companyId: string) {
+  try {
+    const state = await api<MineState>(`${API}/companies/${companyId}/mine`);
+    mineEntry = { companyId, state };
+  } catch {
+    mineEntry = { companyId, state: null };
+  }
+  mineListeners.forEach((l) => l());
+}
+
+/** My Library for the current company: saved and added items, and the saved ids for the bookmark buttons. */
+export function useMine(): { mine: MineState | null; reload: () => void } {
+  const { companyId } = useLibrary();
+  const snap = useSyncExternalStore(
+    (l) => {
+      mineListeners.add(l);
+      return () => mineListeners.delete(l);
+    },
+    () => mineEntry
+  );
+  useEffect(() => {
+    if (companyId && mineEntry?.companyId !== companyId) {
+      mineEntry = { companyId, state: null };
+      void fetchMine(companyId);
+    }
+  }, [companyId]);
+  return { mine: snap && snap.companyId === companyId ? snap.state : null, reload: () => companyId && void fetchMine(companyId) };
+}
+
+/** Saves a company resource to My Library, or takes it out. */
+export async function toggleBookmark(companyId: string, resourceId: string, on: boolean): Promise<void> {
+  await api(`${API}/companies/${companyId}/bookmarks/${resourceId}`, { method: on ? "PUT" : "DELETE" });
+  await fetchMine(companyId);
+  reloadConfig();
+}
+
+/**
+ * The image or file of a resource, through the app (the site's image policy allows only its own address).
+ * `manage` is the manage API base of the level, for drafts. Readers use the company route.
+ */
+export const imageUrl = (r: Pick<Resource, "id" | "imageUrl">, companyId: string | null, manage?: string | null) =>
+  !r.imageUrl ? "" : manage ? `${manage}/images/${r.id}` : `${API}/companies/${companyId}/images/${r.id}`;
 
 /** Search params of the current address. */
 export function useSearchParams(): URLSearchParams {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Icon, Link, Notice, PageBody, SiteHeader, api, errorText, navigate } from "@openact/ui";
+import { Icon, Link, Notice, PageBody, SiteHeader, api, errorText, navigate, useToast } from "@openact/ui";
 import { Badge } from "@openact/ui/components/badge";
 import { Button } from "@openact/ui/components/button";
 import { Input } from "@openact/ui/components/input";
@@ -20,8 +20,8 @@ import {
   type Term,
   type TermKind
 } from "../shared/rules";
-import { FORMAT_ICON, fileUrl, fmtDate, imageUrl, resourcePath, useLibrary, visibleTerms } from "./state";
-import { AskBox } from "./Ask";
+import { FORMAT_ICON, fileUrl, fmtDate, imageUrl, reloadConfig, resourcePath, toggleBookmark, useLibrary, useMine, visibleTerms } from "./state";
+
 
 /* The read pages: the library home (Ask, filters, cards) and one page for each resource. Readers see published resources only. */
 
@@ -103,14 +103,13 @@ function FilterBar({ config, f, setF }: { config: LibraryConfig; f: Filters; set
             <NativeSelectOption value="title">A to Z</NativeSelectOption>
           </NativeSelect>
         </div>
-        <Input type="search" aria-label="Search" placeholder="Search" value={f.q} onChange={(e) => setF({ ...f, q: e.target.value })} className="w-full sm:w-48" />
       </div>
     </div>
   );
 }
 
 /** The picture of a card: the resource's image, or its format icon on a muted tile. */
-function Thumb({ r, className = "h-32", manage = false }: { r: Resource; className?: string; manage?: boolean }) {
+function Thumb({ r, className = "h-32", manage = null }: { r: Resource; className?: string; manage?: string | null }) {
   const { companyId } = useLibrary();
   const [broken, setBroken] = useState(false);
   if (r.imageUrl && !broken)
@@ -142,14 +141,52 @@ function TypeTags({ r, byId, kinds = ["type"] }: { r: Resource; byId: Map<string
   );
 }
 
-function Card({ r, byId }: { r: Resource; byId: Map<string, Term> }) {
+/** Saves a company resource to My Library, or takes it out. */
+export function BookmarkButton({ r, withLabel = false }: { r: Resource; withLabel?: boolean }) {
+  const { companyId } = useLibrary();
+  const { mine } = useMine();
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  if (r.scope !== "company" || r.status !== "published" || !companyId) return null;
+  const on = !!mine?.savedIds.includes(r.id);
+  const click = async () => {
+    setBusy(true);
+    try {
+      await toggleBookmark(companyId, r.id, !on);
+      toast(on ? "Removed from My Library." : "Saved to My Library.");
+    } catch (e) {
+      toast(errorText(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size={withLabel ? "default" : "icon-sm"}
+      aria-pressed={on}
+      aria-label={on ? `Remove ${r.title} from My Library` : `Save ${r.title} to My Library`}
+      disabled={busy || !mine}
+      onClick={() => void click()}
+      className={on ? "text-primary" : ""}
+      data-bookmark={on ? "on" : "off"}
+    >
+      <Icon name={on ? "bookmark-check" : "bookmark"} />
+      {withLabel && (on ? "Saved to My Library" : "Save to My Library")}
+    </Button>
+  );
+}
+
+export function Card({ r, byId }: { r: Resource; byId: Map<string, Term> }) {
   const topic = r.termIds.map((id) => byId.get(id)).find((t) => t?.kind === "topic");
   return (
     <article className="flex flex-col gap-2 rounded-xl border p-3" data-resource={r.id}>
       <Link to={resourcePath(r.id)} tabIndex={-1} aria-hidden="true">
         <Thumb r={r} />
       </Link>
-      <div className="flex flex-wrap items-center gap-1.5">
+      <div className="flex items-center gap-1.5">
+        <div className="flex flex-1 flex-wrap items-center gap-1.5">
         <TypeTags r={r} byId={byId} />
         <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
           <Icon name={FORMAT_ICON[r.format]} size={13} />
@@ -160,6 +197,14 @@ function Card({ r, byId }: { r: Resource; byId: Map<string, Term> }) {
             Featured
           </Badge>
         )}
+        {r.scope === "personal" && (
+          <Badge variant="secondary" className="font-normal">
+            <Icon name="lock" size={12} />
+            Only you
+          </Badge>
+        )}
+        </div>
+        <BookmarkButton r={r} />
       </div>
       <Link to={resourcePath(r.id)} className="text-[0.95rem] font-semibold leading-snug text-foreground no-underline hover:underline">
         {r.title}
@@ -209,7 +254,16 @@ export function HomePage() {
         <section aria-label={s.title} className="grid max-w-3xl gap-3">
           <h1 className="text-3xl font-semibold tracking-tight">{s.title}</h1>
           {s.intro && <p className="text-muted-foreground">{s.intro}</p>}
-          {config.canAsk && <AskBox config={config} onAsk={(q) => navigate(`${HOME}/ask?q=${encodeURIComponent(q)}`)} />}
+          {config.canAsk && s.suggestions.length > 0 && (
+            <div className="flex flex-wrap gap-2" aria-label="Suggested questions">
+              {s.suggestions.map((q) => (
+                <Button key={q} variant="outline" size="sm" className="rounded-full font-normal" onClick={() => navigate(`${HOME}/ask?q=${encodeURIComponent(q)}`)}>
+                  <Icon name="sparkle" />
+                  {q}
+                </Button>
+              ))}
+            </div>
+          )}
         </section>
         <FilterBar config={config} f={f} setF={setF} />
         {loadError && <Notice tone="error">{loadError}</Notice>}
@@ -244,7 +298,7 @@ export function HomePage() {
 }
 
 /** The player, the preview or the text of a resource. Shared with the manager's preview. */
-export function ResourceMedia({ r, src, manage = false }: { r: Resource; src: string; manage?: boolean }) {
+export function ResourceMedia({ r, src, manage = null }: { r: Resource; src: string; manage?: string | null }) {
   if (r.format === "video" && (r.videoProvider === "youtube" || r.videoProvider === "vimeo")) {
     return (
       <div className="aspect-video overflow-hidden rounded-xl bg-muted">
@@ -277,6 +331,7 @@ export function ResourcePage({ id }: { id: string }) {
     api<ResourceDetail>(`${API}/companies/${companyId}/resources/${id}`).then(setD, (e) => setError(errorText(e)));
   }, [companyId, id]);
   const byId = useMemo(() => termMap(config?.terms ?? []), [config?.terms]);
+  const { reload: reloadMine } = useMine();
   if (!config) return null;
   const r = d?.item;
   const src = r ? fileUrl(r, companyId) : "";
@@ -295,14 +350,37 @@ export function ResourcePage({ id }: { id: string }) {
           </span>
         }
       >
-        {config.canManage && r && (
-          <Button variant="outline" size="sm" className="ml-auto" asChild>
-            <Link to={`${HOME}/manage/r/${r.id}`}>
-              <Icon name="pencil" />
-              Edit
-            </Link>
-          </Button>
-        )}
+        <div className="ml-auto flex gap-2">
+          {r && <BookmarkButton r={r} withLabel />}
+          {r?.scope === "personal" && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (!companyId || !confirm(`Delete "${r.title}" from My Library? This cannot be undone.`)) return;
+                void api(`${API}/companies/${companyId}/mine/${r.id}`, { method: "DELETE" }).then(
+                  () => {
+                    reloadConfig();
+                    reloadMine();
+                    navigate(`${HOME}/mine`);
+                  },
+                  (e) => setError(errorText(e))
+                );
+              }}
+            >
+              <Icon name="trash" />
+              Delete
+            </Button>
+          )}
+          {config.canManage && r?.scope === "company" && (
+            <Button variant="outline" size="sm" asChild>
+              <Link to={`${HOME}/manage/r/${r.id}`}>
+                <Icon name="pencil" />
+                Edit
+              </Link>
+            </Button>
+          )}
+        </div>
       </SiteHeader>
       <PageBody className="max-w-6xl">
         {error && <Notice tone="error">{error}</Notice>}
@@ -311,6 +389,13 @@ export function ResourcePage({ id }: { id: string }) {
             <article className="grid min-w-0 flex-[999_1_32rem] content-start gap-4">
               <ResourceMedia r={r} src={src} />
               <div className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
+                {r.scope === "personal" && (
+                  <Badge variant="secondary" className="font-normal">
+                    <Icon name="lock" size={12} />
+                    Only you: My Library
+                  </Badge>
+                )}
+                {r.status !== "published" && <Badge variant="outline">Draft</Badge>}
                 <TypeTags r={r} byId={byId} kinds={["type", "topic", "audience"]} />
                 <span className="inline-flex items-center gap-1">
                   <Icon name={FORMAT_ICON[r.format]} size={14} />
@@ -365,6 +450,58 @@ export function ResourcePage({ id }: { id: string }) {
             )}
           </div>
         )}
+      </PageBody>
+    </>
+  );
+}
+
+/** Categories: each value of the lists that are on, with how many published resources use it. */
+export function CategoriesPage() {
+  const { config, companyId } = useLibrary();
+  const [items, setItems] = useState<Resource[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!companyId) return;
+    api<{ items: Resource[] }>(`${API}/companies/${companyId}/resources`).then((r) => setItems(r.items), (e) => setError(errorText(e)));
+  }, [companyId]);
+  if (!config) return null;
+  const s = config.settings;
+  const count = (id: string) => items?.filter((r) => r.termIds.includes(id)).length ?? 0;
+  const lists = TERM_KINDS.filter((k) => s.lists[k].on && visibleTerms(config.terms, k).length > 0);
+  return (
+    <>
+      <SiteHeader title="Categories" />
+      <PageBody className="max-w-6xl">
+        <h1 className="text-2xl font-semibold tracking-tight">Categories</h1>
+        {error && <Notice tone="error">{error}</Notice>}
+        {lists.length === 0 && <p className="text-sm text-muted-foreground">This library has no categories yet.</p>}
+        {lists.map((k, i) => (
+          <section key={k} className="grid gap-3" aria-label={s.lists[k].label}>
+            <h2 className="text-sm font-medium text-muted-foreground">{s.lists[k].label}</h2>
+            <div className={i === 0 ? "grid gap-3 sm:grid-cols-2 lg:grid-cols-3" : "flex flex-wrap gap-2"}>
+              {visibleTerms(config.terms, k).map((t) =>
+                i === 0 ? (
+                  <Link key={t.id} to={`${HOME}?${k}=${t.id}`} className="flex items-center gap-3 rounded-xl border p-3.5 text-foreground no-underline hover:bg-accent" data-category={t.id}>
+                    <span className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                      <Icon name="tag" size={18} />
+                    </span>
+                    <span className="grid gap-0.5">
+                      <span className="font-medium">{t.name}</span>
+                      <span className="text-sm text-muted-foreground">
+                        {count(t.id)} resource{count(t.id) === 1 ? "" : "s"}
+                      </span>
+                    </span>
+                  </Link>
+                ) : (
+                  <Link key={t.id} to={`${HOME}?${k}=${t.id}`} className="inline-flex min-h-9 items-center gap-2 rounded-full border px-3.5 text-sm text-foreground no-underline hover:bg-accent">
+                    {t.name}
+                    <span className="text-xs text-muted-foreground">{count(t.id)}</span>
+                  </Link>
+                )
+              )}
+            </div>
+          </section>
+        ))}
       </PageBody>
     </>
   );
