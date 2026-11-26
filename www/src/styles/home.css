@@ -18,6 +18,8 @@
 .terminal .done { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; padding-top: 16px; border-top: 1px dashed var(--edge-strong); }
 .stage-key { position: relative; }
 .stage-key::after { content: ""; position: absolute; inset: -40px -30px -50px; z-index: -1; background: radial-gradient(closest-side, var(--glow-a), transparent); }
+/* On small screens the glow stays inside the page width, so the page does not scroll sideways. */
+@media (max-width: 900px) { .stage-key::after { inset: -40px 0 -50px; } }
 @media (max-width: 900px) { .hero { grid-template-columns: 1fr; padding-top: 48px; } }
 
 /* Product tour in one large card. Tabs are radio inputs, because the page runs no script. */
