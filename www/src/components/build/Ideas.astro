@@ -1,0 +1,106 @@
+---
+// "What you could build": example apps and fields. Used by /build (you build it) and /producer (we build it with you).
+// Keep the examples generic. Do not name official OpenAct apps or real customers here.
+interface Props {
+  /** "diy" for the open source page, "studio" for the Producer page. */
+  mode: "diy" | "studio";
+}
+const { mode } = Astro.props;
+const studio = mode === "studio";
+
+const intro = studio
+  ? "Bring the work that your business repeats every week. We turn it into an app that you own. Here are some first builds."
+  : "Start with the work that you repeat every week. Describe it to your coding agent, and build it on the OpenAct core. Here are some first builds.";
+const listLead = studio ? "We build your first…" : "Build your first…";
+
+const ideas = [
+  "Client intake and pricing tool",
+  "Deal pipeline with follow-up drafts",
+  "Proposal and scope of work builder",
+  "Custom CRM for consultants",
+  "Team KPI tracker",
+  "Freelance invoicing system",
+  "Volunteer sign-up and shifts",
+  "Donor update writer",
+  "Program attendance tracker",
+  "Student progress dashboard",
+  "Compliance checklist tracker",
+  "Inventory and reorder planner",
+  "Help desk with agent replies",
+  "Blog-to-social content calendar",
+  "Member directory and renewals"
+];
+
+const fields = [
+  {
+    name: "Consulting and professional services",
+    text: "Calls, proposals and scopes of work go into one app. The agent drafts scopes, finds upsell chances and writes follow-ups.",
+    result: "A client app built on your own engagements."
+  },
+  {
+    name: "Care and residential facilities",
+    text: "Staff schedules, training records and state checklists live in one place. The agent flags gaps before an audit.",
+    result: "A compliance and staffing app built on your records."
+  },
+  {
+    name: "Nonprofits and community programs",
+    text: "Attendance, volunteer hours and donor notes feed the app. The agent writes program updates for each donor.",
+    result: "A program app that reports your impact."
+  },
+  {
+    name: "Education and arts programs",
+    text: "Lessons, assessments and family notes build a progress view. The agent flags students who need help and writes updates to parents.",
+    result: "A student progress app built from your class data."
+  },
+  {
+    name: "Remote teams and talent networks",
+    text: "Profiles, skills and hours sit side by side. The agent matches people to client work and drafts the weekly report.",
+    result: "A talent app that knows who can do the work."
+  },
+  {
+    name: "Media and publishing",
+    text: "Story ideas, drafts and sources move through one desk. The agent checks each draft against your editorial rules.",
+    result: "A newsroom app that follows your standards."
+  }
+];
+---
+<section class="section" id="ideas" aria-labelledby="ideas-title">
+  <div class="head">
+    <p class="eyebrow warm">Real builds</p>
+    <h2 id="ideas-title">What you could build</h2>
+    <p>{intro}</p>
+  </div>
+  <div class="bento">
+    <article class="card s5 featured-build">
+      <p class="eyebrow">Example</p>
+      <h3>Client intake and pricing tool</h3>
+      <p>A lead fills in one form. The agent drafts a scope and a price. A person approves it before it goes out.</p>
+      <div class="key mock viz" aria-hidden="true">
+        <div class="mock-bar"><span class="dots"><i></i><i></i><i></i></span><span>Client intake</span><span class="chip ok">your app</span></div>
+        <div class="mock-body">
+          <div class="field-row"><span>Company</span><b>Harbor Studio</b></div>
+          <div class="field-row"><span>Need</span><b>Website refresh</b></div>
+          <div class="field-row"><span>Budget</span><b>$8k to $12k</b></div>
+          <div class="key quote">
+            <div class="quote-top"><span>Agent draft</span><span class="chip wait">needs you</span></div>
+            <b>3 pages · 4 weeks · $9,800</b>
+            <div class="mini-steps"><span class="ok">think</span><span class="ok">act</span><span class="now">wait</span><span>done</span></div>
+          </div>
+        </div>
+      </div>
+    </article>
+    <div class="card s7 ideas">
+      <p class="ideas-lead">{listLead}</p>
+      <ol class="idea-list">
+        {ideas.map((idea) => <li>{idea}</li>)}
+      </ol>
+    </div>
+    {fields.map((f) => (
+      <article class="card s4 field">
+        <h3>{f.name}</h3>
+        <p>{f.text}</p>
+        <p class="result"><b>Result:</b> {f.result}</p>
+      </article>
+    ))}
+  </div>
+</section>

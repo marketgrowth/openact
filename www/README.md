@@ -8,9 +8,9 @@ This folder is its own project. You can build and deploy it from here. You do no
 
 | Path | What it is |
 | --- | --- |
-| `src/pages/` | One file for each page. `index.astro` is `/`, `contribute.astro` is `/contribute`, `design.astro` is `/design`, `404.astro` is the page for an address that does not exist. |
+| `src/pages/` | One file for each page. `index.astro` is `/`, `contribute.astro` is `/contribute`, `design.astro` is `/design`, `build.astro` is `/build`, `producer.astro` is `/producer`, `404.astro` is the page for an address that does not exist. |
 | `src/layouts/Site.astro` | The layout for marketing pages: head tags, fonts, shared styles, header and footer. |
-| `src/components/` | The header, the footer and the logo. `home/` has one file for each home page section. |
+| `src/components/` | The header, the footer and the logo. `home/` has one file for each home page section. `build/Ideas.astro` is the "What you could build" section that `/build` and `/producer` share. |
 | `src/styles/` | `site.css` is shared by every page that uses the layout. Each page has its own file, such as `home.css`. |
 | `src/site.ts` | Links that many pages use, such as the demo and the docs. |
 | `public/` | Files that are copied as they are: images, `_headers`, `robots.txt`, `sitemap.xml`, `contribute.js`, the Promptbook files. |

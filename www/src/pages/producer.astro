@@ -1,0 +1,145 @@
+---
+// The Producer page at https://openact.ing/producer. The Plans section on the home page links here.
+// Producer is Custom Apps as a Service: MarketGrowth runs OpenAct and builds the customer's primary custom app with them.
+import Site from "../layouts/Site.astro";
+import "../styles/home.css";
+import "../styles/build.css";
+import Ideas from "../components/build/Ideas.astro";
+import { DEMO_URL, DOCS_URL, PRODUCER_CONTACT_URL } from "../site";
+---
+<Site
+  path="/producer"
+  title="OpenAct Producer: custom apps as a service"
+  description="OpenAct Producer is a done-for-you studio. We install and manage OpenAct, and we build your primary custom app with you. You own the app and the data."
+  ogTitle="OpenAct Producer: we build your custom app with you"
+  ogDescription="A done-for-you studio on OpenAct. We run the install and build your primary custom app with you. You own it."
+>
+  <div class="wrap hero">
+    <div>
+      <p class="eyebrow warm">Producer plan · Custom Apps as a Service</p>
+      <h1>Your custom app,<br /><em>produced with you.</em></h1>
+      <p class="lead">Producer is the OpenAct studio. We install and manage OpenAct for you. Then we work with you to build the primary custom app for your business. You own the app and the data.</p>
+      <div class="actions">
+        <a class="btn btn-accent" href={PRODUCER_CONTACT_URL}>Book a scoping call</a>
+        <a class="btn btn-ghost arrow" href="#ideas">See what you could build</a>
+      </div>
+      <p class="note">One yearly price per company. Nonprofits get 50% off.</p>
+    </div>
+    <div class="stage-key">
+      <div class="card board" aria-label="A Producer engagement in three phases">
+        <div class="head-row"><span>Production · your app</span><i></i></div>
+        <div class="rows">
+          <div class="key rowk"><span>Scope<span class="sub">problem, systems, data</span></span><span class="chip ok">done</span></div>
+          <div class="key rowk"><span>Build<span class="sub">working app on your data</span></span><span class="chip wait">in progress</span></div>
+          <div class="key rowk"><span>Run<span class="sub">updates, fixes, new features</span></span><span class="chip">next</span></div>
+        </div>
+        <div class="board-foot">
+          <span class="chip ok">OpenAct · managed</span>
+          <span class="chip">Director apps · on</span>
+          <span class="chip">you own it</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <section class="section" id="how" aria-labelledby="how-title">
+      <div class="head">
+        <p class="eyebrow">How it works</p>
+        <h2 id="how-title">From a problem to a working app.</h2>
+        <p>We start on the OpenAct core. Sign-in, companies, roles, email and agents are ready. So our time goes into the part that is yours.</p>
+      </div>
+      <div class="bento">
+        <article class="card s4 phase">
+          <p class="num">01</p>
+          <p class="tag">Phase 1 · Scope</p>
+          <h3>Map the work.</h3>
+          <p>We sit with your team. Together we map the problem, the tools you use now and the data you keep.</p>
+          <div class="out"><p><b>Outcome:</b> an app brief and a plan that your team agrees on.</p></div>
+        </article>
+        <article class="card s4 phase">
+          <p class="num">02</p>
+          <p class="tag">Phase 2 · Build</p>
+          <h3>Build it on your data.</h3>
+          <p>We build a working version of the app on your OpenAct site, with your own data. You steer each step.</p>
+          <div class="out"><p><b>Outcome:</b> a working app that you can click, not slides.</p></div>
+        </article>
+        <article class="card s4 phase">
+          <p class="num">03</p>
+          <p class="tag">Phase 3 · Run</p>
+          <h3>Run it and grow it.</h3>
+          <p>We manage the install, the updates and the fixes. As your business changes, we add to the app.</p>
+          <div class="out"><p><b>Outcome:</b> an app in production that your team uses every day.</p></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="with-you" aria-labelledby="with-title">
+      <div class="card split">
+        <div class="copy">
+          <p class="eyebrow warm">The Producer way</p>
+          <h3 id="with-title">Built with you, not only for you.</h3>
+          <p>You bring the problem and the data. We bring the builders. You can watch, ask questions and learn as we build.</p>
+          <p>At the end, you understand the app. Your team can change it, or we keep it running for you.</p>
+        </div>
+        <div class="points">
+          <div class="key"><strong>You own the app</strong><span>It is your code on your OpenAct site. It is not rented software.</span></div>
+          <div class="key"><strong>Your data stays yours</strong><span>Each company's data is kept apart. Agents never do more than a person's role allows.</span></div>
+          <div class="key"><strong>Agents that wait for a person</strong><span>Deletes and other risky steps wait for someone on your team to approve them.</span></div>
+          <div class="key"><strong>Bring your own AI</strong><span>Use the default model, or your own model and key.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <Ideas mode="studio" />
+
+    <section class="section offer" id="plan" aria-labelledby="plan-title">
+      <div class="head">
+        <p class="eyebrow warm">The plan</p>
+        <h2 id="plan-title">What Producer includes.</h2>
+        <p>Producer has one yearly price per company. The size of your company sets the price. The number of people does not.</p>
+      </div>
+      <div class="bento">
+        <article class="card plan featured s5">
+          <span class="chip ok tagline">Done for you</span>
+          <p class="eyebrow warm">Custom Apps as a Service</p>
+          <h3>Producer</h3>
+          <p class="per">Yearly, one price per company</p>
+          <ul>
+            <li>We install and manage OpenAct</li>
+            <li>We build your primary custom app with you</li>
+            <li>Updates, fixes and new features through the year</li>
+            <li>Everything in Director: Docs, Advisory and more</li>
+            <li>No seats: invite your whole team</li>
+            <li>50% off for nonprofits</li>
+          </ul>
+          <a class="btn btn-accent" href={PRODUCER_CONTACT_URL}>Book a scoping call</a>
+          <a class="btn btn-ghost" href={`${DOCS_URL}/plans`}>Read about the plans</a>
+        </article>
+        <div class="s7 qs">
+          <div class="card q"><h3>Who owns the app?</h3><p>You do. The app runs on your OpenAct site, and your data stays in your company.</p></div>
+          <div class="card q"><h3>What is a primary custom app?</h3><p>It is the one app that does the main work of your business. Examples are client intake, a program tracker or a staffing app.</p></div>
+          <div class="card q"><h3>Can I start free and move up?</h3><p>Yes. Start with the free core. Move to Director or Producer when you are ready. Your data stays.</p></div>
+          <div class="card q"><h3>Can I try the apps first?</h3><p>Yes. The <a href={DEMO_URL}>demo</a> has every app on. It deletes all data every night.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card closer" aria-labelledby="closer-title">
+      <div class="closer-grid">
+        <div>
+          <p class="eyebrow">Your turn</p>
+          <h2 id="closer-title">Your app is next.</h2>
+          <p>Custom software is not only for big companies now. Tell us about the work your business repeats. We help you turn it into an app that you own.</p>
+        </div>
+        <div class="start">
+          <div class="key"><b>01</b>Book a scoping call.</div>
+          <div class="key"><b>02</b>We map the work and write the app brief.</div>
+          <div class="key"><b>03</b>We build the app with you on OpenAct.</div>
+          <a class="btn btn-accent" href={PRODUCER_CONTACT_URL}>Book a scoping call</a>
+          <a class="btn btn-ghost" href="/build">Build it yourself instead</a>
+        </div>
+      </div>
+    </section>
+  </div>
+</Site>

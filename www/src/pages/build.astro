@@ -1,0 +1,125 @@
+---
+// The open source build page at https://openact.ing/build: build your own custom apps on the free OpenAct core.
+// Its Producer twin is producer.astro. Both share the "What you could build" section (components/build/Ideas.astro).
+import Site from "../layouts/Site.astro";
+import "../styles/home.css";
+import "../styles/build.css";
+import Ideas from "../components/build/Ideas.astro";
+import { DEMO_URL, DEPLOY_URL, DOCS_URL } from "../site";
+---
+<Site
+  path="/build"
+  title="Build your own apps on OpenAct"
+  description="Build custom agentic apps for your business on the free, open source OpenAct core. A coding agent builds the app. You own the code and the data."
+  ogTitle="Build your first app on OpenAct"
+  ogDescription="Describe the app. Your coding agent builds it on the free OpenAct core. You own the code and the data."
+>
+  <div class="wrap hero">
+    <div>
+      <p class="eyebrow">Open source · Build it yourself</p>
+      <h1>Build the app<br /><em>your business needs.</em></h1>
+      <p class="lead">Describe the app in plain words. A coding agent such as Claude Code or Codex builds it on the OpenAct core. Sign-in, companies, roles, email and agents are ready. You own the code and the data.</p>
+      <div class="actions">
+        <a class="btn btn-accent" href={DEPLOY_URL}>Deploy to Cloudflare</a>
+        <a class="btn btn-ghost arrow" href={`${DOCS_URL}/apps`}>Read the app guide</a>
+      </div>
+      <p class="note">Free under the Apache License 2.0. Runs in your own Cloudflare account.</p>
+    </div>
+    <div class="stage-key">
+      <div class="card terminal" aria-label="Ask a coding agent to build an OpenAct app">
+        <div class="head"><span>~/openact</span><i></i></div>
+        <pre><span class="p">&gt;</span> Build a client intake app. A lead fills in
+  a form. The agent drafts a scope and a price.
+  A person approves it before it goes out.
+<span class="c">  reading AGENTS.md · docs/apps.md
+  writing apps/intake · tests pass</span>
+<span class="p">$</span> npm run deploy
+<span class="c">  migrations applied · worker live</span>
+<span class="p">$</span> <span class="cursor" aria-hidden="true"></span></pre>
+        <div class="done">
+          <span class="chip ok">Intake · on</span>
+          <span class="chip ok">Projects · on</span>
+          <span class="chip">your account</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <section class="section" id="how" aria-labelledby="how-title">
+      <div class="head">
+        <p class="eyebrow">How it works</p>
+        <h2 id="how-title">From an idea to a live app.</h2>
+        <p>You do not start from zero. The core does the hard parts. Your app adds only its own features.</p>
+      </div>
+      <div class="bento">
+        <article class="card s4 phase">
+          <p class="num">01</p>
+          <p class="tag">Step 1 · Deploy</p>
+          <h3>Put OpenAct on your account.</h3>
+          <p>Deploy the free core to your own Cloudflare account with one click. Projects comes with it.</p>
+          <div class="out"><p><b>Outcome:</b> your own OpenAct site, with sign-in and companies ready.</p></div>
+        </article>
+        <article class="card s4 phase">
+          <p class="num">02</p>
+          <p class="tag">Step 2 · Describe</p>
+          <h3>Tell your agent what to build.</h3>
+          <p>Describe the app to Claude Code or Codex. The agent follows the rules in AGENTS.md, the Promptbook and the shared components.</p>
+          <div class="out"><p><b>Outcome:</b> a working app in its own folder, with tests.</p></div>
+        </article>
+        <article class="card s4 phase">
+          <p class="num">03</p>
+          <p class="tag">Step 3 · Ship</p>
+          <h3>Deploy and use it.</h3>
+          <p>Run one deploy command. The app shows in the app rail for each company that turns it on.</p>
+          <div class="out"><p><b>Outcome:</b> a live app that your team uses, on your account.</p></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="core" aria-labelledby="core-title">
+      <div class="card split">
+        <div class="copy">
+          <p class="eyebrow">Why build on OpenAct</p>
+          <h3 id="core-title">Your agent builds on a stage that is already set.</h3>
+          <p>A coding agent can write an app fast. The hard part is everything around it: sign-in, access, data that stays apart and agents with limits.</p>
+          <p>OpenAct gives your agent all of that, plus clear rules to follow.</p>
+        </div>
+        <div class="points">
+          <div class="key"><strong>Ready on day one</strong><span>Sign-in, companies, roles, email, files and the app shell.</span></div>
+          <div class="key"><strong>Rules for coding agents</strong><span>AGENTS.md, the app guide and the Promptbook tell the agent how to build.</span></div>
+          <div class="key"><strong>Agents with limits</strong><span>An app agent never does more than the person's role allows. Risky steps wait for approval.</span></div>
+          <div class="key"><strong>Your account, your data</strong><span>It runs on Cloudflare Workers, D1 and R2 in your own account.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <Ideas mode="diy" />
+
+    <section class="card cross" aria-labelledby="cross-title">
+      <div>
+        <p class="eyebrow warm">Producer plan</p>
+        <h3 id="cross-title">Want us to build it with you?</h3>
+        <p>Producer is our done-for-you studio. We run OpenAct and build your primary custom app with you.</p>
+      </div>
+      <a class="btn btn-ghost arrow" href="/producer">See Producer</a>
+    </section>
+
+    <section class="card closer" aria-labelledby="closer-title">
+      <div class="closer-grid">
+        <div>
+          <p class="eyebrow">Your turn</p>
+          <h2 id="closer-title">Take the stage.</h2>
+          <p>Custom software is not only for engineers now. Deploy the free core, and build your first app this week.</p>
+        </div>
+        <div class="start">
+          <div class="key"><b>01</b>Deploy OpenAct to Cloudflare.</div>
+          <div class="key"><b>02</b>Describe your app to a coding agent.</div>
+          <div class="key"><b>03</b>Deploy it and invite your team.</div>
+          <a class="btn btn-accent" href={DEPLOY_URL}>Deploy to Cloudflare</a>
+          <a class="btn btn-ghost" href={DEMO_URL}>Try the demo first</a>
+        </div>
+      </div>
+    </section>
+  </div>
+</Site>
