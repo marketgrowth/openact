@@ -1,0 +1,71 @@
+/* The /build and /producer pages. They also use home.css for the hero, section heads, bento grid and closing card. */
+/* Units: rem for text and spacing, % for layouts, px for borders. */
+
+/* Hero side card: a short list of steps with a status chip each */
+.board { padding: 1.375rem; }
+.board .head-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.875rem; font-family: var(--mono); font-size: 0.6875rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.board .head-row i { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+.board .rows { display: grid; gap: 0.5rem; }
+.board .rowk span.sub { display: block; font-size: 0.6875rem; color: var(--muted); }
+
+/* How it works: three numbered phases */
+.phase { display: flex; flex-direction: column; }
+.phase .num { margin: 0; font-family: var(--mono); font-size: 3rem; font-weight: 600; line-height: 1; letter-spacing: -0.02em; color: var(--accent); }
+.phase .tag { margin: 1rem 0 0; font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.phase h3 { margin-top: 0.25rem; }
+.phase .out { margin-top: auto; padding-top: 1.125rem; }
+.phase .out p { margin: 1.25rem 0 0; padding-top: 0.875rem; border-top: 1px dashed var(--edge-strong); font-size: 0.875rem; color: var(--soft); }
+.phase .out b { color: var(--ink); }
+
+/* What you could build: the example app */
+.featured-build { display: flex; flex-direction: column; }
+.featured-build .mock { margin-top: auto; padding: 0; overflow: hidden; }
+.mock-bar { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.625rem 0.875rem; border-bottom: 1px solid var(--edge); font-family: var(--mono); font-size: 0.75rem; color: var(--soft); }
+.dots { display: inline-flex; gap: 0.3125rem; }
+.dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--edge-strong); }
+.mock-body { display: grid; gap: 0.5rem; padding: 0.875rem; }
+.field-row { display: flex; justify-content: space-between; gap: 0.75rem; padding: 0.5rem 0.75rem; border: 1px solid var(--edge); border-radius: 8px; font-size: 0.8125rem; color: var(--muted); }
+.field-row b { font-weight: 600; color: var(--ink); }
+.quote { margin-top: 0.25rem; padding: 0.75rem; border-color: var(--accent-line); }
+.quote-top { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; font-family: var(--mono); font-size: 0.6875rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.quote > b { display: block; margin: 0.5rem 0; font-family: var(--display); font-size: 1.125rem; letter-spacing: -0.01em; }
+.mini-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.375rem; }
+.mini-steps span { padding: 0.25rem 0; border: 1px solid var(--edge); border-radius: 6px; text-align: center; font-family: var(--mono); font-size: 0.6875rem; color: var(--muted); }
+.mini-steps .ok { color: var(--accent); border-color: var(--accent-line); background: var(--accent-soft); }
+.mini-steps .now { color: var(--warn); border-color: color-mix(in oklab, var(--warn) 55%, transparent); background: var(--warn-soft); }
+
+/* What you could build: the list of ideas */
+.ideas-lead { margin: 0 0 1rem; font-family: var(--display); font-size: 1.625rem; font-weight: 700; letter-spacing: -0.02em; color: var(--ink); }
+.idea-list { margin: 0; padding: 0; list-style: none; counter-reset: idea; columns: 2; column-gap: 2rem; }
+.idea-list li { counter-increment: idea; display: flex; gap: 0.75rem; padding: 0.5625rem 0; border-top: 1px solid var(--edge); break-inside: avoid; font-size: 0.9375rem; color: var(--soft); }
+.idea-list li::before { content: counter(idea, decimal-leading-zero); flex: none; width: 1.75rem; font-family: var(--mono); font-size: 0.75rem; line-height: 1.6rem; color: var(--accent); }
+@media (max-width: 600px) { .idea-list { columns: 1; } }
+
+/* What you could build: fields */
+.field { display: flex; flex-direction: column; }
+.field h3 { margin-top: 0; font-size: 1.25rem; }
+.field .result { margin-top: auto; padding-top: 1rem; color: var(--soft); }
+.field .result b { color: var(--accent); }
+
+/* Two columns: a statement and points */
+.split { display: grid; grid-template-columns: 45% 1fr; gap: 3rem; align-items: start; }
+.split h3 { margin-top: 0.75rem; font-size: clamp(1.75rem, 3vw, 2.5rem); }
+.split .copy p { margin: 0 0 0.75rem; color: var(--soft); font-size: 1.0625rem; }
+.points { display: grid; gap: 0.625rem; }
+.points .key { padding: 1rem 1.125rem; }
+.points strong { display: block; font-size: 1rem; color: var(--ink); }
+.points span { display: block; margin-top: 0.125rem; font-size: 0.875rem; color: var(--muted); }
+@media (max-width: 860px) { .split { grid-template-columns: 100%; gap: 1.5rem; } }
+
+/* A plan card next to its notes */
+.offer .plan { height: 100%; }
+.offer .plan .btn + .btn { margin-top: 0.5rem; }
+
+/* A card that sends people to the other page */
+.cross { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1.25rem; margin-top: 1rem; }
+.cross h3 { margin: 0.5rem 0 0.25rem; font-size: 1.5rem; }
+.cross p { margin: 0; color: var(--muted); }
+.board-foot { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1.125rem; padding-top: 1rem; border-top: 1px dashed var(--edge-strong); }
+.qs { display: grid; gap: 1rem; align-content: start; }
+.q a { color: var(--accent); }
+.featured-build > p:not(.eyebrow) { margin-bottom: 1.5rem; }
