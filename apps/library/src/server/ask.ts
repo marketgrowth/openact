@@ -13,7 +13,7 @@ import {
   type Format,
   type Settings
 } from "../shared/rules.ts";
-import { publishedChunks } from "./store.ts";
+import { askChunks } from "./store.ts";
 
 /*
  * Ask: retrieval-augmented answers from the published library, over AG-UI.
@@ -30,6 +30,8 @@ export interface Chunk {
   title: string;
   format: Format;
   sourceUrl: string;
+  /** A private My Library item of the person who asks. */
+  personal?: boolean;
 }
 
 const STOP = new Set(
@@ -107,12 +109,14 @@ export function readRunInput(raw: unknown): { threadId: string; runId: string; q
 }
 
 /** Chunks grouped by resource, in rank order. The group number is the citation number. */
-export function groupByResource(picked: Chunk[]): Array<{ n: number; resourceId: string; title: string; format: Format; sourceUrl: string; parts: string[] }> {
-  const groups = new Map<string, { n: number; resourceId: string; title: string; format: Format; sourceUrl: string; parts: string[] }>();
+type Group = { n: number; resourceId: string; title: string; format: Format; sourceUrl: string; personal: boolean; parts: string[] };
+
+export function groupByResource(picked: Chunk[]): Group[] {
+  const groups = new Map<string, Group>();
   for (const c of picked) {
     let g = groups.get(c.resourceId);
     if (!g) {
-      g = { n: groups.size + 1, resourceId: c.resourceId, title: c.title, format: c.format, sourceUrl: c.sourceUrl, parts: [] };
+      g = { n: groups.size + 1, resourceId: c.resourceId, title: c.title, format: c.format, sourceUrl: c.sourceUrl, personal: !!c.personal, parts: [] };
       groups.set(c.resourceId, g);
     }
     g.parts.push(c.text);
@@ -122,7 +126,7 @@ export function groupByResource(picked: Chunk[]): Array<{ n: number; resourceId:
 
 export function systemPrompt(s: Settings, groups: ReturnType<typeof groupByResource>): string {
   const list = groups
-    .map((g) => [`[${g.n}] ${FORMAT_LABEL[g.format]}: ${g.title}`, g.sourceUrl ? `Link: ${g.sourceUrl}` : "", ...g.parts].filter(Boolean).join("\n"))
+    .map((g) => [`[${g.n}] ${FORMAT_LABEL[g.format]}${g.personal ? " (the reader's own private item)" : ""}: ${g.title}`, g.sourceUrl ? `Link: ${g.sourceUrl}` : "", ...g.parts].filter(Boolean).join("\n"))
     .join("\n\n");
   return [
     `You answer questions for the readers of a resource library called "${s.title}". Use only the numbered resources below.`,
@@ -150,7 +154,7 @@ export function citationsOf(answer: string, groups: ReturnType<typeof groupByRes
     }
     return "";
   });
-  const cite = (g: (typeof groups)[number]): AskCitation => ({ n: g.n, id: g.resourceId, title: g.title, format: g.format, sourceUrl: g.sourceUrl });
+  const cite = (g: (typeof groups)[number]): AskCitation => ({ n: g.n, id: g.resourceId, title: g.title, format: g.format, sourceUrl: g.sourceUrl, personal: g.personal });
   return {
     answer: clean.trim(),
     citations: groups.filter((g) => used.has(g.n)).map(cite),
@@ -158,7 +162,7 @@ export function citationsOf(answer: string, groups: ReturnType<typeof groupByRes
   };
 }
 
-export const NO_MATCH = "The library has no published resource about this yet. Try other words, or browse the resources below.";
+export const NO_MATCH = "The library and My Library have nothing about this yet. Try other words, or browse the library.";
 
 /** Runs one Ask turn and streams it as AG-UI events. */
 export function askStream(env: Env, companyId: string, userId: string, s: Settings, input: ReturnType<typeof readRunInput>, waitUntil: (p: Promise<unknown>) => void): Response {
@@ -172,7 +176,7 @@ export function askStream(env: Env, companyId: string, userId: string, s: Settin
     try {
       await send({ type: EventType.RUN_STARTED, threadId, runId });
       await send({ type: EventType.STEP_STARTED, stepName: "search" });
-      const chunks = await publishedChunks(env, input.resourceId ?? undefined);
+      const chunks = await askChunks(env, companyId, userId, input.resourceId ?? undefined);
       // A follow-up such as "and for new staff?" needs the words of the question before it.
       const lastUser = input.history.filter((t) => t.role === "user").at(-1)?.content ?? "";
       let picked = rankChunks(chunks, input.question);

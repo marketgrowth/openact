@@ -90,7 +90,7 @@ export function AskBox({ config, onAsk, followUp = false, resourceTitle }: { con
         </div>
       )}
       <p className="text-xs text-muted-foreground">
-        Answers come only from the resources here, with a link to each one. {aiLine(config.ai)} AI answers can be wrong.
+        Answers come only from the company library and your My Library, with a link to each one. {aiLine(config.ai)} AI answers can be wrong.
       </p>
     </form>
   );
@@ -133,6 +133,13 @@ function CiteCards({ cites, label }: { cites: AskCitation[]; label: string }) {
               <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                 <Icon name={FORMAT_ICON[c.format]} size={12} />
                 {FORMAT_LABEL[c.format]}
+                {c.personal && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <Icon name="lock" size={12} />
+                    Only you
+                  </>
+                )}
               </span>
             </span>
           </Link>
@@ -221,7 +228,7 @@ export function AskPage() {
             <span aria-hidden="true" className="text-muted-foreground">
               /
             </span>
-            <span>Ask</span>
+            <span>Search</span>
           </span>
         }
       >
@@ -233,6 +240,7 @@ export function AskPage() {
             setTurns([]);
             thread.current = newIdLike();
             navigate(`${HOME}/ask`, true);
+            started.current = true;
           }}
           disabled={busy}
         >
@@ -274,3 +282,4 @@ export function AskPage() {
     </>
   );
 }
+

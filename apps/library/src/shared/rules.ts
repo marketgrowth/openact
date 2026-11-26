@@ -21,9 +21,19 @@ export const STATUS_LABEL: Record<Status, string> = { draft: "Draft", published:
 export type Origin = "person" | "feed" | "video_channel" | "webhook" | "agent";
 export const ORIGIN_LABEL: Record<Origin, string> = { person: "Person", feed: "Feed", video_channel: "Video channel", webhook: "Webhook", agent: "AI agent" };
 
+/**
+ * Where a resource lives.
+ * - vault: the site's Content Vault of templates. Site owners manage it. Members never see it.
+ * - company: one company's library. Company owners manage it. Its members read the published ones.
+ * - personal: one person's private item in My Library, inside one company. Only that person sees it.
+ */
+export type Scope = "vault" | "company" | "personal";
+
 /** The tabs of the manage list. "review" holds drafts that automations or agents added. */
 export type ManageTab = "review" | "drafts" | "published" | "archived";
 export const MANAGE_TABS: readonly ManageTab[] = ["review", "drafts", "published", "archived"];
+/** A company has no automations, so its manage list has no To review tab. */
+export const COMPANY_TABS: readonly ManageTab[] = ["drafts", "published", "archived"];
 export const MANAGE_TAB_LABEL: Record<ManageTab, string> = { review: "To review", drafts: "Drafts", published: "Published", archived: "Archived" };
 
 export type TermKind = "type" | "topic" | "audience";
@@ -39,6 +49,9 @@ export const MAX_TERMS_PER_KIND = 60;
 export const MAX_TERM_NAME = 60;
 export const MAX_RESOURCES = 5000;
 export const MAX_FILE_BYTES = 100 * 1024 * 1024;
+/** My Library: items and file bytes one person may add in one company. */
+export const MAX_MINE_ITEMS = 200;
+export const MAX_MINE_BYTES = 500 * 1024 * 1024;
 export const MAX_QUESTION = 1000;
 export const MAX_HISTORY = 6;
 export const MAX_SUGGESTIONS = 3;
@@ -83,7 +96,7 @@ export interface Settings {
   /** One line under the title. */
   intro: string;
   lists: Record<TermKind, ListSetting>;
-  /** Up to three questions under the Ask box. */
+  /** Up to three questions on the library page. Each one opens Ask. */
   suggestions: string[];
   askOn: boolean;
   /** A line under each answer, such as "We give guidance, not legal advice." */
@@ -105,6 +118,8 @@ export const DEFAULT_SETTINGS: Settings = {
   reviewOn: false
 };
 export const SETTING_KEYS = Object.keys(DEFAULT_SETTINGS) as (keyof Settings)[];
+/** The settings a company owner sets in Library Settings. The others are site settings. A missing company value takes the site's. */
+export const COMPANY_SETTING_KEYS: readonly (keyof Settings)[] = ["title", "intro", "lists", "suggestions", "askOn", "notice"];
 
 /** What a manager can edit on a resource. */
 export interface ResourceFields {
@@ -124,6 +139,10 @@ export const EMPTY_FIELDS: ResourceFields = { format: "link", title: "", summary
 
 export interface Resource extends ResourceFields {
   id: string;
+  scope: Scope;
+  companyId: string | null;
+  /** The person who owns a My Library item. Null for vault and company resources. */
+  ownerUserId: string | null;
   status: Status;
   origin: Origin;
   automationName: string;
@@ -147,14 +166,29 @@ export interface AiChoice {
 }
 
 export interface LibraryConfig {
+  /** The company's settings, with the site's value for each key the company did not set. */
   settings: Settings;
-  /** The values of the lists that are on, hidden ones included (they still show as tags). */
+  /** The company's list values, for the lists that are on. Hidden ones are included (they still show as tags). */
   terms: Term[];
+  /** The person manages this company's library (library.manage). */
   canManage: boolean;
+  /** The person is a site owner (super admin) and manages the Content Vault. */
+  isSiteOwner: boolean;
+  /** Counts for the side panel. */
+  saved: number;
+  added: number;
   canAsk: boolean;
   ai: AiChoice | null;
-  /** Drafts from automations that wait for a manager. Zero for readers. */
+  /** Vault drafts from automations that wait for a site owner. Zero for everyone else. */
   toReview: number;
+}
+
+/** My Library: the company resources a person saved, and the private items they added. */
+export interface MineState {
+  saved: Resource[];
+  added: Resource[];
+  /** Ids of every saved resource, so cards can show the bookmark state. */
+  savedIds: string[];
 }
 
 export interface ResourceDetail {
@@ -248,6 +282,8 @@ export interface AskCitation {
   title: string;
   format: Format;
   sourceUrl: string;
+  /** A private item from the person's My Library. */
+  personal?: boolean;
 }
 
 /** CUSTOM event "library.searched": what the search found, for the step line. */

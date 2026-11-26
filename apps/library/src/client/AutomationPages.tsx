@@ -62,7 +62,7 @@ function KeyNotice({ k, onDone }: { k: string; onDone: () => void }) {
 
 export function AutomationsPage() {
   const { config } = useLibrary();
-  const { state } = useManage(!!config?.canManage);
+  const { state } = useManage(config?.isSiteOwner ? `${API}/manage` : null);
   const toast = useToast();
   const [list, setList] = useState<Automation[] | null>(null);
   const [runs, setRuns] = useState<Run[]>([]);
@@ -78,8 +78,8 @@ export function AutomationsPage() {
       (e) => setError(errorText(e))
     );
   useEffect(() => {
-    if (config?.canManage) void load();
-  }, [config?.canManage]);
+    if (config?.isSiteOwner) void load();
+  }, [config?.isSiteOwner]);
 
   async function act(a: Automation, what: "run" | "pause" | "resume" | "key" | "delete" | "publish") {
     setBusy(a.id);
@@ -110,24 +110,24 @@ export function AutomationsPage() {
   }
 
   if (!config) return null;
-  if (!config.canManage)
+  if (!config.isSiteOwner)
     return (
       <PageBody>
-        <Notice>Only a super admin of this site can manage the library.</Notice>
+        <Notice>Only a site owner can manage automations.</Notice>
       </PageBody>
     );
   return (
     <>
       <SiteHeader title="Automations">
         <Button size="sm" className="ml-auto" asChild>
-          <Link to={`${HOME}/manage/automations/new`}>
+          <Link to={`${HOME}/vault/automations/new`}>
             <Icon name="plus" />
             New automation
           </Link>
         </Button>
       </SiteHeader>
       <PageBody className="max-w-6xl">
-        <p className="text-sm text-muted-foreground">Automations add resources for you. New items wait in To review, unless the automation publishes them.</p>
+        <p className="text-sm text-muted-foreground">Automations add resources for you. New items wait in To review, unless the automation publishes them to the Content Vault.</p>
         {error && <Notice tone="error">{error}</Notice>}
         {key && (
           <KeyNotice k={key} onDone={() => setKey(null)} />
@@ -136,7 +136,7 @@ export function AutomationsPage() {
           <div className="grid justify-items-start gap-2 rounded-xl border border-dashed p-6 text-sm text-muted-foreground">
             <span>No automations yet. Add a feed, a video channel or a webhook.</span>
             <Button size="sm" asChild>
-              <Link to={`${HOME}/manage/automations/new`}>New automation</Link>
+              <Link to={`${HOME}/vault/automations/new`}>New automation</Link>
             </Button>
           </div>
         )}
@@ -219,7 +219,7 @@ const SOURCES: Array<{ kind: AutomationKind; title: string; help: string }> = [
 
 export function NewAutomationPage() {
   const { config } = useLibrary();
-  const { state } = useManage(!!config?.canManage);
+  const { state } = useManage(config?.isSiteOwner ? `${API}/manage` : null);
   const toast = useToast();
   const [kind, setKind] = useState<AutomationKind>("feed");
   const [url, setUrl] = useState("");
@@ -269,7 +269,7 @@ export function NewAutomationPage() {
       if (r.key) {
         setCreatedKey(r.key);
         setBusy(null);
-      } else navigate(`${HOME}/manage/automations`);
+      } else navigate(`${HOME}/vault/automations`);
     } catch (e) {
       setError(errorText(e));
       setBusy(null);
@@ -277,10 +277,10 @@ export function NewAutomationPage() {
   }
 
   if (!config) return null;
-  if (!config.canManage)
+  if (!config.isSiteOwner)
     return (
       <PageBody>
-        <Notice>Only a super admin of this site can manage the library.</Notice>
+        <Notice>Only a site owner can manage automations.</Notice>
       </PageBody>
     );
   const ready = !!name.trim() && (kind === "webhook" || !!preview);
@@ -289,7 +289,7 @@ export function NewAutomationPage() {
       <>
         <SiteHeader title="New automation" />
         <PageBody className="max-w-4xl">
-          <KeyNotice k={createdKey} onDone={() => navigate(`${HOME}/manage/automations`)} />
+          <KeyNotice k={createdKey} onDone={() => navigate(`${HOME}/vault/automations`)} />
         </PageBody>
       </>
     );
@@ -298,7 +298,7 @@ export function NewAutomationPage() {
       <SiteHeader
         title={
           <span className="flex items-center gap-2">
-            <Link to={`${HOME}/manage/automations`} className="text-muted-foreground no-underline hover:text-foreground">
+            <Link to={`${HOME}/vault/automations`} className="text-muted-foreground no-underline hover:text-foreground">
               Automations
             </Link>
             <span aria-hidden="true" className="text-muted-foreground">
@@ -447,7 +447,7 @@ export function NewAutomationPage() {
             {busy === "create" ? "Turning on…" : "Turn on"}
           </Button>
           <Button variant="outline" asChild>
-            <Link to={`${HOME}/manage/automations`}>Cancel</Link>
+            <Link to={`${HOME}/vault/automations`}>Cancel</Link>
           </Button>
           {kind !== "webhook" && !preview && <span className="self-center text-xs text-muted-foreground">Check the address first.</span>}
         </div>

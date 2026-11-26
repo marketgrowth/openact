@@ -13,6 +13,7 @@ import {
   FORMATS,
   FORMAT_LABEL,
   HOME,
+  COMPANY_TABS,
   MANAGE_TABS,
   MANAGE_TAB_LABEL,
   MAX_SUGGESTIONS,
@@ -34,12 +35,27 @@ import {
 import { FORMAT_ICON, ago, fileUrl, reloadConfig, resourcePath, useLibrary, useManage } from "./state";
 import { ResourceMedia } from "./ReadPages";
 
-/* The manage pages, for super admins: To review and the other lists, Add resource, the editor and the settings. */
+/*
+ * The manage pages, at two levels with the same screens:
+ * - site: the Content Vault, for site owners (super admins). Its list has To review for automation drafts.
+ * - company: one company's library, for people with library.manage.
+ */
 
-function NoAccess() {
+export type Level = "site" | "company";
+type Base = { level: Level; api: string; home: string; allowed: boolean };
+
+/** Where the API and the pages of a level live, and whether this person may use them. */
+function useBase(level: Level): Base {
+  const { config, companyId } = useLibrary();
+  return level === "site"
+    ? { level, api: `${API}/manage`, home: `${HOME}/vault`, allowed: !!config?.isSiteOwner }
+    : { level, api: `${API}/companies/${companyId}/manage`, home: `${HOME}/manage`, allowed: !!config?.canManage && !!companyId };
+}
+
+function NoAccess({ level }: { level: Level }) {
   return (
     <PageBody>
-      <Notice>Only a super admin of this site can manage the library.</Notice>
+      <Notice>{level === "site" ? "Only a site owner can manage the Content Vault." : "Only a company owner can manage the company library."}</Notice>
     </PageBody>
   );
 }
@@ -56,12 +72,14 @@ function Origin({ r }: { r: Resource }) {
 
 /* To review, Drafts, Published, Archived */
 
-export function ManagePage() {
+export function ManagePage({ level }: { level: Level }) {
   const { config } = useLibrary();
+  const b = useBase(level);
+  const tabs = level === "site" ? MANAGE_TABS : COMPANY_TABS;
   const toast = useToast();
   const [tab, setTab] = useState<ManageTab>(() => {
     const t = new URLSearchParams(location.search).get("tab");
-    return (MANAGE_TABS as string[]).includes(t ?? "") ? (t as ManageTab) : "review";
+    return (tabs as string[]).includes(t ?? "") ? (t as ManageTab) : tabs[0]!;
   });
   const [q, setQ] = useState("");
   const [items, setItems] = useState<Resource[] | null>(null);
@@ -69,7 +87,7 @@ export function ManagePage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const load = () =>
-    api<{ items: Resource[]; counts: ManageCounts }>(`${API}/manage/resources?tab=${tab}&q=${encodeURIComponent(q)}`).then(
+    api<{ items: Resource[]; counts: ManageCounts }>(`${b.api}/resources?tab=${tab}&q=${encodeURIComponent(q)}`).then(
       (r) => {
         setItems(r.items);
         setCounts(r.counts);
@@ -78,17 +96,17 @@ export function ManagePage() {
       (e) => setError(errorText(e))
     );
   useEffect(() => {
-    if (!config?.canManage) return;
+    if (!b.allowed) return;
     const t = setTimeout(load, q ? 200 : 0);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config?.canManage, tab, q]);
+  }, [b.allowed, b.api, tab, q]);
 
   async function act(r: Resource, action: "publish" | "unpublish" | "archive" | "restore" | "dismiss") {
     setBusy(r.id);
     try {
-      if (action === "dismiss") await api(`${API}/manage/resources/${r.id}`, { method: "DELETE" });
-      else await api(`${API}/manage/resources/${r.id}/${action}`, { method: "POST" });
+      if (action === "dismiss") await api(`${b.api}/resources/${r.id}`, { method: "DELETE" });
+      else await api(`${b.api}/resources/${r.id}/${action}`, { method: "POST" });
       toast(action === "publish" ? `Published "${r.title}".` : action === "dismiss" ? `Dismissed "${r.title}".` : "Saved.");
       await load();
       reloadConfig();
@@ -100,21 +118,22 @@ export function ManagePage() {
   }
 
   if (!config) return null;
-  if (!config.canManage) return <NoAccess />;
+  if (!b.allowed) return <NoAccess level={level} />;
   return (
     <>
-      <SiteHeader title="Manage the library">
+      <SiteHeader title={level === "site" ? "Content Vault" : "Company resources"}>
         <Button size="sm" className="ml-auto" asChild>
-          <Link to={`${HOME}/manage/add`}>
+          <Link to={`${b.home}/add`}>
             <Icon name="plus" />
-            Add resource
+            {level === "site" ? "Add to Content Vault" : "Add resource"}
           </Link>
         </Button>
       </SiteHeader>
       <PageBody className="max-w-6xl">
+        {level === "site" && <p className="text-sm text-muted-foreground">Templates for every company on the site. Members never see the vault.</p>}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div role="tablist" aria-label="Status" className="flex flex-wrap gap-1 rounded-lg bg-muted p-1">
-            {MANAGE_TABS.map((t) => (
+            {tabs.map((t) => (
               <Button
                 key={t}
                 role="tab"
@@ -124,7 +143,7 @@ export function ManagePage() {
                 className={tab === t ? "bg-background shadow-sm hover:bg-background" : "text-muted-foreground"}
                 onClick={() => {
                   setTab(t);
-                  history.replaceState(history.state, "", `${HOME}/manage?tab=${t}`);
+                  history.replaceState(history.state, "", `${b.home}?tab=${t}`);
                 }}
               >
                 {MANAGE_TAB_LABEL[t]}
@@ -150,7 +169,7 @@ export function ManagePage() {
                     <Icon name={FORMAT_ICON[r.format]} size={16} />
                   </span>
                   <div className="grid min-w-0 flex-[1_1_16rem] gap-0.5">
-                    <Link to={`${HOME}/manage/r/${r.id}`} className="truncate font-medium text-foreground no-underline hover:underline">
+                    <Link to={`${b.home}/r/${r.id}`} className="truncate font-medium text-foreground no-underline hover:underline">
                       {r.title}
                     </Link>
                     <span className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
@@ -169,7 +188,7 @@ export function ManagePage() {
                       </Button>
                     )}
                     <Button size="sm" variant="outline" asChild>
-                      <Link to={`${HOME}/manage/r/${r.id}`}>Edit</Link>
+                      <Link to={`${b.home}/r/${r.id}`}>Edit</Link>
                     </Button>
                     {tab === "review" && (
                       <Button size="sm" variant="outline" disabled={busy === r.id} onClick={() => void act(r, "dismiss")}>
@@ -199,7 +218,7 @@ export function ManagePage() {
 
 /* The fields of a resource */
 
-function TagPicker({ state, kind, value, onChange }: { state: ManageState; kind: TermKind; value: string[]; onChange: (ids: string[]) => void }) {
+function TagPicker({ b, state, kind, value, onChange }: { b: Base; state: ManageState; kind: TermKind; value: string[]; onChange: (ids: string[]) => void }) {
   const list = state.settings.lists[kind];
   const terms = state.terms.filter((t) => t.kind === kind && (!t.isHidden || value.includes(t.id))).sort((a, b) => a.sortOrder - b.sortOrder);
   if (!list.on) return null;
@@ -209,7 +228,7 @@ function TagPicker({ state, kind, value, onChange }: { state: ManageState; kind:
       {terms.length === 0 ? (
         <p className="text-xs text-muted-foreground">
           The list is empty. Add values in{" "}
-          <Link to={`${HOME}/manage/settings`} className="underline">
+          <Link to={`${b.home}/settings`} className="underline">
             Settings
           </Link>
           .
@@ -234,7 +253,7 @@ function TagPicker({ state, kind, value, onChange }: { state: ManageState; kind:
   );
 }
 
-function Fields({ state, f, set, hasFile, suggested }: { state: ManageState; f: ResourceFields; set: (f: ResourceFields) => void; hasFile: boolean; suggested: boolean }) {
+export function Fields({ b, state, f, set, hasFile, suggested }: { b: Base | null; state: ManageState | null; f: ResourceFields; set: (f: ResourceFields) => void; hasFile: boolean; suggested: boolean }) {
   return (
     <div className="grid gap-5">
       {suggested && (
@@ -281,7 +300,7 @@ function Fields({ state, f, set, hasFile, suggested }: { state: ManageState; f: 
         </Field>
       </div>
       {TERM_KINDS.map((k) => (
-        <TagPicker key={k} state={state} kind={k} value={f.termIds} onChange={(ids) => set({ ...f, termIds: ids })} />
+        b && state ? <TagPicker key={k} b={b} state={state} kind={k} value={f.termIds} onChange={(ids) => set({ ...f, termIds: ids })} /> : null
       ))}
       <label className="flex items-center gap-3 text-sm">
         <Switch checked={f.featured} onCheckedChange={(v) => set({ ...f, featured: v })} />
@@ -305,9 +324,10 @@ const fieldsOf = (r: Resource): ResourceFields => ({
 
 /* Add resource */
 
-export function AddPage() {
+export function AddPage({ level }: { level: Level }) {
   const { config } = useLibrary();
-  const { state, error: stateError } = useManage(!!config?.canManage);
+  const b = useBase(level);
+  const { state, error: stateError } = useManage(b.allowed ? b.api : null);
   const toast = useToast();
   const [link, setLink] = useState("");
   const [f, setF] = useState<ResourceFields | null>(null);
@@ -321,7 +341,7 @@ export function AddPage() {
     setBusy("read");
     setError(null);
     try {
-      const p = await api<LinkPreview>(`${API}/manage/preview`, { body: { url: link.trim() } });
+      const p = await api<LinkPreview>(`${b.api}/preview`, { body: { url: link.trim() } });
       setPreview(p);
       setF({ ...EMPTY_FIELDS, format: p.format, title: p.title, summary: p.summary, sourceUrl: p.sourceUrl, imageUrl: p.imageUrl, siteName: p.siteName, termIds: p.termIds });
     } catch (e) {
@@ -337,9 +357,9 @@ export function AddPage() {
     try {
       const form = new FormData();
       form.set("file", file);
-      const r = await api<{ item: Resource }>(`${API}/manage/files`, { method: "POST", form });
+      const r = await api<{ item: Resource }>(`${b.api}/files`, { method: "POST", form });
       toast(`Uploaded ${file.name}. Check the fields, then publish.`);
-      navigate(`${HOME}/manage/r/${r.item.id}`);
+      navigate(`${b.home}/r/${r.item.id}`);
     } catch (e) {
       setError(errorText(e));
       setBusy(null);
@@ -351,10 +371,10 @@ export function AddPage() {
     setBusy(publish ? "publish" : "save");
     setError(null);
     try {
-      const r = await api<{ item: Resource }>(`${API}/manage/resources`, { body: { fields: f, publish } });
+      const r = await api<{ item: Resource }>(`${b.api}/resources`, { body: { fields: f, publish } });
       toast(publish ? `Published "${r.item.title}".` : `Saved "${r.item.title}" as a draft.`);
       reloadConfig();
-      navigate(publish ? resourcePath(r.item.id) : `${HOME}/manage?tab=drafts`);
+      navigate(publish ? (level === "company" ? resourcePath(r.item.id) : `${b.home}?tab=published`) : `${b.home}?tab=drafts`);
     } catch (e) {
       setError(errorText(e));
       setBusy(null);
@@ -362,13 +382,16 @@ export function AddPage() {
   }
 
   if (!config) return null;
-  if (!config.canManage) return <NoAccess />;
+  if (!b.allowed) return <NoAccess level={level} />;
   const problem = f ? publishProblem({ ...f, hasFile: false }) : null;
   return (
     <>
-      <SiteHeader title="Add resource" />
+      <SiteHeader title={level === "site" ? "Add to Content Vault" : "Add resource"} />
       <PageBody className="max-w-4xl">
-        <h1 className="text-2xl font-semibold tracking-tight">Add resource</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{level === "site" ? "Add to Content Vault" : "Add a resource to the company library"}</h1>
+        <p className="text-sm text-muted-foreground">
+          {level === "site" ? "A template for every company. Company owners copy it into their own library." : "Everyone in the company can read it once you publish it."}
+        </p>
         {(error || stateError) && <Notice tone="error">{error ?? stateError}</Notice>}
         <div className="grid gap-2">
           <label htmlFor="add-link" className="text-sm font-medium">
@@ -417,9 +440,9 @@ export function AddPage() {
         </div>
         {f && state && (
           <div className="grid gap-5 rounded-xl border p-4 sm:p-5">
-            <Fields state={state} f={f} set={setF} hasFile={false} suggested={!!preview} />
+            <Fields b={b} state={state} f={f} set={setF} hasFile={false} suggested={!!preview} />
             <div className="flex flex-wrap items-center gap-2">
-              {!state.settings.reviewOn && (
+              {!(level === "site" && state.settings.reviewOn) && (
                 <Button disabled={!!busy || !!problem} onClick={() => void save(true)}>
                   {busy === "publish" ? "Publishing…" : "Publish"}
                 </Button>
@@ -428,7 +451,7 @@ export function AddPage() {
                 {busy === "save" ? "Saving…" : "Save draft"}
               </Button>
               {problem && f.title && <span className="text-xs text-muted-foreground">{problem}</span>}
-              {state.settings.reviewOn && <span className="text-xs text-muted-foreground">Review before publish is on. Another manager publishes this draft.</span>}
+              {level === "site" && state.settings.reviewOn && <span className="text-xs text-muted-foreground">Review before publish is on. Another site owner publishes this draft.</span>}
             </div>
           </div>
         )}
@@ -439,24 +462,25 @@ export function AddPage() {
 
 /* Edit a resource */
 
-export function EditPage({ id }: { id: string }) {
+export function EditPage({ id, level }: { id: string; level: Level }) {
   const { config } = useLibrary();
-  const { state } = useManage(!!config?.canManage);
+  const b = useBase(level);
+  const { state } = useManage(b.allowed ? b.api : null);
   const toast = useToast();
   const [r, setR] = useState<Resource | null>(null);
   const [f, setF] = useState<ResourceFields | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
-    if (!config?.canManage) return;
-    api<{ item: Resource }>(`${API}/manage/resources/${id}`).then(
+    if (!b.allowed) return;
+    api<{ item: Resource }>(`${b.api}/resources/${id}`).then(
       (x) => {
         setR(x.item);
         setF(fieldsOf(x.item));
       },
       (e) => setError(errorText(e))
     );
-  }, [config?.canManage, id]);
+  }, [b.allowed, b.api, id]);
 
   async function run(what: string, fn: () => Promise<{ item: Resource } | null>, done: string) {
     setBusy(what);
@@ -475,22 +499,22 @@ export function EditPage({ id }: { id: string }) {
       setBusy(null);
     }
   }
-  const saveFields = () => api<{ item: Resource }>(`${API}/manage/resources/${id}`, { method: "PUT", body: f });
+  const saveFields = () => api<{ item: Resource }>(`${b.api}/resources/${id}`, { method: "PUT", body: f });
   const status = (action: string) => async () => {
     await saveFields();
-    return api<{ item: Resource }>(`${API}/manage/resources/${id}/${action}`, { method: "POST" });
+    return api<{ item: Resource }>(`${b.api}/resources/${id}/${action}`, { method: "POST" });
   };
 
   if (!config) return null;
-  if (!config.canManage) return <NoAccess />;
+  if (!b.allowed) return <NoAccess level={level} />;
   const dirty = !!(r && f && JSON.stringify(fieldsOf(r)) !== JSON.stringify(f));
   return (
     <>
       <SiteHeader
         title={
           <span className="flex min-w-0 items-center gap-2">
-            <Link to={`${HOME}/manage`} className="text-muted-foreground no-underline hover:text-foreground">
-              Manage
+            <Link to={`${b.home}`} className="text-muted-foreground no-underline hover:text-foreground">
+              {level === "site" ? "Content Vault" : "Company resources"}
             </Link>
             <span aria-hidden="true" className="text-muted-foreground">
               /
@@ -499,7 +523,7 @@ export function EditPage({ id }: { id: string }) {
           </span>
         }
       >
-        {r?.status === "published" && (
+        {r?.status === "published" && level === "company" && (
           <Button variant="outline" size="sm" className="ml-auto" asChild>
             <Link to={resourcePath(r.id)}>View</Link>
           </Button>
@@ -514,15 +538,15 @@ export function EditPage({ id }: { id: string }) {
               <Origin r={r} />
               <span className="text-muted-foreground">Changed {ago(r.updatedAt)}</span>
               {r.hasFile && (
-                <a href={fileUrl(r, null, true)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-muted-foreground underline-offset-4 hover:underline">
+                <a href={fileUrl(r, null, b.api)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-muted-foreground underline-offset-4 hover:underline">
                   <Icon name="clip" size={14} />
                   {r.fileName} · {fileSizeLabel(r.fileSize)}
                 </a>
               )}
             </div>
-            <ResourceMedia r={r} src={fileUrl(r, null, true)} manage />
+            <ResourceMedia r={r} src={fileUrl(r, null, b.api)} manage={b.api} />
             <div className="grid gap-5 rounded-xl border p-4 sm:p-5">
-              <Fields state={state} f={f} set={setF} hasFile={r.hasFile} suggested={false} />
+              <Fields b={b} state={state} f={f} set={setF} hasFile={r.hasFile} suggested={false} />
               <div className="flex flex-wrap items-center gap-2">
                 {r.status !== "published" && (
                   <Button disabled={!!busy} onClick={() => void run("publish", status("publish"), `Published "${f.title}".`)}>
@@ -552,11 +576,11 @@ export function EditPage({ id }: { id: string }) {
                   disabled={!!busy}
                   onClick={() => {
                     if (!confirm(`Delete "${r.title}"? This cannot be undone.`)) return;
-                    void api(`${API}/manage/resources/${r.id}`, { method: "DELETE" }).then(
+                    void api(`${b.api}/resources/${r.id}`, { method: "DELETE" }).then(
                       () => {
                         toast("Deleted.");
                         reloadConfig();
-                        navigate(`${HOME}/manage`);
+                        navigate(`${b.home}`);
                       },
                       (e) => setError(errorText(e))
                     );
@@ -576,7 +600,7 @@ export function EditPage({ id }: { id: string }) {
 
 /* Settings */
 
-function ListCard({ state, kind, settings, setSettings, onTerms }: { state: ManageState; kind: TermKind; settings: Settings; setSettings: (s: Settings) => void; onTerms: (t: Term[]) => void }) {
+function ListCard({ b, state, kind, settings, setSettings, onTerms }: { b: Base; state: ManageState; kind: TermKind; settings: Settings; setSettings: (s: Settings) => void; onTerms: (t: Term[]) => void }) {
   const toast = useToast();
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -585,7 +609,7 @@ function ListCard({ state, kind, settings, setSettings, onTerms }: { state: Mana
   const change = async (id: string, body: Record<string, unknown>) => {
     setError(null);
     try {
-      const r = await api<{ terms: Term[] }>(`${API}/manage/terms/${id}`, { method: "PATCH", body });
+      const r = await api<{ terms: Term[] }>(`${b.api}/terms/${id}`, { method: "PATCH", body });
       onTerms(r.terms);
     } catch (e) {
       setError(errorText(e));
@@ -636,7 +660,7 @@ function ListCard({ state, kind, settings, setSettings, onTerms }: { state: Mana
           if (!name.trim()) return;
           setError(null);
           try {
-            const r = await api<{ term: Term }>(`${API}/manage/terms`, { body: { kind, name } });
+            const r = await api<{ term: Term }>(`${b.api}/terms`, { body: { kind, name } });
             onTerms([...state.terms, r.term]);
             setName("");
             toast(`Added ${r.term.name}.`);
@@ -667,9 +691,10 @@ function SwitchRow({ title, help, checked, onChange }: { title: string; help: st
   );
 }
 
-export function SettingsPage() {
+export function SettingsPage({ level }: { level: Level }) {
   const { config } = useLibrary();
-  const { state, setState, error: loadError } = useManage(!!config?.canManage);
+  const b = useBase(level);
+  const { state, setState, error: loadError } = useManage(b.allowed ? b.api : null);
   const toast = useToast();
   const [s, setS] = useState<Settings | null>(null);
   const [busy, setBusy] = useState(false);
@@ -678,13 +703,13 @@ export function SettingsPage() {
     if (state && !s) setS(state.settings);
   }, [state, s]);
   if (!config) return null;
-  if (!config.canManage) return <NoAccess />;
+  if (!b.allowed) return <NoAccess level={level} />;
   const save = async () => {
     if (!s) return;
     setBusy(true);
     setError(null);
     try {
-      const next = await api<ManageState>(`${API}/manage/settings`, { method: "PUT", body: s });
+      const next = await api<ManageState>(`${b.api}/settings`, { method: "PUT", body: s });
       setState(next);
       setS(next.settings);
       reloadConfig();
@@ -698,7 +723,7 @@ export function SettingsPage() {
   const suggestions = [...(s?.suggestions ?? []), "", "", ""].slice(0, MAX_SUGGESTIONS);
   return (
     <>
-      <SiteHeader title="Library settings">
+      <SiteHeader title={level === "site" ? "Site Library Settings" : "Library Settings"}>
         <Button size="sm" className="ml-auto" disabled={busy || !s} onClick={() => void save()}>
           {busy ? "Saving…" : "Save"}
         </Button>
@@ -709,7 +734,7 @@ export function SettingsPage() {
           <>
             <div className="flex flex-wrap gap-4">
               {TERM_KINDS.map((k) => (
-                <ListCard key={k} state={state} kind={k} settings={s} setSettings={setS} onTerms={(terms) => { setState({ ...state, terms }); reloadConfig(); }} />
+                <ListCard key={k} b={b} state={state} kind={k} settings={s} setSettings={setS} onTerms={(terms) => { setState({ ...state, terms }); reloadConfig(); }} />
               ))}
             </div>
             <div className="flex flex-wrap gap-4">
@@ -721,7 +746,7 @@ export function SettingsPage() {
               </Field>
             </div>
             <fieldset className="grid gap-2">
-              <legend className="mb-1 text-sm font-medium">Suggested questions under the Ask box</legend>
+              <legend className="mb-1 text-sm font-medium">Suggested questions on the library page</legend>
               <div className="grid gap-2 sm:grid-cols-3">
                 {suggestions.map((q, i) => (
                   <Input
@@ -743,23 +768,32 @@ export function SettingsPage() {
               <Input id="s-notice" value={s.notice} maxLength={300} placeholder="For example: We give guidance, not legal advice." onChange={(e) => setS({ ...s, notice: e.target.value })} />
             </Field>
             <SwitchRow
-              title="Ask (AI chat)"
-              help="An AI chat at the top of the library that answers only from the resources, with links. It uses each person's own AI key, then the company key, then the site default."
+              title="Search with AI (Ask)"
+              help={
+                level === "site"
+                  ? "The default for every company. A company owner can turn it off in Library Settings."
+                  : "Search in plain words. AI answers from the company library and each person's My Library, with links. It uses each person's own AI key, then the company key, then the site default."
+              }
               checked={s.askOn}
               onChange={(v) => setS({ ...s, askOn: v })}
             />
+            {level === "site" && (
+              <>
             <SwitchRow
               title="Fill in new items with AI"
-              help="Writes the summary and suggests the type and topics for each new link, file and automation item. Uses the site's AI."
+              help="Writes the summary and suggests the type and topics for each new Content Vault item and company resource. Uses the site's AI."
               checked={s.aiFill}
               onChange={(v) => setS({ ...s, aiFill: v })}
             />
             <SwitchRow
               title="Review before publish"
-              help="A second manager must publish each resource that a person adds. Each automation has its own setting."
+              help="In the Content Vault, a second site owner must publish each resource that a person adds. Each automation has its own setting."
               checked={s.reviewOn}
               onChange={(v) => setS({ ...s, reviewOn: v })}
             />
+              </>
+            )}
+            {level === "site" && <p className="text-sm text-muted-foreground">The page words, lists and suggested questions here are the defaults. A new company starts with a copy of these lists, and each company owner changes them in Library Settings.</p>}
             <p className="text-sm text-muted-foreground">
               Who can read the library and use Ask is set per company, in Company settings, on the Permissions tab. Guests cannot read it unless a company owner allows it there.
             </p>

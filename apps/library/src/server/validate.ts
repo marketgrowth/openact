@@ -10,6 +10,7 @@ import {
   MAX_TERMS_PER_KIND,
   MAX_TITLE,
   TERM_KINDS,
+  COMPANY_SETTING_KEYS,
   cleanUrl,
   type ResourceFields,
   type Settings
@@ -63,9 +64,12 @@ export function cleanTermName(v: unknown): string {
 
 const label = (v: unknown, field: string) => text(v, field, { max: 40, required: true });
 
-/** The whole settings object. Missing keys keep their current value. */
-export function cleanSettings(raw: unknown, current: Settings): Settings {
-  const b = obj(raw, "the settings");
+/** The whole settings object. Missing keys keep their current value. A company may set only its own keys. */
+export function cleanSettings(raw: unknown, current: Settings, level: "site" | "company" = "site"): Settings {
+  const b = { ...obj(raw, "the settings") };
+  if (level === "company") {
+    for (const k of Object.keys(b)) if (!(COMPANY_SETTING_KEYS as readonly string[]).includes(k)) delete b[k];
+  }
   const next: Settings = structuredClone(current);
   if (b.title !== undefined) next.title = label(b.title, "Page title");
   if (b.intro !== undefined) next.intro = text(b.intro, "Line under the title", { max: MAX_SHORT });

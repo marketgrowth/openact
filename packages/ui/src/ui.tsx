@@ -108,6 +108,8 @@ import {
   ShieldCheck,
   Archive,
   ArchiveRestore,
+  Bookmark,
+  BookmarkCheck,
   Layers,
   Eraser,
   ZoomOut,
@@ -239,7 +241,11 @@ const ICONS: Record<string, LucideIcon> = {
   // Workspaces
   layers: Layers,
   eraser: Eraser,
-  "zoom-out": ZoomOut
+  "zoom-out": ZoomOut,
+  bookmark: Bookmark,
+  "bookmark-check": BookmarkCheck,
+  grid: LayoutGrid,
+  lock: Lock
 };
 
 export function Icon({ name, size = 16, className }: { name: keyof typeof ICONS | string; size?: number; className?: string }) {

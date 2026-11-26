@@ -8,7 +8,12 @@ import { htmlToText, parseFeed } from "../apps/library/src/server/fetch.ts";
 import { runDueFeeds } from "../apps/library/src/server/automations.ts";
 import type { LibraryContentService } from "../apps/library/src/server/service.ts";
 
-/* The Library app: a resource library that super admins manage, automations feed, and every company reads and asks. */
+/*
+ * The Library app at three levels:
+ * - the Content Vault: site owners (super admins) manage it, automations feed it, members never see it;
+ * - the company library: company owners manage it, its members read and search it;
+ * - My Library: each person's bookmarks and private items.
+ */
 
 const L = "/api/apps/library";
 
@@ -18,26 +23,43 @@ async function ok(p: Promise<{ status: number; text: string; json: Record<string
   return r.json as Record<string, any>;
 }
 
-type World = { d: Deploy; root: Person; second: Person; reader: Person; companyId: string };
+/** root and second: site owners. owner: owns the company Oak Lane. reader and other: its members. */
+type World = { d: Deploy; root: Person; second: Person; owner: Person; reader: Person; other: Person; companyId: string; M: string };
 
 async function world(vars: Record<string, string> = {}): Promise<World> {
   const d = makeDeploy({ SUPER_ADMIN_EMAILS: "root@deploy.test,second@deploy.test", AI_PROVIDER: "dev-scripted", ...vars });
   const root = d.person("root@deploy.test", "Root");
   const second = d.person("second@deploy.test", "Second");
+  const owner = d.person("owner@home.test", "Owner");
   const reader = d.person("reader@home.test", "Reader");
-  const made = await d.call(reader, "POST", "/api/companies", { name: "Oak Lane" });
+  const other = d.person("other@home.test", "Other");
+  const made = await d.call(owner, "POST", "/api/companies", { name: "Oak Lane" });
   assert.ok(made.status >= 200 && made.status < 300, made.text);
-  const companyId = d.one<{ id: string }>("SELECT company_id AS id FROM company_members WHERE user_id = ?", reader.id).id;
-  return { d, root, second, reader, companyId };
+  const companyId = d.one<{ id: string }>("SELECT company_id AS id FROM company_members WHERE user_id = ?", owner.id).id;
+  for (const p of [reader, other]) {
+    const added = await ok(d.call(owner, "POST", `/api/companies/${companyId}/members`, { email: p.email, role: "member" }), `member ${p.email}`, 201);
+    assert.equal(added.added, "member");
+  }
+  return { d, root, second, owner, reader, other, companyId, M: `${L}/companies/${companyId}/manage` };
 }
 
-async function term(w: World, kind: string, name: string): Promise<string> {
-  const r = await ok(w.d.call(w.root, "POST", `${L}/manage/terms`, { kind, name }), `term ${name}`, 201);
+/** A list value in the vault (site), or in the company when `company` is true. */
+async function term(w: World, kind: string, name: string, company = false): Promise<string> {
+  const r = company
+    ? await ok(w.d.call(w.owner, "POST", `${w.M}/terms`, { kind, name }), `term ${name}`, 201)
+    : await ok(w.d.call(w.root, "POST", `${L}/manage/terms`, { kind, name }), `term ${name}`, 201);
   return r.term.id;
 }
 
+/** Adds a vault template (site owner). */
 async function add(w: World, fields: Record<string, unknown>, publish = true): Promise<string> {
   const r = await ok(w.d.call(w.root, "POST", `${L}/manage/resources`, { fields: { ...EMPTY_FIELDS, ...fields }, publish }), `add ${fields.title}`, 201);
+  return r.item.id;
+}
+
+/** Adds a company resource (company owner). */
+async function addCo(w: World, fields: Record<string, unknown>, publish = true): Promise<string> {
+  const r = await ok(w.d.call(w.owner, "POST", `${w.M}/resources`, { fields: { ...EMPTY_FIELDS, ...fields }, publish }), `add ${fields.title}`, 201);
   return r.item.id;
 }
 
@@ -131,55 +153,134 @@ test("reading other sites: feeds, pages and private hosts", async () => {
   await ok(w.d.call(w.reader, "POST", `${L}/manage/preview`, { url: "https://example.com/guide" }), "reader", 403);
 });
 
-test("resources: managers add and publish, readers see published ones and filter them", async () => {
+test("vault: site owners keep templates that members and company owners never read", async () => {
   const w = await world();
-  const guide = await term(w, "type", "Guide");
-  const news = await term(w, "type", "News");
-  const team = await term(w, "topic", "Team");
-  const a = await add(w, { format: "video", title: "Weekly check-in", sourceUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", termIds: [guide, team] });
-  await add(w, { format: "article", title: "Why we cite sources", body: "Show where each answer comes from.", termIds: [] });
-  await add(w, { format: "link", title: "AI search news", sourceUrl: "https://news.example.com/1", termIds: [news] });
-  const draft = await add(w, { format: "link", title: "Draft only", sourceUrl: "https://example.com/d" }, false);
-
+  const v = await add(w, { format: "article", title: "Vault template", body: "Only for site owners." });
   const list = await ok(w.d.call(w.reader, "GET", `${L}/companies/${w.companyId}/resources`), "list");
-  assert.deepEqual(list.items.map((r: { title: string }) => r.title).sort(), ["AI search news", "Weekly check-in", "Why we cite sources"]);
-  const video = list.items.find((r: { id: string }) => r.id === a);
-  assert.equal(video.videoProvider, "youtube");
-  assert.equal(video.videoRef, "dQw4w9WgXcQ");
-  assert.equal(video.siteName, "youtube.com");
-
-  const only = async (q: string) => (await ok(w.d.call(w.reader, "GET", `${L}/companies/${w.companyId}/resources?${q}`), q)).items.map((r: { title: string }) => r.title);
-  assert.deepEqual(await only("format=article"), ["Why we cite sources"]);
-  assert.deepEqual(await only(`type=${guide}`), ["Weekly check-in"]);
-  assert.deepEqual(await only("q=search"), ["AI search news"]);
-  assert.deepEqual(await only("sort=title"), ["AI search news", "Weekly check-in", "Why we cite sources"]);
-
-  const detail = await ok(w.d.call(w.reader, "GET", `${L}/companies/${w.companyId}/resources/${a}`), "detail");
-  assert.equal(detail.item.title, "Weekly check-in");
-  await ok(w.d.call(w.reader, "GET", `${L}/companies/${w.companyId}/resources/${draft}`), "draft hidden", 404);
-
-  // To review holds automation drafts; a person's draft is in Drafts.
-  const m = await ok(w.d.call(w.root, "GET", `${L}/manage/resources?tab=drafts`), "drafts");
-  assert.deepEqual(m.items.map((r: { id: string }) => r.id), [draft]);
-  assert.deepEqual(m.counts, { review: 0, drafts: 1, published: 3, archived: 0 });
-
-  // Archive hides it. Restore makes it a draft. Delete removes it.
-  await ok(w.d.call(w.root, "POST", `${L}/manage/resources/${a}/archive`), "archive");
-  assert.equal((await only("")).length, 2);
-  await ok(w.d.call(w.root, "POST", `${L}/manage/resources/${a}/restore`), "restore");
-  await ok(w.d.call(w.root, "DELETE", `${L}/manage/resources/${a}`), "delete");
-  await ok(w.d.call(w.root, "GET", `${L}/manage/resources/${a}`), "gone", 404);
-  assert.equal(w.d.all("SELECT * FROM library_chunks WHERE resource_id = ?", a).length, 0);
-
-  // One link once. Publishing checks the fields.
-  await ok(w.d.call(w.root, "POST", `${L}/manage/resources`, { fields: { ...EMPTY_FIELDS, title: "Again", sourceUrl: "https://news.example.com/1" } }), "duplicate", 409);
-  await ok(w.d.call(w.root, "POST", `${L}/manage/resources`, { fields: { ...EMPTY_FIELDS, format: "article", title: "Empty" }, publish: true }), "empty article", 400);
-
-  // Readers cannot manage.
-  await ok(w.d.call(w.reader, "POST", `${L}/manage/resources`, { fields: { ...EMPTY_FIELDS, title: "X", sourceUrl: "https://x.com" } }), "reader add", 403);
+  assert.deepEqual(list.items, []);
+  await ok(w.d.call(w.reader, "GET", `${L}/companies/${w.companyId}/resources/${v}`), "vault via reader", 404);
+  await ok(w.d.call(w.owner, "GET", `${w.M}/resources/${v}`), "vault via company manage", 404);
+  await ok(w.d.call(w.owner, "PUT", `${w.M}/resources/${v}`, { ...EMPTY_FIELDS, format: "article", title: "Taken", body: "x" }), "edit vault via company", 404);
+  await ok(w.d.call(w.owner, "GET", `${L}/manage`), "owner is no site owner", 403);
+  const vault = await ok(w.d.call(w.root, "GET", `${L}/manage/resources?tab=published`), "vault list");
+  assert.deepEqual(vault.items.map((r: { title: string }) => r.title), ["Vault template"]);
 });
 
-test("review before publish: another manager publishes what a person added", async () => {
+test("company library: owners add and publish, members read and filter, others cannot manage", async () => {
+  const w = await world();
+  // Site lists are the starting copy for a new company.
+  await term(w, "type", "Guide");
+  await term(w, "type", "News");
+  const cfg = await ok(w.d.call(w.reader, "GET", `${L}/companies/${w.companyId}/config`), "config");
+  assert.equal(cfg.canManage, false);
+  assert.equal(cfg.isSiteOwner, false);
+  const typeIds = Object.fromEntries(cfg.terms.map((t: { name: string; id: string }) => [t.name, t.id]));
+  assert.deepEqual(Object.keys(typeIds).sort(), ["Guide", "News"]);
+  const siteIds = w.d.all<{ id: string }>("SELECT id FROM library_terms WHERE company_id IS NULL").map((r) => r.id);
+  assert.ok(!siteIds.includes(typeIds.Guide), "the company has its own copy of each value");
+  const team = await term(w, "topic", "Team", true);
+  const a = await addCo(w, { format: "video", title: "Weekly check-in", sourceUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", termIds: [typeIds.Guide, team] });
+  await addCo(w, { format: "article", title: "Why we cite sources", body: "Show where each answer comes from." });
+  await addCo(w, { format: "link", title: "AI search news", sourceUrl: "https://news.example.com/1", termIds: [typeIds.News, siteIds[0]!] });
+  const draft = await addCo(w, { format: "link", title: "Draft only", sourceUrl: "https://example.com/d" }, false);
+
+  const only = async (q: string) => (await ok(w.d.call(w.reader, "GET", `${L}/companies/${w.companyId}/resources?${q}`), q)).items.map((r: { title: string }) => r.title);
+  assert.deepEqual((await only("")).sort(), ["AI search news", "Weekly check-in", "Why we cite sources"]);
+  assert.deepEqual(await only("format=article"), ["Why we cite sources"]);
+  assert.deepEqual(await only(`type=${typeIds.Guide}`), ["Weekly check-in"]);
+  assert.deepEqual(await only("sort=title"), ["AI search news", "Weekly check-in", "Why we cite sources"]);
+  const news = (await ok(w.d.call(w.reader, "GET", `${L}/companies/${w.companyId}/resources?format=link`), "news")).items[0];
+  assert.deepEqual(news.termIds, [typeIds.News], "a company resource never takes a site list value");
+  const video = (await ok(w.d.call(w.reader, "GET", `${L}/companies/${w.companyId}/resources/${a}`), "detail")).item;
+  assert.equal(video.videoProvider, "youtube");
+  assert.equal(video.scope, "company");
+
+  // A draft: hidden from members, open to the owner.
+  await ok(w.d.call(w.reader, "GET", `${L}/companies/${w.companyId}/resources/${draft}`), "draft hidden", 404);
+  await ok(w.d.call(w.owner, "GET", `${L}/companies/${w.companyId}/resources/${draft}`), "draft for the owner");
+  const drafts = await ok(w.d.call(w.owner, "GET", `${w.M}/resources?tab=drafts`), "drafts");
+  assert.deepEqual(drafts.items.map((r: { id: string }) => r.id), [draft]);
+  assert.deepEqual(drafts.counts, { review: 0, drafts: 1, published: 3, archived: 0 });
+  await ok(w.d.call(w.owner, "GET", `${w.M}/resources?tab=review`), "no review tab", 400);
+
+  // Archive hides it. Restore makes it a draft. Delete removes it.
+  await ok(w.d.call(w.owner, "POST", `${w.M}/resources/${a}/archive`), "archive");
+  assert.equal((await only("")).length, 2);
+  await ok(w.d.call(w.owner, "POST", `${w.M}/resources/${a}/restore`), "restore");
+  await ok(w.d.call(w.owner, "DELETE", `${w.M}/resources/${a}`), "delete");
+  await ok(w.d.call(w.owner, "GET", `${w.M}/resources/${a}`), "gone", 404);
+
+  // Members and site owners outside the company cannot manage it.
+  await ok(w.d.call(w.reader, "POST", `${w.M}/resources`, { fields: { ...EMPTY_FIELDS, title: "X", sourceUrl: "https://x.com" } }), "member add", 403);
+  await ok(w.d.call(w.root, "GET", `${w.M}`), "site owner outside the company", 404);
+  // One link once per library. The vault may hold the same link.
+  await ok(w.d.call(w.owner, "POST", `${w.M}/resources`, { fields: { ...EMPTY_FIELDS, title: "Again", sourceUrl: "https://news.example.com/1" } }), "duplicate", 409);
+  await add(w, { title: "Same link in the vault", sourceUrl: "https://news.example.com/1" });
+});
+
+test("Library Settings: a company sets its own words; site switches stay with the site", async () => {
+  const w = await world();
+  await ok(w.d.call(w.root, "PUT", `${L}/manage/settings`, { title: "Site default", reviewOn: true }), "site");
+  let cfg = await ok(w.d.call(w.reader, "GET", `${L}/companies/${w.companyId}/config`), "config");
+  assert.equal(cfg.settings.title, "Site default");
+  const st = await ok(w.d.call(w.owner, "PUT", `${w.M}/settings`, { title: "Resources", suggestions: ["What is new?"], aiFill: true, reviewOn: false }), "company");
+  assert.equal(st.settings.title, "Resources");
+  assert.equal(st.settings.aiFill, false, "a company cannot turn on AI fill");
+  assert.equal(st.settings.reviewOn, true, "review stays a site setting");
+  cfg = await ok(w.d.call(w.reader, "GET", `${L}/companies/${w.companyId}/config`), "config 2");
+  assert.equal(cfg.settings.title, "Resources");
+  assert.deepEqual(cfg.settings.suggestions, ["What is new?"]);
+  const site = await ok(w.d.call(w.root, "GET", `${L}/manage`), "site state");
+  assert.equal(site.settings.title, "Site default");
+  // Review before publish binds the vault only.
+  await addCo(w, { format: "article", title: "Published at once", body: "x" });
+});
+
+test("My Library: bookmarks and private items that only the person sees", async () => {
+  const w = await world();
+  const pub = await addCo(w, { format: "article", title: "Weekly check-in", body: "Meet each week." });
+  const draft = await addCo(w, { format: "article", title: "Draft", body: "x" }, false);
+  const R = `${L}/companies/${w.companyId}`;
+  await ok(w.d.call(w.reader, "PUT", `${R}/bookmarks/${pub}`), "save");
+  await ok(w.d.call(w.reader, "PUT", `${R}/bookmarks/${pub}`), "save twice");
+  await ok(w.d.call(w.reader, "PUT", `${R}/bookmarks/${draft}`), "save a draft", 404);
+  const note = await ok(w.d.call(w.reader, "POST", `${R}/mine`, { fields: { ...EMPTY_FIELDS, format: "article", title: "My weekly notes", body: "Ask about the meeting agenda." } }), "add note", 201);
+  assert.equal(note.item.scope, "personal");
+  assert.equal(note.item.status, "published");
+  let mine = await ok(w.d.call(w.reader, "GET", `${R}/mine`), "mine");
+  assert.deepEqual(mine.saved.map((r: { title: string }) => r.title), ["Weekly check-in"]);
+  assert.deepEqual(mine.added.map((r: { title: string }) => r.title), ["My weekly notes"]);
+  assert.deepEqual(mine.savedIds, [pub]);
+  const cfg = await ok(w.d.call(w.reader, "GET", `${R}/config`), "config");
+  assert.deepEqual([cfg.saved, cfg.added], [1, 1]);
+
+  // Nobody else reads a private item: not the owner, not another member.
+  await ok(w.d.call(w.reader, "GET", `${R}/resources/${note.item.id}`), "own item");
+  await ok(w.d.call(w.owner, "GET", `${R}/resources/${note.item.id}`), "owner", 404);
+  await ok(w.d.call(w.other, "GET", `${R}/resources/${note.item.id}`), "other member", 404);
+  await ok(w.d.call(w.other, "DELETE", `${R}/mine/${note.item.id}`), "other deletes", 404);
+  await ok(w.d.call(w.owner, "GET", `${w.M}/resources/${note.item.id}`), "manage route", 404);
+  const theirs = await ok(w.d.call(w.other, "GET", `${R}/mine`), "other mine");
+  assert.deepEqual([theirs.saved, theirs.added], [[], []]);
+  // A private item never shows in the company list.
+  assert.deepEqual((await ok(w.d.call(w.owner, "GET", `${R}/resources`), "list")).items.map((r: { title: string }) => r.title), ["Weekly check-in"]);
+
+  // Edit, unsave, delete.
+  await ok(w.d.call(w.reader, "PUT", `${R}/mine/${note.item.id}`, { ...EMPTY_FIELDS, format: "article", title: "Renamed", body: "x" }), "edit");
+  await ok(w.d.call(w.reader, "DELETE", `${R}/bookmarks/${pub}`), "unsave");
+  await ok(w.d.call(w.reader, "DELETE", `${R}/mine/${note.item.id}`), "delete");
+  mine = await ok(w.d.call(w.reader, "GET", `${R}/mine`), "mine 2");
+  assert.deepEqual([mine.saved, mine.added], [[], []]);
+
+  // Leaving the company deletes the person's My Library there.
+  await ok(w.d.call(w.other, "POST", `${R}/mine`, { fields: { ...EMPTY_FIELDS, format: "article", title: "Leaving", body: "x" } }), "other add", 201);
+  await ok(w.d.call(w.other, "PUT", `${R}/bookmarks/${pub}`), "other save");
+  await ok(w.d.call(w.owner, "DELETE", `/api/companies/${w.companyId}/members/${w.other.id}`), "remove member");
+  assert.equal(w.d.all("SELECT * FROM library_resources WHERE owner_user_id = ?", w.other.id).length, 0);
+  assert.equal(w.d.all("SELECT * FROM library_bookmarks WHERE user_id = ?", w.other.id).length, 0);
+});
+
+test("review before publish: in the vault, another site owner publishes what a person added", async () => {
   const w = await world();
   await ok(w.d.call(w.root, "PUT", `${L}/manage/settings`, { reviewOn: true }), "review on");
   await ok(w.d.call(w.root, "POST", `${L}/manage/resources`, { fields: { ...EMPTY_FIELDS, title: "X", sourceUrl: "https://x.com" }, publish: true }), "publish at once", 403);
@@ -188,30 +289,47 @@ test("review before publish: another manager publishes what a person added", asy
   await ok(w.d.call(w.second, "POST", `${L}/manage/resources/${id}/publish`), "second");
 });
 
-test("files: upload makes a draft; readers get the file only once it is published", async () => {
+test("files: vault, company and My Library each keep their own files", async () => {
   const w = await world();
-  const f = new FormData();
-  f.set("file", new File(["Onboarding checklist. Day one: meet the team."], "client_onboarding-checklist.txt", { type: "text/plain" }));
-  const up = await ok(w.d.call(w.root, "POST", `${L}/manage/files`, f), "upload", 201);
+  const R = `${L}/companies/${w.companyId}`;
+  const file = (name: string, text: string, type = "text/plain") => {
+    const f = new FormData();
+    f.set("file", new File([text], name, { type }));
+    return f;
+  };
+  // Vault: a draft that only site owners open.
+  const v = await ok(w.d.call(w.root, "POST", `${L}/manage/files`, file("vault.txt", "Vault text.")), "vault upload", 201);
+  assert.equal(v.item.scope, "vault");
+  assert.match((await w.d.call(w.root, "GET", `${L}/manage/files/${v.item.id}`)).text, /Vault text/);
+  await ok(w.d.call(w.root, "POST", `${L}/manage/resources/${v.item.id}/publish`), "publish vault");
+  await ok(w.d.call(w.reader, "GET", `${R}/files/${v.item.id}`), "vault via company", 404);
+
+  // Company: a draft until the owner publishes it.
+  const up = await ok(w.d.call(w.owner, "POST", `${w.M}/files`, file("client_onboarding-checklist.txt", "Onboarding checklist. Day one: meet the team.")), "upload", 201);
   const id = up.item.id;
   assert.equal(up.item.format, "document");
   assert.equal(up.item.title, "client onboarding checklist");
   assert.equal(up.item.status, "draft");
-  assert.equal(up.item.hasFile, true);
-  await ok(w.d.call(w.reader, "GET", `${L}/companies/${w.companyId}/files/${id}`), "draft file", 404);
-  const own = await w.d.call(w.root, "GET", `${L}/manage/files/${id}`);
-  assert.equal(own.status, 200);
-  assert.match(own.text, /Onboarding checklist/);
-  await ok(w.d.call(w.root, "POST", `${L}/manage/resources/${id}/publish`), "publish");
-  const file = await w.d.call(w.reader, "GET", `${L}/companies/${w.companyId}/files/${id}`);
-  assert.equal(file.status, 200);
-  assert.match(file.text, /Day one/);
-  // The text of the file feeds Ask.
+  assert.equal(up.item.scope, "company");
+  await ok(w.d.call(w.reader, "GET", `${R}/files/${id}`), "draft file", 404);
+  assert.equal((await w.d.call(w.owner, "GET", `${w.M}/files/${id}`)).status, 200);
+  await ok(w.d.call(w.owner, "POST", `${w.M}/resources/${id}/publish`), "publish");
+  const got = await w.d.call(w.reader, "GET", `${R}/files/${id}`);
+  assert.equal(got.status, 200);
+  assert.match(got.text, /Day one/);
   assert.ok(w.d.all<{ text: string }>("SELECT text FROM library_chunks WHERE resource_id = ?", id).some((c) => /meet the team/.test(c.text)));
+  const key = w.d.one<{ k: string }>("SELECT file_key AS k FROM library_resources WHERE id = ?", id).k;
+  assert.ok(key.startsWith(`library/${w.companyId}/`), key);
 
-  const bad = new FormData();
-  bad.set("file", new File(["x"], "run.exe", { type: "application/x-msdownload" }));
-  await ok(w.d.call(w.root, "POST", `${L}/manage/files`, bad), "bad type", 400);
+  // My Library: only the person opens it.
+  const mine = await ok(w.d.call(w.reader, "POST", `${R}/mine/files`, file("my-notes.txt", "My private notes.")), "mine upload", 201);
+  assert.equal(mine.item.scope, "personal");
+  assert.equal(mine.item.status, "published");
+  assert.match((await w.d.call(w.reader, "GET", `${R}/files/${mine.item.id}`)).text, /private notes/);
+  await ok(w.d.call(w.owner, "GET", `${R}/files/${mine.item.id}`), "owner", 404);
+  await ok(w.d.call(w.other, "GET", `${R}/files/${mine.item.id}`), "other", 404);
+
+  await ok(w.d.call(w.owner, "POST", `${w.M}/files`, file("run.exe", "x", "application/x-msdownload")), "bad type", 400);
 });
 
 test("ask: chunk ranking and citation cleanup", () => {
@@ -227,10 +345,13 @@ test("ask: chunk ranking and citation cleanup", () => {
   assert.equal(r.citations.length, 2);
 });
 
-test("ask: AG-UI stream from published resources only, with the person's AI rules", async () => {
+test("ask: AG-UI stream over the company library and the person's own items only", async () => {
   const w = await world({ AI_PROVIDER: "anthropic", ANTHROPIC_API_KEY: "test-key", CF_ACCOUNT_ID: "acct", AI_GATEWAY_ID: "gw" });
-  await add(w, { format: "article", title: "Weekly check-in", body: "Hold a short weekly meeting. Share wins and blockers." });
-  await add(w, { format: "article", title: "Secret draft about weekly meetings", body: "Not yet." }, false);
+  const R = `${L}/companies/${w.companyId}`;
+  await addCo(w, { format: "article", title: "Weekly check-in", body: "Hold a short weekly meeting. Share wins and blockers." });
+  await addCo(w, { format: "article", title: "Secret draft about weekly meetings", body: "Not yet." }, false);
+  await add(w, { format: "article", title: "Vault weekly meeting template", body: "A weekly meeting template." });
+  await ok(w.d.call(w.other, "POST", `${R}/mine`, { fields: { ...EMPTY_FIELDS, format: "article", title: "Other weekly meeting notes", body: "Weekly meeting private." } }), "other note", 201);
   const sent: { url: string; body: any }[] = [];
   await withFetch(
     (url, init) => {
@@ -268,10 +389,12 @@ test("ask: AG-UI stream from published resources only, with the person's AI rule
       assert.match(system, /\[1\] Article: Weekly check-in/);
       assert.match(system, /Untrusted text/);
       assert.doesNotMatch(system, /Secret draft/, "drafts never go to the model");
+      assert.doesNotMatch(system, /Vault weekly/, "vault templates never go to the model");
+      assert.doesNotMatch(system, /Other weekly/, "another person's items never go to the model");
 
       // No chunk matches: no model call.
       const none = await askRun(w, "zebra migration");
-      assert.match(none.events.find((e) => e.type === "TEXT_MESSAGE_CONTENT")!.delta, /no published resource/);
+      assert.match(none.events.find((e) => e.type === "TEXT_MESSAGE_CONTENT")!.delta, /nothing about this yet/);
       assert.equal(sent.length, 1);
 
       // A follow-up uses the earlier question to find resources.
@@ -283,18 +406,26 @@ test("ask: AG-UI stream from published resources only, with the person's AI rule
       });
       assert.equal(sent.length, 2);
       assert.equal(sent[1]!.body.messages.length, 3);
+
+      // The person's own items join the search, marked as private.
+      await ok(w.d.call(w.reader, "POST", `${R}/mine`, { fields: { ...EMPTY_FIELDS, format: "article", title: "My zebra notes", body: "Zebra migration starts in June." } }), "my note", 201);
+      const mine = await askRun(w, "zebra migration");
+      assert.equal(sent.length, 3);
+      assert.match(sent[2]!.body.system, /\(the reader's own private item\): My zebra notes/);
+      const c = mine.events.findLast((e) => e.type === "CUSTOM")!.value.citations;
+      assert.equal(c[0].personal, true);
     }
   );
 });
 
-test("ask: the setting turns it off, and bad input is refused", async () => {
+test("ask: the company setting turns it off, and bad input is refused", async () => {
   const w = await world();
-  await add(w, { format: "article", title: "Weekly check-in", body: "Meet each week." });
+  await addCo(w, { format: "article", title: "Weekly check-in", body: "Meet each week." });
   const a = await askRun(w, "weekly check-in");
   assert.match(a.events.find((e) => e.type === "TEXT_MESSAGE_CONTENT")!.delta, /Dev answer/);
   await ok(w.d.call(w.reader, "POST", `${L}/companies/${w.companyId}/ask`, { messages: [] }), "no question", 400);
   await ok(w.d.call(w.reader, "POST", `${L}/companies/${w.companyId}/ask`, { messages: [{ role: "user", content: "x".repeat(1001) }] }), "long", 400);
-  await ok(w.d.call(w.root, "PUT", `${L}/manage/settings`, { askOn: false }), "off");
+  await ok(w.d.call(w.owner, "PUT", `${w.M}/settings`, { askOn: false }), "off");
   const cfg = await ok(w.d.call(w.reader, "GET", `${L}/companies/${w.companyId}/config`), "config");
   assert.equal(cfg.canAsk, false);
   assert.equal(cfg.ai, null);
@@ -336,8 +467,10 @@ test("webhook: a key adds links to To review, or publishes them; a wrong key doe
       assert.equal(r.status, "published");
     }
   );
-  const list = await ok(w.d.call(w.reader, "GET", `${L}/companies/${w.companyId}/resources`), "list");
+  const list = await ok(w.d.call(w.root, "GET", `${L}/manage/resources?tab=published`), "list");
   assert.deepEqual(list.items.map((x: { title: string }) => x.title), ["Q5 note"]);
+  const members = await ok(w.d.call(w.reader, "GET", `${L}/companies/${w.companyId}/resources`), "members");
+  assert.deepEqual(members.items, [], "automations feed the vault, not companies");
 
   // A new key stops the old one.
   const k2 = await ok(w.d.call(w.root, "POST", `${L}/manage/automations/${made.automation.id}/key`), "new key");
@@ -396,16 +529,38 @@ test("feeds: check, start with the latest entries, then add only new ones; pause
   });
 });
 
-test("service: other apps read published resources and search them", async () => {
+test("service: other apps read one company's published resources and search them", async () => {
   const w = await world();
-  const topic = await term(w, "topic", "Team");
-  await add(w, { format: "article", title: "Weekly check-in", body: "Meet each week.", termIds: [topic] });
-  await add(w, { format: "article", title: "Draft", body: "Weekly." }, false);
+  const topic = await term(w, "topic", "Team", true);
+  await addCo(w, { format: "article", title: "Weekly check-in", body: "Meet each week.", termIds: [topic] });
+  await addCo(w, { format: "article", title: "Draft", body: "Weekly." }, false);
+  await add(w, { format: "article", title: "Vault weekly", body: "Weekly." });
+  await ok(w.d.call(w.reader, "POST", `${L}/companies/${w.companyId}/mine`, { fields: { ...EMPTY_FIELDS, format: "article", title: "My weekly", body: "Weekly." } }), "mine", 201);
   const svc = appService<LibraryContentService>("library", "content");
   assert.ok(svc);
   const env = w.d.env as never;
-  assert.deepEqual((await svc!.listResources(env, { topicIds: [topic] })).map((r) => r.title), ["Weekly check-in"]);
-  assert.deepEqual((await svc!.search(env, "weekly")).map((r) => r.title), ["Weekly check-in"]);
-  assert.deepEqual((await svc!.listTerms(env, "topic")).map((t) => t.name), ["Team"]);
+  assert.deepEqual((await svc!.listResources(env, w.companyId, { topicIds: [topic] })).map((r) => r.title), ["Weekly check-in"]);
+  assert.deepEqual((await svc!.search(env, w.companyId, "weekly")).map((r) => r.title), ["Weekly check-in"]);
+  assert.deepEqual((await svc!.listTerms(env, w.companyId, "topic")).map((t) => t.name), ["Team"]);
   assert.match(svc!.resourcePath("abc"), /^\/a\/library\/r\/abc$/);
+});
+
+test("deleting a company deletes its library, My Library items and files", async () => {
+  const w = await world();
+  const R = `${L}/companies/${w.companyId}`;
+  const keep = await add(w, { format: "article", title: "Vault stays", body: "x" });
+  const co = await addCo(w, { format: "article", title: "Company item", body: "x" });
+  await ok(w.d.call(w.reader, "PUT", `${R}/bookmarks/${co}`), "save");
+  const f = new FormData();
+  f.set("file", new File(["notes"], "notes.txt", { type: "text/plain" }));
+  const mine = await ok(w.d.call(w.reader, "POST", `${R}/mine/files`, f), "file", 201);
+  const key = w.d.one<{ k: string }>("SELECT file_key AS k FROM library_resources WHERE id = ?", mine.item.id).k;
+  await ok(w.d.call(w.owner, "PUT", `${w.M}/settings`, { title: "Ours" }), "settings");
+  const del = await w.d.call(w.owner, "DELETE", `/api/companies/${w.companyId}`, { confirm: "Oak Lane" });
+  assert.ok(del.status < 300, del.text);
+  assert.equal(w.d.all("SELECT * FROM library_resources WHERE company_id = ?", w.companyId).length, 0);
+  assert.equal(w.d.all("SELECT * FROM library_bookmarks WHERE company_id = ?", w.companyId).length, 0);
+  assert.equal(w.d.all("SELECT * FROM library_company_settings WHERE company_id = ?", w.companyId).length, 0);
+  assert.equal(await (w.d.env as unknown as { FILES: { get(k: string): Promise<unknown> } }).FILES.get(key), null);
+  assert.ok(w.d.one("SELECT id FROM library_resources WHERE id = ?", keep));
 });
