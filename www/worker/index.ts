@@ -1,11 +1,12 @@
 import { handleContribute, isContributeRoute, type ContributeEnv } from "./contribute.ts";
+import { handleProducer, PRODUCER_API, type ProducerEnv } from "./producer.ts";
 
 /*
  * The openact-site Worker at https://openact.ing.
- * It sends www.openact.ing to openact.ing, answers the contribution routes (/api/contribute) and serves the files that Astro builds into dist/.
+ * It sends www.openact.ing to openact.ing, answers the contribution routes (/api/contribute), sends the Producer form (/api/producer) and serves the files that Astro builds into dist/.
  */
 
-interface Env extends ContributeEnv {
+interface Env extends ContributeEnv, ProducerEnv {
   ASSETS: Fetcher;
 }
 
@@ -17,6 +18,7 @@ export default {
       return Response.redirect(url.toString(), 301);
     }
     if (isContributeRoute(url.pathname)) return handleContribute(request, env);
+    if (url.pathname === PRODUCER_API) return handleProducer(request, env);
     return env.ASSETS.fetch(request);
   }
 } satisfies ExportedHandler<Env>;

@@ -14,10 +14,10 @@ This folder is its own project. You can build and deploy it from here. You do no
 | `src/styles/` | `site.css` is shared by every page that uses the layout. Each page has its own file, such as `home.css`. |
 | `src/site.ts` | Links that many pages use, such as the demo and the docs. |
 | `public/` | Files that are copied as they are: images, `_headers`, `robots.txt`, `sitemap.xml`, `contribute.js`, the Promptbook files. |
-| `worker/` | The `openact-site` Worker. It sends www.openact.ing to openact.ing, answers the contribution routes (`/api/contribute`) and serves the built files. |
+| `worker/` | The `openact-site` Worker. It sends www.openact.ing to openact.ing, answers the contribution routes (`/api/contribute`), sends the Producer form (`/api/producer`) and serves the built files. |
 | `wrangler.jsonc` | The Worker settings. |
 
-Astro builds the pages into `dist/`. The pages have no JavaScript. Only the Contribute page runs one script (`public/contribute.js`). The rules in `public/_headers` allow no other script.
+Astro builds the pages into `dist/`. Most pages have no JavaScript. The Contribute page runs `public/contribute.js`, and the Producer page runs `public/producer.js`. The rules in `public/_headers` allow no other script.
 
 ## Work on the site
 
@@ -50,6 +50,26 @@ npm run preview   # Build, then run the real Worker at http://localhost:8787
 5. Do not add a `<script>`. The page rules block it. If a page needs a script, add a rule for its path in `public/_headers`, like the one for `/contribute`.
 
 The Promptbook page (`design.astro`) has its own look and does not use the layout. `npm run design -- build` (from the repository root) writes the parts between its `promptbook` markers. Do not edit those parts by hand.
+
+## The Producer form
+
+"Book a scoping call" on `/producer` opens a side drawer with a form (`src/components/build/ScopingDrawer.astro`). The form posts to `/api/producer` (`worker/producer.ts`). The Worker emails the request through [Resend](https://resend.com). Reply-To is the visitor, so you answer them with a plain reply.
+
+Set these on the `openact-site` Worker. Until all three are set, the form says that it is not set up yet.
+
+| Setting | What it does |
+| --- | --- |
+| `RESEND_API_KEY` | Secret. A Resend API key that can send email. |
+| `PRODUCER_TO` | Where requests go. Separate more than one address with commas. |
+| `PRODUCER_FROM` | The sender, such as `OpenAct <hello@openact.ing>`. Verify its domain in Resend first. |
+
+```sh
+npx wrangler secret put RESEND_API_KEY --config www/wrangler.jsonc
+npx wrangler secret put PRODUCER_TO --config www/wrangler.jsonc
+npx wrangler secret put PRODUCER_FROM --config www/wrangler.jsonc
+```
+
+The form has a honeypot box and a limit of 5 posts per hour from one IP address. Without JavaScript, the drawer still opens and the form still posts.
 
 ## Deploy
 

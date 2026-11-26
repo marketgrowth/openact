@@ -1,11 +1,13 @@
 ---
 // The Producer page at https://openact.ing/producer. The Plans section on the home page links here.
 // Producer is Custom Apps as a Service: MarketGrowth runs OpenAct and builds the customer's primary custom app with them.
+// "Book a scoping call" links go to #book, the side drawer in components/build/ScopingDrawer.astro. Its script is public/producer.js.
 import Site from "../layouts/Site.astro";
 import "../styles/home.css";
 import "../styles/build.css";
 import Ideas from "../components/build/Ideas.astro";
-import { DEMO_URL, DOCS_URL, PRODUCER_CONTACT_URL } from "../site";
+import ScopingDrawer from "../components/build/ScopingDrawer.astro";
+import { DEMO_URL, DOCS_URL } from "../site";
 ---
 <Site
   path="/producer"
@@ -20,7 +22,7 @@ import { DEMO_URL, DOCS_URL, PRODUCER_CONTACT_URL } from "../site";
       <h1>Your custom app,<br /><em>produced with you.</em></h1>
       <p class="lead">Producer is the OpenAct studio. We install and manage OpenAct for you. Then we work with you to build the primary custom app for your business. You own the app and the data.</p>
       <div class="actions">
-        <a class="btn btn-accent" href={PRODUCER_CONTACT_URL}>Book a scoping call</a>
+        <a class="btn btn-accent" href="#book">Book a scoping call</a>
         <a class="btn btn-ghost arrow" href="#ideas">See what you could build</a>
       </div>
       <p class="note">One yearly price per company. Nonprofits get 50% off.</p>
@@ -113,7 +115,7 @@ import { DEMO_URL, DOCS_URL, PRODUCER_CONTACT_URL } from "../site";
             <li>No seats: invite your whole team</li>
             <li>50% off for nonprofits</li>
           </ul>
-          <a class="btn btn-accent" href={PRODUCER_CONTACT_URL}>Book a scoping call</a>
+          <a class="btn btn-accent" href="#book">Book a scoping call</a>
           <a class="btn btn-ghost" href={`${DOCS_URL}/plans`}>Read about the plans</a>
         </article>
         <div class="s7 qs">
@@ -136,10 +138,12 @@ import { DEMO_URL, DOCS_URL, PRODUCER_CONTACT_URL } from "../site";
           <div class="key"><b>01</b>Book a scoping call.</div>
           <div class="key"><b>02</b>We map the work and write the app brief.</div>
           <div class="key"><b>03</b>We build the app with you on OpenAct.</div>
-          <a class="btn btn-accent" href={PRODUCER_CONTACT_URL}>Book a scoping call</a>
+          <a class="btn btn-accent" href="#book">Book a scoping call</a>
           <a class="btn btn-ghost" href="/build">Build it yourself instead</a>
         </div>
       </div>
     </section>
   </div>
+  <ScopingDrawer />
+  <script is:inline slot="end" src="/producer.js"></script>
 </Site>

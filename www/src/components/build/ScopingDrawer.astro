@@ -1,0 +1,86 @@
+---
+// The "Book a scoping call" side drawer on /producer. Links to #book open it.
+// With JavaScript (public/producer.js) it opens as a modal dialog and sends the form with fetch.
+// Without JavaScript, #book shows it through :target, and the form posts to /api/producer (worker/producer.ts).
+---
+<dialog class="drawer" id="book" aria-labelledby="book-title">
+  <div class="drawer-panel">
+    <div class="drawer-head">
+      <h2 id="book-title">Book a scoping call</h2>
+      <a class="drawer-close" href="#close" data-close>Close</a>
+    </div>
+    <p class="drawer-lead">Tell us about your business and the app that you need. We reply by email with times for the call.</p>
+
+    <form class="drawer-form" action="/api/producer" method="post" data-producer-form novalidate>
+      <div class="hp" aria-hidden="true">
+        <label for="b-botcheck">Leave this box clear</label>
+        <input type="checkbox" id="b-botcheck" name="botcheck" tabindex="-1" autocomplete="off" />
+      </div>
+      <div class="fld">
+        <label for="b-name">Your name</label>
+        <input id="b-name" name="name" autocomplete="name" required maxlength="200" />
+      </div>
+      <div class="fld">
+        <label for="b-email">Email</label>
+        <input id="b-email" name="email" type="email" autocomplete="email" required maxlength="254" />
+      </div>
+      <div class="fld">
+        <label for="b-org">Business or organization name</label>
+        <input id="b-org" name="organization" autocomplete="organization" maxlength="200" />
+      </div>
+      <div class="fld">
+        <label for="b-site">Website (if you have one)</label>
+        <input id="b-site" name="website" inputmode="url" autocomplete="url" maxlength="200" placeholder="example.com" />
+      </div>
+      <div class="fld">
+        <label for="b-kind">We are</label>
+        <select id="b-kind" name="kind">
+          <option>A growing business</option>
+          <option>A nonprofit</option>
+          <option>A solo founder</option>
+          <option>An agency or a partner</option>
+        </select>
+      </div>
+      <div class="fld">
+        <label for="b-app">What app do you want to build?</label>
+        <textarea id="b-app" name="app" rows="5" required maxlength="3000" placeholder="Tell us the work that your team repeats, and the tools and data that you use now."></textarea>
+      </div>
+      <div class="fld">
+        <label for="b-start">When do you want to start?</label>
+        <select id="b-start" name="start">
+          <option>This month</option>
+          <option>In 1 to 3 months</option>
+          <option>I am only looking</option>
+        </select>
+      </div>
+      <p class="form-status" role="alert" data-status></p>
+      <button type="submit" class="btn btn-accent">Send my request</button>
+      <p class="fine">We use your details only to reply to you about Producer.</p>
+    </form>
+
+    <div class="drawer-done" data-done hidden tabindex="-1">
+      <h3>Request received<span data-done-name></span></h3>
+      <p>We have your request for a scoping call.</p>
+      <h4>What happens next</h4>
+      <ol>
+        <li>We read about your business and the app you need.</li>
+        <li>We email <b data-done-email>you</b> with times for the call.</li>
+        <li>On the call, we map the work and agree on the first build.</li>
+      </ol>
+      <p class="fine">Look for our email in your inbox. Check your spam folder if you do not see it.</p>
+      <a class="btn btn-ghost" href="#close" data-close>Close this panel</a>
+    </div>
+  </div>
+</dialog>
+
+<!-- Messages for a form post without JavaScript. The Worker sends the browser to #sent or #send-error. -->
+<div class="drawer-note card" id="sent">
+  <h3>Request received</h3>
+  <p>We have your request for a scoping call. We reply by email with times for the call.</p>
+  <a class="btn btn-ghost btn-sm" href="#close">Close</a>
+</div>
+<div class="drawer-note card" id="send-error">
+  <h3>We could not send your request</h3>
+  <p>Check your name, email and app details. Then <a href="#book">try again</a>.</p>
+  <a class="btn btn-ghost btn-sm" href="#close">Close</a>
+</div>
