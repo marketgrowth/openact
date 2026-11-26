@@ -119,6 +119,27 @@
           "class": "scrim",
           "light": "oklch(0 0 0 / 50%)",
           "dark": "oklch(0 0 0 / 65%)"
+        },
+        "glow-a": {
+          "intent": "The first soft glow behind a full-page background, such as the sign-in page. Decoration only.",
+          "css": "var(--glow-a)",
+          "class": "glow-a",
+          "light": "oklch(0.72 0.15 162 / 0.2)",
+          "dark": "oklch(0.72 0.16 162 / 0.17)"
+        },
+        "glow-b": {
+          "intent": "The second soft glow. It is the complement of the first. Decoration only.",
+          "css": "var(--glow-b)",
+          "class": "glow-b",
+          "light": "oklch(0.66 0.19 5 / 0.13)",
+          "dark": "oklch(0.68 0.2 5 / 0.12)"
+        },
+        "glow-c": {
+          "intent": "The third soft glow, a cool blue. Decoration only.",
+          "css": "var(--glow-c)",
+          "class": "glow-c",
+          "light": "oklch(0.62 0.13 268 / 0.1)",
+          "dark": "oklch(0.64 0.13 268 / 0.09)"
         }
       }
     },
@@ -302,6 +323,27 @@
           "class": "warn-border",
           "light": "oklch(0.86 0.09 85)",
           "dark": "oklch(0.42 0.07 75)"
+        },
+        "shift-day": {
+          "intent": "A scheduled shift that starts in the day (5 AM to 1 PM).",
+          "css": "var(--shift-day)",
+          "class": "shift-day",
+          "light": "#12847a",
+          "dark": "#3cc0b3"
+        },
+        "shift-evening": {
+          "intent": "A scheduled shift that starts in the evening (1 PM to 9 PM).",
+          "css": "var(--shift-evening)",
+          "class": "shift-evening",
+          "light": "#3a63c9",
+          "dark": "#7ea2ff"
+        },
+        "shift-night": {
+          "intent": "A scheduled shift that starts at night (9 PM to 5 AM).",
+          "css": "var(--shift-night)",
+          "class": "shift-night",
+          "light": "#7353c4",
+          "dark": "#a886e6"
         }
       }
     },
@@ -1005,6 +1047,30 @@
       "min": 3,
       "light": 5.35,
       "dark": 10.63
+    },
+    {
+      "fg": "shift-day",
+      "bg": "card",
+      "kind": "graphic",
+      "min": 3,
+      "light": 4.56,
+      "dark": 8
+    },
+    {
+      "fg": "shift-evening",
+      "bg": "card",
+      "kind": "graphic",
+      "min": 3,
+      "light": 5.51,
+      "dark": 7.25
+    },
+    {
+      "fg": "shift-night",
+      "bg": "card",
+      "kind": "graphic",
+      "min": 3,
+      "light": 5.58,
+      "dark": 6.16
     }
   ]
 }

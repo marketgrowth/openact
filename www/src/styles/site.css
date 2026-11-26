@@ -127,8 +127,8 @@ h1, h2, h3 { font-family: var(--display); color: var(--ink); }
 .top { position: sticky; top: 0; z-index: 20; background: color-mix(in oklab, var(--bg) 78%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid var(--edge); }
 .top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 60px; }
 .brand { display: inline-flex; align-items: center; gap: 10px; font-family: var(--display); font-weight: 700; font-size: 18px; letter-spacing: -0.01em; text-decoration: none; }
-.brand svg { width: 24px; height: 24px; }
 .beta { font-family: var(--mono); font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; line-height: 1.4; padding: 2px 7px; border-radius: 999px; color: var(--warn); background: var(--warn-soft); border: 1px solid color-mix(in oklab, var(--warn) 40%, transparent); }
+.brand svg { width: 24px; height: 24px; }
 .nav { display: flex; align-items: center; gap: 8px; font-size: 14px; }
 .nav a.pill { padding: 6px 13px; border: 1px solid var(--edge-strong); border-radius: 999px; color: var(--soft); text-decoration: none; }
 .nav a.pill:hover { color: var(--ink); border-color: var(--muted); }

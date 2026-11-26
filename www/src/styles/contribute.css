@@ -1,7 +1,7 @@
 /* The Contribute page only. Shared parts are in site.css. */
 /* Hero */
 .intro { padding-top: 72px; max-width: 820px; }
-.intro h1 { margin: 18px 0 18px; font-size: clamp(2.5rem, 5.6vw, 4.5rem); font-weight: 750; letter-spacing: -0.04em; line-height: 1.04; }
+.intro h1 { margin: 18px 0 18px; font-size: clamp(2.5rem, 5.6vw, 4.5rem); font-weight: 700; letter-spacing: -0.03em; line-height: 1.04; }
 .intro .lead { margin: 0; max-width: 620px; color: var(--soft); font-size: 18px; }
 
 /* Sections: a label column and a content column */
