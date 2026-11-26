@@ -25,6 +25,21 @@ const current = (name: Props["page"]) => (page === name ? "page" : undefined);
       <a class="pill" href={GITHUB_URL}>GitHub</a>
       <a class="pill" href="/contribute" aria-current={current("contribute")}>Contribute</a>
       <a class="btn btn-accent btn-sm" href={DEMO_URL}>Try the demo</a>
+      <!-- The menu on small screens. It is a details element, because these pages run no script. -->
+      <details class="menu">
+        <summary aria-label="Menu"><span class="menu-icon" aria-hidden="true"><i></i><i></i><i></i></span></summary>
+        <div class="menu-panel">
+          <a href={`${home}#features`}>Features</a>
+          <a href={`${home}#plans`}>Plans</a>
+          <a href="/build">Build your own apps</a>
+          <a href="/producer">Producer</a>
+          <a href="/design">Design</a>
+          <a href={DOCS_URL}>Docs</a>
+          <a href={GITHUB_URL}>GitHub</a>
+          <a href="/contribute" aria-current={current("contribute")}>Contribute</a>
+          <a class="btn btn-accent" href={DEMO_URL}>Try the demo</a>
+        </div>
+      </details>
     </nav>
   </div>
 </header>
