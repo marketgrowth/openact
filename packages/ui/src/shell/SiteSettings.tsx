@@ -22,7 +22,7 @@ import { Separator } from "@openact/ui/components/separator";
 import { SiteCompanyApps } from "./SiteCompanyApps";
 
 /** Which part of Site settings to show. Each one is a section of the Settings page. */
-export type SiteSection = "general" | "sign-in" | "apps";
+export type SiteSection = "general" | "sign-in" | "onboarding" | "apps";
 
 /**
  * Site settings for super admins: the app name, the logo, the sign-in page and the apps of this deploy.
@@ -42,6 +42,7 @@ export function SiteSettingsSection({ section, onSaved }: { section: SiteSection
   const [signInBusy, setSignInBusy] = useState(false);
   const [issuesUrl, setIssuesUrl] = useState("");
   const [issuesBusy, setIssuesBusy] = useState(false);
+  const [onboardingBusy, setOnboardingBusy] = useState(false);
 
   // The form holds what a super admin saved. Empty fields mean the defaults.
   const signInForm = (s: SiteSettings) => ({
@@ -94,6 +95,18 @@ export function SiteSettingsSection({ section, onSaved }: { section: SiteSection
       toast(errorText(err));
     } finally {
       setIssuesBusy(false);
+    }
+  };
+
+  const setOnboarding = async (enabled: boolean) => {
+    setOnboardingBusy(true);
+    try {
+      apply(await api<SiteSettings>("/api/site/onboarding", { method: "PATCH", body: { enabled } }));
+      toast(enabled ? "Onboarding is on." : "Onboarding is off.");
+    } catch (err) {
+      toast(errorText(err));
+    } finally {
+      setOnboardingBusy(false);
     }
   };
 
@@ -236,6 +249,26 @@ export function SiteSettingsSection({ section, onSaved }: { section: SiteSection
             </Button>
           </div>
         </form>
+      </div>
+    );
+
+  if (section === "onboarding")
+    return (
+      <div className="grid gap-4" data-site-onboarding="">
+        <div className="flex items-start justify-between gap-4 rounded-lg border p-4">
+          <div className="grid gap-1">
+            <h3 id="site-onboarding-label" className="text-sm font-medium">
+              Ask new people to set up a company
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {site.onboardingEnabled
+                ? "On: a new person with no company answers three questions. OpenAct makes their company and first workspace."
+                : "Off: a new person with no company sees an empty screen and uses New company in the menu."}
+            </p>
+          </div>
+          <Switch checked={site.onboardingEnabled} disabled={onboardingBusy} onCheckedChange={setOnboarding} aria-labelledby="site-onboarding-label" />
+        </div>
+        <p className="text-sm text-muted-foreground">A person who joins through an invitation never sees this step. It applies to you too.</p>
       </div>
     );
 

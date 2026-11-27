@@ -18,6 +18,7 @@ import { Button } from "@openact/ui/components/button";
 
 // Loaded on first use, so the first page loads less code.
 const SettingsPage = lazy(() => import("./SettingsPage").then((m) => ({ default: m.SettingsPage })));
+const Onboarding = lazy(() => import("./Onboarding").then((m) => ({ default: m.Onboarding })));
 const NewCompanyDialog = lazy(() => import("./CompanyDialogs").then((m) => ({ default: m.NewCompanyDialog })));
 const AppsPage = lazy(() => import("./AppsPage").then((m) => ({ default: m.AppsPage })));
 const AgentConsent = lazy(() => import("./AgentConsent").then((m) => ({ default: m.AgentConsent })));
@@ -199,6 +200,15 @@ function SignedIn({
       .then((s) => setSuperAdmin(s.canEdit))
       .catch(() => setSuperAdmin(false));
   }, [me.id]);
+  // A new person with no company sets one up first (docs/onboarding.md). undefined while it loads.
+  const [onboarding, setOnboarding] = useState<boolean | undefined>(undefined);
+  useEffect(() => {
+    if (ws.companies === null) return;
+    if (ws.companies.length > 0) return setOnboarding(false);
+    api<{ required: boolean }>("/api/onboarding")
+      .then((r) => setOnboarding(r.required))
+      .catch(() => setOnboarding(false));
+  }, [ws.companies]);
   // Apps that are off in this company leave the rail, the commands and the routes.
   const disabled = ws.access?.disabledApps ?? [];
   const disabledKey = disabled.join(",");
@@ -264,6 +274,13 @@ function SignedIn({
     }),
     [me, config, apps, primary, directory]
   );
+
+  if (onboarding && ws.companies?.length === 0)
+    return (
+      <Suspense fallback={<div className="min-h-dvh bg-background" aria-busy="true" />}>
+        <Onboarding appName={config.appName} logoUrl={config.logoUrl} email={me.email} />
+      </Suspense>
+    );
 
   // The page: the first app route that matches, or the first app's home page at "/".
   let page: ReactNode =

@@ -36,6 +36,8 @@ export interface SiteSettings {
   issuesUrl: string | null;
   /** True when this person is a super admin. */
   canEdit: boolean;
+  /** False when a super admin turned onboarding off. It is on by default. */
+  onboardingEnabled: boolean;
   /** The sign-in page as it shows now. */
   signIn: SignInPage & {
     /** True when a super admin set a heading. False means the default heading and credit show. */

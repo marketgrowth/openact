@@ -1,3 +1,4 @@
+import type { EntityType } from "./onboarding.ts";
 /*
  * Core types shared by the Worker and the web app: people, companies and app config.
  * Apps add their own types in their own packages.
@@ -93,6 +94,9 @@ export const isHexColor = (v: string): boolean => /^#(?:[0-9a-f]{3}|[0-9a-f]{6})
 /** GET /api/companies/:id. Apps can add fields, such as their company settings. */
 export interface CompanyDetail extends Company {
   emailDomain: string | null;
+  /** The official name, as on the company's filings. Null for a company made before onboarding. */
+  legalName: string | null;
+  entityType: EntityType | null;
   members: Array<{ userId: string; email: string; name: string; role: CompanyRole }>;
   invitations: Array<{ id: string; email: string; role: CompanyRole; createdAt: string }>;
 }

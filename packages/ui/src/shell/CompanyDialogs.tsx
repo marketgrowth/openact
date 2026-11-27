@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { ENTITY_TYPES, ENTITY_TYPE_LABELS, type EntityType } from "@openact/core/shared";
 import { COMPANY_ROLES, COMPANY_ROLE_HELP, COMPANY_ROLE_LABELS, type Company, type CompanyDetail, type CompanyRole, type User } from "@openact/core/shared";
 import { api, errorText } from "../api";
 import { navigate } from "../router";
@@ -65,6 +66,8 @@ export function GeneralTab({ detail, me, onChanged }: { detail: CompanyDetail; m
   const toast = useToast();
   const [name, setName] = useState(detail.name);
   const [domain, setDomain] = useState(detail.emailDomain ?? "");
+  const [legalName, setLegalName] = useState(detail.legalName ?? "");
+  const [entityType, setEntityType] = useState<EntityType | "">(detail.entityType ?? "");
   const [busy, setBusy] = useState(false);
   const file = useRef<HTMLInputElement>(null);
   const myDomain = me.email.split("@")[1] ?? "";
@@ -73,7 +76,7 @@ export function GeneralTab({ detail, me, onChanged }: { detail: CompanyDetail; m
     e.preventDefault();
     setBusy(true);
     try {
-      await api(`/api/companies/${detail.id}`, { method: "PATCH", body: { name, emailDomain: domain.trim() || null } });
+      await api(`/api/companies/${detail.id}`, { method: "PATCH", body: { name, legalName: legalName.trim() || null, entityType: entityType || null, emailDomain: domain.trim() || null } });
       toast("Company saved.");
       await onChanged();
     } catch (err) {
@@ -124,6 +127,19 @@ export function GeneralTab({ detail, me, onChanged }: { detail: CompanyDetail; m
       <form className="grid gap-5" onSubmit={save}>
         <Field label="Company name" htmlFor="cs-name">
           <Input id="cs-name" required maxLength={80} value={name} onChange={(e) => setName(e.target.value)} />
+        </Field>
+        <Field label="Official company name" htmlFor="cs-legal" help="The legal name, as it shows on your filings.">
+          <Input id="cs-legal" maxLength={80} value={legalName} onChange={(e) => setLegalName(e.target.value)} />
+        </Field>
+        <Field label="Company type" htmlFor="cs-type">
+          <NativeSelect id="cs-type" value={entityType} onChange={(e) => setEntityType(e.target.value as EntityType | "")}>
+            <NativeSelectOption value="">Not set</NativeSelectOption>
+            {ENTITY_TYPES.map((t) => (
+              <NativeSelectOption key={t} value={t}>
+                {ENTITY_TYPE_LABELS[t]}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
         </Field>
         <Field label="Logo" help="PNG, JPEG or WebP, up to 1 MB. A square image looks best.">
           <div className="flex flex-wrap items-center gap-3">
