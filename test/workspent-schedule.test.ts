@@ -25,7 +25,7 @@ async function world() {
   };
   await ok(owner, "POST", "/api/companies", { name: "Sunrise Care" });
   const companyId = d.one<{ id: string }>("SELECT company_id AS id FROM company_members WHERE user_id = ?", owner.id).id;
-  for (const p of [member, other]) await ok(owner, "POST", `/api/companies/${companyId}/members`, { email: p.email, role: "member" });
+  for (const p of [member, other]) await d.join(owner, companyId, p);
   await ok(owner, "PATCH", `/api/companies/${companyId}/apps/workspent`, { enabled: true });
   const c = `${API}/companies/${companyId}`;
   const loc = (await ok(owner, "POST", `${c}/locations`, { name: "Oak Lane Home", timeZone: "America/Los_Angeles", periodKind: "weekly", periodStartDate: sundayOf(-2) })).location;

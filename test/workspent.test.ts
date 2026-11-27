@@ -31,8 +31,8 @@ async function world() {
   };
   await ok(owner, "POST", "/api/companies", { name: "Sunrise Care" });
   const companyId = d.one<{ id: string }>("SELECT company_id AS id FROM company_members WHERE user_id = ?", owner.id).id;
-  await ok(owner, "POST", `/api/companies/${companyId}/members`, { email: member.email, role: "member" });
-  await ok(owner, "POST", `/api/companies/${companyId}/members`, { email: other.email, role: "member" });
+  await d.join(owner, companyId, member);
+  await d.join(owner, companyId, other);
   const c = `${API}/companies/${companyId}`;
   return { d, owner, member, other, companyId, c, call, ok };
 }

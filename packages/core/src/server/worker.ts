@@ -6,6 +6,7 @@ import { authRoutes, meRoutes, sessionMiddleware } from "./auth";
 import { companyRoutes } from "./companies";
 import { workspaceRoutes } from "./workspaces";
 import { onboardingRoutes } from "./onboarding";
+import { invitationRoutes } from "./invitations";
 import { liveChanges } from "./live";
 import { HttpError, appName } from "./util";
 import { setApps, type ServerApp } from "./apps";
@@ -119,6 +120,7 @@ export function createApp({ apps, catalog }: { apps: ServerApp[]; catalog?: AppI
   app.route("/api/site", siteRoutes);
   app.route("/api/partner", partnerRoutes);
   app.route("/api/onboarding", onboardingRoutes);
+  app.route("/api/invitations", invitationRoutes);
   app.route("/api/companies", companyRoutes);
   app.route("/api/companies", workspaceRoutes);
   app.route("/api/companies", companyAppRoutes);

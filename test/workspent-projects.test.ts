@@ -26,14 +26,8 @@ async function world() {
   };
   await ok(owner, "POST", "/api/companies", { name: "Oak Lane Homes" });
   const companyId = d.one<{ id: string }>("SELECT company_id AS id FROM company_members WHERE user_id = ?", owner.id).id;
-  await ok(owner, "POST", `/api/companies/${companyId}/members`, {
-    email: admin.email,
-    role: "admin"
-  });
-  await ok(owner, "POST", `/api/companies/${companyId}/members`, {
-    email: maria.email,
-    role: "member"
-  });
+  await d.join(owner, companyId, admin, "admin");
+  await d.join(owner, companyId, maria, "member");
   await ok(owner, "PATCH", `/api/companies/${companyId}/apps/workspent`, {
     enabled: true
   });

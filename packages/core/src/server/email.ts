@@ -81,18 +81,21 @@ export function emailButton(url: string, label: string): string {
 
 export function companyInviteEmail(
   env: Env,
-  opts: { to: string; companyName: string; inviterName: string; role: string; url: string; hasAccount: boolean }
+  opts: { to: string; companyName: string; inviterName: string; role: string; url: string; siteName?: string }
 ): EmailMessage {
-  const action = opts.hasAccount ? "Open the company" : "Sign in to join";
-  const lead = `${opts.inviterName} added you to the company "${opts.companyName}" as ${/^[aeiou]/i.test(opts.role) ? "an" : "a"} ${opts.role.toLowerCase()}.`;
+  // The subject is fixed text. The company name and the inviter's name appear only in the body.
+  const site = opts.siteName ?? appName(env);
+  const lead = `${opts.inviterName} invited you to the company "${opts.companyName}" as ${/^[aeiou]/i.test(opts.role) ? "an" : "a"} ${opts.role.toLowerCase()}.`;
+  const action = "Review the invitation";
+  const foot = "Sign in with this email address. You get a one-time code. You do not need a password. You choose to accept or decline. The invitation expires in 14 days.";
   return {
     to: opts.to,
-    subject: `${opts.inviterName} added you to ${opts.companyName}`,
-    text: `${lead}\n\n${action}: ${opts.url}\n\nSign in with this email address. You get a one-time code. You do not need a password.`,
+    subject: `You have an invitation on ${site}`,
+    text: `${lead}\n\n${action}: ${opts.url}\n\n${foot}`,
     html: emailLayout(
       env,
-      `Join ${opts.companyName}`,
-      `<p style="margin:0 0 20px">${escapeHtml(lead)}</p>${emailButton(opts.url, action)}<p style="margin:0;color:#5a6577">Sign in with this email address. You get a one-time code. You do not need a password.</p>`
+      "You have an invitation",
+      `<p style="margin:0 0 20px">${escapeHtml(lead)}</p>${emailButton(opts.url, action)}<p style="margin:0;color:#5a6577">${escapeHtml(foot)}</p>`
     )
   };
 }

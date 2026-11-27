@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ENTITY_TYPES, ENTITY_TYPE_LABELS, type EntityType } from "@openact/core/shared";
 import { COMPANY_ROLES, COMPANY_ROLE_HELP, COMPANY_ROLE_LABELS, type Company, type CompanyDetail, type CompanyRole, type User } from "@openact/core/shared";
 import { api, errorText } from "../api";
@@ -199,6 +199,13 @@ export function PeopleTab({ detail, me, onChanged }: { detail: CompanyDetail; me
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"member" | "admin" | "owner">("member");
   const [busy, setBusy] = useState(false);
+  const [workspaceId, setWorkspaceId] = useState("");
+  const [workspaces, setWorkspaces] = useState<Array<{ id: string; name: string; isDefault: boolean }>>([]);
+  useEffect(() => {
+    api<{ workspaces: Array<{ id: string; name: string; isDefault: boolean }> }>(`/api/companies/${detail.id}/workspaces`)
+      .then((r) => setWorkspaces(r.workspaces))
+      .catch(() => setWorkspaces([]));
+  }, [detail.id]);
   const isOwner = detail.role === "owner";
   const ownerCount = detail.members.filter((m) => m.role === "owner").length;
 
@@ -206,8 +213,8 @@ export function PeopleTab({ detail, me, onChanged }: { detail: CompanyDetail; me
     e.preventDefault();
     setBusy(true);
     try {
-      const r = await api<{ added: "member" | "invitation" }>(`/api/companies/${detail.id}/members`, { body: { email, role } });
-      toast(r.added === "member" ? "Added. We sent them an email." : "Invitation sent. They join when they sign in.");
+      await api(`/api/companies/${detail.id}/members`, { body: { email, role, workspaceId: workspaceId || undefined } });
+      toast("Invitation sent. They join when they accept it.");
       setEmail("");
       await onChanged();
     } catch (err) {
@@ -275,6 +282,20 @@ export function PeopleTab({ detail, me, onChanged }: { detail: CompanyDetail; me
               {isOwner && <NativeSelectOption value="owner">Owner</NativeSelectOption>}
             </NativeSelect>
           </div>
+          {workspaces.length > 1 && (
+            <div className="sm:w-44 sm:shrink-0">
+              <NativeSelect aria-label="Workspace" value={workspaceId} onChange={(e) => setWorkspaceId(e.target.value)}>
+                <NativeSelectOption value="">Default workspace</NativeSelectOption>
+                {workspaces
+                  .filter((w) => !w.isDefault)
+                  .map((w) => (
+                    <NativeSelectOption key={w.id} value={w.id}>
+                      {w.name}
+                    </NativeSelectOption>
+                  ))}
+              </NativeSelect>
+            </div>
+          )}
           <Button type="submit" disabled={busy}>
             Invite
           </Button>
@@ -319,13 +340,15 @@ export function PeopleTab({ detail, me, onChanged }: { detail: CompanyDetail; me
       </ul>
       {detail.invitations.length > 0 && (
         <div className="grid gap-2">
-          <h3 className="text-sm font-medium">Waiting to sign in</h3>
+          <h3 className="text-sm font-medium">Waiting to accept</h3>
           <ul className="divide-y rounded-lg border">
             {detail.invitations.map((i) => (
               <li key={i.id} className="flex items-center gap-3 px-3 py-2.5">
                 <span className="grid min-w-0 flex-1 leading-tight">
                   <span className="truncate text-sm font-medium">{i.email}</span>
-                  <span className="text-xs text-muted-foreground">Invited as {COMPANY_ROLE_LABELS[i.role].toLowerCase()}</span>
+                  <span className="text-xs text-muted-foreground">Invited as {COMPANY_ROLE_LABELS[i.role].toLowerCase()}
+                    {i.workspaceName ? ` in ${i.workspaceName}` : ""}. Expires {new Date(i.expiresAt).toLocaleDateString()}.
+                  </span>
                 </span>
                 <Button type="button" variant="ghost" size="sm" onClick={() => cancelInvite(i.id)}>
                   Cancel

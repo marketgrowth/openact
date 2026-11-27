@@ -224,5 +224,14 @@ export function makeDeploy(vars: Record<string, string> = {}) {
   const one = <T>(sql: string, ...args: unknown[]) => db.prepare(sql).get(...(args as never[])) as T;
   const all = <T>(sql: string, ...args: unknown[]) => db.prepare(sql).all(...(args as never[])) as T[];
 
-  return { db, env, app, person, call, one, all };
+  /** Invites a person to a company and has them accept, the way two people do it in the app. */
+  async function join(inviter: Person, companyId: string, who: Person, role = "member") {
+    const r = await call(inviter, "POST", `/api/companies/${companyId}/members`, { email: who.email, role });
+    if (r.status !== 201) throw new Error(`invite ${who.email}: ${r.status} ${r.text}`);
+    const inv = one<{ id: string }>("SELECT id FROM company_invitations WHERE company_id = ? AND email = ?", companyId, who.email);
+    const a = await call(who, "POST", `/api/invitations/${inv.id}/accept`);
+    if (a.status !== 200) throw new Error(`accept ${who.email}: ${a.status} ${a.text}`);
+  }
+
+  return { db, env, app, person, call, one, all, join };
 }

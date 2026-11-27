@@ -16,6 +16,7 @@ import { SitePlan } from "./Plan";
 import { SiteSettingsSection, type SiteSection } from "./SiteSettings";
 import { SiteGrants } from "./SiteGrants";
 import { SiteDuplicate } from "./SiteDuplicate";
+import { SiteInviteCompany } from "./SiteInviteCompany";
 import { PartnerClientsTab, SitePartners } from "./Partners";
 import { ConnectedAgentsSection, ProfileSection, SecuritySection } from "./AccountSettings";
 
@@ -100,6 +101,8 @@ export function SettingsPage({
           <SiteGrants />
         ) : section.id === "plan" ? (
           <SitePlan />
+        ) : section.id === "invite-company" ? (
+          <SiteInviteCompany />
         ) : section.id === "companies" ? (
           <SiteDuplicate />
         ) : section.id === "partners" ? (

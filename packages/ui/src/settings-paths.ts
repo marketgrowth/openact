@@ -79,6 +79,13 @@ export const SITE_SECTIONS: readonly SettingsSection[] = [
   },
   {
     scope: "site",
+    id: "invite-company",
+    label: "Invite a company",
+    icon: "users",
+    description: "Invite a client company. You give its name and type and the email of its owner. The owner joins when they accept."
+  },
+  {
+    scope: "site",
     id: "companies",
     label: "Duplicate a company",
     icon: "copy",
