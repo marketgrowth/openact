@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { AppEnv, Env } from "./env";
 import { COMPANY_ROLES, COMPANY_ROLE_LABELS, type Company, type CompanyDetail, type CompanyRole, type User } from "../shared/types";
 import { emailDomainProblem } from "../shared/access";
+import { COMPANY_NAME_MAX, ENTITY_TYPES, type EntityType } from "../shared/onboarding";
 import { getApps, runHook } from "./apps";
 import { MAX_COMPANIES_PER_PERSON, deleteCompanyData } from "./company-copy";
 import { companyRole, requireCompanyRole } from "./data";
@@ -98,19 +99,21 @@ companyRoutes.get("/:id", async (c) => {
   const id = c.req.param("id");
   const role = await requireCompanyRole(c.env, id, user.id, ["owner", "admin"]);
   const [co, members, invites] = await c.env.DB.batch([
-    c.env.DB.prepare("SELECT id, name, logo_key, logo_updated_at, email_domain FROM companies WHERE id = ?").bind(id),
+    c.env.DB.prepare("SELECT id, name, logo_key, logo_updated_at, email_domain, legal_name, entity_type FROM companies WHERE id = ?").bind(id),
     c.env.DB.prepare(
       "SELECT u.id AS user_id, u.email, u.name, m.role FROM company_members m JOIN users u ON u.id = m.user_id WHERE m.company_id = ? ORDER BY CASE m.role WHEN 'owner' THEN 0 WHEN 'admin' THEN 1 WHEN 'member' THEN 2 ELSE 3 END, u.name COLLATE NOCASE"
     ).bind(id),
     c.env.DB.prepare("SELECT id, email, role, created_at FROM company_invitations WHERE company_id = ? ORDER BY created_at").bind(id)
   ]);
-  const r = co.results[0] as { id: string; name: string; logo_key: string | null; logo_updated_at: string | null; email_domain: string | null };
+  const r = co.results[0] as { id: string; name: string; logo_key: string | null; logo_updated_at: string | null; email_domain: string | null; legal_name: string | null; entity_type: EntityType | null };
   const detail: CompanyDetail = {
     id: r.id,
     name: r.name,
     role,
     logoUrl: logoUrl(r),
     emailDomain: r.email_domain,
+    legalName: r.legal_name,
+    entityType: r.entity_type,
     members: (members.results as Array<{ user_id: string; email: string; name: string; role: CompanyRole }>).map((m) => ({
       userId: m.user_id,
       email: m.email,
@@ -139,6 +142,14 @@ companyRoutes.patch("/:id", async (c) => {
   if (body.name !== undefined) {
     sets.push("name = ?");
     vals.push(text(body.name, "Company name", { max: 80, required: true }));
+  }
+  if (body.legalName !== undefined) {
+    sets.push("legal_name = ?");
+    vals.push(body.legalName === null || body.legalName === "" ? null : text(body.legalName, "Official company name", { max: COMPANY_NAME_MAX }));
+  }
+  if (body.entityType !== undefined) {
+    sets.push("entity_type = ?");
+    vals.push(body.entityType === null || body.entityType === "" ? null : oneOf(body.entityType, "Company type", ENTITY_TYPES));
   }
   if (body.emailDomain !== undefined) {
     if (body.emailDomain === null || body.emailDomain === "") {

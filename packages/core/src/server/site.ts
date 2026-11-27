@@ -18,6 +18,7 @@ import {
   siteLogoUrl,
   type SiteSettings
 } from "../shared/site";
+import { ONBOARDING_KEY } from "../shared/onboarding";
 import { HttpError, appName, nowIso, readJson, requireUser, text } from "./util";
 import { getApps } from "./apps";
 import { CopyError, MAX_COMPANIES_PER_PERSON, duplicateCompany } from "./company-copy";
@@ -58,6 +59,7 @@ export async function loadSite(env: Env, force = false): Promise<SiteState> {
     backgroundUpdatedAt: null,
     appsOff: [],
     planDescriptions: {},
+    onboardingOn: true,
     at: now
   };
   try {
@@ -78,6 +80,7 @@ export async function loadSite(env: Env, force = false): Promise<SiteState> {
       planDescriptions: Object.fromEntries(
         PLAN_IDS.map((id) => [id, m.get(planDescriptionKey(id)) ?? ""]).filter(([, v]) => v)
       ) as Partial<Record<PlanId, string>>,
+      onboardingOn: m.get(ONBOARDING_KEY) !== "0",
       at: now
     };
   } catch (e) {
@@ -131,6 +134,7 @@ function settings(c: Context<AppEnv>, s: SiteState): SiteSettings {
     logoUrl: siteLogo(s),
     issuesUrl: s.issuesUrl || null,
     canEdit,
+    onboardingEnabled: s.onboardingOn,
     signIn: { ...signInPage(s), customHeading: !!s.signInHeading },
     // Only super admins need the app switches.
     ...(canEdit ? { apps: getCatalog().map((a) => ({ id: a.id, name: a.name, enabled: !s.appsOff.includes(a.id), ...(a.reviewed === false ? { reviewed: false } : {}) })) } : {})
@@ -166,6 +170,20 @@ siteRoutes.patch("/", async (c) => {
   if ("problem" in r) throw new HttpError(400, r.problem);
   await write(c.env, [
     r.name ? upsert(c.env, "app_name", r.name, user.id, nowIso()) : c.env.DB.prepare("DELETE FROM site_settings WHERE key = 'app_name'")
+  ]);
+  return c.json(settings(c, await loadSite(c.env, true)));
+});
+
+/**
+ * Turns onboarding on or off. Body: { enabled: boolean }
+ * On (the default): a new person with no company sets one up. Off: they use New company in the menu.
+ */
+siteRoutes.patch("/onboarding", async (c) => {
+  const user = requireSuperAdmin(c);
+  const body = await readJson(c);
+  if (typeof body.enabled !== "boolean") throw new HttpError(400, "Enabled must be true or false.");
+  await write(c.env, [
+    body.enabled ? c.env.DB.prepare("DELETE FROM site_settings WHERE key = ?").bind(ONBOARDING_KEY) : upsert(c.env, ONBOARDING_KEY, "0", user.id, nowIso())
   ]);
   return c.json(settings(c, await loadSite(c.env, true)));
 });

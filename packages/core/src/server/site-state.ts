@@ -24,6 +24,8 @@ export interface SiteState {
   appsOff: string[];
   /** Plan descriptions that a super admin set. A missing plan uses the default. */
   planDescriptions: Partial<Record<PlanId, string>>;
+  /** False when a super admin turned onboarding off. Onboarding is on by default. */
+  onboardingOn: boolean;
   /** When this isolate read the settings, in milliseconds. */
   at: number;
 }

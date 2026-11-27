@@ -69,6 +69,7 @@ export const ACCOUNT_SECTIONS: readonly SettingsSection[] = [
 export const SITE_SECTIONS: readonly SettingsSection[] = [
   { scope: "site", id: "general", label: "Branding", icon: "image", description: "The app name, the logo and the Submit issues link that everyone on this site sees." },
   { scope: "site", id: "sign-in", label: "Sign-in page", icon: "signin", description: "The heading, credit, legal links and background of the sign-in page." },
+  { scope: "site", id: "onboarding", label: "Onboarding", icon: "users", description: "Ask a new person to set up their company when they first sign in." },
   {
     scope: "site",
     id: "apps",
