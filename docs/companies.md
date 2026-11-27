@@ -24,7 +24,7 @@ Each section has its own address, such as `/settings/company/people`, so you can
 | Company | Every company member, as a viewer. Company owners and admins manage it. People on the project keep their project role. |
 | Secret | Only the people on the project. Company owners and admins do not see it unless they are on it. |
 
-- **Invite to the company** from **Company settings > People**. People join as members, admins or owners. Only an owner can invite an owner.
+- **Invite to the company** from **Company settings > People**. People join as members, admins or owners, and only when they accept. Only an owner can invite an owner. See [Invitations](/invitations).
 - **Invite to one project** from that project's **People** tab. Someone from outside the company joins as a guest and sees only that project.
 - **Email domain auto-join.** Set a domain such as `acme.com` in **Company settings > General**. People who sign in with that domain join as members. Public domains such as gmail.com are refused, your own email must use the domain, and each domain belongs to one company.
 - **Request access.** A person who opens a project link without access sees a request form. The project owners get an email and approve (with a role) or decline in the **People** tab. Approving someone from outside the company makes them a guest. The page never shows the project's name.

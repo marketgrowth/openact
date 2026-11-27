@@ -17,6 +17,8 @@ const T = "2026-01-01T00:00:00.000Z";
 /** The workspace migrations. They run last, the way they run on a deploy that has data. */
 // The Docs app and its workspace migration are in openact-director, with their own tests.
 const NEW = new Set(["packages/core/migrations/0013_workspaces.sql", "apps/projects/migrations/0002_workspaces.sql"]);
+// Later migrations that point at workspaces. They run after the workspace migrations.
+const AFTER = new Set(["packages/core/migrations/0017_invitations.sql"]);
 
 function files(dirs: string[]): string[] {
   return dirs.flatMap((d) =>
@@ -72,12 +74,12 @@ function upgraded() {
   const db = new DatabaseSync(":memory:");
   run(
     db,
-    ALL.filter((f) => !NEW.has(f))
+    ALL.filter((f) => !NEW.has(f) && !AFTER.has(f))
   );
   seed(db);
   run(
     db,
-    ALL.filter((f) => NEW.has(f))
+    ALL.filter((f) => NEW.has(f) || AFTER.has(f))
   );
   return { db, env: { DB: d1(db) } as any };
 }

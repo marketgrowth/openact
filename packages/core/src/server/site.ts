@@ -18,8 +18,9 @@ import {
   siteLogoUrl,
   type SiteSettings
 } from "../shared/site";
-import { ONBOARDING_KEY } from "../shared/onboarding";
-import { HttpError, appName, nowIso, readJson, requireUser, text } from "./util";
+import { COMPANY_NAME_MAX, ENTITY_TYPES, ONBOARDING_KEY } from "../shared/onboarding";
+import { assertInviteBudget, mailInvitation, saveInvitation } from "./invitations";
+import { HttpError, appName, appUrl, isEmail, newId, normalizeEmail, nowIso, oneOf, readJson, requireUser, text } from "./util";
 import { getApps } from "./apps";
 import { CopyError, MAX_COMPANIES_PER_PERSON, duplicateCompany } from "./company-copy";
 import { setSiteState, siteState, type SiteState } from "./site-state";
@@ -275,6 +276,31 @@ siteRoutes.get("/companies", async (c) => {
   );
   const total = await c.env.DB.prepare("SELECT COUNT(*) AS n FROM companies").first<{ n: number }>();
   return c.json({ apps, total: total?.n ?? 0, companies: rows.results.map(siteCompany) } satisfies SiteCompanies);
+});
+
+/**
+ * Invites a client company (B2B). Body: { legalName, entityType, email }
+ * Makes the company with no people and an invitation for the owner. The person becomes the first owner when they accept.
+ * Declining removes the empty company.
+ */
+siteRoutes.post("/companies/invite", async (c) => {
+  const user = requireSuperAdmin(c);
+  const body = await readJson(c);
+  const legalName = text(body.legalName, "Official company name", { max: COMPANY_NAME_MAX, required: true });
+  const entityType = oneOf(body.entityType, "Company type", ENTITY_TYPES);
+  const email = normalizeEmail(body.email);
+  if (!isEmail(email)) throw new HttpError(400, "Type a valid email address.");
+  await assertInviteBudget(c.env, { invitedBy: user.id, level: "site" });
+  const id = newId();
+  const iso = nowIso();
+  await c.env.DB.prepare(
+    "INSERT INTO companies (id, name, legal_name, entity_type, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
+  )
+    .bind(id, legalName, legalName, entityType, user.id, iso, iso)
+    .run();
+  await saveInvitation(c.env, { companyId: id, email, role: "owner", level: "site", workspaceId: null, invitedBy: user.id });
+  mailInvitation(c.env, c.executionCtx, { to: email, companyName: legalName, inviterName: user.name, role: "owner", url: appUrl(c) });
+  return c.json({ ok: true, company: { id, name: legalName } }, 201);
 });
 
 /** Makes an app available or not available in one company. Body: { available: boolean } */

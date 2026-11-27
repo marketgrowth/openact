@@ -1,4 +1,5 @@
 import type { EntityType } from "./onboarding.ts";
+import type { InvitationLevel } from "./invitations.ts";
 /*
  * Core types shared by the Worker and the web app: people, companies and app config.
  * Apps add their own types in their own packages.
@@ -98,7 +99,7 @@ export interface CompanyDetail extends Company {
   legalName: string | null;
   entityType: EntityType | null;
   members: Array<{ userId: string; email: string; name: string; role: CompanyRole }>;
-  invitations: Array<{ id: string; email: string; role: CompanyRole; createdAt: string }>;
+  invitations: Array<{ id: string; email: string; role: CompanyRole; level: InvitationLevel; workspaceName: string | null; createdAt: string; expiresAt: string }>;
 }
 
 export interface User {

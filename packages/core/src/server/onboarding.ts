@@ -4,6 +4,7 @@ import type { Company } from "../shared/types";
 import { COMPANY_NAME_MAX, ENTITY_TYPES, ONBOARDING_KINDS, type OnboardingState } from "../shared/onboarding";
 import { runHook } from "./apps";
 import { MAX_COMPANIES_PER_PERSON } from "./company-copy";
+import { pendingInvitations } from "./invitations";
 import { siteState } from "./site-state";
 import { listWorkspaces } from "./workspaces";
 import { HttpError, newId, nowIso, oneOf, readJson, requireUser, text } from "./util";
@@ -23,10 +24,15 @@ async function hasCompany(env: Env, userId: string): Promise<boolean> {
   return !!(await env.DB.prepare("SELECT 1 AS ok FROM company_members WHERE user_id = ? LIMIT 1").bind(userId).first());
 }
 
+/** A person with an open invitation answers it first. A site invitation makes them an owner, so they skip onboarding. */
+async function hasInvitation(env: Env, email: string): Promise<boolean> {
+  return (await pendingInvitations(env, email)).length > 0;
+}
+
 /** Does this person need to set up a company now? */
 onboardingRoutes.get("/", async (c) => {
   const user = requireUser(c);
-  const state: OnboardingState = { required: isOn() && !(await hasCompany(c.env, user.id)) };
+  const state: OnboardingState = { required: isOn() && !(await hasCompany(c.env, user.id)) && !(await hasInvitation(c.env, user.email)) };
   return c.json(state);
 });
 

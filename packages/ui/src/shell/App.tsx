@@ -1,6 +1,7 @@
 import { lazy, StrictMode, Suspense, useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
-import type { AppConfig, SiteSettings, User } from "@openact/core/shared";
+import type { AppConfig, PendingInvitation, SiteSettings, User } from "@openact/core/shared";
+import { AcceptInvite, InvitationBanner } from "./Invitations";
 import { api } from "../api";
 import { Link, Redirect, RouteParamsContext, navigate, usePath } from "../router";
 import { Logo, ToastProvider } from "../ui";
@@ -209,6 +210,18 @@ function SignedIn({
       .then((r) => setOnboarding(r.required))
       .catch(() => setOnboarding(false));
   }, [ws.companies]);
+  // Invitations wait for an answer. The person joins only when they accept.
+  const [invites, setInvites] = useState<PendingInvitation[]>([]);
+  const loadInvites = useCallback(async () => {
+    try {
+      setInvites((await api<{ invitations: PendingInvitation[] }>("/api/invitations")).invitations);
+    } catch {
+      setInvites([]);
+    }
+  }, []);
+  useEffect(() => {
+    void loadInvites();
+  }, [loadInvites, me.id]);
   // Apps that are off in this company leave the rail, the commands and the routes.
   const disabled = ws.access?.disabledApps ?? [];
   const disabledKey = disabled.join(",");
@@ -274,6 +287,9 @@ function SignedIn({
     }),
     [me, config, apps, primary, directory]
   );
+
+  if (invites.length > 0 && ws.companies?.length === 0)
+    return <AcceptInvite appName={config.appName} logoUrl={config.logoUrl} email={me.email} invitations={invites} onChanged={loadInvites} />;
 
   if (onboarding && ws.companies?.length === 0)
     return (
@@ -353,6 +369,7 @@ function SignedIn({
         onSignOut={signOut}
       />
       <SidebarInset className="min-w-0">
+        <InvitationBanner invitations={invites} onChanged={loadInvites} />
         <Suspense
           fallback={
             <PageBody>

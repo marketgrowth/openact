@@ -39,7 +39,7 @@ async function seed(d: Deploy, tag: string, word: string): Promise<Side> {
   const member = d.person(`${tag}-member@${tag}.test`, `${word} Member`);
   await ok(d.call(owner, "POST", "/api/companies", { name: `${word} Company` }), `${tag} company`);
   const companyId = d.one<{ id: string }>("SELECT company_id AS id FROM company_members WHERE user_id = ?", owner.id).id;
-  await ok(d.call(owner, "POST", `/api/companies/${companyId}/members`, { email: member.email, role: "member" }), `${tag} member`);
+  await d.join(owner, companyId, member);
   await ok(d.call(owner, "POST", `/api/companies/${companyId}/members`, { email: `${tag}-pending@${tag}.test` }), `${tag} company invite`);
   await ok(d.call(owner, "POST", `/api/companies/${companyId}/workspaces`, { name: `${word} Workspace`, kind: "brand" }), `${tag} workspace`);
   const workspaceId = d.one<{ id: string }>("SELECT id FROM workspaces WHERE company_id = ? AND name = ?", companyId, `${word} Workspace`).id;
