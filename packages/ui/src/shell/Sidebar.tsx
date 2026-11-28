@@ -78,6 +78,7 @@ export interface AppSidebarProps {
   primary?: string | null;
   onRunCommand: (id: string) => void;
   onNewCompany: () => void;
+  onWorkspacePeople: () => void;
   /** True for super admins. They see Site settings on the Settings page and the App directory on the rail. */
   superAdmin: boolean;
   onSignOut: (everywhere: boolean) => void;
@@ -153,7 +154,7 @@ export function AppSidebar(p: AppSidebarProps) {
           data-app-rail=""
         >
           <SidebarHeader className="px-2 pt-2 pb-0">
-            <CompanySwitcher appName={p.appName} onNewCompany={p.onNewCompany} onPick={done} />
+            <CompanySwitcher appName={p.appName} onNewCompany={p.onNewCompany} onWorkspacePeople={p.onWorkspacePeople} onPick={done} />
           </SidebarHeader>
           <SidebarContent>
             <SidebarGroup>
@@ -256,7 +257,7 @@ export function AppSidebar(p: AppSidebarProps) {
           data-app-panel={shellPage ?? active?.id}
         >
           <SidebarHeader className="px-2 pt-2 pb-1">
-            <PanelSwitcher title={panelTitle} appName={p.appName} onNewCompany={p.onNewCompany} onPick={done} />
+            <PanelSwitcher title={panelTitle} appName={p.appName} onNewCompany={p.onNewCompany} onWorkspacePeople={p.onWorkspacePeople} onPick={done} />
           </SidebarHeader>
           <SidebarContent>
             {onSettings && <SettingsNav apps={p.apps} path={path} company={canManage} site={p.superAdmin} onPick={done} />}
@@ -370,11 +371,12 @@ function SettingsNav({ apps, path, company, site, onPick }: { apps: readonly Cli
 interface SwitcherProps {
   appName: string;
   onNewCompany: () => void;
+  onWorkspacePeople: () => void;
   onPick: () => void;
 }
 
 /** The company menu: the companies to switch between, Company settings and Create a company. The rail and the panel header both open it. */
-function CompanyMenu({ appName, onNewCompany, onPick, side, align }: SwitcherProps & { side: "right" | "bottom"; align: "start" | "end" }) {
+function CompanyMenu({ appName, onNewCompany, onWorkspacePeople, onPick, side, align }: SwitcherProps & { side: "right" | "bottom"; align: "start" | "end" }) {
   const ws = useWorkspace();
   const current = ws.current;
   const pick = async (id: string) => {
@@ -460,6 +462,17 @@ function CompanyMenu({ appName, onNewCompany, onPick, side, align }: SwitcherPro
           data-manage-workspaces=""
         >
           <Icon name="layers" /> {ws.workspaces.length > 1 ? "Manage workspaces" : "Add a workspace"}
+        </DropdownMenuItem>
+      )}
+      {current && current.role !== "guest" && ws.currentWorkspace && (
+        <DropdownMenuItem
+          onSelect={() => {
+            onPick();
+            onWorkspacePeople();
+          }}
+          data-workspace-people=""
+        >
+          <Icon name="users" /> People in {ws.currentWorkspace.name}
         </DropdownMenuItem>
       )}
       <DropdownMenuItem onSelect={onNewCompany}>

@@ -3,23 +3,30 @@ import type { AppEnv } from "./env";
 import { ALL_WORKSPACES, COMPANY_ROLES } from "../shared/types";
 import { companyRole, requireCompanyRole } from "./data";
 import { getCatalog } from "./permissions";
-import { HttpError, nowIso, readJson, requireUser } from "./util";
+import { HttpError, appName, appUrl, isEmail, normalizeEmail, nowIso, readJson, requireUser } from "./util";
+import { assertInviteBudget, mailInvitation, saveInvitation } from "./invitations";
+import { sendEmail, workspaceAddedEmail } from "./email";
 import {
   createWorkspace,
   defaultWorkspaceId,
   getWorkspace,
+  addWorkspaceMember,
   isManager,
   listWorkspaces,
+  memberWorkspaceIds,
+  requireActiveWorkspace,
   resolveWorkspace,
   updateWorkspace,
   type WorkspaceInput
 } from "./workspace-store";
 
 export {
+  addWorkspaceMember,
   createWorkspace,
   defaultWorkspaceId,
   getWorkspace,
   listWorkspaces,
+  memberWorkspaceIds,
   requireActiveWorkspace,
   resolveWorkspace,
   updateWorkspace,
@@ -35,8 +42,8 @@ export {
  * - Workspaces are archived, never deleted. The default workspace cannot be archived.
  * - Apps with "scope": "workspace" keep a workspace_id on their rows. They read it with workspaceScope().
  *   Other apps never see a workspace and stay company-wide.
- * - Workspaces organize work. They do not limit access: a person who can open a project or doc in one
- *   workspace can open it from a link in any workspace. Guests always see every workspace they are invited to.
+ * - Workspaces limit what a member sees. A member works only in the workspaces in workspace_members.
+ *   Owners and admins see every workspace. Guests see what they are invited to, in every workspace.
  */
 
 export const workspaceRoutes = new Hono<AppEnv>();
@@ -68,9 +75,8 @@ export async function workspaceScope(c: Context<AppEnv>, appId: string, companyI
 export async function workspaceForNew(c: Context<AppEnv>, appId: string, companyId: string, wanted?: unknown): Promise<string | null> {
   if (!isWorkspaceApp(appId)) return null;
   if (typeof wanted === "string" && wanted && wanted !== ALL_WORKSPACES) {
-    const ws = await getWorkspace(c.env, companyId, wanted);
-    if (!ws || ws.archived) throw new HttpError(400, "This workspace does not exist, or it was archived. Pick another workspace.");
-    return ws.id;
+    const user = requireUser(c);
+    return requireActiveWorkspace(c.env, companyId, wanted, { userId: user.id, role: await companyRole(c.env, companyId, user.id) });
   }
   return (await workspaceScope(c, appId, companyId)) ?? (await defaultWorkspaceId(c.env, companyId));
 }
@@ -84,7 +90,8 @@ workspaceRoutes.get("/:id/workspaces", async (c) => {
   const role = await requireCompanyRole(c.env, id, user.id, [...COMPANY_ROLES]);
   if (role === "guest") return c.json({ workspaces: [] });
   const archived = c.req.query("archived") === "1" && isManager(role);
-  return c.json({ workspaces: (await listWorkspaces(c.env, [id], { archived })).get(id) ?? [] });
+  const forUser = { userId: user.id, roles: new Map([[id, role]]) };
+  return c.json({ workspaces: (await listWorkspaces(c.env, [id], { archived, forUser })).get(id) ?? [] });
 });
 
 workspaceRoutes.post("/:id/workspaces", async (c) => {
@@ -114,9 +121,96 @@ workspaceRoutes.post("/:id/workspaces/:wid/switch", async (c) => {
   } else {
     const ws = await getWorkspace(c.env, id, wid);
     if (!ws || ws.archived) throw new HttpError(404, "This workspace does not exist, or it was archived. Pick another workspace.");
+    // A member can switch only to a workspace they are in.
+    if (!isManager(role) && !(await memberWorkspaceIds(c.env, id, user.id)).includes(wid))
+      throw new HttpError(404, "This workspace does not exist, or you are not in it. Pick another workspace.");
   }
   await c.env.DB.prepare("UPDATE users SET current_company_id = ?, current_workspace_id = ? WHERE id = ?").bind(id, wid, user.id).run();
   return c.json({ currentWorkspaceId: wid });
+});
+
+/* People. Who works in a workspace. */
+
+/** Owners, admins and the workspace's own members open this. Anyone else gets 404. */
+async function requireWorkspaceAccess(c: Context<AppEnv>, companyId: string, workspaceId: string) {
+  const user = requireUser(c);
+  const role = await requireCompanyRole(c.env, companyId, user.id, ["owner", "admin", "member"]);
+  const ws = await getWorkspace(c.env, companyId, workspaceId);
+  const inside = isManager(role) || (await memberWorkspaceIds(c.env, companyId, user.id)).includes(workspaceId);
+  if (!ws || !inside) throw new HttpError(404, "This workspace does not exist, or you are not in it.");
+  return { user, role, ws };
+}
+
+/** The people in a workspace. Owners and admins are in every workspace, so they are not listed here. */
+workspaceRoutes.get("/:id/workspaces/:wid/members", async (c) => {
+  const id = c.req.param("id");
+  const { ws } = await requireWorkspaceAccess(c, id, c.req.param("wid"));
+  const rows = await c.env.DB.prepare(
+    `SELECT u.id, u.name, u.email FROM workspace_members wm JOIN users u ON u.id = wm.user_id
+     WHERE wm.workspace_id = ? ORDER BY u.name COLLATE NOCASE`
+  )
+    .bind(ws.id)
+    .all<{ id: string; name: string; email: string }>();
+  return c.json({ members: rows.results });
+});
+
+/** Owners and admins add a company member to a workspace. Body: { userId } */
+workspaceRoutes.post("/:id/workspaces/:wid/members", async (c) => {
+  const user = requireUser(c);
+  const id = c.req.param("id");
+  await requireCompanyRole(c.env, id, user.id, ["owner", "admin"]);
+  const ws = await getWorkspace(c.env, id, c.req.param("wid"));
+  if (!ws || ws.archived) throw new HttpError(404, "This workspace does not exist, or it was archived.");
+  const userId = String((await readJson(c)).userId ?? "");
+  if ((await companyRole(c.env, id, userId)) !== "member") throw new HttpError(400, "Pick a member of this company. Owners and admins are in every workspace already.");
+  await addWorkspaceMember(c.env, id, ws.id, userId).run();
+  return c.json({ ok: true }, 201);
+});
+
+/** Owners and admins take a member out of a workspace. A member can take themselves out. */
+workspaceRoutes.delete("/:id/workspaces/:wid/members/:userId", async (c) => {
+  const user = requireUser(c);
+  const id = c.req.param("id");
+  const target = c.req.param("userId");
+  await requireCompanyRole(c.env, id, user.id, target === user.id ? ["owner", "admin", "member"] : ["owner", "admin"]);
+  const res = await c.env.DB.prepare("DELETE FROM workspace_members WHERE workspace_id = ? AND company_id = ? AND user_id = ?")
+    .bind(c.req.param("wid"), id, target)
+    .run();
+  if (!res.meta.changes) throw new HttpError(404, "This person is not in the workspace.");
+  return c.json({ ok: true });
+});
+
+/**
+ * A person in the workspace invites someone by email. Body: { email }
+ * The role is always member. Someone in the company joins the workspace now and gets a notice.
+ * Someone new gets an invitation, and joins the company and the workspace when they accept.
+ * The reply is the same for both. A company can turn this off for members.
+ */
+workspaceRoutes.post("/:id/workspaces/:wid/invite", async (c) => {
+  const id = c.req.param("id");
+  const { user, role, ws } = await requireWorkspaceAccess(c, id, c.req.param("wid"));
+  if (ws.archived) throw new HttpError(400, "This workspace was archived.");
+  const co = await c.env.DB.prepare("SELECT name, member_invites FROM companies WHERE id = ?").bind(id).first<{ name: string; member_invites: number }>();
+  if (!isManager(role) && co!.member_invites !== 1) throw new HttpError(403, "This company lets only owners and admins invite people.");
+  const email = normalizeEmail((await readJson(c)).email);
+  if (!isEmail(email)) throw new HttpError(400, "Type a valid email address.");
+  await assertInviteBudget(c.env, { companyId: id });
+  const target = await c.env.DB.prepare("SELECT id FROM users WHERE email = ?").bind(email).first<{ id: string }>();
+  const current = target ? await companyRole(c.env, id, target.id) : null;
+  if (target && current && current !== "guest") {
+    // Already in the company. A member joins the workspace at once. An owner or admin is in every workspace.
+    if (current === "member") await addWorkspaceMember(c.env, id, ws.id, target.id).run();
+    c.executionCtx.waitUntil(
+      sendEmail(c.env, workspaceAddedEmail(c.env, { to: email, workspaceName: ws.name, companyName: co!.name, inviterName: user.name, url: `${appUrl(c)}/?company=${id}`, siteName: appName(c.env) })).catch((e) =>
+        console.error("[openact] workspace notice failed", e)
+      )
+    );
+  } else {
+    // New to the company. Only an owner or admin invitation opens sign-up when SIGNUP_MODE is invite.
+    await saveInvitation(c.env, { companyId: id, email, role: "member", level: isManager(role) ? "company" : "workspace", workspaceId: ws.id, invitedBy: user.id });
+    mailInvitation(c.env, c.executionCtx, { to: email, companyName: co!.name, inviterName: user.name, role: "member", url: `${appUrl(c)}/?company=${id}` });
+  }
+  return c.json({ ok: true }, 201);
 });
 
 /* Logo. Without one, the web app shows the company logo. */

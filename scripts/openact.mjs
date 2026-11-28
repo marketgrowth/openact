@@ -21,6 +21,8 @@
  * "enabledByDefault": false makes each company turn the app on in Company settings before it shows.
  * "requiresApps": ["projects"] lists apps that must be installed too. "optionalApps" lists apps the app uses when they are there.
  * "scope": "workspace" makes the app workspace-aware: it keeps its rows per workspace. Default: "company" (company-wide).
+ * "access": "own" tells core that a company member sees only the items they made or are part of in this app, such as a document they sign.
+ *   Owners and admins see everything. The app reads it with ownItemsOnly(). Default: "all".
  * "plan": "director" or "producer" makes the app a paid app. It is locked in companies without that plan.
  * Only official MarketGrowth apps use "plan". See https://docs.openact.ing/plans.
  * "released": "YYYY-MM-DD" is the day this version was released. A paid app needs it for the license fallback.
@@ -52,6 +54,7 @@ const DIRECTORY = join(ROOT, "directory/apps.json");
 const ID = /^[a-z][a-z0-9-]{1,30}$/;
 const PAID_PLANS = ["director", "producer"];
 const SCOPES = ["company", "workspace"];
+const ACCESS = ["all", "own"];
 const PLAN_NAMES = { director: "Director", producer: "Producer" };
 
 const temps = [];
@@ -144,6 +147,7 @@ function manifest(dir, label = relative(ROOT, dir)) {
   }
   if (m.enabledByDefault !== undefined && typeof m.enabledByDefault !== "boolean") fail(`The app "${m.id}" has "enabledByDefault": it must be true or false.`);
   if (m.scope !== undefined && !SCOPES.includes(m.scope)) fail(`The app "${m.id}" has "scope": "${m.scope}". Use ${SCOPES.join(" or ")}.`);
+  if (m.access !== undefined && !ACCESS.includes(m.access)) fail(`The app "${m.id}" has "access": "${m.access}". Use ${ACCESS.join(" or ")}.`);
   if (m.plan !== undefined && !PAID_PLANS.includes(m.plan)) fail(`The app "${m.id}" has "plan": "${m.plan}". Use ${PAID_PLANS.join(" or ")}, or leave it out for a free app.`);
   if (m.released !== undefined && (typeof m.released !== "string" || !DAY.test(m.released) || Number.isNaN(Date.parse(`${m.released}T00:00:00Z`))))
     fail(`The app "${m.id}" has "released": "${m.released}". Use a day such as "2026-11-18".`);
@@ -164,6 +168,7 @@ function manifest(dir, label = relative(ROOT, dir)) {
     durableObjects: m.durableObjects ?? [],
     enabledByDefault: m.enabledByDefault ?? true,
     scope: m.scope ?? "company",
+    access: m.access ?? "all",
     requiresApps: m.requiresApps ?? [],
     optionalApps: m.optionalApps ?? []
   };
@@ -338,6 +343,7 @@ async function sync() {
           name: a.name,
           enabledByDefault: a.enabledByDefault,
           scope: a.scope,
+          ...(a.access === "own" ? { access: "own" } : {}),
           ...(a.version ? { version: a.version } : {}),
           ...(a.plan ? { plan: a.plan } : {}),
           ...(a.plan && a.released ? { released: a.released } : {}),

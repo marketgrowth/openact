@@ -322,7 +322,7 @@ projectRoutes.patch("/:id", async (c) => {
     const role = await companyRole(c.env, row.company_id, user.id);
     if (!role || role === "guest") throw new HttpError(403, "Guests cannot move a project to another workspace.");
     sets.push("workspace_id = ?");
-    vals.push(await requireActiveWorkspace(c.env, row.company_id, body.workspaceId));
+    vals.push(await requireActiveWorkspace(c.env, row.company_id, body.workspaceId, { userId: user.id, role }));
   }
   if (body.visibility !== undefined) {
     sets.push("visibility = ?");

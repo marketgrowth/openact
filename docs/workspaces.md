@@ -22,7 +22,7 @@ Example: a publisher runs four media brands with one team and one bill. That is 
 - **A company with one workspace sees no workspace UI.** The switcher shows only when a company has two or more active workspaces.
 - **Each workspace has a kind:** Brand, Business unit, Location or Region. The kind changes only the label. Every kind works the same way.
 - **Roles come from the company.** Workspaces use the company roles: owner, admin, member and guest. There are no roles per workspace.
-- **Workspaces organize work. They do not limit access.** A person who can open a project or doc can open it from a link, in any workspace. Use secret projects to limit who sees a project.
+- **Workspaces limit what a member sees.** A member works only in the workspaces they are in. They cannot list, open or search the work of another workspace, also not from a link. Owners and admins are in every workspace. Use secret projects to limit who sees a project inside a workspace.
 - **Brand fields live on the workspace:** name, slug, kind, logo, colors and website. A workspace without a logo shows the company logo.
 - **Archive, not delete.** An archived workspace leaves the switcher. Its projects and docs stay. Owners and admins still see them in **All workspaces**, and can restore the workspace.
 
@@ -31,6 +31,8 @@ Example: a publisher runs four media brands with one team and one bill. That is 
 Open the company menu: the company mark at the top of the app rail, or the panel header. Pick a workspace under **Workspaces**. OpenAct remembers your choice.
 
 Owners and admins also see **All workspaces**. It shows the work of every workspace together, and each project card names its workspace. New work made in **All workspaces** goes to the default workspace.
+
+A member sees only the workspaces they are in. A member in one workspace sees no switcher.
 
 Guests do not see the switcher. They see everything they are invited to, in every workspace.
 
@@ -44,6 +46,14 @@ Owners and admins open **Company settings > Workspaces**, or choose **Manage wor
 
 A company can have up to 50 workspaces, archived ones included.
 
+## People in a workspace
+
+Choose **People in (workspace name)** in the company menu, or **People** next to a workspace in **Company settings > Workspaces**.
+
+- **Owners and admins** add a company member to the workspace, and remove one. Owners and admins are in every workspace, so the list does not show them.
+- **Any person in the workspace** can invite someone by email. The person joins as a member of this workspace only. A person who is in the company joins at once and gets an email. A new person gets an invitation and joins the company and the workspace when they accept. A company can turn this off in **Company settings > People** with **Members can invite people**.
+- A person who joins the company without a workspace choice starts in the default workspace. A person who leaves the company leaves every workspace.
+
 ## Workspaces in apps
 
 An app chooses where it keeps its data. It declares this with `scope` in its manifest. See [Build an app](apps.md#workspace-aware-apps).
@@ -55,11 +65,11 @@ An app chooses where it keeps its data. It declares this with `scope` in its man
 | Advisory | Company | One marketplace for the deploy. |
 | eSign | Company | Documents are signed by the company, the legal entity. A signed PDF saved to a Docs folder goes to that folder's workspace. |
 
-Search and the AI agent still work across the whole company, with the same access checks as before.
+Search and the AI agent follow the same rule: a member gets results only from the workspaces they are in.
 
 ## Upgrade an existing deploy
 
-Migration `0013_workspaces` makes one default workspace for each company. Migrations `projects_0002_workspaces` and `docs_0006_workspaces` put every existing project, folder and doc in that default workspace. Each person keeps the company they had open. Nothing else changes until an owner or admin adds a second workspace.
+Migration `0013_workspaces` makes one default workspace for each company. Migrations `projects_0002_workspaces` and `docs_0006_workspaces` put every existing project, folder and doc in that default workspace. Each person keeps the company they had open. Migration `0018_workspace_access` puts every current member in every current workspace, so nobody loses access. Nothing else changes until an owner or admin adds a second workspace and takes people out of the first.
 
 **Duplicate a company** (Site settings) copies the content into the new company's default workspace. It does not copy the other workspaces.
 

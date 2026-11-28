@@ -25,18 +25,20 @@ export interface ProjectAccess {
 /** How a person can reach a project, through the project and through its company. null when the project does not exist. */
 export async function projectAccess(env: Env, projectId: string, userId: string): Promise<ProjectAccess | null> {
   const row = await env.DB.prepare(
-    `SELECT p.visibility, p.company_id, pm.role AS project_role, cm.role AS company_role
+    `SELECT p.visibility, p.company_id, pm.role AS project_role, cm.role AS company_role, wm.user_id AS in_workspace
      FROM projects p
      LEFT JOIN project_members pm ON pm.project_id = p.id AND pm.user_id = ?
      LEFT JOIN company_members cm ON cm.company_id = p.company_id AND cm.user_id = ?
+     LEFT JOIN workspace_members wm ON wm.workspace_id = p.workspace_id AND wm.user_id = ?
      WHERE p.id = ?`
   )
-    .bind(userId, userId, projectId)
-    .first<{ visibility: Visibility; company_id: string | null; project_role: Role | null; company_role: CompanyRole | null }>();
+    .bind(userId, userId, userId, projectId)
+    .first<{ visibility: Visibility; company_id: string | null; project_role: Role | null; company_role: CompanyRole | null; in_workspace: string | null }>();
   if (!row) return null;
   const state = row.company_id ? await companyAppState(env, row.company_id) : null;
   const appOff = !!state && !state.enabled("projects");
-  const canBrowse = !!state && !!row.company_role && state.roles("projects.browse").includes(row.company_role);
+  // A member browses only the projects in their workspaces. Owners and admins browse all. A project member keeps their own access.
+  const canBrowse = !!state && !!row.company_role && state.roles("projects.browse").includes(row.company_role) && (row.company_role !== "member" || !!row.in_workspace);
   const a = { visibility: row.visibility, projectRole: row.project_role, companyRole: row.company_role, canBrowse };
   return { ...a, companyId: row.company_id, appOff, pausedBy: state?.pausedBy ?? null, role: appOff ? null : effectiveProjectRole(a) };
 }
@@ -66,18 +68,19 @@ export async function visibleProjectIds(
   if (!state.enabled("projects")) return [];
   const browseRoles = state.roles("projects.browse");
   const rows = await env.DB.prepare(
-    `SELECT p.id, p.name, p.visibility, pm.role AS project_role, cm.role AS company_role
+    `SELECT p.id, p.name, p.visibility, pm.role AS project_role, cm.role AS company_role, wm.user_id AS in_workspace
      FROM projects p
      LEFT JOIN project_members pm ON pm.project_id = p.id AND pm.user_id = ?
      LEFT JOIN company_members cm ON cm.company_id = p.company_id AND cm.user_id = ?
+     LEFT JOIN workspace_members wm ON wm.workspace_id = p.workspace_id AND wm.user_id = ?
      WHERE p.company_id = ?
      ORDER BY p.updated_at DESC`
   )
-    .bind(userId, userId, companyId)
-    .all<{ id: string; name: string; visibility: Visibility; project_role: Role | null; company_role: CompanyRole | null }>();
+    .bind(userId, userId, userId, companyId)
+    .all<{ id: string; name: string; visibility: Visibility; project_role: Role | null; company_role: CompanyRole | null; in_workspace: string | null }>();
   const out: Array<{ id: string; name: string; role: Role; isMember: boolean }> = [];
   for (const r of rows.results) {
-    const canBrowse = !!r.company_role && browseRoles.includes(r.company_role);
+    const canBrowse = !!r.company_role && browseRoles.includes(r.company_role) && (r.company_role !== "member" || !!r.in_workspace);
     const role = effectiveProjectRole({ visibility: r.visibility, projectRole: r.project_role, companyRole: r.company_role, canBrowse });
     if (role) out.push({ id: r.id, name: r.name, role, isMember: !!r.project_role });
   }

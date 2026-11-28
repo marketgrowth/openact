@@ -99,3 +99,18 @@ export function companyInviteEmail(
     )
   };
 }
+
+/** Tells a person that they were added to a workspace. The subject is fixed text. */
+export function workspaceAddedEmail(
+  env: Env,
+  opts: { to: string; workspaceName: string; companyName: string; inviterName: string; url: string; siteName?: string }
+): EmailMessage {
+  const site = opts.siteName ?? appName(env);
+  const lead = `${opts.inviterName} added you to the workspace "${opts.workspaceName}" in ${opts.companyName}.`;
+  return {
+    to: opts.to,
+    subject: `You were added to a workspace on ${site}`,
+    text: `${lead}\n\nOpen it: ${opts.url}`,
+    html: emailLayout(env, "You were added to a workspace", `<p style="margin:0 0 20px">${escapeHtml(lead)}</p>${emailButton(opts.url, "Open it")}`)
+  };
+}

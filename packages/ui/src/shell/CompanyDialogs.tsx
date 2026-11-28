@@ -10,6 +10,7 @@ import { Button } from "@openact/ui/components/button";
 import { Input } from "@openact/ui/components/input";
 import { Badge } from "@openact/ui/components/badge";
 import { Separator } from "@openact/ui/components/separator";
+import { Switch } from "@openact/ui/components/switch";
 import { NativeSelect, NativeSelectOption } from "@openact/ui/components/native-select";
 
 export function NewCompanyDialog({ onClose }: { onClose: () => void }) {
@@ -256,11 +257,29 @@ export function PeopleTab({ detail, me, onChanged }: { detail: CompanyDetail; me
 
   return (
     <div className="grid gap-6">
+      <div className="flex items-start gap-3 rounded-lg border p-3">
+        <Switch
+          id="member-invites"
+          checked={detail.memberInvites}
+          onCheckedChange={async (on) => {
+            try {
+              await api(`/api/companies/${detail.id}`, { method: "PATCH", body: { memberInvites: on } });
+              await onChanged();
+            } catch (err) {
+              toast(errorText(err));
+            }
+          }}
+        />
+        <label htmlFor="member-invites" className="grid gap-0.5 text-sm">
+          <span className="font-medium">Members can invite people</span>
+          <span className="text-muted-foreground">A member invites by email into a workspace they are in. The person joins as a member. Turn this off so only owners and admins invite.</span>
+        </label>
+      </div>
       <form className="grid gap-3" onSubmit={invite}>
         <div className="grid gap-1">
           <h3 className="text-sm font-medium">Invite people to the company</h3>
           <p className="text-sm text-muted-foreground">
-            Members see every project that is not secret. To share one project only, invite the person from that project's People tab. They join as a guest.
+            Members see every project that is not secret, in the workspaces they are in. To share one project only, invite the person from that project's People tab. They join as a guest.
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
