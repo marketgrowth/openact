@@ -81,5 +81,5 @@ The docs site at https://docs.openact.ing is built from the Markdown files in `d
 - American spelling.
 - No em dashes.
 - Error messages say what went wrong and what to do next.
-- On the website (`www/`), no orphan words: no heading or paragraph ends with one word alone on its last line. The shared styles in `www/src/styles/site.css` balance headings and text. Check new headings at 1280, 768 and 390 px wide.
+- On the website (`www/`), no orphan words: no heading or paragraph ends with one word alone on its last line. The shared styles in `www/src/styles/site.css` balance headings and text. After you change page text, run `npm run build` in `www/`, then `python3 scripts/check-orphans.py`.
 
