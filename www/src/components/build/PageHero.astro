@@ -1,0 +1,32 @@
+---
+// The hero for /build and /producer: the dithered globe behind a centered headline, like the home page.
+// Put the buttons in the default slot.
+import Wrapper from "../ui/Wrapper.astro";
+import DitherOrb from "../art/DitherOrb.astro";
+interface Props {
+  eyebrow: string;
+  title: string;
+  muted?: string;
+  lead: string;
+  note?: string;
+}
+const { eyebrow, title, muted, lead, note } = Astro.props;
+---
+<section class="relative overflow-hidden">
+  <!-- The globe sits in a band of fixed height at the bottom, so long copy never runs into it. -->
+  <div class="absolute inset-x-0 bottom-0 h-[34rem] mask-radial-from-50% mask-radial-to-90% sm:h-[40rem] lg:h-[46rem]">
+    <DitherOrb />
+  </div>
+  <Wrapper class="relative flex flex-col pt-36 pb-56 sm:pt-40 sm:pb-64 lg:min-h-svh lg:pb-72">
+    <div class="mx-auto flex max-w-4xl flex-col items-center text-center">
+      <p class="text-xs tracking-wide text-muted-foreground">{eyebrow}</p>
+      <h1 class="mt-4 text-4xl font-medium tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+        <span class="block">{title}</span>
+        {muted && <span class="block text-muted-foreground">{muted}</span>}
+      </h1>
+      <p class="mt-6 max-w-2xl text-base text-muted-foreground">{lead}</p>
+      <div class="mt-8 flex flex-wrap justify-center gap-2"><slot /></div>
+      {note && <p class="mt-4 text-xs text-muted-foreground">{note}</p>}
+    </div>
+  </Wrapper>
+</section>

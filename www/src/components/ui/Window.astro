@@ -1,0 +1,21 @@
+---
+// A window frame, from the Buio theme's code windows: a top bar with three rings, then the content in a hairline box.
+interface Props {
+  title?: string;
+  class?: string;
+  bodyClass?: string;
+}
+const { title, class: className, bodyClass } = Astro.props;
+---
+<div class:list={["flex flex-col", className]}>
+  <div class="flex items-center gap-3 border border-b-0 border-muted bg-background px-4 py-2">
+    <div class="flex items-center gap-1" aria-hidden="true">
+      <div class="size-2 rounded-full outline outline-secondary-highlight"></div>
+      <div class="size-2 rounded-full outline outline-secondary"></div>
+      <div class="size-2 rounded-full outline outline-secondary"></div>
+    </div>
+    {title && <span class="font-mono text-xs text-muted-foreground">{title}</span>}
+    <slot name="bar" />
+  </div>
+  <div class:list={["grow border border-muted bg-background", bodyClass]}><slot /></div>
+</div>

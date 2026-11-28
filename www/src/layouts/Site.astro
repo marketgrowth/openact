@@ -1,7 +1,7 @@
 ---
-// The layout for openact.ing marketing pages: head tags, fonts, shared styles, header and footer.
-// A new page: make src/pages/<name>.astro, wrap it in <Site>, and put its own styles in src/styles/<name>.css.
-import "../styles/site.css";
+// The layout for openact.ing marketing pages: head tags, fonts, the theme, header and footer.
+// A new page: make src/pages/<name>.astro and wrap it in <Site>. Style it with Tailwind classes and the tokens in src/styles/global.css.
+import "../styles/global.css";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
 import { FONTS, OG_IMAGE, OG_IMAGE_ALT, SITE_URL } from "../site";
@@ -21,8 +21,10 @@ interface Props {
   page?: "home" | "contribute" | "other";
   /** Classes for the main element. */
   mainClass?: string;
+  /** Keep the page out of search results. */
+  noindex?: boolean;
 }
-const { title, description, path, ogTitle = title, ogDescription = description, page = "other", mainClass } = Astro.props;
+const { title, description, path, ogTitle = title, ogDescription = description, page = "other", mainClass, noindex = false } = Astro.props;
 const url = `${SITE_URL}${path}`;
 ---
 <!doctype html>
@@ -32,10 +34,11 @@ const url = `${SITE_URL}${path}`;
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <meta name="color-scheme" content="dark light" />
-    <meta name="theme-color" content="#060708" media="(prefers-color-scheme: dark)" />
-    <meta name="theme-color" content="#f3f5f4" media="(prefers-color-scheme: light)" />
-    <link rel="canonical" href={url} />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#121214" />
+    <!-- Sets the theme before the page paints. Keep it first, and keep it a plain script (not a module). -->
+    <script is:inline src="/theme.js"></script>
+    {noindex ? <meta name="robots" content="noindex" /> : <link rel="canonical" href={url} />}
     <link rel="icon" href="/favicon.ico" sizes="32x32" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -51,10 +54,10 @@ const url = `${SITE_URL}${path}`;
     <link rel="stylesheet" href={FONTS} />
     <slot name="head" />
   </head>
-  <body>
+  <body class="flex min-h-svh flex-col">
     <a class="skip" href="#main">Skip to the content</a>
     <Header page={page} />
-    <main id="main" class={mainClass}>
+    <main id="main" class:list={["relative grow", mainClass]}>
       <slot />
     </main>
     <Footer page={page} />

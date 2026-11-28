@@ -2,7 +2,12 @@
 // "What you could build": one worked example, a list of apps with a dropdown for each, and fields.
 // Used by /build (you build it) and /producer (we build it with you).
 // Keep the examples generic. Do not name official OpenAct apps or real customers here.
-// The dropdowns use <details>, so they work without JavaScript.
+// The dropdowns use <details>, so they work without JavaScript. The look follows the Buio theme.
+import Wrapper from "../ui/Wrapper.astro";
+import Heading from "../ui/Heading.astro";
+import Window from "../ui/Window.astro";
+import Icon from "../ui/Icon.astro";
+import Badge from "../ui/Badge.astro";
 interface Props {
   /** "diy" for the open source page, "studio" for the Producer page. */
   mode: "diy" | "studio";
@@ -132,66 +137,84 @@ const fields = [
   }
 ];
 ---
-<section class="section" id="ideas" aria-labelledby="ideas-title">
-  <div class="head">
-    <p class="eyebrow warm">Real builds</p>
-    <h2 id="ideas-title">What you could build</h2>
-    <p>{intro}</p>
-  </div>
-  <div class="bento">
-    <article class="card s12 example" aria-labelledby="example-title">
-      <div class="example-copy">
-        <p class="eyebrow">One example, step by step</p>
-        <h3 id="example-title">Client intake and pricing tool</h3>
-        <p class="example-problem"><b>The problem:</b> A lead asks for a quote. Someone on your team writes the scope and the price by hand. It takes days, and the numbers live in a tool that you rent.</p>
-        <p class="example-fix"><b>The app:</b> One app, in your account, does the same work in minutes. The agent drafts. Your team decides.</p>
-        <ol class="flow">
-          {steps.map((s, i) => (
-            <li>
-              <span class="flow-num">{i + 1}</span>
-              <div><strong>{s.title}</strong><span>{s.text}</span></div>
+<section id="ideas" aria-labelledby="ideas-title">
+  <Wrapper class="py-24">
+    <div class="max-w-2xl">
+      <Heading id="ideas-title" muted="Start with one tool that you rent.">What you could build.</Heading>
+      <p class="mt-6 text-base text-muted-foreground">{intro}</p>
+    </div>
+
+    <article class="mt-16 grid grid-cols-1 gap-12 lg:grid-cols-2" aria-labelledby="example-title">
+      <div class="lg:pr-12">
+        <p class="text-xs text-muted-foreground">One example, step by step</p>
+        <h3 id="example-title" class="mt-2 text-2xl font-medium tracking-tight text-foreground">Client intake and pricing tool</h3>
+        <p class="mt-4 text-sm text-muted-foreground"><span class="text-foreground">The problem:</span> A lead asks for a quote. Someone on your team writes the scope and the price by hand. It takes days, and the numbers live in a tool that you rent.</p>
+        <p class="mt-3 text-sm text-muted-foreground"><span class="text-foreground">The app:</span> One app, in your account, does the same work in minutes. The agent drafts. Your team decides.</p>
+        <ol class="mt-8 border-b border-muted">
+          {steps.map((step, i) => (
+            <li class="flex gap-4 border-t border-muted py-4">
+              <span class="font-mono text-xs leading-6 text-muted-foreground">{String(i + 1).padStart(2, "0")}</span>
+              <div>
+                <p class="text-sm font-medium text-foreground">{step.title}</p>
+                <p class="mt-1 text-sm text-muted-foreground">{step.text}</p>
+              </div>
             </li>
           ))}
         </ol>
         {studio && (
-          <p class="example-price"><b>Price:</b> a custom app like this one is <b>$4,800</b>. Nonprofits get 50% off.</p>
+          <p class="mt-6 text-sm text-muted-foreground"><span class="text-foreground">Price:</span> a custom app like this one is <span class="text-foreground">$4,800</span>. Nonprofits get 50% off.</p>
         )}
       </div>
-      <div class="key mock viz" role="img" aria-label="A sketch of the app. Step 1 shows what the lead entered. Step 2 shows the agent's draft. Step 3 shows the Approve button.">
-        <div class="mock-bar"><span class="dots"><i></i><i></i><i></i></span><span>Client intake</span><span class="chip ok">your app</span></div>
-        <div class="mock-body">
-          <p class="mock-step"><b>1</b> What the lead entered</p>
-          <div class="field-row"><span>Company</span><b>Harbor Studio</b></div>
-          <div class="field-row"><span>Need</span><b>Website refresh</b></div>
-          <div class="field-row"><span>Budget</span><b>$8k to $12k</b></div>
-          <p class="mock-step"><b>2</b> What the agent drafted</p>
-          <div class="key quote">
-            <div class="quote-top"><span>Draft quote</span><span class="chip wait">waiting for you</span></div>
-            <b>3 pages · 4 weeks · $9,800</b>
+      <Window title="Client intake" bodyClass="p-6 sm:p-8">
+        <Badge slot="bar" variant="outline" class="ml-auto">your app</Badge>
+        <div role="img" aria-label="A sketch of the app. Step 1 shows what the lead entered. Step 2 shows the agent's draft. Step 3 shows the Approve button.">
+          <p class="font-mono text-xs text-muted-foreground">01 · What the lead entered</p>
+          <dl class="mt-3 border-b border-muted text-sm">
+            <div class="flex justify-between gap-4 border-t border-muted py-2.5"><dt class="text-muted-foreground">Company</dt><dd class="text-foreground">Harbor Studio</dd></div>
+            <div class="flex justify-between gap-4 border-t border-muted py-2.5"><dt class="text-muted-foreground">Need</dt><dd class="text-foreground">Website refresh</dd></div>
+            <div class="flex justify-between gap-4 border-t border-muted py-2.5"><dt class="text-muted-foreground">Budget</dt><dd class="text-foreground">$8k to $12k</dd></div>
+          </dl>
+          <p class="mt-8 font-mono text-xs text-muted-foreground">02 · What the agent drafted</p>
+          <div class="mt-3 border border-muted bg-gradient-down p-4">
+            <div class="flex items-center justify-between gap-4 text-xs text-muted-foreground"><span>Draft quote</span><span class="inline-flex items-center gap-1.5"><span class="size-1.5 rounded-full bg-gold"></span>waiting for you</span></div>
+            <p class="mt-2 text-xl font-medium tracking-tight text-foreground">3 pages · 4 weeks · $9,800</p>
           </div>
-          <p class="mock-step"><b>3</b> What you do</p>
-          <div class="mock-actions"><span class="mock-btn">Edit</span><span class="mock-btn on">Approve and send</span></div>
+          <p class="mt-8 font-mono text-xs text-muted-foreground">03 · What you do</p>
+          <div class="mt-3 flex gap-2">
+            <span class="inline-flex h-9 items-center rounded-lg bg-linear-to-t from-background to-muted px-4 text-xs font-medium text-foreground shadow-dimensional">Edit</span>
+            <span class="inline-flex h-9 items-center rounded-lg bg-linear-to-t from-accent-deep to-accent px-4 text-xs font-medium text-accent-foreground shadow-dimensional">Approve and send</span>
+          </div>
         </div>
-      </div>
+      </Window>
     </article>
-    <div class="card s12 ideas">
-      <p class="ideas-lead">{listLead}</p>
-      <p class="ideas-hint">{listHint}</p>
-      <div class="idea-list">
+
+    <div class="mt-24 grid grid-cols-1 gap-y-12 lg:grid-cols-3">
+      <div class="lg:pr-12">
+        <h3 class="text-2xl font-medium tracking-tight text-foreground">{listLead}</h3>
+        <p class="mt-3 text-sm text-muted-foreground">{listHint}</p>
+      </div>
+      <div class="grid grid-cols-1 border-b border-muted md:grid-cols-2 md:gap-x-8 lg:col-span-2">
         {ideas.map((idea, i) => (
-          <details class="idea">
-            <summary><span class="idea-n">{String(i + 1).padStart(2, "0")}</span><span class="idea-name">{idea.name}</span></summary>
-            <p>{idea.text}</p>
+          <details class="group border-t border-muted py-4">
+            <summary class="flex cursor-pointer list-none items-start gap-4 text-base text-foreground select-none [&::-webkit-details-marker]:hidden">
+              <span class="font-mono text-xs leading-6 text-muted-foreground">{String(i + 1).padStart(2, "0")}</span>
+              <span class="grow">{idea.name}</span>
+              <Icon name="plus" class="mt-1 size-4 shrink-0 duration-300 group-open:rotate-45 group-open:text-muted-foreground" />
+            </summary>
+            <p class="pt-3 pl-9 text-sm text-muted-foreground">{idea.text}</p>
           </details>
         ))}
       </div>
     </div>
-    {fields.map((f) => (
-      <article class="card s4 field">
-        <h3>{f.name}</h3>
-        <p>{f.text}</p>
-        <p class="result"><b>Result:</b> {f.result}</p>
-      </article>
-    ))}
-  </div>
+
+    <dl class="mt-24 grid grid-cols-1 gap-y-12 md:grid-cols-2 md:gap-x-8 lg:grid-cols-3 lg:gap-x-12">
+      {fields.map((f) => (
+        <div class="flex flex-col border-t border-muted pt-6">
+          <dt class="text-base font-medium text-foreground">{f.name}</dt>
+          <dd class="mt-2 text-sm text-muted-foreground">{f.text}</dd>
+          <dd class="mt-4 text-sm text-foreground"><span class="text-muted-foreground">Result:</span> {f.result}</dd>
+        </div>
+      ))}
+    </dl>
+  </Wrapper>
 </section>

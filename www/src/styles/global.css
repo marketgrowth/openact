@@ -1,0 +1,190 @@
+/*
+ * openact.ing styles. Tailwind CSS v4 with shadcn/ui token names.
+ * The look follows the Buio theme by Lexington Themes: near black page, white ink, hairlines and dithered art.
+ * There are two themes. public/theme.js puts .light or .dark on <html> before the page paints.
+ * Without JavaScript, the page follows the system setting (the prefers-color-scheme blocks below).
+ * Units: rem for text and spacing, % for layouts, vw for full-screen sections, px for borders.
+ */
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Light theme: white paper, near black ink */
+:root {
+  --background: oklch(98.5% 0.001 286);
+  --foreground: oklch(16.89% 0.002 286.18);
+  --muted: oklch(91.5% 0.003 264);
+  --muted-foreground: oklch(48% 0.01 279);
+  --border: var(--muted);
+  --ring: var(--muted-foreground);
+  --card: var(--background);
+  --card-foreground: var(--foreground);
+  --popover: var(--background);
+  --popover-foreground: var(--foreground);
+  /* The default button: a dark gradient with white ink */
+  --secondary: oklch(24% 0.004 286);
+  --secondary-highlight: oklch(40% 0.01 284);
+  --secondary-foreground: oklch(1 0 0);
+  /* The accent button: near black with white ink */
+  --accent: oklch(30% 0.004 286);
+  --accent-deep: oklch(12% 0.002 286);
+  --accent-foreground: oklch(1 0 0);
+  --primary: var(--accent-deep);
+  --primary-foreground: var(--accent-foreground);
+  --destructive: oklch(55% 0.2 25);
+  --success: oklch(55% 0.16 150);
+  /* Playbill gold, the OpenAct brand accent. Use it for small marks only. */
+  --gold: oklch(52% 0.1 75);
+  --syntax-keyword: oklch(22% 0.004 286);
+  --syntax-value: oklch(42% 0.06 255);
+  --syntax-string: oklch(45% 0.08 160);
+  --fade-mid: oklch(70% 0 0 / 0.18);
+  --fade-end: oklch(55% 0 0 / 0.35);
+  /* Dithered art is light gray. The light theme turns it dark. */
+  --dither-filter: invert(1);
+  --dither-opacity: 0.8;
+  color-scheme: light;
+}
+
+/* Dark theme: the Buio palette */
+.dark {
+  --background: oklch(16.89% 0.002 286.18);
+  --foreground: oklch(1 0 0);
+  --muted: oklch(23.48% 0.004 264.49);
+  --muted-foreground: oklch(74.22% 0.009 278.59);
+  --secondary: oklch(35.42% 0.009 285.95);
+  --secondary-highlight: oklch(56.83% 0.015 281.34);
+  --secondary-foreground: oklch(1 0 0);
+  --accent: oklch(1 0 0);
+  --accent-deep: oklch(84% 0 0);
+  --accent-foreground: oklch(16.89% 0.002 286.18);
+  --primary: var(--accent);
+  --destructive: oklch(63.7% 0.237 25.331);
+  --success: oklch(72.3% 0.219 149.579);
+  --gold: oklch(80% 0.11 80);
+  --syntax-keyword: oklch(96% 0.003 286);
+  --syntax-value: oklch(85% 0.012 255);
+  --syntax-string: oklch(80% 0.035 160);
+  --fade-mid: oklch(28% 0 0 / 0.35);
+  --fade-end: oklch(58% 0 0 / 0.7);
+  --dither-filter: none;
+  --dither-opacity: 1;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --background: oklch(16.89% 0.002 286.18);
+    --foreground: oklch(1 0 0);
+    --muted: oklch(23.48% 0.004 264.49);
+    --muted-foreground: oklch(74.22% 0.009 278.59);
+    --secondary: oklch(35.42% 0.009 285.95);
+    --secondary-highlight: oklch(56.83% 0.015 281.34);
+    --accent: oklch(1 0 0);
+    --accent-deep: oklch(84% 0 0);
+    --accent-foreground: oklch(16.89% 0.002 286.18);
+    --primary: var(--accent);
+    --destructive: oklch(63.7% 0.237 25.331);
+    --success: oklch(72.3% 0.219 149.579);
+    --gold: oklch(80% 0.11 80);
+    --syntax-keyword: oklch(96% 0.003 286);
+    --syntax-value: oklch(85% 0.012 255);
+    --syntax-string: oklch(80% 0.035 160);
+    --fade-mid: oklch(28% 0 0 / 0.35);
+    --fade-end: oklch(58% 0 0 / 0.7);
+    --dither-filter: none;
+    --dither-opacity: 1;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --text-10xl: 10rem;
+  --text-12xl: 12rem;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-highlight: var(--secondary-highlight);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-deep: var(--accent-deep);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-gold: var(--gold);
+  --shadow-dimensional: inset 0 0 0.5px 1px hsla(0, 0%, 100%, 0.1), 0 0 0 1px hsla(0, 0%, 0%, 0.08),
+    0 0.3px 0.4px hsla(0, 0%, 0%, 0.05), 0 0.9px 1.5px hsla(0, 0%, 0%, 0.08), 0 3.5px 6px hsla(0, 0%, 0%, 0.18);
+  --background-image-gradient-down: radial-gradient(140% 107.13% at 50% 10%, transparent 37.41%, var(--fade-mid) 69.27%, var(--fade-end) 100%);
+  --animate-logo-roll: logo-roll 7s cubic-bezier(0.76, 0, 0.24, 1) infinite;
+  @keyframes logo-roll {
+    0%, 42% { transform: translateY(0); }
+    50%, 92% { transform: translateY(-33.333%); }
+    100% { transform: translateY(-66.666%); }
+  }
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-padding-top: 5rem;
+    overflow-x: clip;
+  }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    overflow-x: clip;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--muted-foreground); color: var(--background); }
+  /* No orphan words: the build binds the last two words (integrations/no-orphans.mjs). These keep lines even. */
+  h1, h2, h3, h4, h5, h6, summary, dt, figcaption, label, legend, .btn-text { text-wrap: balance; }
+  p, li, dd, blockquote { text-wrap: pretty; }
+  [hidden] { display: none !important; }
+  :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+}
+
+/* Dithered art (canvases and images) */
+.dither { filter: var(--dither-filter); opacity: var(--dither-opacity); }
+
+/* Pictures that differ by theme: product screenshots */
+.only-dark { display: none; }
+.dark .only-dark { display: block; }
+.dark .only-light { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not(.light):not(.dark) .only-dark { display: block; }
+  :root:not(.light):not(.dark) .only-light { display: none; }
+}
+
+/* Code windows: Shiki with the css-variables theme */
+:root {
+  --astro-code-foreground: var(--muted-foreground);
+  --astro-code-background: var(--background);
+  --astro-code-token-keyword: var(--syntax-keyword);
+  --astro-code-token-function: var(--syntax-value);
+  --astro-code-token-constant: var(--syntax-value);
+  --astro-code-token-parameter: var(--syntax-value);
+  --astro-code-token-string: var(--syntax-string);
+  --astro-code-token-string-expression: var(--syntax-string);
+  --astro-code-token-punctuation: var(--muted-foreground);
+  --astro-code-token-comment: var(--secondary-highlight);
+  --astro-code-token-link: var(--syntax-value);
+}
+.astro-code { overflow-x: auto; scrollbar-width: none; font-family: var(--font-mono); line-height: 1.7; }
+.astro-code::-webkit-scrollbar { display: none; }
+
+/* The skip link */
+.skip { position: absolute; left: -9999px; top: 0.5rem; z-index: 200; padding: 0.5rem 1rem; border-radius: 0.5rem; background: var(--foreground); color: var(--background); }
+.skip:focus { left: 0.5rem; }

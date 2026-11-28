@@ -1,0 +1,22 @@
+---
+// A two-tone heading: the first line in the foreground color, the second line muted.
+// <Heading tag="h2" muted="Nothing to rent.">Everything on one core.</Heading>
+// Each line is its own block, so the no-orphans step binds the last two words of each line.
+interface Props {
+  tag?: "h1" | "h2" | "h3";
+  size?: "hero" | "section" | "small";
+  muted?: string;
+  id?: string;
+  class?: string;
+}
+const { tag: Tag = "h2", size = "section", muted, id, class: className } = Astro.props;
+const sizes = {
+  hero: "text-4xl sm:text-5xl lg:text-6xl",
+  section: "text-3xl md:text-4xl",
+  small: "text-xl md:text-2xl"
+};
+---
+<Tag id={id} class:list={["font-medium tracking-tight text-foreground leading-[1.08]", sizes[size], className]}>
+  <span class="block"><slot /></span>
+  {muted && <span class="block text-muted-foreground">{muted}</span>}
+</Tag>

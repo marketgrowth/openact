@@ -1,0 +1,56 @@
+---
+// No seats, as a chart and four facts. From the Buio theme's network stats.
+// The chart is a picture of the idea, not measured data: a per-seat price climbs with the team, and OpenAct's does not.
+import Wrapper from "../ui/Wrapper.astro";
+import Heading from "../ui/Heading.astro";
+const marks = ["1 person", "10 people", "25 people", "50 people"];
+// Points across a 1200 by 300 canvas. y = 0 is the top.
+const seats = [270, 246, 222, 198, 174, 150, 126, 102, 78, 54, 30];
+const seatLine = seats.map((y, i) => `${i === 0 ? "M" : "L"}${i * 120},${y}`).join(" ");
+const seatArea = `${seatLine} L1200,300 L0,300 Z`;
+const flat = "M0,250 L1200,250";
+const stats = [
+  { value: "$0", label: "Per person", text: "No seat limits on any plan. Invite anyone by email." },
+  { value: "1 click", label: "To deploy", text: "Deploy the free core to your own Cloudflare account." },
+  { value: "50%", label: "Off for nonprofits", text: "On every paid plan, Director and Producer." },
+  { value: "6 digits", label: "To sign in", text: "People get a code by email. No passwords to leak." }
+];
+---
+<section aria-labelledby="numbers-title">
+  <Wrapper class="py-24">
+    <div class="max-w-2xl">
+      <Heading id="numbers-title" muted="The price does not.">Your team grows.</Heading>
+      <p class="mt-6 text-base text-muted-foreground">Most tools charge for each seat. OpenAct has no seats. Each paid plan has one yearly price per company.</p>
+    </div>
+    <figure class="mt-16 border-t border-muted">
+      <svg class="h-64 w-full text-foreground" viewBox="0 0 1200 300" preserveAspectRatio="none" fill="none" aria-hidden="true">
+        <defs>
+          <linearGradient id="seat-area" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="currentColor" stop-opacity="0.12"></stop>
+            <stop offset="100%" stop-color="currentColor" stop-opacity="0"></stop>
+          </linearGradient>
+        </defs>
+        <path d={seatArea} fill="url(#seat-area)"></path>
+        <path d={seatLine} stroke="currentColor" stroke-opacity="0.45" stroke-width="1" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"></path>
+        <path d={flat} stroke="currentColor" stroke-width="1.5" vector-effect="non-scaling-stroke"></path>
+      </svg>
+      <ul role="list" class="grid grid-cols-4 border-t border-muted" aria-hidden="true">
+        {marks.map((m) => <li class="py-3 text-xs text-muted-foreground">{m}</li>)}
+      </ul>
+      <figcaption class="flex flex-wrap gap-x-6 gap-y-2 border-t border-muted py-3 text-xs text-muted-foreground">
+        <span class="inline-flex items-center gap-2"><span class="inline-block h-px w-6 border-t border-dashed border-muted-foreground"></span>A tool priced per seat</span>
+        <span class="inline-flex items-center gap-2"><span class="inline-block h-0.5 w-6 bg-foreground"></span>OpenAct, one price per company</span>
+        <span>An illustration, not real prices.</span>
+      </figcaption>
+    </figure>
+    <dl class="grid grid-cols-2 border-t border-muted lg:grid-cols-4">
+      {stats.map((s) => (
+        <div class="flex flex-col py-8 pr-6">
+          <dt class="mt-2 text-base font-medium text-foreground">{s.label}</dt>
+          <dd class="order-first text-2xl font-medium tracking-tight text-foreground md:text-3xl lg:text-4xl">{s.value}</dd>
+          <dd class="mt-1 text-sm text-muted-foreground">{s.text}</dd>
+        </div>
+      ))}
+    </dl>
+  </Wrapper>
+</section>

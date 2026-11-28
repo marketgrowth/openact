@@ -1,0 +1,29 @@
+---
+// A statement on the left and a list of points on the right, in hairline rows.
+import Wrapper from "../ui/Wrapper.astro";
+import Heading from "../ui/Heading.astro";
+interface Props {
+  id: string;
+  title: string;
+  muted: string;
+  paragraphs: string[];
+  points: { title: string; text: string }[];
+}
+const { id, title, muted, paragraphs, points } = Astro.props;
+---
+<section id={id} aria-labelledby={`${id}-title`}>
+  <Wrapper class="grid grid-cols-1 gap-y-12 py-24 lg:grid-cols-3">
+    <div class="lg:pr-12">
+      <Heading id={`${id}-title`} muted={muted}>{title}</Heading>
+      {paragraphs.map((p, i) => <p class:list={["text-base text-muted-foreground", i === 0 ? "mt-6" : "mt-4"]}>{p}</p>)}
+    </div>
+    <dl class="border-b border-muted lg:col-span-2">
+      {points.map((point) => (
+        <div class="grid grid-cols-1 gap-2 border-t border-muted py-6 sm:grid-cols-2 sm:gap-8">
+          <dt class="text-lg text-foreground">{point.title}</dt>
+          <dd class="text-base text-muted-foreground">{point.text}</dd>
+        </div>
+      ))}
+    </dl>
+  </Wrapper>
+</section>

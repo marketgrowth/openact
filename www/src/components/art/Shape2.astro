@@ -1,0 +1,20 @@
+---
+// Shape2: a static line drawing for the feature cards.
+// Props: - class: A string of additional classes to style the component.
+// - ...rest: Any other valid attributes for an div element (e.g., id, style, role, aria-label, etc.).
+// Example Usage: <Shape2 class="my-custom-class" />
+const { class: className = "", ...rest } = Astro.props;
+---
+
+<div class={className} {...rest}>
+  <svg
+    viewBox="0 0 400 400"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1"
+    xmlns="http://www.w3.org/2000/svg"
+    aria-hidden="true"
+  >
+    <rect x="130" y="130" width="140" height="140"></rect>
+  </svg>
+</div>

@@ -1,0 +1,44 @@
+---
+// Three numbered steps, each over a line shape, with an outcome line. Like the home page features.
+import Wrapper from "../ui/Wrapper.astro";
+import Heading from "../ui/Heading.astro";
+import Shape1 from "../art/Shape1.astro";
+import Shape2 from "../art/Shape2.astro";
+import Shape4 from "../art/Shape4.astro";
+interface Props {
+  id: string;
+  title: string;
+  muted: string;
+  lead: string;
+  steps: { tag: string; title: string; text: string; outcome: string }[];
+}
+const { id, title, muted, lead, steps } = Astro.props;
+const shapes = [Shape1, Shape2, Shape4];
+---
+<section id={id} aria-labelledby={`${id}-title`}>
+  <Wrapper class="py-24">
+    <div class="max-w-2xl">
+      <Heading id={`${id}-title`} muted={muted}>{title}</Heading>
+      <p class="mt-6 text-base text-muted-foreground">{lead}</p>
+    </div>
+    <ol class="mt-16 grid grid-cols-1 gap-y-16 md:grid-cols-3 md:gap-x-8 lg:gap-x-0">
+      {steps.map((step, i) => {
+        const Shape = shapes[i % shapes.length];
+        return (
+          <li class="flex flex-col">
+            <div class="relative aspect-4/3 overflow-hidden bg-gradient-down">
+              <Shape class="size-full text-foreground" />
+              <span class="absolute top-4 left-4 font-mono text-xs text-muted-foreground">{String(i + 1).padStart(2, "0")}</span>
+            </div>
+            <div class="flex grow flex-col pt-6 lg:pr-8">
+              <p class="text-xs text-muted-foreground">{step.tag}</p>
+              <h3 class="mt-1 text-base font-medium text-foreground">{step.title}</h3>
+              <p class="mt-2 mb-6 text-sm text-muted-foreground">{step.text}</p>
+              <p class="mt-auto border-t border-muted pt-4 text-sm text-foreground"><span class="text-muted-foreground">Outcome:</span> {step.outcome}</p>
+            </div>
+          </li>
+        );
+      })}
+    </ol>
+  </Wrapper>
+</section>

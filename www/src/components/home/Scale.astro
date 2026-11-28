@@ -1,0 +1,99 @@
+---
+// Companies and workspaces, and Cloudflare's edge network. Then the list of what else is in the free core.
+import Wrapper from "../ui/Wrapper.astro";
+import Heading from "../ui/Heading.astro";
+const tree = [
+  { name: "Acme Holdings", kind: "company", indent: false },
+  { name: "Acme", kind: "brand · default", indent: true },
+  { name: "Acme Health", kind: "business unit", indent: true },
+  { name: "Acme West", kind: "region", indent: true }
+];
+const scopes = [
+  { app: "Projects", scope: "workspace" },
+  { app: "Docs", scope: "workspace" },
+  { app: "eSign", scope: "company" },
+  { app: "Your app", scope: "you choose" }
+];
+const pops = [
+  { code: "MNL", city: "Manila" },
+  { code: "SJC", city: "San Jose" },
+  { code: "LHR", city: "London" },
+  { code: "GRU", city: "São Paulo" }
+];
+const core = [
+  ["Roles and permissions", "Owners choose what each role can do in each app."],
+  ["Sign-in without passwords", "People get a 6-digit code by email."],
+  ["Kanban, Gantt and calendar", "Drag cards, bars and dates."],
+  ["Approvals", "Deletes and people changes wait for a person."],
+  ["Agent log", "OpenAct records each action that the agent does."],
+  ["Search by meaning", "Type \"venue\" to find \"Book the gala hall\"."],
+  ["Live updates", "Every open page shows changes at once."],
+  ["Secret projects", "Only invited people see them."],
+  ["Attachments", "Files up to 25 MB on a task."],
+  ["App directory", "Add an app with one command."],
+  ["Light and dark themes", "Or follow the system setting."],
+  ["Known parts", "shadcn/ui, Tailwind CSS and AG-UI."]
+];
+---
+<section id="workspaces" aria-labelledby="scale-title">
+  <Wrapper class="py-24">
+    <div class="max-w-2xl">
+      <Heading id="scale-title" muted="Many companies. Many brands.">One install.</Heading>
+      <p class="mt-6 text-base text-muted-foreground">Each company has its own people, roles and plan. Inside a company, split the work into workspaces: brands, business units, locations or regions. The same team switches between them from one menu.</p>
+    </div>
+    <div class="mt-16 grid grid-cols-1 gap-16 lg:grid-cols-2">
+      <div>
+        <h3 class="text-base font-medium text-foreground">Companies and workspaces</h3>
+        <p class="mt-2 text-sm text-muted-foreground">Apps choose their scope. Workspace-aware apps, such as Projects and Docs, keep their work per workspace. Company-wide apps, such as eSign, serve the whole company. An app builder opts in with one line in the app manifest.</p>
+        <ul class="mt-8 border-b border-muted" aria-label="An example company with three workspaces">
+          {tree.map((row) => (
+            <li class="flex items-baseline justify-between gap-4 border-t border-muted py-3">
+              <span class:list={["text-sm text-foreground", row.indent && "pl-6 before:mr-2 before:text-muted-foreground before:content-['└']"]}>{row.name}</span>
+              <span class="text-xs text-muted-foreground">{row.kind}</span>
+            </li>
+          ))}
+        </ul>
+        <ul class="mt-6 grid grid-cols-2 gap-px border border-muted bg-muted sm:grid-cols-4" aria-label="Where each app keeps its work">
+          {scopes.map((s) => (
+            <li class="bg-background px-3 py-3">
+              <span class="block text-sm text-foreground">{s.app}</span>
+              <span class="block text-xs text-muted-foreground">{s.scope}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div id="edge">
+        <h3 class="text-base font-medium text-foreground">Your app runs near each person</h3>
+        <p class="mt-2 text-sm text-muted-foreground">OpenAct runs on Cloudflare Workers. Each request runs in the Cloudflare data center closest to the person who sends it. You manage no servers and pick no region for the app.</p>
+        <ul class="mt-8 grid grid-cols-2 gap-px border border-muted bg-muted sm:grid-cols-4" aria-label="Some Cloudflare data centers where the app runs">
+          {pops.map((p) => (
+            <li class="bg-background px-3 py-4">
+              <span class="block font-mono text-sm text-foreground">{p.code}</span>
+              <span class="block text-xs text-muted-foreground">{p.city}</span>
+              <span class="mt-3 block text-xs text-muted-foreground">runs here</span>
+            </li>
+          ))}
+        </ul>
+        <div class="mx-auto h-8 w-px bg-muted" aria-hidden="true"></div>
+        <div class="flex items-baseline justify-between gap-4 border border-muted px-4 py-4">
+          <span class="text-sm text-foreground">D1 and live rooms</span>
+          <span class="text-xs text-muted-foreground">one home for your data</span>
+        </div>
+        <p class="mt-6 text-sm text-muted-foreground">Your data has one home. The D1 database and each live room stay in one place, so every person sees the same up-to-date work.</p>
+      </div>
+    </div>
+  </Wrapper>
+</section>
+<section aria-labelledby="core-title">
+  <Wrapper class="py-24">
+    <Heading id="core-title" size="small" muted="Every app gets them.">Also in the free core.</Heading>
+    <dl class="mt-12 grid grid-cols-1 border-t border-muted sm:grid-cols-2 lg:grid-cols-4">
+      {core.map(([title, text]) => (
+        <div class="border-b border-muted py-6 sm:pr-8">
+          <dt class="text-sm font-medium text-foreground">{title}</dt>
+          <dd class="mt-1 text-sm text-muted-foreground">{text}</dd>
+        </div>
+      ))}
+    </dl>
+  </Wrapper>
+</section>

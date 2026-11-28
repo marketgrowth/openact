@@ -1,5 +1,15 @@
 ---
+// The site header, from the Buio theme: the wordmark, menus that open a full-width panel, and the actions.
+// On screens under 1024px, the menu button opens the mobile menu instead.
+// Its script is at the bottom. public/theme.js runs the theme button.
 import Logo from "./Logo.astro";
+import Button from "./ui/Button.astro";
+import Badge from "./ui/Badge.astro";
+import Icon from "./ui/Icon.astro";
+import Wrapper from "./ui/Wrapper.astro";
+import ThemeSwitcher from "./ui/ThemeSwitcher.astro";
+import Shape1 from "./art/Shape1.astro";
+import Shape3 from "./art/Shape3.astro";
 import { DEMO_URL, DOCS_URL, GITHUB_URL } from "../site";
 
 interface Props {
@@ -8,36 +18,248 @@ interface Props {
 }
 const { page } = Astro.props;
 const home = page === "home" ? "" : "/";
-const current = (name: Props["page"]) => (page === name ? "page" : undefined);
+
+const groups = [
+  {
+    id: "product",
+    label: "Product",
+    intro: "The free core, the apps on it and the plans.",
+    links: [
+      { label: "Features", href: `${home}#features`, description: "What the free core gives every app." },
+      { label: "Inside the demo", href: `${home}#tour`, description: "Board, timeline, calendar and apps." },
+      { label: "Director apps", href: `${home}#director`, description: "Docs and Advisory for growing teams." },
+      { label: "Plans", href: `${home}#plans`, description: "One price per company. No seats." }
+    ],
+    featured: { href: DEMO_URL, title: "Open the demo", meta: "Every app is on. The data resets each night.", Shape: Shape1 }
+  },
+  {
+    id: "build",
+    label: "Build",
+    intro: "Build your own apps, or have us build one with you.",
+    links: [
+      { label: "Build your own apps", href: "/build", description: "Your coding agent builds on the free core." },
+      { label: "Producer", href: "/producer", description: "We build your custom app with you." },
+      { label: "Docs", href: DOCS_URL, description: "Guides for app builders and site owners." },
+      { label: "GitHub", href: GITHUB_URL, description: "The code, under the Apache License 2.0." }
+    ],
+    featured: { href: "/producer", title: "A custom app that you own", meta: "Producer: $4,800 per app", Shape: Shape3 }
+  }
+];
+const links = [
+  { label: "Docs", href: DOCS_URL },
+  { label: "Contribute", href: "/contribute", current: page === "contribute" }
+];
 ---
-<header class="top">
-  <div class="wrap">
-    <a class="brand" href="/" aria-label="OpenAct home, beta">
-      <Logo />
-      OpenAct
-      <span class="beta" title="OpenAct is in beta. Expect bugs.">BETA</span>
-    </a>
-    <nav class="nav" aria-label="Main">
-      <a class="pill" href={`${home}#features`}>Features</a>
-      <a class="pill" href={`${home}#plans`}>Plans</a>
-      <a class="pill" href={DOCS_URL}>Docs</a>
-      <a class="pill" href={GITHUB_URL}>GitHub</a>
-      <a class="pill" href="/contribute" aria-current={current("contribute")}>Contribute</a>
-      <a class="btn btn-accent btn-sm" href={DEMO_URL}>Try the demo</a>
-      <!-- The menu on small screens. It is a details element, because these pages run no script. -->
-      <details class="menu">
-        <summary aria-label="Menu"><span class="menu-icon" aria-hidden="true"><i></i><i></i><i></i></span></summary>
-        <div class="menu-panel">
-          <a href={`${home}#features`}>Features</a>
-          <a href={`${home}#plans`}>Plans</a>
-          <a href="/build">Build your own apps</a>
-          <a href="/producer">Producer</a>
-          <a href={DOCS_URL}>Docs</a>
-          <a href={GITHUB_URL}>GitHub</a>
-          <a href="/contribute" aria-current={current("contribute")}>Contribute</a>
-          <a class="btn btn-accent" href={DEMO_URL}>Try the demo</a>
+<div id="nav-wrapper" class="fixed inset-x-0 top-0 z-100">
+  <div id="nav-bar" class="relative transition duration-300 data-solid:bg-background/90 data-solid:backdrop-blur-md">
+    <Wrapper class="relative">
+      <div class="flex h-16 items-center justify-between lg:grid lg:grid-cols-4">
+        <a href="/" class="flex items-center gap-2.5 text-lg font-medium tracking-tight text-foreground" aria-label="OpenAct home, beta" data-mega-close>
+          <Logo class="size-6" />
+          OpenAct
+          <Badge variant="gold" class="ml-0.5 px-2 py-0 text-[0.625rem] tracking-wider" title="OpenAct is in beta. Expect bugs.">BETA</Badge>
+        </a>
+
+        <nav aria-label="Main" class="hidden h-full items-center justify-center gap-7 lg:col-span-2 lg:flex">
+          {groups.map((group) => (
+            <button
+              type="button"
+              data-mega-trigger={group.id}
+              aria-expanded="false"
+              aria-controls={`mega-${group.id}`}
+              class="group flex h-full items-center gap-2 text-sm text-foreground outline-none duration-300 hover:text-muted-foreground aria-expanded:text-muted-foreground cursor-pointer"
+            >
+              {group.label}
+              <Icon name="plus" class="size-3 transition-transform duration-300 group-aria-expanded:rotate-45" />
+            </button>
+          ))}
+          {links.map((link) => (
+            <a href={link.href} aria-current={link.current ? "page" : undefined} data-mega-close class="text-sm text-foreground outline-none duration-300 hover:text-muted-foreground">
+              {link.label}
+            </a>
+          ))}
+        </nav>
+
+        <div class="hidden items-center justify-end gap-1 lg:flex" data-mega-close>
+          <a href={GITHUB_URL} class="mr-2 text-sm text-foreground duration-300 hover:text-muted-foreground">GitHub</a>
+          <ThemeSwitcher />
+          <Button href={DEMO_URL} variant="default" size="sm" class="ml-1">Try the demo</Button>
         </div>
-      </details>
-    </nav>
+
+        <div class="flex items-center gap-1 lg:hidden">
+          <ThemeSwitcher />
+          <Button iconOnly size="sm" id="menu-toggle" aria-label="Open the menu" aria-expanded="false" aria-controls="mobile-menu">
+            <span id="menu-icon"><Icon name="menu" class="size-4" /></span>
+            <span id="close-icon" class="hidden"><Icon name="x" class="size-4" /></span>
+          </Button>
+        </div>
+      </div>
+    </Wrapper>
   </div>
-</header>
+
+  <!-- The panels that open under the header on large screens -->
+  <div class="pointer-events-none absolute inset-x-0 top-full hidden lg:grid">
+    {groups.map((group) => (
+      <div
+        id={`mega-${group.id}`}
+        data-mega-panel={group.id}
+        inert
+        class="pointer-events-auto invisible relative col-start-1 row-start-1 -translate-y-2 border-b border-muted bg-background opacity-0 transition duration-300 ease-out data-open:visible data-open:translate-y-0 data-open:opacity-100"
+      >
+        <Wrapper class="relative">
+          <div class="grid grid-cols-4 py-12">
+            <div class="pr-8">
+              <p class="text-xl font-medium tracking-tight text-foreground lg:text-2xl">{group.label}</p>
+              <p class="mt-2 text-sm text-muted-foreground">{group.intro}</p>
+            </div>
+            <ul class="col-span-2 border-b border-muted">
+              {group.links.map((link) => (
+                <li class="border-t border-muted">
+                  <a href={link.href} class="group grid grid-cols-2 items-baseline gap-4 py-4 outline-none">
+                    <span class="text-base text-foreground duration-300 group-hover:text-muted-foreground">{link.label}</span>
+                    <span class="text-sm text-muted-foreground">{link.description}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+            <a href={group.featured.href} class="group flex flex-col pl-8 outline-none">
+              <div class="flex aspect-video items-center justify-center overflow-hidden border-y border-muted text-muted-foreground">
+                <group.featured.Shape class="size-1/2 duration-500 group-hover:text-foreground" />
+              </div>
+              <span class="mt-4 text-base text-foreground duration-300 group-hover:text-muted-foreground">{group.featured.title}</span>
+              <span class="mt-1 text-sm text-muted-foreground">{group.featured.meta}</span>
+            </a>
+          </div>
+        </Wrapper>
+      </div>
+    ))}
+  </div>
+
+  <!-- The mobile menu -->
+  <nav id="mobile-menu" aria-label="Mobile" inert class="invisible absolute inset-x-0 top-full max-h-[calc(100svh-4rem)] -translate-y-2 overflow-y-auto border-b border-muted bg-background opacity-0 transition duration-300 ease-out data-open:visible data-open:translate-y-0 data-open:opacity-100 lg:hidden">
+    <Wrapper class="flex flex-col gap-10 py-8">
+      <div class="grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2">
+        {groups.map((group) => (
+          <div>
+            <p class="text-sm text-muted-foreground">{group.label}</p>
+            <ul class="mt-4 border-b border-muted">
+              {group.links.map((link) => (
+                <li class="border-t border-muted">
+                  <a href={link.href} class="group block py-3 text-base text-foreground duration-300 hover:text-muted-foreground">{link.label}</a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+        <div>
+          <p class="text-sm text-muted-foreground">More</p>
+          <ul class="mt-4 border-b border-muted">
+            <li class="border-t border-muted"><a href="/contribute" class="block py-3 text-base text-foreground">Contribute</a></li>
+            <li class="border-t border-muted"><a href={DEMO_URL} class="block py-3 text-base text-foreground">Open the demo</a></li>
+          </ul>
+        </div>
+        <div>
+          <p class="text-sm text-muted-foreground">Theme</p>
+          <ThemeSwitcher variant="segmented" class="mt-4" />
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        <Button href={GITHUB_URL} variant="muted" size="base">GitHub</Button>
+        <Button href={DEMO_URL} variant="default" size="base">Try the demo</Button>
+      </div>
+    </Wrapper>
+  </nav>
+</div>
+
+<div id="mega-overlay" class="invisible fixed inset-0 z-90 hidden bg-background/70 opacity-0 backdrop-blur-sm transition duration-300 data-open:visible data-open:opacity-100 lg:block"></div>
+
+<script>
+  // The large-screen menus and the mobile menu. From the Buio theme.
+  const wrapper = document.getElementById("nav-wrapper")!;
+  const bar = document.getElementById("nav-bar")!;
+  const overlay = document.getElementById("mega-overlay")!;
+  const triggers = [...document.querySelectorAll<HTMLButtonElement>("[data-mega-trigger]")];
+  const panels = [...document.querySelectorAll<HTMLElement>("[data-mega-panel]")];
+  const toggle = document.getElementById("menu-toggle")!;
+  const menu = document.getElementById("mobile-menu")!;
+  const menuIcon = document.getElementById("menu-icon")!;
+  const closeIcon = document.getElementById("close-icon")!;
+  let current: string | null = null;
+  let mobileOpen = false;
+  let hoverOpenedAt = 0;
+  let closeTimer: ReturnType<typeof setTimeout> | undefined;
+
+  const updateBar = () => bar.toggleAttribute("data-solid", window.scrollY > 20 || current !== null || mobileOpen);
+
+  function setOpen(id: string | null) {
+    current = id;
+    triggers.forEach((t) => t.setAttribute("aria-expanded", String(t.dataset.megaTrigger === id)));
+    panels.forEach((panel) => {
+      const open = panel.dataset.megaPanel === id;
+      panel.toggleAttribute("data-open", open);
+      panel.inert = !open;
+    });
+    overlay.toggleAttribute("data-open", id !== null);
+    updateBar();
+  }
+
+  function setMobile(open: boolean) {
+    mobileOpen = open;
+    menu.toggleAttribute("data-open", open);
+    menu.inert = !open;
+    toggle.setAttribute("aria-expanded", String(open));
+    toggle.setAttribute("aria-label", open ? "Close the menu" : "Open the menu");
+    menuIcon.classList.toggle("hidden", open);
+    closeIcon.classList.toggle("hidden", !open);
+    updateBar();
+  }
+
+  triggers.forEach((trigger) => {
+    const id = trigger.dataset.megaTrigger!;
+    trigger.addEventListener("pointerenter", (event) => {
+      if (event.pointerType !== "mouse") return;
+      clearTimeout(closeTimer);
+      if (current !== id) hoverOpenedAt = Date.now();
+      setOpen(id);
+    });
+    trigger.addEventListener("click", () => {
+      const justHovered = Date.now() - hoverOpenedAt < 400;
+      setOpen(current === id && !justHovered ? null : id);
+    });
+  });
+  document.querySelectorAll("[data-mega-close]").forEach((el) => el.addEventListener("pointerenter", () => setOpen(null)));
+  wrapper.addEventListener("pointerenter", () => clearTimeout(closeTimer));
+  wrapper.addEventListener("pointerleave", (event) => {
+    if (event.pointerType !== "mouse" || current === null) return;
+    closeTimer = setTimeout(() => setOpen(null), 150);
+  });
+  wrapper.addEventListener("focusout", (event) => {
+    if (!wrapper.contains(event.relatedTarget as Node)) setOpen(null);
+  });
+  overlay.addEventListener("click", () => setOpen(null));
+  // A link to a section on this page closes the menus.
+  wrapper.querySelectorAll('a[href*="#"]').forEach((a) =>
+    a.addEventListener("click", () => {
+      setOpen(null);
+      setMobile(false);
+    })
+  );
+  toggle.addEventListener("click", () => setMobile(!mobileOpen));
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    if (mobileOpen) {
+      setMobile(false);
+      toggle.focus();
+    } else if (current !== null) {
+      const trigger = triggers.find((t) => t.dataset.megaTrigger === current);
+      setOpen(null);
+      trigger?.focus();
+    }
+  });
+  window.addEventListener("resize", () => {
+    if (window.innerWidth < 1024 && current !== null) setOpen(null);
+    if (window.innerWidth >= 1024 && mobileOpen) setMobile(false);
+  });
+  window.addEventListener("scroll", updateBar, { passive: true });
+  updateBar();
+</script>
