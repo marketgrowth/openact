@@ -1,6 +1,8 @@
 ---
-// "What you could build": example apps and fields. Used by /build (you build it) and /producer (we build it with you).
+// "What you could build": one worked example, a list of apps with a dropdown for each, and fields.
+// Used by /build (you build it) and /producer (we build it with you).
 // Keep the examples generic. Do not name official OpenAct apps or real customers here.
+// The dropdowns use <details>, so they work without JavaScript.
 interface Props {
   /** "diy" for the open source page, "studio" for the Producer page. */
   mode: "diy" | "studio";
@@ -9,26 +11,92 @@ const { mode } = Astro.props;
 const studio = mode === "studio";
 
 const intro = studio
-  ? "Bring the work that your business repeats every week. We turn it into an app that you own. Here are some first builds."
-  : "Start with the work that you repeat every week. Describe it to your coding agent, and build it on the OpenAct core. Here are some first builds.";
+  ? "Pick one tool that you rent today and that does not fit your work. We build the app that replaces it. You own it, and the data stays in your account."
+  : "Pick one tool that you rent today and that does not fit your work. Describe the app to your coding agent, and build it on the OpenAct core. The data stays in your account.";
 const listLead = studio ? "We build your first…" : "Build your first…";
+const listHint = "Open an item to see what the app can do.";
+
+// The worked example, in the order that it happens.
+const steps = [
+  {
+    title: "A lead fills in one form",
+    text: "The form asks for the company, the need and the budget. The answers save in your app, in your own account.",
+  },
+  {
+    title: "The agent drafts a scope and a price",
+    text: "It reads the answers and your past quotes. It writes a draft. It does not send anything.",
+  },
+  {
+    title: "A person on your team approves",
+    text: "You read the draft. You change it or approve it. The agent waits for you.",
+  },
+  {
+    title: "The client gets the quote",
+    text: "After you approve, the quote goes out. The lead moves to your pipeline.",
+  },
+];
 
 const ideas = [
-  "Client intake and pricing tool",
-  "Deal pipeline with follow-up drafts",
-  "Proposal and scope of work builder",
-  "Custom CRM for consultants",
-  "Team KPI tracker",
-  "Freelance invoicing system",
-  "Volunteer sign-up and shifts",
-  "Donor update writer",
-  "Program attendance tracker",
-  "Student progress dashboard",
-  "Compliance checklist tracker",
-  "Inventory and reorder planner",
-  "Help desk with agent replies",
-  "Blog-to-social content calendar",
-  "Member directory and renewals"
+  {
+    name: "Client intake and pricing tool",
+    text: "A lead fills in one form. The agent drafts a scope and a price from your past quotes. A person approves it before it goes out.",
+  },
+  {
+    name: "Deal pipeline with follow-up drafts",
+    text: "Each deal has a stage and a next step. The agent writes a follow-up for each quiet deal. You approve each message.",
+  },
+  {
+    name: "Proposal and scope of work builder",
+    text: "Pick a client and a service. The agent builds the proposal from your own templates and prices. Your team edits the draft.",
+  },
+  {
+    name: "Custom CRM for consultants",
+    text: "Keep clients, calls and notes in one place. The agent summarizes each call and lists the next actions. OpenAct has no seats, so your whole team can use it.",
+  },
+  {
+    name: "Team KPI tracker",
+    text: "Each person or team has goals and numbers. The agent writes a weekly summary and flags the numbers that fall behind.",
+  },
+  {
+    name: "Freelance invoicing system",
+    text: "Log the work for each client. The agent builds the invoice from the log. You send it after you check it.",
+  },
+  {
+    name: "Volunteer sign-up and shifts",
+    text: "People pick open shifts. The app tracks hours and sends reminders. The agent fills gaps and drafts thank-you notes.",
+  },
+  {
+    name: "Donor update writer",
+    text: "Program data and donor notes live in one app. The agent writes a short update for each donor. A person reads it before it goes out.",
+  },
+  {
+    name: "Program attendance tracker",
+    text: "Staff mark who came to each session. The app shows trends by program. The agent flags drops in attendance.",
+  },
+  {
+    name: "Student progress dashboard",
+    text: "Lessons, scores and notes build one view for each student. The agent flags students who need help and drafts updates to families.",
+  },
+  {
+    name: "Compliance checklist tracker",
+    text: "Each rule becomes a checklist item with an owner and a due date. The agent flags gaps and expired records before an audit.",
+  },
+  {
+    name: "Inventory and reorder planner",
+    text: "Track stock and sales. The agent predicts when an item runs out and drafts the purchase order. You approve it.",
+  },
+  {
+    name: "Help desk with agent replies",
+    text: "Requests come into one inbox. The agent drafts a reply from your own documents. A person approves any reply that is not routine.",
+  },
+  {
+    name: "Blog-to-social content calendar",
+    text: "Put each post on a calendar. The agent writes the social posts for each channel in your voice. You approve them.",
+  },
+  {
+    name: "Member directory and renewals",
+    text: "Keep a profile for each member. The app tracks renewal dates. The agent drafts renewal reminders and flags members at risk.",
+  },
 ];
 
 const fields = [
@@ -71,29 +139,52 @@ const fields = [
     <p>{intro}</p>
   </div>
   <div class="bento">
-    <article class="card s5 featured-build">
-      <p class="eyebrow">Example</p>
-      <h3>Client intake and pricing tool</h3>
-      <p>A lead fills in one form. The agent drafts a scope and a price. A person approves it before it goes out.</p>
-      <div class="key mock viz" aria-hidden="true">
+    <article class="card s12 example" aria-labelledby="example-title">
+      <div class="example-copy">
+        <p class="eyebrow">One example, step by step</p>
+        <h3 id="example-title">Client intake and pricing tool</h3>
+        <p class="example-problem"><b>The problem:</b> A lead asks for a quote. Someone on your team writes the scope and the price by hand. It takes days, and the numbers live in a tool that you rent.</p>
+        <p class="example-fix"><b>The app:</b> One app, in your account, does the same work in minutes. The agent drafts. Your team decides.</p>
+        <ol class="flow">
+          {steps.map((s, i) => (
+            <li>
+              <span class="flow-num">{i + 1}</span>
+              <div><strong>{s.title}</strong><span>{s.text}</span></div>
+            </li>
+          ))}
+        </ol>
+        {studio && (
+          <p class="example-price"><b>Price:</b> a custom app like this one is <b>$4,800</b>. Nonprofits get 50% off.</p>
+        )}
+      </div>
+      <div class="key mock viz" role="img" aria-label="A sketch of the app. Step 1 shows what the lead entered. Step 2 shows the agent's draft. Step 3 shows the Approve button.">
         <div class="mock-bar"><span class="dots"><i></i><i></i><i></i></span><span>Client intake</span><span class="chip ok">your app</span></div>
         <div class="mock-body">
+          <p class="mock-step"><b>1</b> What the lead entered</p>
           <div class="field-row"><span>Company</span><b>Harbor Studio</b></div>
           <div class="field-row"><span>Need</span><b>Website refresh</b></div>
           <div class="field-row"><span>Budget</span><b>$8k to $12k</b></div>
+          <p class="mock-step"><b>2</b> What the agent drafted</p>
           <div class="key quote">
-            <div class="quote-top"><span>Agent draft</span><span class="chip wait">needs you</span></div>
+            <div class="quote-top"><span>Draft quote</span><span class="chip wait">waiting for you</span></div>
             <b>3 pages · 4 weeks · $9,800</b>
-            <div class="mini-steps"><span class="ok">think</span><span class="ok">act</span><span class="now">wait</span><span>done</span></div>
           </div>
+          <p class="mock-step"><b>3</b> What you do</p>
+          <div class="mock-actions"><span class="mock-btn">Edit</span><span class="mock-btn on">Approve and send</span></div>
         </div>
       </div>
     </article>
-    <div class="card s7 ideas">
+    <div class="card s12 ideas">
       <p class="ideas-lead">{listLead}</p>
-      <ol class="idea-list">
-        {ideas.map((idea) => <li>{idea}</li>)}
-      </ol>
+      <p class="ideas-hint">{listHint}</p>
+      <div class="idea-list">
+        {ideas.map((idea, i) => (
+          <details class="idea">
+            <summary><span class="idea-n">{String(i + 1).padStart(2, "0")}</span><span class="idea-name">{idea.name}</span></summary>
+            <p>{idea.text}</p>
+          </details>
+        ))}
+      </div>
     </div>
     {fields.map((f) => (
       <article class="card s4 field">
