@@ -4,7 +4,7 @@
 /* Producer hero: one large headline across the full width, then the text and the side card. */
 .hero-wide { grid-template-columns: 1.4fr 1fr; }
 .hero-head { grid-column: 1 / -1; }
-.hero h1.big { max-width: 100%; font-size: clamp(2rem, 4.8vw, 4.25rem); line-height: 1.06; text-wrap: balance; }
+.hero h1.big { max-width: 13em; font-size: clamp(1.375rem, 5.6vw, 5rem); line-height: 1.06; text-wrap: balance; }
 @media (max-width: 900px) { .hero-wide { grid-template-columns: 100%; } }
 
 /* Hero side card: a short list of steps with a status chip each */
