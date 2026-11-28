@@ -96,3 +96,5 @@ The Worker also uses `src/shared/contribute.ts` from the repository root. Contri
 ## Writing rules
 
 ASD-STE100 style: short sentences, active voice, one idea per sentence. American spelling. No em dashes.
+
+No orphan words: a heading or a paragraph never ends with a single word alone on its last line. `src/styles/site.css` sets `text-wrap: balance` on headings and `text-wrap: pretty` on text. `integrations/no-orphans.mjs` also binds the last two words of each heading, paragraph and list item with a no-break space when the site builds. Do not turn these off. If a heading still leaves one word alone at some width, shorten it or set a narrower `max-width` on it. Check at 1280, 768 and 390 px wide.

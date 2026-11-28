@@ -93,6 +93,9 @@ img { display: block; max-width: 100%; height: auto; }
 .eyebrow::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
 .eyebrow.warm::before { background: var(--rose); box-shadow: 0 0 10px var(--rose); }
 h1, h2, h3 { font-family: var(--display); color: var(--ink); }
+/* No orphan words. Headings balance their lines. Other text avoids a single word on the last line. */
+h1, h2, h3, h4 { text-wrap: balance; }
+p, li, summary, figcaption, blockquote { text-wrap: pretty; }
 .card {
   position: relative;
   border: 1px solid var(--edge);
