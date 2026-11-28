@@ -10,7 +10,7 @@ import { hasRenewingSubscription } from "./billing";
 import type { InvitationLevel } from "../shared/invitations";
 import { assertInviteBudget, mailInvitation, saveInvitation } from "./invitations";
 import { removeAgentGrants } from "./agent-grants";
-import { listWorkspaces } from "./workspaces";
+import { addWorkspaceMember, defaultWorkspaceId, listWorkspaces } from "./workspaces";
 import { forgetPartners, partnerForNewCompany } from "./partners";
 import { forgetPartnerLinks, partnerLink } from "./partner-link";
 import { HttpError, appUrl, isEmail, newId, normalizeEmail, nowIso, oneOf, readJson, requireUser, text } from "./util";
@@ -37,7 +37,8 @@ export async function listCompanies(env: Env, userId: string): Promise<Company[]
     .all<CompanyRow>();
   // Workspaces for the switcher. Guests get none: they see what they are invited to, in every workspace.
   const ids = rows.results.filter((r) => r.role !== "guest").map((r) => r.id);
-  const [workspaces, links] = await Promise.all([listWorkspaces(env, ids), Promise.all(rows.results.map((r) => partnerLink(env, r.id)))]);
+  const roles = new Map(rows.results.map((r) => [r.id, r.role] as const));
+  const [workspaces, links] = await Promise.all([listWorkspaces(env, ids, { forUser: { userId, roles } }), Promise.all(rows.results.map((r) => partnerLink(env, r.id)))]);
   return rows.results.map((r, i) => ({ ...toCompany(r), workspaces: workspaces.get(r.id) ?? [], pausedBy: links[i]?.paused ? links[i]!.name : null }));
 }
 
@@ -100,13 +101,13 @@ companyRoutes.get("/:id", async (c) => {
   const id = c.req.param("id");
   const role = await requireCompanyRole(c.env, id, user.id, ["owner", "admin"]);
   const [co, members, invites] = await c.env.DB.batch([
-    c.env.DB.prepare("SELECT id, name, logo_key, logo_updated_at, email_domain, legal_name, entity_type FROM companies WHERE id = ?").bind(id),
+    c.env.DB.prepare("SELECT id, name, logo_key, logo_updated_at, email_domain, legal_name, entity_type, member_invites FROM companies WHERE id = ?").bind(id),
     c.env.DB.prepare(
       "SELECT u.id AS user_id, u.email, u.name, m.role FROM company_members m JOIN users u ON u.id = m.user_id WHERE m.company_id = ? ORDER BY CASE m.role WHEN 'owner' THEN 0 WHEN 'admin' THEN 1 WHEN 'member' THEN 2 ELSE 3 END, u.name COLLATE NOCASE"
     ).bind(id),
     c.env.DB.prepare("SELECT i.id, i.email, i.role, i.level, i.created_at, i.expires_at, w.name AS workspace_name FROM company_invitations i LEFT JOIN workspaces w ON w.id = i.workspace_id WHERE i.company_id = ? ORDER BY i.created_at").bind(id)
   ]);
-  const r = co.results[0] as { id: string; name: string; logo_key: string | null; logo_updated_at: string | null; email_domain: string | null; legal_name: string | null; entity_type: EntityType | null };
+  const r = co.results[0] as { id: string; name: string; logo_key: string | null; logo_updated_at: string | null; email_domain: string | null; legal_name: string | null; entity_type: EntityType | null; member_invites: number };
   const detail: CompanyDetail = {
     id: r.id,
     name: r.name,
@@ -115,6 +116,7 @@ companyRoutes.get("/:id", async (c) => {
     emailDomain: r.email_domain,
     legalName: r.legal_name,
     entityType: r.entity_type,
+    memberInvites: r.member_invites === 1,
     members: (members.results as Array<{ user_id: string; email: string; name: string; role: CompanyRole }>).map((m) => ({
       userId: m.user_id,
       email: m.email,
@@ -150,6 +152,11 @@ companyRoutes.patch("/:id", async (c) => {
   if (body.legalName !== undefined) {
     sets.push("legal_name = ?");
     vals.push(body.legalName === null || body.legalName === "" ? null : text(body.legalName, "Official company name", { max: COMPANY_NAME_MAX }));
+  }
+  if (body.memberInvites !== undefined) {
+    if (typeof body.memberInvites !== "boolean") throw new HttpError(400, "memberInvites must be true or false.");
+    sets.push("member_invites = ?");
+    vals.push(body.memberInvites ? 1 : 0);
   }
   if (body.entityType !== undefined) {
     sets.push("entity_type = ?");
@@ -298,7 +305,10 @@ companyRoutes.patch("/:id/members/:userId", async (c) => {
   if ((current === "owner" || role === "owner") && actorRole !== "owner") throw new HttpError(403, "Only a company owner can add or change owners.");
   if (current === "owner" && role !== "owner" && (await ownerCount(c.env, id)) <= 1)
     throw new HttpError(400, "A company needs at least one owner. Make someone else an owner first.");
-  await c.env.DB.prepare("UPDATE company_members SET role = ? WHERE company_id = ? AND user_id = ?").bind(role, id, target).run();
+  const stmts = [c.env.DB.prepare("UPDATE company_members SET role = ? WHERE company_id = ? AND user_id = ?").bind(role, id, target)];
+  // A person who becomes a member starts in the default workspace, so they do not lose every workspace. Owners and admins can then adjust it.
+  if (role === "member") stmts.push(addWorkspaceMember(c.env, id, await defaultWorkspaceId(c.env, id), target));
+  await c.env.DB.batch(stmts);
   return c.json({ role });
 });
 
@@ -323,6 +333,7 @@ export async function removeFromCompany(env: Env, companyId: string, userId: str
   // Agents the person connected in this company stop working.
   await removeAgentGrants(env, companyId, userId);
   await env.DB.batch([
+    env.DB.prepare("DELETE FROM workspace_members WHERE company_id = ? AND user_id = ?").bind(companyId, userId),
     env.DB.prepare("DELETE FROM company_members WHERE company_id = ? AND user_id = ?").bind(companyId, userId),
     env.DB.prepare("UPDATE users SET current_company_id = NULL WHERE id = ? AND current_company_id = ?").bind(userId, companyId)
   ]);
@@ -346,13 +357,20 @@ companyRoutes.delete("/:id/invitations/:invId", async (c) => {
 export async function joinCompaniesAtSignIn(env: Env, user: User): Promise<void> {
   const domain = user.email.toLowerCase().split("@")[1] ?? "";
   if (!domain) return;
-  await env.DB.prepare(
-    `INSERT INTO company_members (company_id, user_id, role, created_at)
-     SELECT id, ?, 'member', ? FROM companies WHERE email_domain = ?
-     ON CONFLICT (company_id, user_id) DO UPDATE SET role = CASE WHEN company_members.role = 'guest' THEN 'member' ELSE company_members.role END`
-  )
-    .bind(user.id, nowIso(), domain)
-    .run();
+  await env.DB.batch([
+    // A person who joins by domain starts in the default workspace. Only the first time, so a removal sticks.
+    env.DB.prepare(
+      `INSERT OR IGNORE INTO workspace_members (workspace_id, company_id, user_id, created_at)
+       SELECT w.id, c.id, ?, ? FROM companies c JOIN workspaces w ON w.company_id = c.id AND w.is_default = 1
+       WHERE c.email_domain = ?
+         AND NOT EXISTS (SELECT 1 FROM company_members m WHERE m.company_id = c.id AND m.user_id = ? AND m.role != 'guest')`
+    ).bind(user.id, nowIso(), domain, user.id),
+    env.DB.prepare(
+      `INSERT INTO company_members (company_id, user_id, role, created_at)
+       SELECT id, ?, 'member', ? FROM companies WHERE email_domain = ?
+       ON CONFLICT (company_id, user_id) DO UPDATE SET role = CASE WHEN company_members.role = 'guest' THEN 'member' ELSE company_members.role END`
+    ).bind(user.id, nowIso(), domain)
+  ]);
 }
 
 /** True when a company invitation or a claimed email domain lets this email sign up. */

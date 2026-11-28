@@ -105,9 +105,9 @@ invitationRoutes.get("/", async (c) => {
 });
 
 async function mine(env: Env, id: string, email: string) {
-  const inv = await env.DB.prepare("SELECT id, company_id, role, level, expires_at FROM company_invitations WHERE id = ? AND email = ?")
+  const inv = await env.DB.prepare("SELECT id, company_id, role, level, workspace_id, expires_at FROM company_invitations WHERE id = ? AND email = ?")
     .bind(id, email)
-    .first<{ id: string; company_id: string; role: CompanyRole; level: InvitationLevel; expires_at: string }>();
+    .first<{ id: string; company_id: string; role: CompanyRole; level: InvitationLevel; workspace_id: string | null; expires_at: string }>();
   // Someone else's invitation looks the same as one that does not exist.
   if (!inv) throw new HttpError(404, "This invitation does not exist.");
   if (inv.expires_at <= nowIso()) throw new HttpError(410, "This invitation has expired. Ask for a new one.");
@@ -126,6 +126,15 @@ invitationRoutes.post("/:id/accept", async (c) => {
          WHEN excluded.role = 'owner' OR (excluded.role = 'admin' AND company_members.role = 'member') THEN excluded.role
          ELSE company_members.role END`
     ).bind(inv.company_id, user.id, inv.role, nowIso()),
+    // A member starts in the workspace they were invited to, or in the default one.
+    ...(inv.role === "member"
+      ? [
+          c.env.DB.prepare(
+            `INSERT OR IGNORE INTO workspace_members (workspace_id, company_id, user_id, created_at)
+             SELECT COALESCE(?, (SELECT id FROM workspaces WHERE company_id = ? AND is_default = 1)), ?, ?, ?`
+          ).bind(inv.workspace_id, inv.company_id, inv.company_id, user.id, nowIso())
+        ]
+      : []),
     c.env.DB.prepare("DELETE FROM company_invitations WHERE id = ?").bind(inv.id),
     c.env.DB.prepare("UPDATE users SET current_company_id = ? WHERE id = ? AND current_company_id IS NULL").bind(inv.company_id, user.id)
   ]);

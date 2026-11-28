@@ -18,7 +18,7 @@ const T = "2026-01-01T00:00:00.000Z";
 // The Docs app and its workspace migration are in openact-director, with their own tests.
 const NEW = new Set(["packages/core/migrations/0013_workspaces.sql", "apps/projects/migrations/0002_workspaces.sql"]);
 // Later migrations that point at workspaces. They run after the workspace migrations.
-const AFTER = new Set(["packages/core/migrations/0017_invitations.sql"]);
+const AFTER = new Set(["packages/core/migrations/0017_invitations.sql", "packages/core/migrations/0018_workspace_access.sql"]);
 
 function files(dirs: string[]): string[] {
   return dirs.flatMap((d) =>
@@ -153,6 +153,9 @@ test("which workspace a request works in", async () => {
   const brand = await createWorkspace(env, "c1", "u_own", { name: "Brand Y" });
   const old = await createWorkspace(env, "c1", "u_own", { name: "Old brand" });
   await updateWorkspace(env, "c1", old.id, { archived: true });
+  const hidden = await createWorkspace(env, "c1", "u_own", { name: "Hidden" });
+  // The upgrade put u_mem in the workspaces that existed. New ones start without them. Put u_mem in Brand Y and Old brand.
+  for (const w of [brand.id, old.id]) db.prepare("INSERT INTO workspace_members (workspace_id, company_id, user_id, created_at) VALUES (?, 'c1', 'u_mem', ?)").run(w, T);
   const r = (userId: string, role: any, wanted?: string) => resolveWorkspace(env, { companyId: "c1", userId, role, wanted });
 
   // Guests see every workspace they are invited to.
@@ -162,6 +165,9 @@ test("which workspace a request works in", async () => {
   assert.equal(await r("u_mem", "member", ALL_WORKSPACES), def);
   // An id picks that workspace.
   assert.equal(await r("u_mem", "member", brand.id), brand.id);
+  // A member cannot open a workspace they are not in. An owner can.
+  await assert.rejects(r("u_mem", "member", hidden.id), (e: HttpError) => e.status === 404);
+  assert.equal(await r("u_own", "owner", hidden.id), hidden.id);
   // An archived workspace opens for owners and admins, by id only.
   assert.equal(await r("u_own", "admin", old.id), old.id);
   await assert.rejects(r("u_mem", "member", old.id), (e: HttpError) => e.status === 404);

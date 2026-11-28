@@ -12,6 +12,7 @@ export {
   workspaceScope,
   workspaceForNew,
   requireActiveWorkspace,
+  memberWorkspaceIds,
   resolveWorkspace,
   defaultWorkspaceId,
   getWorkspace,
@@ -78,6 +79,7 @@ export {
   siteAppOff,
   companyAppState,
   getCatalog,
+  ownItemsOnly,
   type AppInfo,
   type CompanyAppState
 } from "./permissions.ts";

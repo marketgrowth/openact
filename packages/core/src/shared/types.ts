@@ -98,6 +98,8 @@ export interface CompanyDetail extends Company {
   /** The official name, as on the company's filings. Null for a company made before onboarding. */
   legalName: string | null;
   entityType: EntityType | null;
+  /** True when members can invite people into a workspace they are in. */
+  memberInvites: boolean;
   members: Array<{ userId: string; email: string; name: string; role: CompanyRole }>;
   invitations: Array<{ id: string; email: string; role: CompanyRole; level: InvitationLevel; workspaceName: string | null; createdAt: string; expiresAt: string }>;
 }

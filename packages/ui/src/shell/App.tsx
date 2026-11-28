@@ -20,6 +20,7 @@ import { Button } from "@openact/ui/components/button";
 // Loaded on first use, so the first page loads less code.
 const SettingsPage = lazy(() => import("./SettingsPage").then((m) => ({ default: m.SettingsPage })));
 const Onboarding = lazy(() => import("./Onboarding").then((m) => ({ default: m.Onboarding })));
+const WorkspacePeople = lazy(() => import("./WorkspacePeople").then((m) => ({ default: m.WorkspacePeople })));
 const NewCompanyDialog = lazy(() => import("./CompanyDialogs").then((m) => ({ default: m.NewCompanyDialog })));
 const AppsPage = lazy(() => import("./AppsPage").then((m) => ({ default: m.AppsPage })));
 const AgentConsent = lazy(() => import("./AgentConsent").then((m) => ({ default: m.AgentConsent })));
@@ -170,7 +171,7 @@ function Root({ apps, directory, primary }: { apps: ClientApp[]; directory: read
   );
 }
 
-type Dialog = null | "newCompany" | { command: string };
+type Dialog = null | "newCompany" | "workspacePeople" | { command: string };
 
 function SignedIn({
   me,
@@ -365,6 +366,7 @@ function SignedIn({
         primary={primary}
         onRunCommand={(id) => setDialog({ command: id })}
         onNewCompany={() => setDialog("newCompany")}
+        onWorkspacePeople={() => setDialog("workspacePeople")}
         superAdmin={superAdmin === true}
         onSignOut={signOut}
       />
@@ -382,6 +384,7 @@ function SignedIn({
       </SidebarInset>
       <Suspense fallback={null}>
         {dialog === "newCompany" && <NewCompanyDialog onClose={close} />}
+        {dialog === "workspacePeople" && ws.current && ws.currentWorkspace && <WorkspacePeople company={ws.current} workspace={ws.currentWorkspace} onClose={close} />}
         {activeCommand && <activeCommand.Dialog onClose={close} />}
       </Suspense>
     </SidebarProvider>

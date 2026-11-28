@@ -85,10 +85,14 @@ A workspace-aware app:
 3. Adds a trigger that does the same for rows inserted without a workspace, such as rows from **Duplicate a company**. See `apps/projects/migrations/0002_workspaces.sql`.
 4. Reads the workspace in list routes with `workspaceScope(c, "<app id>", companyId)` from `@openact/core/server`. It returns a workspace id, or `null` for every workspace (All workspaces, or a guest). Filter by `workspace_id` only when it is not null.
 5. Picks the workspace of a new row with `workspaceForNew(c, "<app id>", companyId, body.workspaceId)`.
-6. Checks a move with `requireActiveWorkspace(env, companyId, workspaceId)`.
+6. Checks a move with `requireActiveWorkspace(env, companyId, workspaceId, { userId, role })`. A member can move work only into a workspace they are in.
 7. In the web app, adds `useWorkspace().workspaceParam` to its API calls, and loads again when it changes.
 
-Workspaces organize work. They never decide access. Check the company role, the app permission and the row's own access first, as before.
+Workspaces limit what a member sees. `workspaceScope` throws 404 when a member asks for a workspace they are not in, and a member without "All workspaces" always gets one workspace id. Check the company role, the app permission and the row's own access first, as before. A route that opens one row by id must also check that a member is in the row's workspace. Owners and admins pass. `projectAccess` in the Projects app is an example.
+
+### Keep items private to their owner
+
+An app that holds personal items, such as signing requests, can add `"access": "own"` to its manifest. Owners and admins see all items. A company member sees only the items they made or are part of. The app calls `ownItemsOnly(appId, role)` from `@openact/core/server` and filters its lists and its single-item routes when it returns true.
 
 For an app with `"scope": "company"`, `workspaceScope` always returns `null`, so the same code stays company-wide.
 

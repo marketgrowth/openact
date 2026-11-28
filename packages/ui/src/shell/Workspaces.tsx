@@ -4,6 +4,7 @@ import { api, errorText } from "../api";
 import { Field, Modal, Notice, useToast } from "../ui";
 import { useWorkspace } from "../workspace";
 import { CompanyMark } from "./Sidebar";
+import { WorkspacePeople } from "./WorkspacePeople";
 import { Button } from "@openact/ui/components/button";
 import { Input } from "@openact/ui/components/input";
 import { Badge } from "@openact/ui/components/badge";
@@ -35,6 +36,7 @@ export function WorkspacesTab({ company }: { company: Pick<Company, "id" | "name
   const [kind, setKind] = useState<WorkspaceKind>("brand");
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState<Workspace | null>(null);
+  const [people, setPeople] = useState<Workspace | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -95,14 +97,15 @@ export function WorkspacesTab({ company }: { company: Pick<Company, "id" | "name
         </Button>
       </form>
 
-      <WorkspaceList company={company} items={active} onEdit={setEditing} />
+      <WorkspaceList company={company} items={active} onEdit={setEditing} onPeople={setPeople} />
       {archived.length > 0 && (
         <div className="grid gap-2">
           <h3 className="text-sm font-medium">Archived</h3>
           <p className="text-sm text-muted-foreground">Archived workspaces keep their projects and docs. Owners and admins still see that work in All workspaces.</p>
-          <WorkspaceList company={company} items={archived} onEdit={setEditing} />
+          <WorkspaceList company={company} items={archived} onEdit={setEditing} onPeople={setPeople} />
         </div>
       )}
+      {people && <WorkspacePeople company={{ id: company.id, role: "owner" }} workspace={people} onClose={() => setPeople(null)} />}
       {editing && (
         <WorkspaceDialog
           company={company}
@@ -118,7 +121,7 @@ export function WorkspacesTab({ company }: { company: Pick<Company, "id" | "name
   );
 }
 
-function WorkspaceList({ company, items, onEdit }: { company: Pick<Company, "logoUrl">; items: Workspace[]; onEdit: (w: Workspace) => void }) {
+function WorkspaceList({ company, items, onEdit, onPeople }: { company: Pick<Company, "logoUrl">; items: Workspace[]; onEdit: (w: Workspace) => void; onPeople: (w: Workspace) => void }) {
   return (
     <ul className="divide-y rounded-lg border">
       {items.map((w) => (
@@ -133,6 +136,11 @@ function WorkspaceList({ company, items, onEdit }: { company: Pick<Company, "log
           </div>
           {w.isDefault && <Badge variant="secondary">Default</Badge>}
           {w.archived && <Badge variant="outline">Archived</Badge>}
+          {!w.archived && (
+            <Button type="button" variant="outline" size="sm" onClick={() => onPeople(w)}>
+              People
+            </Button>
+          )}
           <Button type="button" variant="outline" size="sm" onClick={() => onEdit(w)}>
             Edit
           </Button>

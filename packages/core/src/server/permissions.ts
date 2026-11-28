@@ -32,6 +32,8 @@ export interface AppInfo {
   plan?: PaidPlan;
   /** "workspace" when the app keeps its rows per workspace. Missing or "company": company-wide. From "scope" in package.json. */
   scope?: AppScope;
+  /** "own" when a company member sees only the items they made or are part of. Missing: members see all items they have a role for. From "access" in package.json. */
+  access?: "all" | "own";
   /** The day this version of a paid app was released, as YYYY-MM-DD. Used for the license fallback. See fallbackCovers(). */
   released?: string;
   /** The app's version, from its package.json. */
@@ -244,3 +246,11 @@ export async function companyAccess(env: Env, companyId: string, role: CompanyRo
 }
 
 export const isCompanyRole = (r: unknown): r is CompanyRole => (COMPANY_ROLES as readonly unknown[]).includes(r);
+
+/**
+ * True when this person sees only their own items in the app: the app has "access": "own" and the person is a company member.
+ * Owners and admins always see everything. The app filters its lists and checks single items with this.
+ */
+export function ownItemsOnly(appId: string, role: CompanyRole | null): boolean {
+  return role === "member" && getCatalog().find((a) => a.id === appId)?.access === "own";
+}

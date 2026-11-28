@@ -60,8 +60,15 @@ export const toWorkspace = (r: WorkspaceRow): Workspace => ({
   archived: !!r.archived_at
 });
 
-/** The workspaces of some companies, the default one first, then by name. Archived ones only when asked. */
-export async function listWorkspaces(env: Env, companyIds: readonly string[], opts: { archived?: boolean } = {}): Promise<Map<string, Workspace[]>> {
+/**
+ * The workspaces of some companies, the default one first, then by name. Archived ones only when asked.
+ * With forUser, a company where the person is a member lists only the workspaces they are in.
+ */
+export async function listWorkspaces(
+  env: Env,
+  companyIds: readonly string[],
+  opts: { archived?: boolean; forUser?: { userId: string; roles: ReadonlyMap<string, CompanyRole> } } = {}
+): Promise<Map<string, Workspace[]>> {
   const out = new Map<string, Workspace[]>(companyIds.map((id) => [id, []]));
   if (!companyIds.length) return out;
   const rows = await env.DB.prepare(
@@ -71,8 +78,45 @@ export async function listWorkspaces(env: Env, companyIds: readonly string[], op
   )
     .bind(...companyIds)
     .all<WorkspaceRow>();
-  for (const r of rows.results) out.get(r.company_id)?.push(toWorkspace(r));
+  let mine: Set<string> | null = null;
+  if (opts.forUser) {
+    const asMember = companyIds.filter((id) => opts.forUser!.roles.get(id) === "member");
+    if (asMember.length) {
+      const m = await env.DB.prepare(
+        `SELECT workspace_id FROM workspace_members WHERE user_id = ? AND company_id IN (${asMember.map(() => "?").join(", ")})`
+      )
+        .bind(opts.forUser.userId, ...asMember)
+        .all<{ workspace_id: string }>();
+      mine = new Set(m.results.map((r) => r.workspace_id));
+    }
+  }
+  for (const r of rows.results) {
+    if (mine && opts.forUser!.roles.get(r.company_id) === "member" && !mine.has(r.id)) continue;
+    out.get(r.company_id)?.push(toWorkspace(r));
+  }
   return out;
+}
+
+/** The active workspaces a person works in, the default one first. Only a company member has these. */
+export async function memberWorkspaceIds(env: Env, companyId: string, userId: string): Promise<string[]> {
+  const r = await env.DB.prepare(
+    `SELECT w.id FROM workspace_members wm JOIN workspaces w ON w.id = wm.workspace_id
+     WHERE wm.company_id = ? AND wm.user_id = ? AND w.archived_at IS NULL
+     ORDER BY w.is_default DESC, w.name COLLATE NOCASE`
+  )
+    .bind(companyId, userId)
+    .all<{ id: string }>();
+  return r.results.map((x) => x.id);
+}
+
+/** Puts a person in a workspace. Does nothing when they are in it already. */
+export function addWorkspaceMember(env: Env, companyId: string, workspaceId: string, userId: string) {
+  return env.DB.prepare("INSERT OR IGNORE INTO workspace_members (workspace_id, company_id, user_id, created_at) VALUES (?, ?, ?, ?)").bind(
+    workspaceId,
+    companyId,
+    userId,
+    nowIso()
+  );
 }
 
 /** One workspace of a company, archived or not, or null. */
@@ -103,6 +147,18 @@ export async function resolveWorkspace(
   if (!opts.role || opts.role === "guest") return null;
   const manager = isManager(opts.role);
   const wanted = opts.wanted?.trim();
+  if (!manager) {
+    // A member works only in the workspaces they are in. Another one looks like one that does not exist.
+    const mine = await memberWorkspaceIds(env, opts.companyId, opts.userId);
+    if (wanted && wanted !== ALL_WORKSPACES) {
+      if (!mine.includes(wanted)) throw new HttpError(404, "This workspace does not exist, or you are not in it. Pick another workspace.");
+      return wanted;
+    }
+    const saved = await env.DB.prepare("SELECT current_workspace_id FROM users WHERE id = ?").bind(opts.userId).first<{ current_workspace_id: string | null }>();
+    if (saved?.current_workspace_id && mine.includes(saved.current_workspace_id)) return saved.current_workspace_id;
+    if (!mine[0]) throw new HttpError(403, "You are not in any workspace of this company. Ask an owner or admin to add you.");
+    return mine[0];
+  }
   if (wanted === ALL_WORKSPACES && manager) return null;
   if (wanted && wanted !== ALL_WORKSPACES) {
     const ws = await getWorkspace(env, opts.companyId, wanted);
@@ -120,10 +176,18 @@ export async function resolveWorkspace(
 }
 
 /** Checks that a workspace is an active workspace of the company, for moving a row into it. Returns its id. */
-export async function requireActiveWorkspace(env: Env, companyId: string, workspaceId: unknown): Promise<string> {
+export async function requireActiveWorkspace(
+  env: Env,
+  companyId: string,
+  workspaceId: unknown,
+  /** When the person is a member, the workspace must be one they are in. */
+  who?: { userId: string; role: CompanyRole | null }
+): Promise<string> {
   if (typeof workspaceId !== "string" || !workspaceId) throw new HttpError(400, "Pick a workspace.");
   const ws = await getWorkspace(env, companyId, workspaceId);
   if (!ws || ws.archived) throw new HttpError(400, "This workspace does not exist, or it was archived. Pick another workspace.");
+  if (who && who.role === "member" && !(await memberWorkspaceIds(env, companyId, who.userId)).includes(ws.id))
+    throw new HttpError(400, "This workspace does not exist, or you are not in it. Pick another workspace.");
   return ws.id;
 }
 

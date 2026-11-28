@@ -54,7 +54,7 @@ The core must never import from an app. If the core needs something from apps, a
 10. **Keep the topic check a helper.** The scope check in `apps/projects/src/server/agent/scope.ts` controls focus and cost only. Never use it as an access check, and never let a failed check block a request. Log a short topic, never the person's message. With Jev, keep judgments in the questions and the decision in the truth table in `scope-jev.ts`. Never read a failed call as an answer.
 
 11. **Companies isolate data.** Every project, and every row of every app, has a `company_id`. Never show, search or route to a project in another company. A person added to one project from outside the company joins it as a guest.
-    **Workspaces organize data, they never decide access.** Apps with `"scope": "workspace"` filter lists with `workspaceScope` and place new rows with `workspaceForNew` (`@openact/core/server`). Check access first, as before. Read `docs/workspaces.md`.
+    **Workspaces limit what a member sees.** A member works only in the workspaces in `workspace_members`. Owners and admins see all. Apps with `"scope": "workspace"` filter lists with `workspaceScope` (it throws 404 for a workspace the member is not in) and place new rows with `workspaceForNew`. A single row that belongs to a workspace needs the same check: a member opens it only when they are in its workspace (see `projectAccess`). Apps with `"access": "own"` show a member only the items they made or are part of: check `ownItemsOnly(appId, role)`. Read `docs/workspaces.md`.
 
 12. **Search never decides access.** Vectorize results are hints. Check every result against `visibleProjectIds` before you show it or send it to a model. Embed notes only when the project's note search is on.
 
