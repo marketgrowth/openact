@@ -1,7 +1,7 @@
 /* OpenAct theme. shadcn/ui (new-york, neutral) tokens plus the OpenAct colors that carry meaning:
    status, priority, project and avatar colors. Dark mode is the `.dark` class on <html>,
    set by theme.ts from the person's choice or the system setting.
-   This file holds the values of the OpenAct Promptbook (packages/ui/promptbook.json, https://openact.ing/design).
+   This file holds the values of the OpenAct Promptbook (packages/ui/promptbook.json, https://design.openact.ing).
    Pick tokens by intent. Run `npm run design -- check` after you change a value. */
 
 @import "tailwindcss";

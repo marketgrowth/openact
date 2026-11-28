@@ -19,6 +19,7 @@
   },
   "routes": [
     { "pattern": "openact.ing", "custom_domain": true },
-    { "pattern": "www.openact.ing", "custom_domain": true }
+    { "pattern": "www.openact.ing", "custom_domain": true },
+    { "pattern": "design.openact.ing", "custom_domain": true }
   ]
 }

@@ -9,7 +9,7 @@ The Promptbook is the design system for OpenAct apps. Read it before you build a
 
 In a theater, the prompt book is the stage manager's master copy of the show. It holds the script, every cue and every move. The crew works from it. The OpenAct Promptbook does the same job for apps. It holds the tokens, the rules and the checks in one place.
 
-- The page for people: [openact.ing/design](https://openact.ing/design)
+- The page for people: [design.openact.ing](https://design.openact.ing)
 - The copy for agents: [openact.ing/design/promptbook.md](https://openact.ing/design/promptbook.md) and [promptbook.json](https://openact.ing/design/promptbook.json)
 - The source: `packages/ui/promptbook.json` and `packages/ui/src/theme.css`
 
@@ -179,6 +179,6 @@ Use these six steps when you start an OpenAct app with a coding agent. The perso
 | --- | --- |
 | `npm run design -- check` | Tests the script cues: tokens, contrast, literal colors, em dashes and app token names. |
 | `npm run design -- seed <app-id> <hue>` | Makes an app accent from one hue. |
-| `npm run design -- build` | Publishes the Promptbook to `www/public/design` and `www/src/pages/design.astro` for openact.ing/design. |
+| `npm run design -- build` | Publishes the Promptbook to `www/public/design` and `www/src/pages/design.astro` for design.openact.ing. |
 
 `npm test` runs the check and fails if the published copy is out of date.

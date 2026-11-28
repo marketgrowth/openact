@@ -2,7 +2,7 @@
   "$comment": "Made by `npm run design -- build` from packages/ui/promptbook.json and packages/ui/src/theme.css in https://github.com/marketgrowth/openact. Do not edit this copy.",
   "name": "OpenAct Promptbook",
   "version": "1.0.0",
-  "url": "https://openact.ing/design",
+  "url": "https://design.openact.ing",
   "source": "packages/ui/src/theme.css",
   "premise": "In a theater, the prompt book is the stage manager's master copy of the show. It holds the script, every cue and every move. The crew works from it. The Promptbook does the same job for OpenAct apps. It holds the tokens, the rules and the checks in one place. Agents read it first. People approve what the agents make.",
   "principles": [
