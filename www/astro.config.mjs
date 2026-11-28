@@ -1,8 +1,10 @@
 // Astro builds the openact.ing pages into dist/. The openact-site Worker (worker/index.ts) serves dist/.
 import { defineConfig } from "astro/config";
+import noOrphans from "./integrations/no-orphans.mjs";
 
 export default defineConfig({
   site: "https://openact.ing",
+  integrations: [noOrphans()],
   output: "static",
   // contribute.astro becomes contribute.html, served at /contribute. The rules in public/_headers match these paths.
   build: { format: "file", inlineStylesheets: "never" },
