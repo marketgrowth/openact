@@ -6,6 +6,7 @@ import { Link, navigate, usePath } from "../router";
 import { Avatar, Icon } from "../ui";
 import { useWorkspace } from "../workspace";
 import { getTheme, setTheme, type ThemePref } from "../theme";
+import { OPENACT_RELEASES_URL, OPENACT_VERSION } from "../version";
 import { useState } from "react";
 import { cn } from "@openact/ui/lib/utils";
 import {
@@ -320,6 +321,7 @@ export function AppSidebar(p: AppSidebarProps) {
             )}
             {Section && <Section />}
           </SidebarContent>
+          {onSettings && <SettingsFooter site={p.superAdmin} path={path} onPick={done} />}
         </Sidebar>
       </div>
       <SidebarRail />
@@ -329,7 +331,7 @@ export function AppSidebar(p: AppSidebarProps) {
 
 /**
  * The settings sections in the app panel: Company settings for owners and admins, Personal account for everyone,
- * then Site settings for super admins. Contribute shows under Company settings for super admins only.
+ * then Site settings for super admins. Contribute sits in the panel footer (see SettingsFooter).
  */
 function SettingsNav({ apps, path, company, site, onPick }: { apps: readonly ClientApp[]; path: string; company: boolean; site: boolean; onPick: () => void }) {
   const here = parseSettingsPath(path);
@@ -361,10 +363,42 @@ function SettingsNav({ apps, path, company, site, onPick }: { apps: readonly Cli
   );
   return (
     <>
-      {(company || site) && group("Company settings", [...(company ? companySections(apps) : []), ...clients, ...(site && !config.partner ? [CONTRIBUTE_SECTION] : [])])}
+      {(company || site) && group("Company settings", [...(company ? companySections(apps) : []), ...clients])}
       {group("Personal account", ACCOUNT_SECTIONS)}
       {site && group("Site settings", SITE_SECTIONS)}
     </>
+  );
+}
+
+/**
+ * The foot of the Settings panel. A spacer pushes it to the bottom. The Contribute link (the site owner only) sits
+ * alone at the very bottom, then one line of small text: the OpenAct version and a link to the releases.
+ */
+function SettingsFooter({ site, path, onPick }: { site: boolean; path: string; onPick: () => void }) {
+  const { config } = useShell();
+  const here = parseSettingsPath(path);
+  const on = here?.scope === CONTRIBUTE_SECTION.scope && here.id === CONTRIBUTE_SECTION.id;
+  return (
+    <SidebarFooter className="mt-auto px-2 pt-6 pb-2" data-settings-footer="">
+      {site && !config.partner && (
+        <SidebarMenu aria-label="Contribute">
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={on}>
+              <Link to={settingsPath(CONTRIBUTE_SECTION.scope, CONTRIBUTE_SECTION.id)} onClick={onPick} aria-current={on ? "page" : undefined} data-settings-nav={`${CONTRIBUTE_SECTION.scope}/${CONTRIBUTE_SECTION.id}`}>
+                <Icon name={CONTRIBUTE_SECTION.icon} />
+                <span>{CONTRIBUTE_SECTION.label}</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      )}
+      <p className="px-2 text-xs text-muted-foreground" data-openact-version="">
+        Built on OpenAct v{OPENACT_VERSION} |{" "}
+        <a className="underline underline-offset-4" href={OPENACT_RELEASES_URL} target="_blank" rel="noreferrer">
+          Update<span className="sr-only"> (opens in a new tab)</span>
+        </a>
+      </p>
+    </SidebarFooter>
   );
 }
 
