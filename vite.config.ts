@@ -1,11 +1,16 @@
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
 // Vite builds the web app into dist/client. Wrangler serves it as static assets.
 // For hot reload: run `npx wrangler dev` in one terminal and `npm run dev:ui` in another.
+// The core version shows in the Settings panel footer.
+const coreVersion = JSON.parse(readFileSync(new URL("./packages/core/package.json", import.meta.url), "utf8")).version as string;
+
 export default defineConfig({
+  define: { __OPENACT_VERSION__: JSON.stringify(coreVersion) },
   plugins: [react(), tailwindcss()],
   css: {
     modules: {
