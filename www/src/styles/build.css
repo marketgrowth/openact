@@ -1,11 +1,11 @@
 /* The /build and /producer pages. They also use home.css for the hero, section heads, bento grid and closing card. */
 /* Units: rem for text and spacing, % for layouts, px for borders. */
 
-/* Producer hero: the headline is three lines. Each line stays whole, so no word sits alone. */
+/* Producer hero: one large headline across the full width, then the text and the side card. */
 .hero-wide { grid-template-columns: 1.4fr 1fr; }
-.hero h1.three { font-size: clamp(1.25rem, 3.1vw, 2.5rem); line-height: 1.14; }
-.hero h1.three span { display: block; white-space: nowrap; }
-@media (max-width: 900px) { .hero-wide { grid-template-columns: 100%; } .hero h1.three { font-size: clamp(1.25rem, 5.6vw, 2.5rem); } }
+.hero-head { grid-column: 1 / -1; }
+.hero h1.big { max-width: 13em; font-size: clamp(1.375rem, 5.6vw, 5rem); line-height: 1.06; text-wrap: balance; }
+@media (max-width: 900px) { .hero-wide { grid-template-columns: 100%; } }
 
 /* Hero side card: a short list of steps with a status chip each */
 .board { padding: 1.375rem; }
