@@ -2,6 +2,7 @@
 export const SITE_URL = "https://openact.ing";
 export const DEMO_URL = "https://a.openact.ing";
 export const DOCS_URL = "https://docs.openact.ing";
+export const DESIGN_URL = "https://design.openact.ing";
 export const GITHUB_URL = "https://github.com/marketgrowth/openact";
 export const LICENSE_URL = "https://github.com/marketgrowth/openact/blob/main/LICENSE";
 export const DEPLOY_URL = "https://deploy.workers.cloudflare.com/?url=https://github.com/marketgrowth/openact";

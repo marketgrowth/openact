@@ -1,6 +1,6 @@
 ---
 import Logo from "./Logo.astro";
-import { DEMO_URL, DEPLOY_URL, DOCS_URL, GITHUB_URL, LICENSE_URL } from "../site";
+import { DEMO_URL, DEPLOY_URL, DESIGN_URL, DOCS_URL, GITHUB_URL, LICENSE_URL } from "../site";
 
 interface Props {
   page: "home" | "contribute" | "other";
@@ -38,7 +38,7 @@ const guide =
         <ul>
           <li><a href={DOCS_URL}>Docs</a></li>
           <li><a href={guide.href}>{guide.label}</a></li>
-          <li><a href="/design">Design system</a></li>
+          <li><a href={DESIGN_URL} target="_blank" rel="noopener">Design system</a></li>
           <li><a href={GITHUB_URL}>GitHub</a></li>
         </ul>
       </nav>
