@@ -20,7 +20,6 @@ const current = (name: Props["page"]) => (page === name ? "page" : undefined);
     <nav class="nav" aria-label="Main">
       <a class="pill" href={`${home}#features`}>Features</a>
       <a class="pill" href={`${home}#plans`}>Plans</a>
-      <a class="pill" href="/design">Design</a>
       <a class="pill" href={DOCS_URL}>Docs</a>
       <a class="pill" href={GITHUB_URL}>GitHub</a>
       <a class="pill" href="/contribute" aria-current={current("contribute")}>Contribute</a>
@@ -33,7 +32,6 @@ const current = (name: Props["page"]) => (page === name ? "page" : undefined);
           <a href={`${home}#plans`}>Plans</a>
           <a href="/build">Build your own apps</a>
           <a href="/producer">Producer</a>
-          <a href="/design">Design</a>
           <a href={DOCS_URL}>Docs</a>
           <a href={GITHUB_URL}>GitHub</a>
           <a href="/contribute" aria-current={current("contribute")}>Contribute</a>

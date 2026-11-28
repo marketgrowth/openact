@@ -478,7 +478,7 @@ export function Notice({ children, tone = "warn", className }: { children: React
   );
 }
 
-/** The five states of agent work in the OpenAct Promptbook (https://openact.ing/design). */
+/** The five states of agent work in the OpenAct Promptbook (https://design.openact.ing). */
 export type AgentStateId = "think" | "act" | "wait" | "done" | "fail";
 
 const AGENT_STATES: Record<AgentStateId, { icon: string; label: string; box: string; icon_: string }> = {
