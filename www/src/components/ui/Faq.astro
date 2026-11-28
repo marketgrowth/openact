@@ -1,0 +1,32 @@
+---
+// Questions and answers, like shadcn/ui Accordion. From the Buio theme's FAQ. It uses <details>, so it works without JavaScript.
+// An answer may hold simple HTML, such as a link.
+import Wrapper from "./Wrapper.astro";
+import Icon from "./Icon.astro";
+interface Props {
+  id?: string;
+  title: string;
+  intro?: string;
+  items: { q: string; a: string }[];
+}
+const { id = "faq", title, intro, items } = Astro.props;
+---
+<section id={id} aria-labelledby={`${id}-title`}>
+  <Wrapper class="grid grid-cols-1 gap-y-12 py-24 lg:grid-cols-3">
+    <div class="lg:pr-8">
+      <h2 id={`${id}-title`} class="text-3xl font-medium tracking-tight text-foreground md:text-4xl">{title}</h2>
+      {intro && <p class="mt-4 text-base text-muted-foreground" set:html={intro} />}
+    </div>
+    <div class="flex flex-col divide-y divide-muted lg:col-span-2">
+      {items.map((item) => (
+        <details class="group py-6 first:pt-0 last:pb-0">
+          <summary class="flex w-full cursor-pointer list-none items-start justify-between text-left text-lg text-foreground select-none [&::-webkit-details-marker]:hidden">
+            <span class="pr-8">{item.q}</span>
+            <Icon name="plus" class="mt-1.5 size-4 shrink-0 duration-300 group-open:rotate-45 group-open:text-muted-foreground" />
+          </summary>
+          <p class="py-4 text-base text-muted-foreground [&_a]:text-foreground [&_a]:underline [&_a]:underline-offset-4" set:html={item.a} />
+        </details>
+      ))}
+    </div>
+  </Wrapper>
+</section>

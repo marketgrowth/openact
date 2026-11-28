@@ -1,57 +1,55 @@
 ---
-// Who OpenAct is built for. The lists say what is true today. Keep the example apps generic.
+// Who OpenAct is built for. From the Buio theme's testimonials: a dithered picture over each column.
+// The pictures come from scripts/make-art.py. The lists say what is true today. Keep the example apps generic.
+import Wrapper from "../ui/Wrapper.astro";
+import Heading from "../ui/Heading.astro";
+import Icon from "../ui/Icon.astro";
+const groups = [
+  {
+    art: "sphere",
+    label: "Solo founders",
+    title: "Build the apps your business needs.",
+    text: "You run the business alone, so your time is short. Describe the app that you need. A coding agent such as Claude Code or Codex builds it on the OpenAct core.",
+    points: ["Deploy for free to your own Cloudflare account.", "Sign-in, roles and email are ready on day one.", "Run more than one company from one deploy."]
+  },
+  {
+    art: "boxes",
+    label: "Growing businesses",
+    title: "Give each team agents with limits.",
+    text: "Your company has its own way of work. Build custom agentic apps for each team on one shared core. You keep control of what each agent can do.",
+    points: ["An agent never does more than the person's role allows.", "Deletes and people changes wait for a person to approve them.", "One yearly price per company. No seats."]
+  },
+  {
+    art: "ring",
+    label: "Nonprofits",
+    title: "Build for your mission on a small budget.",
+    text: "Your team is small and your budget is tight. Start with the free core. Build the apps that your programs need, and pay half for paid plans.",
+    points: ["50% off every paid plan for nonprofits.", "No seats, so volunteers cost nothing to add.", "Open source under the Apache License 2.0."]
+  }
+];
 ---
-<section class="section" id="who" aria-labelledby="who-title">
-  <div class="head">
-    <p class="eyebrow">Who it's for</p>
-    <h2 id="who-title">Built for solo founders, growing businesses and nonprofits.</h2>
-    <p>OpenAct is for people who want to build custom agentic apps to power their business or their mission. Start with the free core and Projects. Then add the apps that fit how you work.</p>
-  </div>
-  <div class="bento">
-    <article class="card aud s4">
-      <p class="eyebrow">Solo founders</p>
-      <h3>Build the apps your business needs.</h3>
-      <p>You run the business alone, so your time is short. Describe the app that you need. A coding agent such as Claude Code or Codex builds it on the OpenAct core.</p>
-      <ul class="ticks">
-        <li>Deploy for free to your own Cloudflare account.</li>
-        <li>Sign-in, roles and email are ready on day one.</li>
-        <li>Run more than one company from one deploy.</li>
-      </ul>
-      <div class="rows viz" aria-hidden="true">
-        <div class="key rowk">Projects<span class="chip ok">included</span></div>
-        <div class="key rowk">Client intake<span class="chip">built by your agent</span></div>
-        <div class="key rowk">Invoices<span class="chip">built by your agent</span></div>
-      </div>
-    </article>
-    <article class="card aud s4">
-      <p class="eyebrow warm">Companies</p>
-      <h3>Give each team agents with limits.</h3>
-      <p>Your company has its own way of work. Build custom agentic apps for each team on one shared core. You keep control of what each agent can do.</p>
-      <ul class="ticks warm">
-        <li>An agent never does more than the person's role allows.</li>
-        <li>Deletes and people changes wait for a person to approve them.</li>
-        <li>One yearly price per company. No seats.</li>
-      </ul>
-      <div class="rows viz" aria-hidden="true">
-        <div class="key rowk">Sales · Pipeline<span class="chip">custom app</span></div>
-        <div class="key rowk">Operations · Projects<span class="chip ok">included</span></div>
-        <div class="key rowk">Support · Help desk<span class="chip">custom app</span></div>
-      </div>
-    </article>
-    <article class="card aud s4">
-      <p class="eyebrow">Nonprofits</p>
-      <h3>Build for your mission on a small budget.</h3>
-      <p>Your team is small and your budget is tight. Start with the free core. Build the apps that your programs need, and pay half for paid plans.</p>
-      <ul class="ticks">
-        <li>50% off every paid plan for nonprofits.</li>
-        <li>No seats, so volunteers cost nothing to add.</li>
-        <li>Open source under the Apache License 2.0.</li>
-      </ul>
-      <div class="rows viz" aria-hidden="true">
-        <div class="key rowk">Programs · Projects<span class="chip ok">included</span></div>
-        <div class="key rowk">Volunteer sign-up<span class="chip">custom app</span></div>
-        <div class="key rowk">Donor updates<span class="chip">custom app</span></div>
-      </div>
-    </article>
-  </div>
+<section id="who" aria-labelledby="who-title">
+  <Wrapper class="py-24">
+    <div class="max-w-2xl">
+      <Heading id="who-title" muted="Growing businesses and nonprofits.">Built for solo founders.</Heading>
+      <p class="mt-6 text-base text-muted-foreground">OpenAct is for people who want to build custom agentic apps to power their business or their mission. Start with the free core and Projects. Then add the apps that fit how you work.</p>
+    </div>
+    <div class="mt-16 grid grid-cols-1 gap-y-20 md:grid-cols-3 md:gap-x-8 lg:gap-x-12">
+      {groups.map((g) => (
+        <article class="flex flex-col">
+          <div class="flex aspect-4/3 items-center justify-center overflow-hidden bg-gradient-down">
+            <img class="dither w-3/4 [image-rendering:pixelated]" src={`/images/art/${g.art}.png`} width="360" height="270" alt="" loading="lazy" />
+          </div>
+          <p class="mt-6 text-sm font-medium text-foreground">{g.label}</p>
+          <h3 class="mt-1 text-sm text-muted-foreground">{g.title}</h3>
+          <p class="mt-6 text-sm text-foreground">{g.text}</p>
+          <ul class="mt-6 flex flex-col gap-3 text-sm text-muted-foreground" role="list">
+            {g.points.map((p) => (
+              <li class="flex gap-3"><Icon name="check" class="mt-0.5 size-4 shrink-0 text-foreground" />{p}</li>
+            ))}
+          </ul>
+        </article>
+      ))}
+    </div>
+  </Wrapper>
 </section>

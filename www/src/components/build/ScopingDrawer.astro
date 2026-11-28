@@ -2,6 +2,8 @@
 // The "Book a scoping call" side drawer on /producer. Links to #book open it.
 // With JavaScript (public/producer.js) it opens as a modal dialog and sends the form with fetch.
 // Without JavaScript, #book shows it through :target, and the form posts to /api/producer (worker/producer.ts).
+import "../../styles/drawer.css";
+import Button from "../ui/Button.astro";
 ---
 <dialog class="drawer" id="book" aria-labelledby="book-title">
   <div class="drawer-panel">
@@ -54,7 +56,7 @@
         </select>
       </div>
       <p class="form-status" role="alert" data-status></p>
-      <button type="submit" class="btn btn-accent">Send my request</button>
+      <Button type="submit" variant="accent" size="base" class="w-full">Send my request</Button>
       <p class="fine">We use your details only to reply to you about Producer.</p>
     </form>
 
@@ -68,19 +70,19 @@
         <li>On the call, we map the work and agree on the first build.</li>
       </ol>
       <p class="fine">Look for our email in your inbox. Check your spam folder if you do not see it.</p>
-      <a class="btn btn-ghost" href="#close" data-close>Close this panel</a>
+      <Button href="#close" data-close variant="muted" size="base" class="mt-5 w-full">Close this panel</Button>
     </div>
   </div>
 </dialog>
 
 <!-- Messages for a form post without JavaScript. The Worker sends the browser to #sent or #send-error. -->
-<div class="drawer-note card" id="sent">
+<div class="drawer-note border border-muted bg-background p-6 shadow-dimensional" id="sent">
   <h3>Request received</h3>
   <p>We have your request for a scoping call. We reply by email with times for the call.</p>
-  <a class="btn btn-ghost btn-sm" href="#close">Close</a>
+  <Button href="#close" variant="muted" size="sm">Close</Button>
 </div>
-<div class="drawer-note card" id="send-error">
+<div class="drawer-note border border-muted bg-background p-6 shadow-dimensional" id="send-error">
   <h3>We could not send your request</h3>
   <p>Check your name, email and app details. Then <a href="#book">try again</a>.</p>
-  <a class="btn btn-ghost btn-sm" href="#close">Close</a>
+  <Button href="#close" variant="muted" size="sm">Close</Button>
 </div>

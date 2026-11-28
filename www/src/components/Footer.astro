@@ -1,5 +1,8 @@
 ---
+// The site footer, from the Buio theme: the wordmark, link columns, and a bottom row with the theme switcher.
 import Logo from "./Logo.astro";
+import Wrapper from "./ui/Wrapper.astro";
+import ThemeSwitcher from "./ui/ThemeSwitcher.astro";
 import { DEMO_URL, DEPLOY_URL, DESIGN_URL, DOCS_URL, GITHUB_URL, LICENSE_URL } from "../site";
 
 interface Props {
@@ -12,44 +15,72 @@ const guide =
   page === "contribute"
     ? { href: `${DOCS_URL}/contribute`, label: "Contributions in the docs" }
     : { href: `${DOCS_URL}/getting-started`, label: "Getting started" };
+
+const columns = [
+  {
+    title: "Product",
+    links: [
+      { label: "Demo", href: DEMO_URL },
+      { label: "Plans", href: `${home}#plans` },
+      { label: "Build your own apps", href: "/build" },
+      { label: "Producer", href: "/producer" },
+      { label: "Contribute", href: "/contribute", current: page === "contribute" }
+    ]
+  },
+  {
+    title: "Developers",
+    links: [
+      { label: "Docs", href: DOCS_URL },
+      guide,
+      { label: "Design system", href: DESIGN_URL, newTab: true },
+      { label: "GitHub", href: GITHUB_URL }
+    ]
+  },
+  {
+    title: "Deploy",
+    links: [
+      { label: "Deploy to Cloudflare", href: DEPLOY_URL },
+      { label: "Apache License 2.0", href: LICENSE_URL }
+    ]
+  }
+];
 ---
-<footer class="foot">
-  <div class="wrap">
-    <div class="foot-grid">
-      <div>
-        <a class="brand" href="/" aria-label="OpenAct home">
-          <Logo />
-          OpenAct
-        </a>
-        <p>Open source business apps on Cloudflare. OpenAct is made by MarketGrowth.</p>
+<footer class="relative z-10">
+  <Wrapper>
+    <div class="border-t border-muted py-12">
+      <div class="grid grid-cols-1 gap-12 lg:grid-cols-2">
+        <div>
+          <a href="/" class="inline-flex items-center gap-3 text-4xl font-medium tracking-tight text-foreground md:text-5xl" aria-label="OpenAct home">
+            <Logo class="size-9 md:size-11" />
+            OpenAct
+          </a>
+          <p class="mt-6 max-w-xs text-sm text-muted-foreground">Open source business apps on Cloudflare. OpenAct is made by MarketGrowth.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-8 sm:grid-cols-3">
+          {columns.map((col) => (
+            <nav aria-label={col.title}>
+              <h3 class="text-base text-foreground">{col.title}</h3>
+              <ul class="mt-4 space-y-2">
+                {col.links.map((link: { label: string; href: string; current?: boolean; newTab?: boolean }) => (
+                  <li>
+                    <a
+                      href={link.href}
+                      aria-current={link.current ? "page" : undefined}
+                      target={link.newTab ? "_blank" : undefined}
+                      rel={link.newTab ? "noopener" : undefined}
+                      class="text-sm text-muted-foreground duration-300 hover:text-foreground"
+                    >{link.label}</a>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          ))}
+        </div>
       </div>
-      <nav aria-labelledby="f-product">
-        <h3 id="f-product">Product</h3>
-        <ul>
-          <li><a href={DEMO_URL}>Demo</a></li>
-          <li><a href={`${home}#plans`}>Plans</a></li>
-          <li><a href="/build">Build your own apps</a></li>
-          <li><a href="/producer">Producer</a></li>
-          <li><a href="/contribute" aria-current={page === "contribute" ? "page" : undefined}>Contribute</a></li>
-        </ul>
-      </nav>
-      <nav aria-labelledby="f-dev">
-        <h3 id="f-dev">Developers</h3>
-        <ul>
-          <li><a href={DOCS_URL}>Docs</a></li>
-          <li><a href={guide.href}>{guide.label}</a></li>
-          <li><a href={DESIGN_URL} target="_blank" rel="noopener">Design system</a></li>
-          <li><a href={GITHUB_URL}>GitHub</a></li>
-        </ul>
-      </nav>
-      <nav aria-labelledby="f-deploy">
-        <h3 id="f-deploy">Deploy</h3>
-        <ul>
-          <li><a href={DEPLOY_URL}>Deploy to Cloudflare</a></li>
-          <li><a href={LICENSE_URL}>Apache License 2.0</a></li>
-        </ul>
-      </nav>
+      <div class="mt-24 flex flex-wrap items-center justify-between gap-4 border-t border-muted pt-6">
+        <p class="text-sm text-muted-foreground">Copyright 2026 MarketGrowth. OpenAct is open source under the Apache License 2.0.</p>
+        <ThemeSwitcher variant="segmented" />
+      </div>
     </div>
-    <p class="legal">Copyright 2026 MarketGrowth. OpenAct is open source under the Apache License 2.0.</p>
-  </div>
+  </Wrapper>
 </footer>

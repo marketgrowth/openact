@@ -3,11 +3,53 @@
 // Producer is Custom Apps as a Service: MarketGrowth runs OpenAct and builds the customer's primary custom app with them.
 // "Book a scoping call" links go to #book, the side drawer in components/build/ScopingDrawer.astro. Its script is public/producer.js.
 import Site from "../layouts/Site.astro";
-import "../styles/home.css";
-import "../styles/build.css";
+import Wrapper from "../components/ui/Wrapper.astro";
+import Heading from "../components/ui/Heading.astro";
+import Button from "../components/ui/Button.astro";
+import Badge from "../components/ui/Badge.astro";
+import Icon from "../components/ui/Icon.astro";
+import Faq from "../components/ui/Faq.astro";
+import PageHero from "../components/build/PageHero.astro";
+import Phases from "../components/build/Phases.astro";
+import Split from "../components/build/Split.astro";
 import Ideas from "../components/build/Ideas.astro";
+import Cta from "../components/build/Cta.astro";
 import ScopingDrawer from "../components/build/ScopingDrawer.astro";
 import { DEMO_URL, DOCS_URL } from "../site";
+
+const rent = [
+  "Many vendors and many bills",
+  "Your data sits in each vendor's system",
+  "You change your workflow to fit the tool",
+  "You pay for seats, and the price grows with your team",
+  "You cannot change the product"
+];
+const own = [
+  "One app and one budget",
+  "Your data sits on your own OpenAct site, apart from every other company",
+  "The app fits your workflow, because agents build it from your own work",
+  "No seats: invite your whole team",
+  "You, or we, can change the app at any time"
+];
+const budget = [
+  { title: "Add up your tool bills", text: "List each tool that you rent for one job." },
+  { title: "Pick the job one app can do", text: "Start with the tool that fits you least." },
+  { title: "Move that budget", text: "A $4,800 app is $400 a month over one year. Compare that with your bills." }
+];
+const includes = [
+  "We install and manage OpenAct",
+  "Agents build your primary custom app with you",
+  "Updates, fixes and new features through the year",
+  "Everything in Director: Docs, Advisory and more",
+  "No seats: invite your whole team"
+];
+const faqs = [
+  { q: "What does it cost?", a: "A custom app is $4,800. Nonprofits get 50% off. The app has no seats, so a bigger team costs nothing extra." },
+  { q: "Who owns the app?", a: "You do. The app runs on your OpenAct site, and your data stays in your company." },
+  { q: "What is a primary custom app?", a: "It is the one app that does the main work of your business. Examples are client intake, a program tracker or a staffing app." },
+  { q: "Can I start free and move up?", a: "Yes. Start with the free core. Move to Director or Producer when you are ready. Your data stays." },
+  { q: "Can I try the apps first?", a: `Yes. The <a href="${DEMO_URL}">demo</a> has every app on. It deletes all data every night.` }
+];
 ---
 <Site
   path="/producer"
@@ -16,176 +58,116 @@ import { DEMO_URL, DOCS_URL } from "../site";
   ogTitle="OpenAct Producer: we build your custom app with you"
   ogDescription="A done-for-you studio on OpenAct. We run the install and build your primary custom app with you. You own it."
 >
-  <div class="wrap hero hero-wide">
-    <div class="hero-head">
-      <p class="eyebrow warm">Producer plan · Custom Apps as a Service</p>
-      <h1 class="big">Build the web application your business needs to operate today. We can help.</h1>
-    </div>
-    <div>
-      <p class="lead">Today you rent tools from many vendors. Each vendor holds a piece of your data. With Producer, you move that budget into one app that you own. Agents build it for your workflow. It runs on your own secure Cloudflare account, code, database, and AI gateway included.</p>
-      <div class="actions">
-        <a class="btn btn-accent" href="#book">Book a scoping call</a>
-        <a class="btn btn-ghost arrow" href="#ideas">See what you could build</a>
-      </div>
-      <p class="note">Custom app: $4,800. Nonprofits get 50% off.</p>
-    </div>
-    <div class="stage-key">
-      <div class="card board" aria-label="A Producer engagement in three phases">
-        <div class="head-row"><span>Production · your app</span><i></i></div>
-        <div class="rows">
-          <div class="key rowk"><span>Scope<span class="sub">problem, systems, data</span></span><span class="chip ok">done</span></div>
-          <div class="key rowk"><span>Build<span class="sub">working app on your data</span></span><span class="chip wait">in progress</span></div>
-          <div class="key rowk"><span>Run<span class="sub">updates, fixes, new features</span></span><span class="chip">next</span></div>
-        </div>
-        <div class="board-foot">
-          <span class="chip ok">OpenAct · managed</span>
-          <span class="chip">Director apps · on</span>
-          <span class="chip">you own it</span>
-        </div>
-      </div>
-    </div>
-  </div>
+  <PageHero
+    eyebrow="Producer plan · Custom Apps as a Service"
+    title="Build the web application your business needs to operate today."
+    muted="We can help."
+    lead="Today you rent tools from many vendors. Each vendor holds a piece of your data. With Producer, you move that budget into one app that you own. Agents build it for your workflow. It runs on your own secure Cloudflare account, code, database and AI gateway included."
+    note="Custom app: $4,800. Nonprofits get 50% off."
+  >
+    <Button href="#book" variant="accent" size="sm">Book a scoping call</Button>
+    <Button href="#ideas" variant="muted" size="sm">See what you could build</Button>
+  </PageHero>
 
-  <div class="wrap">
-    <section class="section" id="own" aria-labelledby="own-title">
-      <div class="head">
-        <p class="eyebrow warm">Why own your app</p>
-        <h2 id="own-title">Stop renting. Start owning.</h2>
-        <p>Your tools cost money every month, and each one holds part of your data. Move that budget into one app. The app is yours, and so is the data.</p>
+  <section id="own" aria-labelledby="own-title">
+    <Wrapper class="py-24">
+      <div class="max-w-2xl">
+        <Heading id="own-title" muted="Start owning.">Stop renting.</Heading>
+        <p class="mt-6 text-base text-muted-foreground">Your tools cost money every month, and each one holds part of your data. Move that budget into one app. The app is yours, and so is the data.</p>
       </div>
-      <div class="bento">
-        <article class="card s6 compare">
-          <p class="eyebrow">What you do today</p>
-          <h3>Rent from many vendors</h3>
-          <ul>
-            <li>Many vendors and many bills</li>
-            <li>Your data sits in each vendor's system</li>
-            <li>You change your workflow to fit the tool</li>
-            <li>You pay for seats, and the price grows with your team</li>
-            <li>You cannot change the product</li>
-          </ul>
-          <p class="goal">Goal: see what the rented tools really cost you.</p>
-        </article>
-        <article class="card s6 compare own">
-          <p class="eyebrow warm">What you get with Producer</p>
-          <h3>Own one app</h3>
-          <ul>
-            <li>One app and one budget</li>
-            <li>Your data sits on your own OpenAct site, apart from every other company</li>
-            <li>The app fits your workflow, because agents build it from your own work</li>
-            <li>No seats: invite your whole team</li>
-            <li>You, or we, can change the app at any time</li>
-          </ul>
-          <p class="goal">Goal: one secure app that fits how you work.</p>
-        </article>
-      </div>
-      <div class="budget">
-        <div class="key"><b>01</b><strong>Add up your tool bills</strong><span>List each tool that you rent for one job.</span></div>
-        <div class="key"><b>02</b><strong>Pick the job one app can do</strong><span>Start with the tool that fits you least.</span></div>
-        <div class="key"><b>03</b><strong>Move that budget</strong><span>A $4,800 app is $400 a month over one year. Compare that with your bills.</span></div>
-      </div>
-    </section>
-
-    <section class="section" id="how" aria-labelledby="how-title">
-      <div class="head">
-        <p class="eyebrow">How it works</p>
-        <h2 id="how-title">Three phases. One working app.</h2>
-        <p>Agents write the code, so the app is made for your workflow. They build inside OpenAct's security rules. Sign-in, companies, roles and email are ready on day one. So our time goes into the part that is yours.</p>
-      </div>
-      <div class="bento">
-        <article class="card s4 phase">
-          <p class="num">01</p>
-          <p class="tag">Phase 1 · Scope</p>
-          <h3>Map the work.</h3>
-          <p>We sit with your team. Together we map the problem, the tools you use now and the data you keep.</p>
-          <div class="out"><p><b>Outcome:</b> an app brief and a plan that your team agrees on.</p></div>
-        </article>
-        <article class="card s4 phase">
-          <p class="num">02</p>
-          <p class="tag">Phase 2 · Build</p>
-          <h3>Agents build it on your data.</h3>
-          <p>Agents build a working version of the app on your OpenAct site, with your own data. Access follows each person's role. Risky steps wait for approval. You steer each step.</p>
-          <div class="out"><p><b>Outcome:</b> a working app that you can click, not slides.</p></div>
-        </article>
-        <article class="card s4 phase">
-          <p class="num">03</p>
-          <p class="tag">Phase 3 · Run</p>
-          <h3>Run it and grow it.</h3>
-          <p>We manage the install, the updates and the fixes. As your business changes, we add to the app.</p>
-          <div class="out"><p><b>Outcome:</b> an app in production that your team uses every day.</p></div>
-        </article>
-      </div>
-    </section>
-
-    <section class="section" id="with-you" aria-labelledby="with-title">
-      <div class="card split">
-        <div class="copy">
-          <p class="eyebrow warm">Secure by design</p>
-          <h3 id="with-title">Your app. Your data. Your infrastructure.</h3>
-          <p>You bring the problem and the data. Our agents build the app, and our team checks it. You can watch, ask questions and learn at each step.</p>
-          <p>At the end, you understand the app. Your team can change it, or we keep it running for you.</p>
-        </div>
-        <div class="points">
-          <div class="key"><strong>You own the app</strong><span>It is your code on your OpenAct site. It is not rented software.</span></div>
-          <div class="key"><strong>Your data stays yours</strong><span>Each company's data is kept apart. Agents never do more than a person's role allows.</span></div>
-          <div class="key"><strong>Agents that wait for a person</strong><span>Deletes and other risky steps wait for someone on your team to approve them.</span></div>
-          <div class="key"><strong>Bring your own AI</strong><span>Use the default model, or your own model and key.</span></div>
-        </div>
-      </div>
-    </section>
-
-    <Ideas mode="studio" />
-
-    <section class="section offer" id="plan" aria-labelledby="plan-title">
-      <div class="head">
-        <p class="eyebrow warm">The plan</p>
-        <h2 id="plan-title">What Producer includes.</h2>
-        <p>A custom app costs $4,800. Compare that with what you pay each year for the tools that it replaces.</p>
-      </div>
-      <div class="bento">
-        <article class="card plan featured s5">
-          <span class="chip ok tagline">Done for you</span>
-          <p class="eyebrow warm">Custom Apps as a Service</p>
-          <h3>Producer</h3>
-          <p class="price">$4,800</p>
-          <p class="per">Per custom app. Nonprofits get 50% off.</p>
-          <ul>
-            <li>We install and manage OpenAct</li>
-            <li>Agents build your primary custom app with you</li>
-            <li>Updates, fixes and new features through the year</li>
-            <li>Everything in Director: Docs, Advisory and more</li>
-            <li>No seats: invite your whole team</li>
-            </ul>
-          <a class="btn btn-accent" href="#book">Book a scoping call</a>
-          <a class="btn btn-ghost" href={`${DOCS_URL}/plans`}>Read about the plans</a>
-        </article>
-        <div class="s7 qs">
-          <div class="card q"><h3>What does it cost?</h3><p>A custom app is $4,800. Nonprofits get 50% off. The app has no seats, so a bigger team costs nothing extra.</p></div>
-          <div class="card q"><h3>Who owns the app?</h3><p>You do. The app runs on your OpenAct site, and your data stays in your company.</p></div>
-          <div class="card q"><h3>What is a primary custom app?</h3><p>It is the one app that does the main work of your business. Examples are client intake, a program tracker or a staffing app.</p></div>
-          <div class="card q"><h3>Can I start free and move up?</h3><p>Yes. Start with the free core. Move to Director or Producer when you are ready. Your data stays.</p></div>
-          <div class="card q"><h3>Can I try the apps first?</h3><p>Yes. The <a href={DEMO_URL}>demo</a> has every app on. It deletes all data every night.</p></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="card closer" aria-labelledby="closer-title">
-      <div class="closer-grid">
+      <div class="mt-16 grid grid-cols-1 gap-16 md:grid-cols-2 md:gap-x-12">
         <div>
-          <p class="eyebrow">Your turn</p>
-          <h2 id="closer-title">Your app is next.</h2>
-          <p>Do not rent a piece of ten tools. Tell us about the work your business repeats. We build one app that fits it, and you own it.</p>
+          <p class="text-xs text-muted-foreground">What you do today</p>
+          <h3 class="mt-1 text-xl font-medium tracking-tight text-muted-foreground">Rent from many vendors</h3>
+          <ul class="mt-6 border-b border-muted text-sm text-muted-foreground" role="list">
+            {rent.map((r) => <li class="flex gap-3 border-t border-muted py-3"><Icon name="x" class="mt-0.5 size-4 shrink-0" />{r}</li>)}
+          </ul>
+          <p class="mt-4 text-sm text-muted-foreground">Goal: see what the rented tools really cost you.</p>
         </div>
-        <div class="start">
-          <div class="key"><b>01</b>Book a scoping call.</div>
-          <div class="key"><b>02</b>We map the work and write the app brief.</div>
-          <div class="key"><b>03</b>We build the app with you on OpenAct.</div>
-          <a class="btn btn-accent" href="#book">Book a scoping call</a>
-          <a class="btn btn-ghost" href="/build">Build it yourself instead</a>
+        <div>
+          <p class="text-xs text-muted-foreground">What you get with Producer</p>
+          <h3 class="mt-1 text-xl font-medium tracking-tight text-foreground">Own one app</h3>
+          <ul class="mt-6 border-b border-muted text-sm text-foreground" role="list">
+            {own.map((r) => <li class="flex gap-3 border-t border-muted py-3"><Icon name="check" class="mt-0.5 size-4 shrink-0" />{r}</li>)}
+          </ul>
+          <p class="mt-4 text-sm text-muted-foreground">Goal: one secure app that fits how you work.</p>
         </div>
       </div>
-    </section>
-  </div>
+      <ol class="mt-16 grid grid-cols-1 border-t border-muted md:grid-cols-3">
+        {budget.map((b, i) => (
+          <li class="flex flex-col py-8 md:pr-8">
+            <span class="text-2xl font-medium tracking-tight text-foreground md:text-3xl">{String(i + 1).padStart(2, "0")}</span>
+            <span class="mt-4 text-base font-medium text-foreground">{b.title}</span>
+            <span class="mt-1 text-sm text-muted-foreground">{b.text}</span>
+          </li>
+        ))}
+      </ol>
+    </Wrapper>
+  </section>
+
+  <Phases
+    id="how"
+    title="Three phases."
+    muted="One working app."
+    lead="Agents write the code, so the app is made for your workflow. They build inside OpenAct's security rules. Sign-in, companies, roles and email are ready on day one. So our time goes into the part that is yours."
+    steps={[
+      { tag: "Phase 1 · Scope", title: "Map the work.", text: "We sit with your team. Together we map the problem, the tools you use now and the data you keep.", outcome: "an app brief and a plan that your team agrees on." },
+      { tag: "Phase 2 · Build", title: "Agents build it on your data.", text: "Agents build a working version of the app on your OpenAct site, with your own data. Access follows each person's role. Risky steps wait for approval. You steer each step.", outcome: "a working app that you can click, not slides." },
+      { tag: "Phase 3 · Run", title: "Run it and grow it.", text: "We manage the install, the updates and the fixes. As your business changes, we add to the app.", outcome: "an app in production that your team uses every day." }
+    ]}
+  />
+
+  <Split
+    id="secure"
+    title="Secure by design."
+    muted="Your app, your data, your infrastructure."
+    paragraphs={[
+      "You bring the problem and the data. Our agents build the app, and our team checks it. You can watch, ask questions and learn at each step.",
+      "At the end, you understand the app. Your team can change it, or we keep it running for you."
+    ]}
+    points={[
+      { title: "You own the app", text: "It is your code on your OpenAct site. It is not rented software." },
+      { title: "Your data stays yours", text: "Each company's data is kept apart. Agents never do more than a person's role allows." },
+      { title: "Agents that wait for a person", text: "Deletes and other risky steps wait for someone on your team to approve them." },
+      { title: "Bring your own AI", text: "Use the default model, or your own model and key." }
+    ]}
+  />
+
+  <Ideas mode="studio" />
+
+  <section id="plan" aria-labelledby="plan-title">
+    <Wrapper class="py-24">
+      <div class="max-w-2xl">
+        <Heading id="plan-title" muted="$4,800 per custom app.">What Producer includes.</Heading>
+        <p class="mt-6 text-base text-muted-foreground">Compare that with what you pay each year for the tools that it replaces. Nonprofits get 50% off.</p>
+      </div>
+      <div class="mt-16 grid grid-cols-1 gap-y-12 lg:grid-cols-3">
+        <div class="flex flex-col lg:pr-8">
+          <h3 class="flex items-center gap-4 text-base text-foreground">Producer <Badge>Done for you</Badge></h3>
+          <p class="mt-12 text-2xl font-medium tracking-tight text-foreground md:text-3xl lg:text-4xl">$4,800<span class="text-sm font-normal tracking-normal text-muted-foreground"> · per custom app</span></p>
+          <p class="mt-3 text-sm text-foreground">Custom Apps as a Service.</p>
+          <Button href="#book" variant="default" size="base" class="mt-8 w-full">Book a scoping call</Button>
+          <Button href={`${DOCS_URL}/plans`} variant="muted" size="base" class="mt-2 w-full">Read about the plans</Button>
+        </div>
+        <ul role="list" class="flex flex-col border-b border-muted text-base text-foreground lg:col-span-2">
+          {includes.map((item) => <li class="flex gap-4 border-t border-muted py-5"><Icon name="check" class="mt-1 size-4 shrink-0" />{item}</li>)}
+        </ul>
+      </div>
+    </Wrapper>
+  </section>
+
+  <Faq id="questions" title="Questions, answered." intro="About Producer and the app that we build with you." items={faqs} />
+
+  <Cta
+    id="closer"
+    title="Your app is next."
+    text="Do not rent a piece of ten tools. Tell us about the work your business repeats. We build one app that fits it, and you own it."
+    steps={["Book a scoping call.", "We map the work and write the app brief.", "We build the app with you on OpenAct."]}
+  >
+    <Button href="#book" variant="accent" size="sm">Book a scoping call</Button>
+    <Button href="/build" variant="muted" size="sm">Build it yourself instead</Button>
+  </Cta>
+
   <ScopingDrawer />
   <script is:inline slot="end" src="/producer.js"></script>
 </Site>

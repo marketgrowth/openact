@@ -1,62 +1,88 @@
-<section class="card tour" aria-label="A tour of OpenAct">
-  <input type="radio" name="tour" id="t1" checked />
-  <input type="radio" name="tour" id="t2" />
-  <input type="radio" name="tour" id="t3" />
-  <input type="radio" name="tour" id="t4" />
-  <input type="radio" name="tour" id="t5" />
-  <div class="tour-head">
-    <p class="eyebrow">Inside the demo</p>
-    <div class="tabs">
-      <label for="t1">Board</label>
-      <label for="t2">Timeline</label>
-      <label for="t3">Calendar</label>
-      <label for="t4">Apps</label>
-      <label for="t5">Sign-in</label>
+---
+// A tour of the demo: tabs on the left, a screenshot on the right. From the Buio theme's developer tabs.
+// Each screenshot has a light and a dark file. The page shows the one for the current theme.
+import Wrapper from "../ui/Wrapper.astro";
+import Heading from "../ui/Heading.astro";
+const tabs = [
+  {
+    title: "Plan on a board",
+    text: "Make your own columns. Drag cards between them. Phases, priorities, owners and dates.",
+    img: "board",
+    height: 900,
+    alt: "The OpenAct Projects board for a Spring season launch project. Tasks sit in Backlog, To do, In progress and Review columns, with phases, priorities and dates."
+  },
+  {
+    title: "Schedule a timeline",
+    text: "See every task as a bar on a Gantt timeline. Drag a bar to move a task. A red line shows today.",
+    img: "timeline",
+    height: 900,
+    alt: "The OpenAct timeline. Tasks group by phase: Discovery, Design, Build and Launch. Colored bars show each task's dates, and a red line marks today."
+  },
+  {
+    title: "See the month",
+    text: "Cards show the day a task starts. Pills show its deadline. Drag either one to change it.",
+    img: "calendar",
+    height: 900,
+    alt: "The OpenAct calendar for November. Cards show the days that tasks start. Pills show deadlines."
+  },
+  {
+    title: "Add apps",
+    text: "A company owner turns apps on or off. Add an app with one command, or build your own with Claude Code or Codex.",
+    img: "apps",
+    height: 815,
+    alt: "The OpenAct Apps page. Projects, Docs and Advisory are on in the company. Docs and Advisory show a Director badge. Below, the directory lists more apps under review."
+  },
+  {
+    title: "Make it yours",
+    text: "Each deploy carries your brand: your app name and logo, your sign-in page, and your terms and privacy links.",
+    img: "signin",
+    height: 900,
+    alt: "The OpenAct sign-in page. A quote sits on a dark panel beside an email sign-in form."
+  }
+];
+---
+<section id="tour" aria-labelledby="tour-title">
+  <Wrapper class="py-24">
+    <div class="grid grid-cols-1 gap-y-12 lg:grid-cols-3" data-tabs>
+      <div class="lg:pr-12">
+        <Heading id="tour-title" muted="Click through the demo.">Inside OpenAct.</Heading>
+        <div class="mt-12 flex flex-col gap-8" role="tablist" aria-label="Parts of the demo">
+          {tabs.map((tab, i) => (
+            <button
+              type="button"
+              role="tab"
+              id={`tour-tab-${i}`}
+              aria-controls={`tour-panel-${i}`}
+              aria-selected={i === 0 ? "true" : "false"}
+              data-tab={i}
+              class="w-full cursor-pointer text-left opacity-50 transition-opacity duration-300 hover:opacity-100 aria-selected:opacity-100"
+            >
+              <span class="block text-base font-medium text-foreground">{tab.title}</span>
+              <span class="mt-2 hidden text-sm text-muted-foreground md:block">{tab.text}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div class="lg:col-span-2">
+        {tabs.map((tab, i) => (
+          <div role="tabpanel" id={`tour-panel-${i}`} aria-labelledby={`tour-tab-${i}`} data-panel={i} class:list={[i !== 0 && "hidden"]}>
+            <div class="border border-b-0 border-muted bg-background px-4 py-2">
+              <div class="flex items-center gap-1" aria-hidden="true">
+                <div class="size-2 rounded-full outline outline-secondary-highlight"></div>
+                <div class="size-2 rounded-full outline outline-secondary"></div>
+                <div class="size-2 rounded-full outline outline-secondary"></div>
+              </div>
+            </div>
+            <div class="border border-muted">
+              <img class="only-light block h-auto w-full" src={`/images/${tab.img}-light.webp`} width="1440" height={tab.height} alt={tab.alt} loading={i === 0 ? "eager" : "lazy"} />
+              <img class="only-dark h-auto w-full" src={`/images/${tab.img}-dark.webp`} width="1440" height={tab.height} alt={tab.alt} loading={i === 0 ? "eager" : "lazy"} />
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
-  </div>
-  <div class="panel p1">
-    <div class="copy">
-      <p class="eyebrow">Projects</p>
-      <h3>Plan on a board.</h3>
-      <p>Make your own columns. Drag cards between them.</p>
-      <ul><li>Every open page shows changes at once.</li><li>Phases, priorities, owners and dates.</li><li>Secret projects for invited people.</li></ul>
-    </div>
-    <div class="shot"><picture><source srcset="/images/board-dark.webp" media="(prefers-color-scheme: dark)" /><img src="/images/board-light.webp" width="1440" height="900" alt="The OpenAct Projects board for a Spring season launch project. Tasks sit in Backlog, To do, In progress and Review columns, with phases, priorities and dates." /></picture></div>
-  </div>
-  <div class="panel p2">
-    <div class="copy">
-      <p class="eyebrow">Projects</p>
-      <h3>Schedule a timeline.</h3>
-      <p>See every task as a bar on a Gantt timeline.</p>
-      <ul><li>Drag a bar to move a task.</li><li>Tasks group by phase.</li><li>A red line shows today.</li></ul>
-    </div>
-    <div class="shot"><picture><source srcset="/images/timeline-dark.webp" media="(prefers-color-scheme: dark)" /><img src="/images/timeline-light.webp" width="1440" height="900" loading="lazy" alt="The OpenAct timeline. Tasks group by phase: Discovery, Design, Build and Launch. Colored bars show each task's dates, and a red line marks today." /></picture></div>
-  </div>
-  <div class="panel p3">
-    <div class="copy">
-      <p class="eyebrow">Projects</p>
-      <h3>See the month.</h3>
-      <p>Cards show the day a task starts. Pills show its deadline.</p>
-      <ul><li>Drag a card to move the task.</li><li>Drag a pill to change the deadline.</li></ul>
-    </div>
-    <div class="shot"><picture><source srcset="/images/calendar-dark.webp" media="(prefers-color-scheme: dark)" /><img src="/images/calendar-light.webp" width="1440" height="900" loading="lazy" alt="The OpenAct calendar for November. Cards show the days that tasks start. Pills show deadlines." /></picture></div>
-  </div>
-  <div class="panel p4">
-    <div class="copy">
-      <p class="eyebrow">App directory</p>
-      <h3>Add apps.</h3>
-      <p>A company owner turns apps on or off.</p>
-      <ul><li>Add an app with one command.</li><li>Build your own with Claude Code or Codex.</li></ul>
-    </div>
-    <div class="shot"><picture><source srcset="/images/apps-dark.webp" media="(prefers-color-scheme: dark)" /><img src="/images/apps-light.webp" width="1440" height="815" loading="lazy" alt="The OpenAct Apps page. Projects, Docs and Advisory are on in the company. Docs and Advisory show a Director badge. Below, the directory lists more apps under review." /></picture></div>
-  </div>
-  <div class="panel p5">
-    <div class="copy">
-      <p class="eyebrow">Site settings</p>
-      <h3>Make it yours.</h3>
-      <p>Each deploy carries your brand.</p>
-      <ul><li>Your app name and logo.</li><li>Your sign-in heading and background.</li><li>Your Terms of Use and Privacy Policy links.</li></ul>
-    </div>
-    <div class="shot"><picture><source srcset="/images/signin-dark.webp" media="(prefers-color-scheme: dark)" /><img src="/images/signin-light.webp" width="1440" height="900" loading="lazy" alt="The OpenAct sign-in page. A quote sits on a dark panel beside an email sign-in form." /></picture></div>
-  </div>
+  </Wrapper>
 </section>
+<script>
+  import "../../scripts/tabs.ts";
+</script>

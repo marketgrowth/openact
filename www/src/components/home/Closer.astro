@@ -1,19 +1,26 @@
 ---
+// The closing call to action, over Buio's dithered field.
+import Wrapper from "../ui/Wrapper.astro";
+import Button from "../ui/Button.astro";
+import DitherField from "../art/DitherField.astro";
 import { DEMO_URL } from "../../site";
+const steps = ["Open a.openact.ing.", "Type your email. We send you a sign-in code.", "Make a company, then open an app."];
 ---
-<section class="card closer" id="demo" aria-labelledby="demo-title">
-  <div class="closer-grid">
-    <div>
-      <p class="eyebrow">The demo stage</p>
-      <h2 id="demo-title">Take the stage.</h2>
-      <p>Every app is on in the demo, Docs and Advisory too. Make a company, start a project and invite a friend.</p>
-      <p>The demo deletes all data every night at about 2 AM Pacific time. Do not put private data in it.</p>
+<section id="demo" aria-labelledby="demo-title">
+  <Wrapper class="pt-24">
+    <div class="relative overflow-hidden border-x border-muted px-6 pt-20 pb-48 text-center sm:px-8">
+      <DitherField class="absolute inset-0" />
+      <div class="relative">
+        <h2 id="demo-title" class="text-3xl font-medium tracking-tight text-foreground md:text-4xl">Take the stage.</h2>
+        <p class="mx-auto mt-4 max-w-xl text-base text-muted-foreground">Every app is on in the demo, Docs and Advisory too. Make a company, start a project and invite a friend.</p>
+        <ol class="mx-auto mt-8 flex w-fit flex-col gap-2 text-left text-sm text-foreground">
+          {steps.map((s, i) => (
+            <li class="flex items-baseline gap-3"><span class="font-mono text-xs text-muted-foreground">{String(i + 1).padStart(2, "0")}</span>{s}</li>
+          ))}
+        </ol>
+        <Button href={DEMO_URL} variant="accent" size="sm" class="mx-auto mt-10">Open the demo</Button>
+        <p class="mx-auto mt-6 max-w-md text-xs text-muted-foreground">The demo deletes all data every night at about 2 AM Pacific time. Do not put private data in it.</p>
+      </div>
     </div>
-    <div class="start">
-      <div class="key"><b>01</b>Open a.openact.ing.</div>
-      <div class="key"><b>02</b>Type your email. We send you a sign-in code.</div>
-      <div class="key"><b>03</b>Make a company, then open an app.</div>
-      <a class="btn btn-accent" href={DEMO_URL}>Open the demo</a>
-    </div>
-  </div>
+  </Wrapper>
 </section>

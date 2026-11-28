@@ -3,17 +3,18 @@
 // The Worker routes it calls are in worker/contribute.ts.
 import Site from "../layouts/Site.astro";
 import "../styles/contribute.css";
+import Button from "../components/ui/Button.astro";
 ---
 <Site
   page="contribute"
   path="/contribute"
-  mainClass="wrap"
+  mainClass="mx-auto w-full max-w-340 px-4 pt-32 pb-24 sm:px-6 lg:px-24 2xl:max-w-380"
   title="Contribute to OpenAct"
   description="Help build OpenAct, the open source framework for business apps on Cloudflare. Contribute by card through Stripe or in USDC through x402."
   ogDescription="Help build OpenAct by card or in USDC. AI agents can contribute through x402."
 >
   <div class="intro">
-    <p class="eyebrow warm">Contribute</p>
+    <p class="text-xs tracking-wide text-muted-foreground">Contribute</p>
     <h1>Help build OpenAct</h1>
     <p class="lead">OpenAct is free and open source. Your contribution helps us keep building it. Give once or each month, by card or in USDC.</p>
   </div>
@@ -116,7 +117,7 @@ import "../styles/contribute.css";
               <p class="hint" data-monthly-note hidden>Stripe charges your card on the same day each month.</p>
               <p class="hint" data-test-card hidden>No real money moves. Use the test card 4242 4242 4242 4242 with any future date and any CVC.</p>
             </div>
-            <button type="button" class="btn btn-accent" data-pay="card">Give $25</button>
+            <Button variant="accent" size="base" class="w-full" data-pay="card">Give $25</Button>
             <a class="manage" data-manage href="#" target="_blank" rel="noreferrer" hidden>Manage your monthly contribution</a>
           </div>
 
@@ -125,9 +126,9 @@ import "../styles/contribute.css";
             <p data-crypto-intro>Sign one payment in your wallet. The payment uses the x402 protocol. You pay no network fee.</p>
             <div class="grow">
               <span class="hint">The receiving wallet:</span>
-              <code class="addr key" data-pay-to></code>
+              <code class="addr" data-pay-to></code>
             </div>
-            <button type="button" class="btn btn-ghost" data-pay="crypto">Give $25 in USDC</button>
+            <Button variant="muted" size="base" class="w-full" data-pay="crypto">Give $25 in USDC</Button>
           </div>
         </div>
       </form>
@@ -142,7 +143,7 @@ import "../styles/contribute.css";
     <div>
       <p>Call the endpoint with an amount in US dollars. It answers 402 with the payment terms in the PAYMENT-REQUIRED header.</p>
       <p>Send the signed payment in the PAYMENT-SIGNATURE header. A good payment gets 200 and a PAYMENT-RESPONSE header with the transaction.</p>
-      <pre class="key"><code data-agent-curl>curl -i "https://openact.ing/api/contribute/x402?amount=5"</code></pre>
+      <pre><code data-agent-curl>curl -i "https://openact.ing/api/contribute/x402?amount=5"</code></pre>
     </div>
   </section>
   <script is:inline slot="end" src="/contribute.js" type="module"></script>

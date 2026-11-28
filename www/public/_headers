@@ -1,9 +1,11 @@
+# Every page runs scripts from this site only: theme.js (the theme switcher), the header menus,
+# the tabs and the dithered art in /_astro/. Astro writes them as files, never inline (astro.config.mjs).
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   X-Frame-Options: DENY
   Permissions-Policy: camera=(), microphone=(), geolocation=()
-  Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
 
 # The Contribute page runs one script from this site (contribute.js) and calls /api/contribute on this site.
 /contribute
