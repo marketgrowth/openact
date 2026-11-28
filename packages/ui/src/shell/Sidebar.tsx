@@ -1,6 +1,7 @@
 import { COMPANY_ROLE_LABELS, type Company, type User } from "@openact/core/shared";
+import { OPENACT_RELEASES_URL, OPENACT_VERSION } from "../version";
 import { APPS_PATH, SETTINGS_PATH, activeApp, appHome, isSettingsPath, railGroups, railOrder, resolveAppPath, type ClientApp } from "../apps";
-import { ACCOUNT_SECTIONS, COMPANY_SECTIONS, SITE_SECTIONS, appSections, parseSettingsPath, settingsPath, type SettingsSection } from "../settings-paths";
+import { ACCOUNT_SECTIONS, COMPANY_SECTIONS, CONTRIBUTE_SECTION, SITE_SECTIONS, appSections, parseSettingsPath, settingsPath, type SettingsSection } from "../settings-paths";
 import { canManageCompany } from "@openact/core/shared";
 import { Link, navigate, usePath } from "../router";
 import { Avatar, Icon } from "../ui";
@@ -304,6 +305,7 @@ export function AppSidebar(p: AppSidebarProps) {
             )}
             {Section && <Section />}
           </SidebarContent>
+          {onSettings && <SettingsFooter site={p.superAdmin} path={path} onPick={done} />}
         </Sidebar>
       </div>
       <SidebarRail />
@@ -347,6 +349,37 @@ function SettingsNav({ apps, path, company, site, onPick }: { apps: readonly Cli
       {site && group("Site settings", SITE_SECTIONS)}
       {company && appTabs.length > 0 && group("App settings", appTabs)}
     </>
+  );
+}
+
+/**
+ * The foot of the Settings panel. A spacer pushes it to the bottom. The Contribute link (the site owner only) sits
+ * alone at the very bottom, then one line of small text: the OpenAct version and a link to the releases.
+ */
+function SettingsFooter({ site, path, onPick }: { site: boolean; path: string; onPick: () => void }) {
+  const here = parseSettingsPath(path);
+  const on = here?.scope === CONTRIBUTE_SECTION.scope && here.id === CONTRIBUTE_SECTION.id;
+  return (
+    <SidebarFooter className="mt-auto px-2 pt-6 pb-2" data-settings-footer="">
+      {site && (
+        <SidebarMenu aria-label="Contribute">
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={on}>
+              <Link to={settingsPath(CONTRIBUTE_SECTION.scope, CONTRIBUTE_SECTION.id)} onClick={onPick} aria-current={on ? "page" : undefined} data-settings-nav={`${CONTRIBUTE_SECTION.scope}/${CONTRIBUTE_SECTION.id}`}>
+                <Icon name={CONTRIBUTE_SECTION.icon} />
+                <span>{CONTRIBUTE_SECTION.label}</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      )}
+      <p className="px-2 text-xs text-muted-foreground" data-openact-version="">
+        Built on OpenAct v{OPENACT_VERSION} |{" "}
+        <a className="underline underline-offset-4" href={OPENACT_RELEASES_URL} target="_blank" rel="noreferrer">
+          Update<span className="sr-only"> (opens in a new tab)</span>
+        </a>
+      </p>
+    </SidebarFooter>
   );
 }
 

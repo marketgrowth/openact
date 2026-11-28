@@ -26,8 +26,6 @@ export const site = defineClientApp({
   name: "OpenAct",
   // The demo notice shows on every signed-in page (demo branch only).
   Provider: DemoNotice,
-  publicRoutes: { "/contribute": ContributeMoved, "/colophon": Colophon },
-  // Footer items show at the bottom of the app rail. The colophon has no icon there. Its page still works at /colophon.
-  // The heart opens the Contribute page on openact.ing in a new browser tab.
-  nav: [{ label: "Contribute", icon: "heart", path: CONTRIBUTE_URL, placement: "footer" }]
+  publicRoutes: { "/contribute": ContributeMoved, "/colophon": Colophon }
+  // Contribute is in the foot of the Settings panel, for the site owner only. It is not on the rail.
 });
