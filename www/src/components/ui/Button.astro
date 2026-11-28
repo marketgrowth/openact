@@ -1,0 +1,38 @@
+---
+// A button or a link that looks like one. shadcn/ui-style variants, with the Buio gradients.
+//   default: the gray gradient (Buio's main button)
+//   accent:  the strongest button (white in the dark theme, near black in the light theme)
+//   muted:   the quiet button
+//   link:    text only
+// Give href to render a link. Without href, it renders a <button>.
+interface Props {
+  variant?: "default" | "accent" | "muted" | "link";
+  size?: "xs" | "sm" | "base" | "lg";
+  iconOnly?: boolean;
+  href?: string;
+  type?: "button" | "submit";
+  class?: string;
+  [key: string]: unknown;
+}
+const { variant = "default", size = "sm", iconOnly = false, href, type = "button", class: className, ...rest } = Astro.props;
+
+const variants = {
+  default: "text-secondary-foreground bg-linear-to-t from-secondary to-secondary-highlight hover:from-secondary-highlight hover:to-secondary",
+  accent: "text-accent-foreground bg-linear-to-t from-accent-deep to-accent hover:from-accent hover:to-accent-deep",
+  muted: "text-foreground bg-linear-to-t from-background to-muted hover:from-muted hover:to-background",
+  link: "text-foreground hover:text-muted-foreground"
+};
+const sizes = {
+  xs: iconOnly ? "size-8 rounded-md" : "h-8 px-4 rounded-md text-xs",
+  sm: iconOnly ? "size-9 rounded-lg" : "h-9 px-4 rounded-lg text-xs",
+  base: iconOnly ? "size-10 rounded-lg" : "h-10 px-6 rounded-lg text-sm",
+  lg: iconOnly ? "size-12 rounded-lg" : "h-12 px-6 rounded-lg text-base"
+};
+const base =
+  variant === "link"
+    ? "inline-flex items-center gap-2 text-sm duration-300"
+    : "inline-flex shrink-0 items-center justify-center gap-2 text-center font-medium whitespace-nowrap shadow-dimensional transition-colors duration-500 ease-in-out focus-visible:outline-2 outline-offset-2 cursor-pointer";
+const classes = [base, variants[variant], variant === "link" ? "" : sizes[size], className];
+const Tag = href ? "a" : "button";
+---
+<Tag href={href} type={href ? undefined : type} class:list={classes} {...rest}><slot /></Tag>

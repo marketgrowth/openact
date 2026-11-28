@@ -1,0 +1,43 @@
+---
+// The theme switcher. public/theme.js does the work, so these buttons need no script of their own.
+//   variant="toggle": one icon button that flips light and dark (the header)
+//   variant="segmented": Light, Dark and System (the footer and the mobile menu)
+import Icon from "./Icon.astro";
+interface Props {
+  variant?: "toggle" | "segmented";
+  class?: string;
+}
+const { variant = "toggle", class: className } = Astro.props;
+const options = [
+  { value: "light", label: "Light", icon: "sun" },
+  { value: "dark", label: "Dark", icon: "moon" },
+  { value: "system", label: "System", icon: "monitor" }
+] as const;
+---
+{variant === "toggle" ? (
+  <button
+    type="button"
+    data-theme-toggle
+    aria-label="Switch the theme"
+    title="Switch the theme"
+    class:list={["inline-flex size-9 items-center justify-center rounded-lg text-foreground duration-300 hover:bg-muted cursor-pointer", className]}
+  >
+    <Icon name="sun" class="size-4 hidden dark:block" />
+    <Icon name="moon" class="size-4 dark:hidden" />
+  </button>
+) : (
+  <div role="group" aria-label="Theme" class:list={["inline-flex items-center gap-0.5 rounded-lg border border-muted p-0.5", className]}>
+    {options.map((o) => (
+      <button
+        type="button"
+        data-theme-set={o.value}
+        aria-pressed="false"
+        title={`${o.label} theme`}
+        class="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs text-muted-foreground duration-300 hover:text-foreground aria-pressed:bg-muted aria-pressed:text-foreground cursor-pointer"
+      >
+        <Icon name={o.icon} class="size-3.5" />
+        <span>{o.label}</span>
+      </button>
+    ))}
+  </div>
+)}

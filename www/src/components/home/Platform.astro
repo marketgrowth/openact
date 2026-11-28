@@ -1,0 +1,36 @@
+---
+// What the free core gives every app. From the Buio theme's platform features: four line shapes over a soft fade.
+import Wrapper from "../ui/Wrapper.astro";
+import Heading from "../ui/Heading.astro";
+import Shape1 from "../art/Shape1.astro";
+import Shape2 from "../art/Shape2.astro";
+import Shape3 from "../art/Shape3.astro";
+import Shape4 from "../art/Shape4.astro";
+const features = [
+  { shape: Shape1, title: "Projects, included", description: "A working app on day one: a board, a Gantt timeline and a calendar. Every open page shows changes at once." },
+  { shape: Shape2, title: "Agents with limits", description: "Tell the agent what to do in plain words. It never does more than your role allows. Deletes wait for you." },
+  { shape: Shape3, title: "Many companies", description: "One install, many teams. Each company has its own people, projects, logo and workspaces." },
+  { shape: Shape4, title: "Your account, your data", description: "Deploy to your own Cloudflare account with one click. Nobody else holds your data." }
+];
+---
+<section id="features" aria-labelledby="features-title">
+  <Wrapper class="py-24">
+    <div class="max-w-2xl">
+      <Heading id="features-title" muted="With a working app included.">Open source at the core.</Heading>
+      <p class="mt-6 text-base text-muted-foreground">Sign-in, companies, roles, email, files and the app shell are ready. Your apps add only their own features.</p>
+    </div>
+    <dl class="mt-16 grid grid-cols-1 gap-y-16 md:grid-cols-2 md:gap-x-8 lg:grid-cols-4 lg:gap-x-0">
+      {features.map(({ shape: Shape, title, description }) => (
+        <div>
+          <div class="aspect-square overflow-hidden bg-gradient-down">
+            <Shape class="size-full text-foreground" />
+          </div>
+          <div class="pt-6 lg:pr-8">
+            <dt class="text-base font-medium text-foreground">{title}</dt>
+            <dd class="mt-2 text-sm text-muted-foreground">{description}</dd>
+          </div>
+        </div>
+      ))}
+    </dl>
+  </Wrapper>
+</section>

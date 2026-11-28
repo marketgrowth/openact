@@ -1,0 +1,117 @@
+---
+// How you work with OpenAct, in code. From the Buio theme's developer tabs.
+// The commands and the manifest match docs/getting-started.md and docs/apps.md. Change them when the docs change.
+import { Code } from "astro:components";
+import Wrapper from "../ui/Wrapper.astro";
+import Heading from "../ui/Heading.astro";
+const tabs = [
+  {
+    title: "Deploy the core",
+    text: "Clone the repository and deploy it to your own Cloudflare account. Or use the Deploy to Cloudflare button.",
+    lang: "bash",
+    code: `git clone https://github.com/marketgrowth/openact
+cd openact
+npm install
+
+# Apply the migrations, then deploy the Worker
+npm run deploy
+
+# Run it on your computer first, with no AI
+npm run dev`
+  },
+  {
+    title: "Add an app",
+    text: "Add an app from the directory or from any GitHub repository. The code lands in your repository, so you can read and change it.",
+    lang: "bash",
+    code: `# An app from the app directory, by its id
+npm run openact -- add contacts
+
+# An app from GitHub, at a tag or a branch
+npm run openact -- add github:owner/repo#v1.2.0
+
+# See what is installed, and where it came from
+npm run openact -- list
+
+npm install
+npm run deploy`
+  },
+  {
+    title: "Describe an app to your agent",
+    text: "Tell Claude Code or Codex what the app does. The agent reads AGENTS.md and the app guide, then builds inside the rules.",
+    lang: "md",
+    code: `Build an OpenAct app called Inventory.
+
+- Track stock and sales for each location.
+- The agent predicts when an item runs out
+  and drafts the purchase order.
+- A person approves each order before it goes out.
+- Keep the data per workspace.
+
+Follow AGENTS.md and docs/apps.md.
+Use the Arc components first.
+Add tests, then run npm test.`
+  },
+  {
+    title: "Declare what the app needs",
+    text: "An app is a folder with a package.json. Its openact field names the app, its server and client code, and its scope.",
+    lang: "json",
+    code: `{
+  "name": "@acme/openact-app-inventory",
+  "type": "module",
+  "openact": {
+    "id": "inventory",
+    "name": "Inventory",
+    "server": "./src/server/index.ts",
+    "client": "./src/client/index.tsx",
+    "migrations": "./migrations",
+    "enabledByDefault": true,
+    "scope": "workspace"
+  }
+}`
+  }
+];
+---
+<section id="code" aria-labelledby="code-title">
+  <Wrapper class="py-24">
+    <div class="grid grid-cols-1 gap-y-12 lg:grid-cols-2" data-tabs>
+      <div class="lg:pr-12">
+        <Heading id="code-title" muted="Add apps with one more.">Deploy with one command.</Heading>
+        <div class="mt-12 flex flex-col gap-8" role="tablist" aria-label="Ways to work with OpenAct">
+          {tabs.map((tab, i) => (
+            <button
+              type="button"
+              role="tab"
+              id={`code-tab-${i}`}
+              aria-controls={`code-panel-${i}`}
+              aria-selected={i === 0 ? "true" : "false"}
+              data-tab={i}
+              class="w-full cursor-pointer text-left opacity-50 transition-opacity duration-300 hover:opacity-100 aria-selected:opacity-100"
+            >
+              <span class="block text-base font-medium text-foreground">{tab.title}</span>
+              <span class="mt-2 hidden text-sm text-muted-foreground md:block">{tab.text}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div>
+        {tabs.map((tab, i) => (
+          <div role="tabpanel" id={`code-panel-${i}`} aria-labelledby={`code-tab-${i}`} data-panel={i} class:list={["h-full", i !== 0 && "hidden"]}>
+            <div class="flex h-full flex-col">
+              <div class="border border-b-0 border-muted bg-background px-4 py-2">
+                <div class="flex items-center gap-1" aria-hidden="true">
+                  <div class="size-2 rounded-full outline outline-secondary-highlight"></div>
+                  <div class="size-2 rounded-full outline outline-secondary"></div>
+                  <div class="size-2 rounded-full outline outline-secondary"></div>
+                </div>
+              </div>
+              <Code class="grow border border-muted p-6 text-sm sm:p-10" code={tab.code} lang={tab.lang as any} theme="css-variables" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </Wrapper>
+</section>
+<script>
+  import "../../scripts/tabs.ts";
+</script>

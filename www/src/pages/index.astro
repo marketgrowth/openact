@@ -1,11 +1,15 @@
 ---
 // The home page at https://openact.ing. Each section is a component in src/components/home/.
+// The layout follows the Buio theme: hero, a row of services, features, tabs, numbers, people, pricing, questions and a closing call.
 import Site from "../layouts/Site.astro";
-import "../styles/home.css";
 import Hero from "../components/home/Hero.astro";
+import Stack from "../components/home/Stack.astro";
+import Platform from "../components/home/Platform.astro";
 import Tour from "../components/home/Tour.astro";
+import Code from "../components/home/Code.astro";
+import Numbers from "../components/home/Numbers.astro";
+import Scale from "../components/home/Scale.astro";
 import Audience from "../components/home/Audience.astro";
-import Features from "../components/home/Features.astro";
 import Director from "../components/home/Director.astro";
 import Plans from "../components/home/Plans.astro";
 import Closer from "../components/home/Closer.astro";
@@ -19,12 +23,14 @@ import Closer from "../components/home/Closer.astro";
   ogDescription="OpenAct is an open source framework for business apps on Cloudflare. Try the free demo."
 >
   <Hero />
-  <div class="wrap">
-    <Tour />
-    <Audience />
-    <Features />
-    <Director />
-    <Plans />
-    <Closer />
-  </div>
+  <Stack />
+  <Platform />
+  <Tour />
+  <Code />
+  <Numbers />
+  <Scale />
+  <Audience />
+  <Director />
+  <Plans />
+  <Closer />
 </Site>

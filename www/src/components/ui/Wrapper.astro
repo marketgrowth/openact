@@ -1,0 +1,14 @@
+---
+// The page width. "standard" for most sections, "narrow" for text.
+interface Props {
+  variant?: "standard" | "narrow";
+  class?: string;
+  id?: string;
+}
+const { variant = "standard", class: className, id } = Astro.props;
+const widths = {
+  standard: "mx-auto max-w-340 px-4 sm:px-6 lg:px-24 2xl:max-w-380",
+  narrow: "mx-auto max-w-2xl px-4 sm:px-8"
+};
+---
+<div id={id} class:list={[widths[variant], className]}><slot /></div>

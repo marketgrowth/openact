@@ -1,5 +1,6 @@
 // Astro builds the openact.ing pages into dist/. The openact-site Worker (worker/index.ts) serves dist/.
 import { defineConfig } from "astro/config";
+import tailwindcss from "@tailwindcss/vite";
 import noOrphans from "./integrations/no-orphans.mjs";
 
 export default defineConfig({
@@ -11,5 +12,6 @@ export default defineConfig({
   trailingSlash: "never",
   devToolbar: { enabled: false },
   // Keep media queries in the older (max-width: ...) form, so Safari before 16.4 reads them.
-  vite: { build: { cssTarget: ["chrome100", "safari14", "firefox100"] } }
+  // assetsInlineLimit 0: Astro writes every script to /_astro/ as a file. The rules in public/_headers allow only scripts from this site, not inline ones.
+  vite: { plugins: [tailwindcss()], build: { assetsInlineLimit: 0, cssTarget: ["chrome100", "safari14", "firefox100"] } }
 });

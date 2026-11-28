@@ -9,15 +9,28 @@ This folder is its own project. You can build and deploy it from here. You do no
 | Path | What it is |
 | --- | --- |
 | `src/pages/` | One file for each page. `index.astro` is `/`, `contribute.astro` is `/contribute`, `design.astro` is `/design`, `build.astro` is `/build`, `producer.astro` is `/producer`, `404.astro` is the page for an address that does not exist. |
-| `src/layouts/Site.astro` | The layout for marketing pages: head tags, fonts, shared styles, header and footer. |
-| `src/components/` | The header, the footer and the logo. `home/` has one file for each home page section. `build/Ideas.astro` is the "What you could build" section that `/build` and `/producer` share. |
-| `src/styles/` | `site.css` is shared by every page that uses the layout. Each page has its own file, such as `home.css`. |
+| `src/layouts/Site.astro` | The layout for marketing pages: head tags, fonts, the theme, header and footer. |
+| `src/components/` | The header, the footer and the logo. `ui/` holds the shadcn/ui-style parts (Button, Badge, Heading, Faq, Window, ThemeSwitcher). `art/` holds the dithered WebGL canvases and line shapes. `home/` has one file for each home page section. `build/` holds the parts that `/build` and `/producer` share, such as `Ideas.astro` ("What you could build"). |
+| `src/styles/` | `global.css` holds Tailwind CSS and the theme tokens, in shadcn/ui names (`background`, `foreground`, `muted`, `muted-foreground` and more), for the light and dark themes. `drawer.css` and `contribute.css` belong to one part each. |
+| `src/scripts/` | Scripts that components share, such as `tabs.ts`. |
+| `scripts/` | `make-art.py` makes the still dithered pictures in `public/images/art/`. `check-orphans.py` checks for orphan words. |
 | `src/site.ts` | Links that many pages use, such as the demo and the docs. |
-| `public/` | Files that are copied as they are: images, `_headers`, `robots.txt`, `sitemap.xml`, `contribute.js`, the Promptbook files. |
+| `public/` | Files that are copied as they are: images, `_headers`, `robots.txt`, `sitemap.xml`, `theme.js`, `contribute.js`, `producer.js`, the Promptbook files. |
 | `worker/` | The `openact-site` Worker. It sends www.openact.ing to openact.ing, answers the contribution routes (`/api/contribute`), sends the Producer form (`/api/producer`) and serves the built files. |
 | `wrangler.jsonc` | The Worker settings. |
 
-Astro builds the pages into `dist/`. Most pages have no JavaScript. The Contribute page runs `public/contribute.js`, and the Producer page runs `public/producer.js`. The rules in `public/_headers` allow no other script.
+Astro builds the pages into `dist/`. The rules in `public/_headers` allow scripts from this site only, never inline scripts. So `astro.config.mjs` sets `assetsInlineLimit: 0`, and Astro writes every component script to `/_astro/` as a file.
+
+## The look and the themes
+
+The design follows the Buio theme by Lexington Themes: a near black page with white ink, hairlines between sections, two-tone headings and dithered art. The light theme turns it around: white paper and near black ink.
+
+- **Tokens.** Use Tailwind classes with the tokens in `src/styles/global.css`, such as `bg-background`, `text-muted-foreground` and `border-muted`. Never use fixed colors such as `text-white`. Each token has a light and a dark value.
+- **Theme switcher.** `public/theme.js` loads first in `<head>`. It puts `.light` or `.dark` on `<html>` before the page paints, and keeps the choice (Light, Dark or System) in localStorage. Buttons with `data-theme-toggle` or `data-theme-set` need no other script. Without JavaScript, the page follows the system setting.
+- **Pictures for one theme.** Give an image the class `only-light` or `only-dark`. The product screenshots in the tour use this.
+- **Dithered art.** The canvases in `src/components/art/` and the pictures in `public/images/art/` draw light dots. The `dither` class turns them dark on the light theme.
+- **Headings.** Use `ui/Heading.astro`. The first line is in the foreground color. Pass the second line as `muted`.
+- **Fonts.** IBM Plex Sans and IBM Plex Mono, the OpenAct website fonts. Buio uses Switzer and Geist Mono.
 
 ## Work on the site
 
@@ -38,16 +51,16 @@ npm run preview   # Build, then run the real Worker at http://localhost:8787
    ```astro
    ---
    import Site from "../layouts/Site.astro";
-   import "../styles/<name>.css";
+   import Wrapper from "../components/ui/Wrapper.astro";
    ---
    <Site title="..." description="..." path="/<name>">
-     <div class="wrap">...</div>
+     <Wrapper class="pt-32 pb-24">...</Wrapper>
    </Site>
    ```
 
-3. Put the page's own styles in `src/styles/<name>.css`. Use the variables in `site.css`, such as `var(--accent)` and `var(--muted)`.
+3. Style the page with Tailwind classes and the tokens in `src/styles/global.css`. Reuse the parts in `src/components/ui/` first.
 4. Add the address to `public/sitemap.xml`.
-5. Do not add a `<script>`. The page rules block it. If a page needs a script, add a rule for its path in `public/_headers`, like the one for `/contribute`.
+5. A script goes in a component `<script>` tag, which Astro writes to a file. Never use `is:inline` with code inside it: the page rules block inline scripts. A page that calls an API or posts a form needs its own rule in `public/_headers`, like the ones for `/contribute` and `/producer`.
 
 The Promptbook page (`design.astro`) has its own look and does not use the layout. `npm run design -- build` (from the repository root) writes the parts between its `promptbook` markers. Do not edit those parts by hand.
 
@@ -97,4 +110,4 @@ The Worker also uses `src/shared/contribute.ts` from the repository root. Contri
 
 ASD-STE100 style: short sentences, active voice, one idea per sentence. American spelling. No em dashes.
 
-No orphan words: a heading or a paragraph never ends with a single word alone on its last line. `src/styles/site.css` sets `text-wrap: balance` on headings and `text-wrap: pretty` on text. `integrations/no-orphans.mjs` also binds the last two words of each heading, paragraph and list item with a no-break space when the site builds. Do not turn these off. If a heading still leaves one word alone at some width, shorten it or set a narrower `max-width` on it. Run `npm run build`, then `python3 scripts/check-orphans.py`. It opens every page at ten widths and fails when a block of text ends with one word alone.
+No orphan words: a heading or a paragraph never ends with a single word alone on its last line. `src/styles/global.css` sets `text-wrap: balance` on headings and `text-wrap: pretty` on text. `integrations/no-orphans.mjs` also binds the last two words of each heading, paragraph and list item with a no-break space when the site builds. Do not turn these off. If a heading still leaves one word alone at some width, shorten it or set a narrower `max-width` on it. Run `npm run build`, then `python3 scripts/check-orphans.py`. It opens every page at ten widths and fails when a block of text ends with one word alone.

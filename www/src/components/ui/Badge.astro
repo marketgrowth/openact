@@ -1,0 +1,15 @@
+---
+// A small rounded label, like shadcn/ui Badge.
+interface Props {
+  variant?: "muted" | "outline" | "gold";
+  class?: string;
+  title?: string;
+}
+const { variant = "muted", class: className, title } = Astro.props;
+const variants = {
+  muted: "bg-muted text-foreground",
+  outline: "border border-muted text-muted-foreground",
+  gold: "border border-gold/40 text-gold"
+};
+---
+<span title={title} class:list={["inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap", variants[variant], className]}><slot /></span>

@@ -1,0 +1,29 @@
+---
+// The closing call to action for /build and /producer, over Buio's dithered field. Put the buttons in the default slot.
+import Wrapper from "../ui/Wrapper.astro";
+import DitherField from "../art/DitherField.astro";
+interface Props {
+  id?: string;
+  title: string;
+  text: string;
+  steps: string[];
+}
+const { id = "next", title, text, steps } = Astro.props;
+---
+<section id={id} aria-labelledby={`${id}-title`}>
+  <Wrapper class="pt-24">
+    <div class="relative overflow-hidden border-x border-muted px-6 pt-20 pb-48 text-center sm:px-8">
+      <DitherField class="absolute inset-0" />
+      <div class="relative">
+        <h2 id={`${id}-title`} class="text-3xl font-medium tracking-tight text-foreground md:text-4xl">{title}</h2>
+        <p class="mx-auto mt-4 max-w-xl text-base text-muted-foreground">{text}</p>
+        <ol class="mx-auto mt-8 flex w-fit flex-col gap-2 text-left text-sm text-foreground">
+          {steps.map((s, i) => (
+            <li class="flex items-baseline gap-3"><span class="font-mono text-xs text-muted-foreground">{String(i + 1).padStart(2, "0")}</span>{s}</li>
+          ))}
+        </ol>
+        <div class="mt-10 flex flex-wrap justify-center gap-2"><slot /></div>
+      </div>
+    </div>
+  </Wrapper>
+</section>

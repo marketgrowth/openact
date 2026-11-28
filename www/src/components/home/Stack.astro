@@ -1,0 +1,33 @@
+---
+// The row under the hero: the Cloudflare services that OpenAct runs on. From the Buio theme's logo cloud.
+// Each cell rolls between the service and the job it does. The first label repeats at the end, so the loop is seamless.
+import Wrapper from "../ui/Wrapper.astro";
+const cells = [
+  ["Workers", "The app and the API"],
+  ["D1", "Your database"],
+  ["R2", "Your files"],
+  ["Durable Objects", "Live rooms"]
+];
+---
+<section aria-labelledby="stack-title">
+  <Wrapper class="py-24">
+    <h2 id="stack-title" class="text-center text-base text-foreground">
+      Built on Cloudflare.{" "}
+      <span class="text-muted-foreground">Deployed to your own account.</span>
+    </h2>
+    <ul class="mt-12 grid grid-cols-2 gap-px border-y border-muted bg-muted md:grid-cols-4" role="list">
+      {cells.map((labels, index) => (
+        <li class="flex aspect-video items-center justify-center bg-background">
+          <span class="sr-only">{labels[0]}: {labels[1]}</span>
+          <div class="h-10 overflow-hidden" aria-hidden="true">
+            <div class="flex animate-logo-roll flex-col motion-reduce:animate-none" style={`animation-delay: ${index * 0.25}s`}>
+              {[...labels, labels[0]].map((label, i) => (
+                <span class:list={["flex h-10 items-center justify-center text-lg tracking-tight", i % 2 ? "text-muted-foreground" : "font-medium text-foreground"]}>{label}</span>
+              ))}
+            </div>
+          </div>
+        </li>
+      ))}
+    </ul>
+  </Wrapper>
+</section>
